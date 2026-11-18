@@ -50,11 +50,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       `src/primitives/registry.ts` exists and anything outside `src/dev` still uses it (keep the
       registry at that path, or update the test). P1B.3 replaces `DevSubtitles`; delete `src/dev/`
       with the last of them.
-- [ ] **P1B.2 — Cache event times in seconds.** P1B.2's prompt says "resolve every event anchor to
-      a frame at 30 fps". Store seconds in `timing.events[].atSec` instead (use `resolveAnchorSec`
-      from `packages/shared`), because drafts render at 15 fps. The renderer recomputes frames
-      from word timings and never reads the cache. The updated design doc already says seconds
-      (P1A.1, P1B.2, P1A.10); drop this item once the repo copy is re-exported.
 - [ ] **P1A.10 — Beat transitions.** P1A.10 owns `transitionIn` (cut, fade, slide, zoom-in,
       zoom-out), semantic zoom, focus dimming and the board camera. Until then beats hard-cut:
       `SpecLayers` tiles beat `<Sequence>`s with no overlap and ignores `transitionIn` and
@@ -128,11 +123,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       tracker only), exported as `CHAPTER_DISPLAY_DEVICES`. Use these ids for the
       "question-driven chapters" and "roadmap of steps" devices in the device catalogue (or move
       the constants into it).
-- [ ] **P1C.5 — Hero metric shape in the Director.** `story.heroMetric` is now
-      `{ label, value, storyClock? }` (pinned pill text, e.g. "iPhone 17" / "3.5 min"), with
-      `storyClock: { from, to, startValue, endValue, keyframes[{ beatId, value }] }` in story-time
-      seconds. The design doc's P1A.1 still describes "label + start/end value + unit"; update it
-      and the Director's output shape and DO rules to match.
 - [ ] **P1C.5 / P1C.6 — HUD text length.** HUD rows are one line and truncate with an ellipsis.
       With `blueprint-dark`, roughly 30 characters of chapter question fit beside the story clock,
       and the series label + topic share the top bar with the handle. Add soft length limits to
