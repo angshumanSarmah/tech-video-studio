@@ -52,8 +52,8 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       fills, plus `avoidZones` (platform action buttons clipped to the stage). Keep text and key
       elements out of avoid zones; background decoration may pass under.
 - [ ] **Calibrate safe-area zones.** The Shorts/Reels exclusion zones in `blueprint-dark` are
-      starting values. Save a screenshot cropped to the 9:16 video frame at
-      `packages/renderer/public/calibration/<platform>.png`, run
+      starting values. Save a full-screen screenshot at
+      `packages/renderer/public/calibration/<platform>.png` (a non-9:16 one is centre-cropped), run
       `pnpm --filter @explainer-studio/renderer calibrate:safe-area <shorts|reels>`, compare
       `docs/safe-area/<platform>-check.png`, and adjust the zones (both paths are gitignored).
 - [ ] **P1D.8 — Accent contrast warning.** Settings should warn when a series accent fails

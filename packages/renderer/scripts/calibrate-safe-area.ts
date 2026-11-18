@@ -4,8 +4,9 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getTheme } from '../src/theme/index.ts';
 import {
-  aspectWarning,
   calibrationPaths,
+  centreCrop,
+  describeCrop,
   parsePlatform,
   pngSize,
   remotionStillArgs,
@@ -19,16 +20,16 @@ function main(): number {
   const screenshotPath = join(root, 'public', screenshot);
   if (!existsSync(screenshotPath)) {
     console.error(
-      `Missing ${screenshotPath}.\nSave a ${platform} screenshot there, cropped to the 9:16 ` +
-        'video frame (the folder is gitignored).',
+      `Missing ${screenshotPath}.\nSave a ${platform} screenshot there (the folder is ` +
+        'gitignored). A non-9:16 screenshot is centre-cropped to 9:16.',
     );
     return 1;
   }
-  const warning = aspectWarning(pngSize(readFileSync(screenshotPath)), getTheme().canvas);
-  if (warning) console.warn(`Warning: ${warning}`);
+  const crop = centreCrop(pngSize(readFileSync(screenshotPath)), getTheme().canvas);
+  console.log(describeCrop(crop));
   mkdirSync(dirname(join(root, output)), { recursive: true });
   const bin = join(root, 'node_modules', '.bin', 'remotion');
-  const result = spawnSync(bin, remotionStillArgs(platform), { cwd: root, stdio: 'inherit' });
+  const result = spawnSync(bin, remotionStillArgs(platform, crop), { cwd: root, stdio: 'inherit' });
   return result.status ?? 1;
 }
 
