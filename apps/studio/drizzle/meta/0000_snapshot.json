@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "b71b39c7-3850-4242-b9c3-902855d9ca18",
+  "id": "03552e92-f13c-4fc2-8ba5-aea230a2743b",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "assets": {
@@ -238,7 +238,7 @@
           "tableTo": "runs",
           "columnsFrom": ["run_id"],
           "columnsTo": ["id"],
-          "onDelete": "cascade",
+          "onDelete": "restrict",
           "onUpdate": "no action"
         }
       },
@@ -1005,6 +1005,13 @@
           "notNull": true,
           "autoincrement": false
         },
+        "label": {
+          "name": "label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "accent_colour": {
           "name": "accent_colour",
           "type": "text",
@@ -1196,6 +1203,13 @@
           "notNull": true,
           "autoincrement": false
         },
+        "source_label": {
+          "name": "source_label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "note": {
           "name": "note",
           "type": "text",
@@ -1232,7 +1246,12 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "spec_versions_source_ck": {
+          "name": "spec_versions_source_ck",
+          "value": "(\"spec_versions\".\"created_by\" = 'external') = (\"spec_versions\".\"source_label\" is not null)"
+        }
+      }
     },
     "topics": {
       "name": "topics",

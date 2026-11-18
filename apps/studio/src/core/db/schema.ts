@@ -77,6 +77,8 @@ export const series = sqliteTable(
     name: text('name').notNull(),
     /** Stable slug, unique across channels (e.g. `system-design`). */
     tag: text('tag').notNull(),
+    /** Display text for the video HUD (e.g. `SYSTEM DESIGN`). */
+    label: text('label').notNull(),
     accentColour: text('accent_colour').notNull(),
     createdAt: createdAt(),
   },
@@ -211,10 +213,18 @@ export const specVersions = sqliteTable(
     version: integer('version').notNull(),
     jsonPath: text('json_path').notNull(),
     createdBy: text('created_by', { enum: SPEC_AUTHORS }).notNull(),
+    /** Which external chat model produced an imported spec (e.g. `chatgpt`); set iff external. */
+    sourceLabel: text('source_label'),
     note: text('note'),
     createdAt: createdAt(),
   },
-  (t) => [uniqueIndex('spec_versions_run_version_uq').on(t.runId, t.version)],
+  (t) => [
+    uniqueIndex('spec_versions_run_version_uq').on(t.runId, t.version),
+    check(
+      'spec_versions_source_ck',
+      sql`(${t.createdBy} = 'external') = (${t.sourceLabel} is not null)`,
+    ),
+  ],
 );
 
 /** Every LLM call. `run_id` is null for calls outside a run (reference analyst, memory). */
@@ -327,13 +337,17 @@ export const missingPrimitiveRequests = sqliteTable(
   (t) => [index('missing_primitive_requests_name_idx').on(t.name)],
 );
 
+/**
+ * `restrict`: an exported run cannot be deleted, so the usage history that drives variety
+ * penalties survives. Runs that never exported still cascade their usage rows on delete.
+ */
 export const exports = sqliteTable(
   'exports',
   {
     id: id(),
     runId: integer('run_id')
       .notNull()
-      .references(() => runs.id, { onDelete: 'cascade' }),
+      .references(() => runs.id, { onDelete: 'restrict' }),
     mp4Path: text('mp4_path').notNull(),
     srtPath: text('srt_path').notNull(),
     thumbnailPath: text('thumbnail_path'),

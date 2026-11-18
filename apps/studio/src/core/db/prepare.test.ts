@@ -56,8 +56,15 @@ describe('prepareDatabase on a fresh data dir', () => {
     expect(tableNames(db)).toEqual(EXPECTED_TABLES);
     expect(db.select().from(channels).all()).toHaveLength(1);
     expect(
-      db.select({ name: series.name, tag: series.tag }).from(series).orderBy(series.id).all(),
-    ).toEqual(DEFAULT_SERIES.map(({ name, tag }) => ({ name, tag })));
+      db
+        .select({ name: series.name, tag: series.tag, label: series.label })
+        .from(series)
+        .orderBy(series.id)
+        .all(),
+    ).toEqual([
+      { name: 'System Design', tag: 'system-design', label: 'SYSTEM DESIGN' },
+      { name: 'AI', tag: 'ai', label: 'AI' },
+    ]);
   });
 
   it('is idempotent and does not re-seed', () => {

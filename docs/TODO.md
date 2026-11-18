@@ -39,6 +39,12 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       `#core/db/repositories/runs.ts`.
 - [ ] **P1C ingest — Pin sources per run.** Call `recordRunSources` when a run starts research,
       and write extracted text via `sourceTextPath` so re-fetches never overwrite older versions.
+- [ ] **P1C.12 — Asset drafts.** Reuse the `assets` table (status `draft | approved | rejected`)
+      for drafts; do not add a separate `asset_drafts` table. Variant SVGs live in files, listed
+      in a `variants` column on the asset row.
+- [ ] **P1C.15 — Custom element review gate.** The run must pause for custom element review even
+      with auto-approve on. Add the gate/pause value (`custom_elements`) to `GATE_IDS` then, and
+      decide whether `AutoApproveSchema` excludes it (it is never auto-approved).
 - [ ] **DB — Migrations that rebuild tables.** Drizzle's SQLite migrator runs each migration in a
       transaction, where `PRAGMA foreign_keys=OFF` is a no-op. Once migrations are append-only,
       a generated migration that recreates a table with inbound FKs (cascade deletes) needs

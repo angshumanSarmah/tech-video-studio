@@ -44,8 +44,8 @@ export const DECIDED_BY = ['auto', 'user'] as const;
 export const DecidedBySchema = z.enum(DECIDED_BY);
 export type DecidedBy = z.infer<typeof DecidedBySchema>;
 
-/** Who produced a spec version. */
-export const SPEC_AUTHORS = ['agent', 'user'] as const;
+/** Who produced a spec version. `external` = imported from a chat model (P1C.14). */
+export const SPEC_AUTHORS = ['agent', 'user', 'external'] as const;
 export const SpecAuthorSchema = z.enum(SPEC_AUTHORS);
 export type SpecAuthor = z.infer<typeof SpecAuthorSchema>;
 

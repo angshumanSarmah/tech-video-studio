@@ -32,7 +32,7 @@ CREATE TABLE `exports` (
 	`description` text,
 	`hashtags` text DEFAULT '[]' NOT NULL,
 	`created_at` integer DEFAULT (cast(unixepoch('subsec') * 1000 as integer)) NOT NULL,
-	FOREIGN KEY (`run_id`) REFERENCES `runs`(`id`) ON UPDATE no action ON DELETE cascade
+	FOREIGN KEY (`run_id`) REFERENCES `runs`(`id`) ON UPDATE no action ON DELETE restrict
 );
 --> statement-breakpoint
 CREATE INDEX `exports_run_idx` ON `exports` (`run_id`);--> statement-breakpoint
@@ -152,6 +152,7 @@ CREATE TABLE `series` (
 	`channel_id` integer NOT NULL,
 	`name` text NOT NULL,
 	`tag` text NOT NULL,
+	`label` text NOT NULL,
 	`accent_colour` text NOT NULL,
 	`created_at` integer DEFAULT (cast(unixepoch('subsec') * 1000 as integer)) NOT NULL,
 	FOREIGN KEY (`channel_id`) REFERENCES `channels`(`id`) ON UPDATE no action ON DELETE restrict
@@ -182,9 +183,11 @@ CREATE TABLE `spec_versions` (
 	`version` integer NOT NULL,
 	`json_path` text NOT NULL,
 	`created_by` text NOT NULL,
+	`source_label` text,
 	`note` text,
 	`created_at` integer DEFAULT (cast(unixepoch('subsec') * 1000 as integer)) NOT NULL,
-	FOREIGN KEY (`run_id`) REFERENCES `runs`(`id`) ON UPDATE no action ON DELETE cascade
+	FOREIGN KEY (`run_id`) REFERENCES `runs`(`id`) ON UPDATE no action ON DELETE cascade,
+	CONSTRAINT "spec_versions_source_ck" CHECK(("spec_versions"."created_by" = 'external') = ("spec_versions"."source_label" is not null))
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `spec_versions_run_version_uq` ON `spec_versions` (`run_id`,`version`);--> statement-breakpoint
