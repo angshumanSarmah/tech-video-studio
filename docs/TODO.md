@@ -13,13 +13,19 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       progress (relayed over SSE), and document the choice in CLAUDE.md. Server and worker run
       as separate processes under `concurrently`, so IPC would need a channel between them; an
       events table needs none.
-- [ ] **P0.2 — Config.** The app-config Zod schema moves to `packages/shared` per P0.2. Keep the
-      fs-based `loadConfig()` / `saveConfig()` in `apps/studio/src/core/` because the browser
-      bundle imports `shared`, which must stay free of `node:` imports. Merge the current
-      `EnvSchema` in `apps/studio/src/core/config.ts` into it.
 - [ ] **P0.2 / P1C.1 — Missing API key.** `DEEPSEEK_API_KEY` is optional at boot so `pnpm dev`
       works without a key. The LLM client must fail fast with a clear error when the key is
       missing.
+- [ ] **P1C.1 — Off-peak holidays.** DeepSeek treats Chinese public holidays as off-peak in full;
+      the price table only models weekday peak windows, so cost is slightly overestimated on
+      those days. Add a holiday list only if the difference matters.
+- [ ] **P1C.1 — Model alias drift.** `deepseek-flash` is an alias (currently
+      DeepSeek-V4.1-Flash-1017). Record the served model version from each API response in
+      `llm_calls` so output changes can be traced to a model swap.
+- [ ] **P1D.8 — Settings API.** Never return `llm.apiKey` to the browser; mask it in the GET
+      response and treat a masked value in PUT as "unchanged". Show when `DEEPSEEK_API_KEY` in
+      `.env` overrides the stored key. Save via `saveConfig()` from `#core/config.ts`, passing
+      settings (not the resolved `AppConfig`, which carries the env key).
 - [ ] **P0.4 — Serve the SPA in prod.** Serve `apps/studio/dist/web` from Hono. `pnpm start` runs
       only the built server and worker for now; in dev the SPA is served by Vite, which proxies
       `/api`.
