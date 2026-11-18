@@ -39,9 +39,10 @@ apps/studio/            one Node app, three entrypoints
   src/worker/           job runner: agents, TTS, render (separate process)
   src/core/             Node-only code shared by server + worker (config, data dirs)
   src/web/              Vue 3 + Vite SPA
+  drizzle/              generated SQL migrations (drizzle-kit)
 packages/shared/        Zod schemas, catalogues, inferred types (consumed as TS source)
 packages/renderer/      Remotion compositions (React)
-data/                   runtime data: SQLite DB, runs/, assets/, exports/ (gitignored)
+data/                   runtime data: SQLite DB, runs/, topics/, assets/, exports/ (gitignored)
 docs/TODO.md            follow-ups logged instead of done
 ```
 
@@ -102,6 +103,20 @@ Commands (from the repo root): `pnpm dev` (server, worker and Vite via `concurre
 ## OUTPUT SHAPE
 { "beatId": "<example-beat-id>", "elements": [{ "id": "<example-element-id>", "primitive": "<example-primitive-id>" }] }
 ```
+
+## Database
+
+- SQLite via Drizzle + better-sqlite3. Schema: `apps/studio/src/core/db/schema.ts`; DB file:
+  `<DATA_DIR>/studio.db`. Enum columns take their values from the Zod enums in `packages/shared`.
+- After changing the schema, run `pnpm --filter @explainer-studio/studio db:generate`.
+- Migrations are applied only by `db:migrate`, which `dev` and `start` run before the server and
+  worker start. Neither process migrates itself, so they never race on the shared file.
+- **Until the first real video exists**, migrations may be regenerated from scratch (delete
+  `apps/studio/drizzle/` and regenerate) instead of stacking new ones; wipe local `data/` when you
+  do. **After that, migrations are append-only:** never edit or delete an applied migration.
+- Large JSON and text live in files under the data dir (`runs/<run_id>/`,
+  `topics/<topic_id>/sources/<source_id>/<content_hash>.txt`). The DB stores paths relative to the
+  data dir; use the helpers in `#core/data-files.ts`.
 
 ## Code conventions
 

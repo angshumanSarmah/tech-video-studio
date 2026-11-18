@@ -11,6 +11,7 @@
     "src/worker",
     "vite.config.ts",
     "vitest.config.ts",
-    "tsup.config.ts"
+    "tsup.config.ts",
+    "drizzle.config.ts"
   ]
 }

@@ -4,12 +4,14 @@ coverage/
 *.tsbuildinfo
 .vite/
 
-# runtime data (SQLite DB, runs, assets, exports) — keep folder skeleton only
+# runtime data (SQLite DB, runs, topics, assets, exports) — keep folder skeleton only
 data/*
 !data/runs/
+!data/topics/
 !data/assets/
 !data/exports/
 data/runs/*
+data/topics/*
 data/assets/*
 data/exports/*
 !data/**/.gitkeep

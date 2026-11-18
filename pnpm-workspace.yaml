@@ -9,11 +9,16 @@ catalog:
   '@hono/node-server': ^2.1.9
   vue: ^3.5.45
   zod: ^4.6.7
+  # db: stable 0.45 line; 1.0 changes migration folder format and relations API (see docs/TODO.md)
+  drizzle-orm: ^0.45.4
+  better-sqlite3: ^13.2.0
   # build / dev
   '@vitejs/plugin-vue': ^6.0.11
   concurrently: ^10.0.7
   tsup: ^9.0.0
   tsx: ^4.23.15
+  drizzle-kit: ^0.31.11
+  '@types/better-sqlite3': ^9.6.0
   vite: ^8.3.8
   # TypeScript pinned to 6.0.x: typescript-eslint 8 supports <6.1 (see docs/TODO.md)
   typescript: ~6.0.3
@@ -36,4 +41,5 @@ catalog:
 
 # Dependencies allowed to run install scripts.
 allowBuilds:
+  better-sqlite3: true
   esbuild: true
