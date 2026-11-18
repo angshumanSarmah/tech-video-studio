@@ -40,8 +40,33 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
   - Verify Remotion's bundler compiles `@explainer-studio/shared` from TS source: `exports`
     points at `src/index.ts` and imports use explicit `.ts` extensions, so check its loader
     transpiles files outside `packages/renderer`.
-  - Check Zod version compatibility with Remotion's schema props: Remotion's `schema` support
-    has historically required Zod 3, while `shared` uses Zod 4.
+  - Do not use Remotion's `schema` props (it has historically required Zod 3; `shared` uses
+    Zod 4). `VideoFromSpec` and `BeatFromSpec` take the spec as plain props typed with
+    `RenderableVideoSpec`. `calculateMetadata` and the render service call
+    `validateRenderableVideoSpec()` first and fail with its structured errors.
+  - `spec.timing` is in seconds. Convert to frames with the composition's fps (draft 15,
+    final 30). `timing.events` is a derived cache: recompute event times from word timings
+    and never trust stale values after an edit.
+- [ ] **P1A.4 — HUD toggles.** Add per-video HUD element toggles to the spec. Headline colour
+      comes from `script[].headline.semantic`.
+- [ ] **P1A.5 / P1A.8 / P1A.9 / P1C.4 — Registry and catalogue ids.** The VideoSpec schema only
+      checks these are slugs: `scenes[].elements[].primitive` + `props`,
+      `scenes[].patterns[].pattern` + `params`, `scenes[].layoutMode`, `story.beats[].layoutMode` and
+      `suggestedPatternIds`, `story.devices`, `story.beats[].device`, `story.metaphorWorld`,
+      `story.ending.kind`, `story.missingPrimitiveRequests[].fallbackUsed`. Validate each against
+      its registry or catalogue (structured errors with JSON paths, like `validateVideoSpec`).
+- [ ] **P1A.8 — Targeting pattern internals.** Events and focus may target a pattern instance id,
+      but not the elements a pattern expands into. Decide whether patterns expose named parts
+      (e.g. `<instance>.<part>`) and extend the target check in `spec/integrity/scenes.ts`.
+- [ ] **P1B.1 / P1B.2 — Word contract.** Word anchors and `timing.beats[].words` count words with
+      `narrationWords()` from `packages/shared`. Map TTS tokens back onto that list so the
+      timed word count equals it (enforced by `validateVideoSpec`).
+- [ ] **P1C.5 / P1C.6 — Research note references.** Check that `story.beats[].factIds` and
+      `script[].statCards[].sourceRef` resolve to ids in the run's research notes. These are the
+      only spec checks that need research notes; everything else is in `validateVideoSpec`.
+- [ ] **P1C.15 — Custom elements in scenes.** An element references a custom element as
+      `primitive: "custom_element"` with `props: { customElementId }`. Validate the id against
+      the run's approved custom elements (and the max of 2 per video).
 - [ ] **P1C ingest — Pin sources per run.** Call `recordRunSources` when a run starts research,
       and write extracted text via `sourceTextPath` so re-fetches never overwrite older versions.
 - [ ] **P1C.12 — Asset drafts.** Reuse the `assets` table (status `draft | approved | rejected`)
