@@ -1,12 +1,14 @@
 import { eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { contentHash, sourceTextPath } from '../../data-files.ts';
-import { exports, series, sources, specVersions, topics, usageHistory } from '../schema.ts';
+import { exports, jobs, series, sources, specVersions, topics, usageHistory } from '../schema.ts';
 import { createTestDb, type TestDb } from '../testing.ts';
 import {
   createRun,
   deleteRun,
   getRun,
+  getRunSummary,
+  listRuns,
   listRunSources,
   recordRunSources,
   RunHasExportsError,
@@ -67,6 +69,41 @@ describe('runs repository', () => {
 
   it('enforces foreign keys', () => {
     expect(() => createRun(t.db, { topicId: 999, seriesId })).toThrow(/FOREIGN KEY/);
+  });
+});
+
+describe('run summaries (lastError)', () => {
+  function addJob(runId: number, status: 'queued' | 'done' | 'failed', error: string | null) {
+    t.db.insert(jobs).values({ type: 'ingest', runId, status, error }).run();
+  }
+
+  it('is null when no job of the run failed', () => {
+    const { id } = createRun(t.db, { topicId, seriesId });
+    addJob(id, 'done', null);
+    expect(getRunSummary(t.db, id)?.lastError).toBeNull();
+  });
+
+  it("is the error of the run's newest failed job", () => {
+    const { id } = createRun(t.db, { topicId, seriesId });
+    addJob(id, 'failed', 'first failure');
+    addJob(id, 'failed', 'second failure');
+    addJob(id, 'queued', null);
+    expect(getRunSummary(t.db, id)?.lastError).toBe('second failure');
+  });
+
+  it("lists each run with its own error, never another run's", () => {
+    const failed = createRun(t.db, { topicId, seriesId });
+    const clean = createRun(t.db, { topicId, seriesId });
+    addJob(failed.id, 'failed', 'boom');
+
+    expect(listRuns(t.db).map((r) => [r.id, r.lastError])).toEqual([
+      [clean.id, null],
+      [failed.id, 'boom'],
+    ]);
+  });
+
+  it('returns undefined for an unknown id', () => {
+    expect(getRunSummary(t.db, 999)).toBeUndefined();
   });
 });
 

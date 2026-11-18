@@ -15,7 +15,11 @@ const config = loadConfig();
 ensureDataDirs(config.dataDir);
 const db = openDatabase(dbPathFor(config.dataDir));
 
-const app = createApp({ db, webDistDir: isProductionBuild ? WEB_DIST_DIR : undefined });
+const app = createApp({
+  db,
+  webDistDir: isProductionBuild ? WEB_DIST_DIR : undefined,
+  enableDevRoutes: !isProductionBuild,
+});
 
 const server = serve({ fetch: app.fetch, port: config.port }, (info) => {
   console.log(`[server] listening on http://localhost:${info.port}`);

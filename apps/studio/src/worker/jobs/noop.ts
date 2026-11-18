@@ -1,5 +1,6 @@
 import { PROGRESS_DONE_PCT } from '@explainer-studio/shared';
 import { z } from 'zod';
+import { NOOP_JOB_TYPE } from '#core/services/jobs.ts';
 import { sleep } from '../sleep.ts';
 import { defineJobHandler } from './handler.ts';
 
@@ -11,7 +12,7 @@ export const NoopPayloadSchema = z.strictObject({
 
 /** Demo job: reports `steps` evenly spaced progress events, then finishes. No side effects. */
 export const noopJob = defineJobHandler({
-  type: 'noop',
+  type: NOOP_JOB_TYPE,
   description: 'Demo job that emits evenly spaced progress events and does nothing else.',
   payloadSchema: NoopPayloadSchema,
   async run({ payload, progress, signal }) {

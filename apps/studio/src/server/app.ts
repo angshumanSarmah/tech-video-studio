@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { Db } from '#core/db/client.ts';
 import { apiError, handleError } from './errors.ts';
+import { createDevRoute } from './routes/dev.ts';
 import {
   createEventsRoute,
   DEFAULT_EVENT_STREAM_OPTIONS,
@@ -18,15 +19,19 @@ export interface AppDeps {
   /** Built SPA to serve; omitted in dev, where Vite serves it. */
   readonly webDistDir?: string | undefined;
   readonly events?: EventStreamOptions;
+  /** Mount `/api/dev` (demo and debug endpoints). Off in the production build. */
+  readonly enableDevRoutes?: boolean;
 }
 
 function createApi(deps: AppDeps) {
-  return new Hono()
+  const api = new Hono()
     .route('/health', createHealthRoute(deps.uptimeSeconds ?? (() => process.uptime())))
     .route('/series', createSeriesRoute(deps.db))
     .route('/topics', createTopicsRoute(deps.db))
     .route('/runs', createRunsRoute(deps.db))
     .route('/events', createEventsRoute(deps.db, deps.events ?? DEFAULT_EVENT_STREAM_OPTIONS));
+  if (deps.enableDevRoutes) api.route('/dev', createDevRoute(deps.db));
+  return api;
 }
 
 /**

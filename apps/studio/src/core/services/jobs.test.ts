@@ -11,6 +11,7 @@ import {
   completeJob,
   failJob,
   MAX_JOB_ATTEMPTS,
+  queueJob,
   recoverStaleJobs,
   requeueJob,
 } from './jobs.ts';
@@ -37,6 +38,13 @@ const eventsOf = (filter: { runId?: number; jobId?: number }) =>
   listEventsSince(t.db, { ...filter, afterId: 0, limit: 100 }).map((e) => [e.type, e.payload]);
 
 describe('job lifecycle', () => {
+  it('queueJob records the queued job as a job_status event', () => {
+    const job = queueJob(t.db, { type: 'noop' });
+
+    expect(job).toMatchObject({ type: 'noop', runId: null, status: 'queued' });
+    expect(eventsOf({ jobId: job.id })).toEqual([['job_status', { status: 'queued' }]]);
+  });
+
   it('records claim and completion as job_status events', () => {
     const job = claim();
     completeJob(t.db, job);
