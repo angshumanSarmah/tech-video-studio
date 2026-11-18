@@ -68,7 +68,7 @@ Each gate has an auto-approve checkbox. At any gate you can edit (form or raw JS
 | Story | Topic class, devices, hero metric, chapters, beats with intent | Director |
 | Script | Narration per beat, headline, tags, stat cards with source refs | Scriptwriter |
 | Scene | Per beat: layout mode, elements (primitive + props), patterns, events anchored to words, focus | Generator |
-| Timing | Word timestamps, beat durations, resolved event frames | TTS + timing (code) |
+| Timing | Word timestamps, beat durations, resolved event times (all in seconds) | TTS + timing (code) |
 
 **Renderer**
 
@@ -268,7 +268,8 @@ Goal: a hand-written VideoSpec renders into a good-looking Short with no LLM inv
 In packages/shared, define the VideoSpec Zod schema (with schemaVersion) and export TS types and a
 JSON Schema export for LLM prompts. Layers:
 - meta: id, series, title, topic class (product-design | internals | concept | ai-ml), target length.
-- story: devices used, hero metric (label + start/end value + unit, optional), chapters
+- story: devices used, hero metric (optional: pill label + value, plus an optional story clock with
+  from/to labels, start/end values and optional per-beat keyframes), chapters
   (id, title, optional question form), beats (id, chapter id, intent, device, pattern ids).
 - script per beat: narration text, headline ("X = plain meaning" style, optional), tags, stat cards
   (value, label, source ref to a research note id), optional formula card, optional command bubble.
@@ -278,7 +279,8 @@ JSON Schema export for LLM prompts. Layers:
   action: enter | exit | highlight | dim | focus | move | morph | count | lock | reject | pulse, target ids, params),
   focus ids, transition in (cut | fade | zoom-in | zoom-out | slide), continuesPrevious (true when
   the beat keeps the previous beat's world and layout and only adds or changes things in it).
-- timing (filled by code later): audio file, word timestamps, beat start/end frames, resolved event frames.
+- timing (filled by code later): audio file, word timestamps, beat start/end times, resolved event times, all in seconds
+  (frames are computed at render time from the preset's fps).
 No coordinates or sizes anywhere in the LLM-written layers.
 Add validate(spec) returning structured errors with JSON paths.
 Acceptance: tests with one valid spec and several invalid ones (unknown primitive id is checked later
@@ -412,7 +414,8 @@ Acceptance: unit tests per mode (no overlaps, inside safe area); a fixture page 
 
 ```text
 Build the event engine that turns spec events + word timing into per-frame element state.
-- Resolve anchors (word index/text occurrence within the beat, or beat offsets) to frames.
+- Resolve anchors (word index/text occurrence within the beat, or beat offsets) to seconds,
+  then to frames at the composition's fps.
 - Easing presets per action; small stagger for groups; default durations by action.
 - Focus: focus ids at full opacity, others dimmed; changes animate.
 - Board camera: gentle zoom/pan to frame the focus set; "semantic zoom" transition zooms into an
@@ -501,9 +504,10 @@ speech on a manual spot check; cache hit on second run.
 ```text
 Add a timing step that fills spec.timing from per-beat TTS results:
 - concatenate beat WAVs with configurable gaps (default 0.15 s) into one narration track;
-- compute beat start/end frames at 30 fps (plus a short tail for the last beat);
-- map each word to its global frame range;
-- resolve every event anchor to a frame; report anchors that matched no word as errors with
+- compute beat start/end times in seconds (plus a short tail for the last beat);
+- map each word to its global start/end time in seconds;
+- resolve every event anchor to a time in seconds (a cache; the renderer converts
+  to frames at its own fps); report anchors that matched no word as errors with
   suggestions (closest word);
 - save the timed spec as a new spec_version.
 Acceptance: unit tests for concatenation offsets and anchor resolution; fixture renders with audio in sync.

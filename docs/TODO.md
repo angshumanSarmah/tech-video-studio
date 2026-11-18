@@ -53,7 +53,13 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **P1B.2 — Cache event times in seconds.** P1B.2's prompt says "resolve every event anchor to
       a frame at 30 fps". Store seconds in `timing.events[].atSec` instead (use `resolveAnchorSec`
       from `packages/shared`), because drafts render at 15 fps. The renderer recomputes frames
-      from word timings and never reads the cache.
+      from word timings and never reads the cache. The updated design doc already says seconds
+      (P1A.1, P1B.2, P1A.10); drop this item once the repo copy is re-exported.
+- [ ] **P1A.10 — Beat transitions.** P1A.10 owns `transitionIn` (cut, fade, slide, zoom-in,
+      zoom-out), semantic zoom, focus dimming and the board camera. Until then beats hard-cut:
+      `SpecLayers` tiles beat `<Sequence>`s with no overlap and ignores `transitionIn` and
+      `focus`. Transitions that overlap two beats must keep `BeatFromSpec` frame-identical to
+      `VideoFromSpec` (P1A.12 drafts show transitions into a beat as cuts).
 - [ ] **P1A.9 — Safe areas.** `safeAreas(theme)` returns the centred stage the layout engine
       fills, plus `avoidZones` (platform action buttons clipped to the stage). Keep text and key
       elements out of avoid zones; background decoration may pass under. The layout engine picks
