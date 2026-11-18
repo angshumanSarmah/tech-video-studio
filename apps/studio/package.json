@@ -19,7 +19,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/core/db/migrate-cli.ts",
     "typecheck": "vue-tsc --build",
-    "test": "vitest run"
+    "test": "vitest run",
+    "gen:theme": "tsx scripts/generate-theme-css.ts"
   },
   "dependencies": {
     "@explainer-studio/shared": "workspace:*",
@@ -33,6 +34,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@explainer-studio/renderer": "workspace:*",
     "@tailwindcss/vite": "catalog:",
     "@types/better-sqlite3": "catalog:",
     "@types/node": "catalog:",

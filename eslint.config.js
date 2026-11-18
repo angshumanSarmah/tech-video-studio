@@ -46,10 +46,15 @@ export default tseslint.config(
 
   // Node-side code
   {
-    files: ['apps/studio/src/{core,server,worker}/**', '**/*.config.{ts,js}'],
+    files: [
+      'apps/studio/src/{core,server,worker}/**',
+      'apps/studio/scripts/**',
+      '**/*.config.{ts,js}',
+    ],
     languageOptions: { globals: globals.node },
   },
   { files: ['apps/studio/src/web/**'], languageOptions: { globals: globals.browser } },
+  { files: ['packages/renderer/src/**'], languageOptions: { globals: globals.browser } },
 
   // Process boundaries: heavy work lives only in the worker; web never touches Node code.
   {

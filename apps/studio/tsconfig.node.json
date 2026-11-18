@@ -9,6 +9,7 @@
     "src/core",
     "src/server",
     "src/worker",
+    "scripts",
     "vite.config.ts",
     "vitest.config.ts",
     "tsup.config.ts",

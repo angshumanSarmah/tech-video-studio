@@ -6,3 +6,6 @@ pnpm-lock.yaml
 
 # Author-maintained design doc
 Tech Explainer Studio Design and Claude Code Prompts.md
+
+# Generated (compared byte-for-byte by a test)
+apps/studio/src/web/theme.generated.css

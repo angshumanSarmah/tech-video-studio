@@ -41,7 +41,7 @@ apps/studio/            one Node app, three entrypoints
   src/web/              Vue 3 + Vite SPA (Vue Router, Pinia, Tailwind v4; see "Web app")
   drizzle/              generated SQL migrations (drizzle-kit)
 packages/shared/        Zod schemas, catalogues, inferred types (consumed as TS source)
-packages/renderer/      Remotion compositions (React)
+packages/renderer/      Remotion compositions (React) and the theme system (see "Renderer")
 data/                   runtime data: SQLite DB, runs/, topics/, assets/, exports/ (gitignored)
 docs/TODO.md            follow-ups logged instead of done
 ```
@@ -209,15 +209,37 @@ src/web/
 - **Pinia stores are setup stores holding server state** (`items`, `loading`, `error`, `load()`)
   that call the API modules. Per-page UI state stays in the component. Folding events into view
   state belongs in pure `lib/` functions (e.g. `summarizeJob`), not in templates.
-- **Tailwind v4 tokens live in `styles.css` `@theme`** (no `tailwind.config`): `canvas`/`panel`
-  backgrounds, `line` borders, `ink`/`ink-muted`/`ink-faint` text, semantic `focus`/`ok`/`problem`/
-  `concept`, plus the `bg-blueprint` and `label-mono` utilities. Use tokens, never raw hex, in
-  components. Series accents are data (`series.accentColour`), not tokens. Class names must
+- **Tailwind v4 tokens live in `@theme`** (no `tailwind.config`). Colour tokens and the mono font
+  are generated from the renderer theme into `theme.generated.css` by the studio's `gen:theme`
+  script; never edit it by hand (a test fails when it is stale). `styles.css` imports it and adds
+  the rest. Tokens: `canvas`/`panel` backgrounds, `line` borders, `ink`/`ink-muted`/`ink-faint`
+  text, semantic `focus`/`ok`/`problem`/`concept`, plus the `bg-blueprint` and `label-mono`
+  utilities. Use tokens, never raw hex, in components. Series accents are data (`series.accentColour`), not tokens. Class names must
   appear in full in source (e.g. the map in `lib/status.ts`) so the scanner finds them.
 - **Tests** stub globals: `stubFetch({ 'GET /api/runs': … })` and `installFakeEventSource()`,
   then `vi.unstubAllGlobals()` in `afterEach`. Mount views with `createPinia()`, and with
   `createAppRouter(createMemoryHistory())` when routing matters. Use `data-testid` for
   selectors.
+
+## Renderer
+
+`packages/renderer`: a Remotion project (`src/entry.ts`, `src/Root.tsx`). From the repo root:
+`pnpm --filter @explainer-studio/renderer studio` opens Remotion Studio; `… still:theme` renders
+the theme swatch board to `docs/themes/blueprint-dark.png`.
+
+- **Themes** live in `src/theme` and are registered by id (`getTheme`, `listThemes`;
+  default `blueprint-dark`). Each is validated against `ThemeSchema`. A theme holds colours
+  (semantic `neutral`/`focus`/`ok`/`problem`/`concept`), tint and glow rules, grid, fonts, text
+  styles, spacing, radius, stroke widths and safe-area margins. `src/theme` is React-free and
+  exported as `@explainer-studio/renderer/theme`, so Node scripts, the layout engine and the
+  studio can import it.
+- **Use the helpers, not raw values:** `tintFor`/`semanticTint` (soft fill, border, glow),
+  `textCss`, `safeAreas` (HUD band, stage, subtitle band inside every platform's UI margins).
+- **Series accents are data**, passed in as props. Apply them with
+  `tintFor(theme, resolveAccent(theme, accent))`. `checkAccentContrast` reports low contrast.
+- **Fonts** are committed `.woff2` files with their OFL licences in `public/fonts/`, loaded with
+  `loadThemeFonts(theme)` (`@remotion/fonts` + `staticFile`). Never load fonts from the network.
+- All `remotion` / `@remotion/*` packages must share one exact version in the catalog.
 
 ## Code conventions
 

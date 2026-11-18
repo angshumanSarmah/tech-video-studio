@@ -1,31 +1,15 @@
 /*
  * Studio theme: the video's "blueprint-dark" look (deep navy, blueprint grid, monospace labels).
  * Tailwind v4: tokens live in `@theme` and become utilities (`bg-canvas`, `text-ok`, `font-mono`).
- * Colour semantics match the renderer theme (P1A.3): neutral white, focus yellow, ok green,
- * problem red, concept blue. Series accents are data (series.accent_colour), not tokens.
+ * Colour tokens and the mono font are generated from the renderer theme into theme.generated.css
+ * (`pnpm --filter @explainer-studio/studio gen:theme`); a test fails if it is out of date.
+ * Series accents are data (series.accent_colour), not tokens.
  */
 @import 'tailwindcss' source('.');
+@import './theme.generated.css';
 
 @theme {
-  --color-canvas: #060c1d;
-  --color-panel: #0b1530;
-  --color-panel-raised: #10203f;
-  --color-line: #1d3160;
-  --color-grid: rgb(79 140 255 / 0.07);
-  --color-grid-major: rgb(79 140 255 / 0.13);
-
-  --color-ink: #e6edf7;
-  --color-ink-muted: #8c9cc0;
-  --color-ink-faint: #56678c;
-
-  --color-focus: #ffd84d;
-  --color-ok: #3ddc97;
-  --color-problem: #ff5c6c;
-  --color-concept: #4f8cff;
-
   --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono:
-    ui-monospace, 'JetBrains Mono', 'SFMono-Regular', 'Cascadia Mono', Menlo, Consolas, monospace;
 }
 
 @layer base {

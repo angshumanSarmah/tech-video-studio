@@ -1,2 +1,3 @@
-// Remotion compositions are added in a later task (see docs/TODO.md, P1A.3).
-export {};
+export * from './theme/index.ts';
+export { Background } from './background/Background.tsx';
+export { loadThemeFonts } from './fonts/load-theme-fonts.ts';

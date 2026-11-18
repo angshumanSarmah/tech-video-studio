@@ -4,10 +4,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 
 ## Open
 
-- [ ] **P1A.3 — Share theme tokens with the renderer.** The studio's Tailwind `@theme` in
-      `src/web/styles.css` hand-copies the video palette and uses system fonts. Once the
-      renderer's `blueprint-dark` theme exists, generate the web tokens from it (or move the
-      colour/font tokens into `packages/shared`) and load the bundled mono font in the studio.
 - [ ] **P1C.9 — Run state transitions.** The orchestrator takes over run state transitions. Until
       then the worker only moves a run to `failed` when one of its jobs fails (unless the handler
       sets `failsRun: false`); `queued → running`, gate pauses and `done` belong to the
@@ -37,6 +33,11 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       `.env` overrides the stored key. Save via `saveConfig()` from `#core/config.ts`, passing
       settings (not the resolved `AppConfig`, which carries the env key).
 - [ ] **P1A.3 — Remotion compatibility.**
+  - The Remotion project exists (P1A.2: `src/entry.ts`, `src/Root.tsx`, the `ThemeSwatchBoard`
+    still). Add `VideoFromSpec` and `BeatFromSpec` to `Root.tsx`.
+  - Series label and accent are data (DB `series`, editable in Settings). The render service
+    resolves them from the DB and passes them to the compositions as props alongside the spec;
+    the renderer applies the accent with `resolveAccent` + `tintFor` from the theme.
   - Verify Remotion's bundler compiles `@explainer-studio/shared` from TS source: `exports`
     points at `src/index.ts` and imports use explicit `.ts` extensions, so check its loader
     transpiles files outside `packages/renderer`.
@@ -47,6 +48,17 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
   - `spec.timing` is in seconds. Convert to frames with the composition's fps (draft 15,
     final 30). `timing.events` is a derived cache: recompute event times from word timings
     and never trust stale values after an edit.
+- [ ] **P1A.9 — Safe areas.** `safeAreas(theme)` returns the stage the layout engine fills. The
+      Shorts/Reels margins in `blueprint-dark` are approximations; check them against real
+      screenshots. The stage is off-centre (the right margin is larger); decide whether the
+      layout engine centres content on the canvas or on the stage.
+- [ ] **P1D.8 — Accent contrast warning.** Settings should warn when a series accent fails
+      `checkAccentContrast` (from `@explainer-studio/renderer/theme`, React-free). Importing it
+      from `src/web` means updating the web import-boundary message in `eslint.config.js`.
+- [ ] **P3.4 — Theme per channel/series.** Themes are registered by id in the renderer
+      (`getTheme`, `listThemes`). When a channel or series stores a theme id, validate it against
+      the registry (or move the id list into `packages/shared`), and have the studio token
+      generator follow the selected theme instead of `DEFAULT_THEME_ID`.
 - [ ] **P1A.4 — HUD toggles.** Add per-video HUD element toggles to the spec. Headline colour
       comes from `script[].headline.semantic`.
 - [ ] **P1A.5 / P1A.8 / P1A.9 / P1C.4 — Registry and catalogue ids.** The VideoSpec schema only

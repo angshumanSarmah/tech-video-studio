@@ -1,0 +1,35 @@
+/* Generated from the renderer theme "blueprint-dark". Do not edit by hand. */
+/* Regenerate: pnpm --filter @explainer-studio/studio gen:theme */
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../../../../packages/renderer/public/fonts/jetbrains-mono/jetbrains-mono-latin-500-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../../../../packages/renderer/public/fonts/jetbrains-mono/jetbrains-mono-latin-700-normal.woff2') format('woff2');
+}
+
+@theme {
+  --color-canvas: #060c1d;
+  --color-panel: #0b1530;
+  --color-panel-raised: #10203f;
+  --color-line: #1d3160;
+  --color-grid: rgb(79 140 255 / 0.07);
+  --color-grid-major: rgb(79 140 255 / 0.13);
+  --color-ink: #e6edf7;
+  --color-ink-muted: #8c9cc0;
+  --color-ink-faint: #56678c;
+  --color-focus: #ffd84d;
+  --color-ok: #3ddc97;
+  --color-problem: #ff5c6c;
+  --color-concept: #4f8cff;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', 'Cascadia Mono', Menlo, Consolas, monospace;
+}
