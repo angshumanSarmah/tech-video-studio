@@ -1,0 +1,23 @@
+import type { JobHandler } from './handler.ts';
+import { noopJob } from './noop.ts';
+
+export interface JobRegistry {
+  get(type: string): JobHandler | undefined;
+  /** Whether a failure of `type` fails its run; unknown types do. */
+  failsRun(type: string): boolean;
+}
+
+export function createJobRegistry(handlers: readonly JobHandler[]): JobRegistry {
+  const byType = new Map<string, JobHandler>();
+  for (const handler of handlers) {
+    if (byType.has(handler.type)) throw new Error(`Duplicate job handler: ${handler.type}`);
+    byType.set(handler.type, handler);
+  }
+  return {
+    get: (type) => byType.get(type),
+    failsRun: (type) => byType.get(type)?.failsRun ?? true,
+  };
+}
+
+/** Every job type the worker runs. Add a handler here; nothing else changes. */
+export const JOB_HANDLERS: readonly JobHandler[] = [noopJob];

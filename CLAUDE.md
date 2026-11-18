@@ -125,11 +125,30 @@ tables, not IPC**: no channel exists between them under `concurrently`, and eith
 without the other noticing.
 
 - **`jobs`** (server → worker). The server inserts a job in the same transaction as the rows it
-  acts on (e.g. `startRun` writes the run, its first job and a `status` event atomically). The
-  worker claims and runs jobs by `type` from a handler registry.
-- **`run_events`** (worker → server). Append-only progress log. `GET /api/events` tails it by `id`
-  and relays it over SSE; the event id is the SSE id, so `Last-Event-ID` resumes a stream. With
-  `runId` a stream replays that run from its start; without it, it streams new events for all runs.
+  acts on (e.g. `startRun` writes the run, its first job and a `run_status` event atomically).
+  `run_id` is null for jobs outside a run (asset seeding, reference analysis, drafting).
+- **`events`** (worker → server). Append-only progress log; each event has a run, a job or both.
+  Types and payloads are a discriminated union (`EventBodySchema`), validated on write.
+  `GET /api/events` tails it by `id` and relays it over SSE (event id = SSE id), filtered by
+  `runId` or `jobId` (not both). Start cursor, first match wins: `Last-Event-ID` (reconnect),
+  `?after=` (pass `lastEventId` from `GET /api/runs/:id`, so page loads never replay history), a
+  full replay for one run or job (fallback), else live only.
+
+Worker (`src/worker`): a poll loop claims one job at a time (atomic `UPDATE … RETURNING`,
+honouring `run_after`) and runs its handler from `src/worker/jobs/registry.ts`. Every transition
+writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
+
+- **Handlers** declare `type`, a Zod `payloadSchema` and optional `failsRun` (default true: a failed
+  job fails its run). Unknown types and invalid payloads fail the job with a clear error.
+- **Delivery is at-least-once**, so handlers must be idempotent.
+- **Progress** goes through a per-job throttle: at most 1 event per second, leading + trailing (the
+  latest dropped value is written when the window ends). `pct: 100`, status and log events always
+  pass through.
+- **Shutdown** (SIGTERM/SIGINT, including `tsx watch` restarts) aborts the handler's `signal`; a job
+  that throws after the abort is requeued and its attempt refunded.
+- **Crash recovery** assumes a single worker: on startup every `running` job is stale. It is
+  requeued, or failed once it has used `MAX_JOB_ATTEMPTS` (3) hard crashes. There is no
+  heartbeat or lease; add one before running a second worker.
 
 API conventions: routes under `/api`, inputs validated with the `validate()` helper against schemas
 from `packages/shared/src/api`, list responses wrapped as `{ items }`, and every error is

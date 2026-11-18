@@ -1,6 +1,7 @@
-import { RunEventDtoSchema, type RunEventDto } from '@explainer-studio/shared';
+import { EventDtoSchema, type EventDto } from '@explainer-studio/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { appendRunEvent } from '#core/db/repositories/run-events.ts';
+import { appendEvent } from '#core/db/repositories/events.ts';
+import { enqueueJob } from '#core/db/repositories/jobs.ts';
 import { listSeries } from '#core/db/repositories/series.ts';
 import { createTopic } from '#core/db/repositories/topics.ts';
 import { startRun } from '#core/services/runs.ts';
@@ -18,10 +19,12 @@ beforeEach(() => {
 
 afterEach(() => s.cleanup());
 
+const LOG = { level: 'info', message: 'hello' } as const;
+
 interface SseMessage {
   readonly id: string;
   readonly event: string;
-  readonly data: RunEventDto;
+  readonly data: EventDto;
 }
 
 function parseBlock(block: string): SseMessage | undefined {
@@ -35,7 +38,7 @@ function parseBlock(block: string): SseMessage | undefined {
   return {
     id: fields.get('id') ?? '',
     event: fields.get('event') ?? '',
-    data: RunEventDtoSchema.parse(JSON.parse(data)),
+    data: EventDtoSchema.parse(JSON.parse(data)),
   };
 }
 
@@ -71,12 +74,12 @@ describe('GET /api/events', () => {
     expect(res.headers.get('content-type')).toContain('text/event-stream');
 
     const reading = readMessages(res, 2);
-    appendRunEvent(s.db, { runId: run.id, type: 'progress', payload: { step: 1 } });
+    appendEvent(s.db, { runId: run.id, type: 'progress', payload: { pct: 10 } });
     const messages = await reading;
 
     expect(messages.map((m) => [m.event, m.data.payload])).toEqual([
-      ['status', { status: 'queued' }],
-      ['progress', { step: 1 }],
+      ['run_status', { status: 'queued' }],
+      ['progress', { pct: 10 }],
     ]);
     expect(messages[1]?.id).toBe(String(messages[1]?.data.id));
   });
@@ -84,8 +87,8 @@ describe('GET /api/events', () => {
   it('only streams the requested run', async () => {
     const { run: a } = startRun(s.db, { topicId, seriesId });
     const { run: b } = startRun(s.db, { topicId, seriesId });
-    appendRunEvent(s.db, { runId: a.id, type: 'log' });
-    appendRunEvent(s.db, { runId: b.id, type: 'log' });
+    appendEvent(s.db, { runId: a.id, type: 'log', payload: LOG });
+    appendEvent(s.db, { runId: b.id, type: 'log', payload: LOG });
 
     const messages = await readMessages(await openStream(`?runId=${b.id}`), 2);
     expect(messages.every((m) => m.data.runId === b.id)).toBe(true);
@@ -93,11 +96,48 @@ describe('GET /api/events', () => {
 
   it('resumes after Last-Event-ID', async () => {
     const { run } = startRun(s.db, { topicId, seriesId });
-    const seen = appendRunEvent(s.db, { runId: run.id, type: 'progress', payload: { step: 1 } });
-    appendRunEvent(s.db, { runId: run.id, type: 'progress', payload: { step: 2 } });
+    const seen = appendEvent(s.db, { runId: run.id, type: 'progress', payload: { pct: 10 } });
+    appendEvent(s.db, { runId: run.id, type: 'progress', payload: { pct: 20 } });
 
     const [next] = await readMessages(await openStream(`?runId=${run.id}`, String(seen.id)), 1);
-    expect(next?.data.payload).toEqual({ step: 2 });
+    expect(next?.data.payload).toEqual({ pct: 20 });
+  });
+
+  it('starts after the snapshot cursor, so a page load never replays history', async () => {
+    const { run } = startRun(s.db, { topicId, seriesId });
+    appendEvent(s.db, { runId: run.id, type: 'progress', payload: { pct: 10 } });
+    const detail = (await (await s.app.request(`/api/runs/${run.id}`)).json()) as {
+      lastEventId: number;
+    };
+    appendEvent(s.db, { runId: run.id, type: 'progress', payload: { pct: 20 } });
+
+    const res = await openStream(`?runId=${run.id}&after=${detail.lastEventId}`);
+    const [next] = await readMessages(res, 1);
+    expect(next?.data.payload).toEqual({ pct: 20 });
+  });
+
+  it('Last-Event-ID wins over after (reconnect)', async () => {
+    const { run } = startRun(s.db, { topicId, seriesId });
+    const first = appendEvent(s.db, { runId: run.id, type: 'progress', payload: { pct: 10 } });
+    appendEvent(s.db, { runId: run.id, type: 'progress', payload: { pct: 20 } });
+
+    const res = await openStream(`?runId=${run.id}&after=0`, String(first.id));
+    const [next] = await readMessages(res, 1);
+    expect(next?.data.payload).toEqual({ pct: 20 });
+  });
+
+  it('streams the events of a job without a run', async () => {
+    const job = enqueueJob(s.db, { type: 'noop' });
+    const other = enqueueJob(s.db, { type: 'noop' });
+    appendEvent(s.db, { jobId: other.id, type: 'progress', payload: { pct: 50 } });
+    appendEvent(s.db, { jobId: job.id, type: 'job_status', payload: { status: 'running' } });
+    appendEvent(s.db, { jobId: job.id, type: 'progress', payload: { pct: 20 } });
+
+    const messages = await readMessages(await openStream(`?jobId=${job.id}`), 2);
+    expect(messages.map((m) => [m.event, m.data.runId, m.data.jobId])).toEqual([
+      ['job_status', null, job.id],
+      ['progress', null, job.id],
+    ]);
   });
 
   it('without runId, streams only new events across all runs (dashboard)', async () => {
@@ -108,11 +148,14 @@ describe('GET /api/events', () => {
     const { run } = startRun(s.db, { topicId, seriesId });
     const [message] = await reading;
 
-    expect(message?.data).toMatchObject({ runId: run.id, type: 'status' });
+    expect(message?.data).toMatchObject({ runId: run.id, type: 'run_status' });
   });
 
-  it('returns 404 for an unknown run and 400 for a bad cursor', async () => {
+  it('returns 404 for an unknown run or job and 400 for bad input', async () => {
     await expectApiError(await openStream('?runId=999'), 404, 'not_found');
+    await expectApiError(await openStream('?jobId=999'), 404, 'not_found');
+    await expectApiError(await openStream('?runId=1&jobId=1'), 400, 'bad_request');
+    await expectApiError(await openStream('?after=-1'), 400, 'bad_request');
     await expectApiError(await openStream('?runId=abc'), 400, 'bad_request');
     await expectApiError(await openStream('', 'nope'), 400, 'bad_request');
   });

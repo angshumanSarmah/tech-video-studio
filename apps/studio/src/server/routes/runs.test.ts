@@ -1,5 +1,6 @@
-import { RunDtoSchema, RunListResponseSchema } from '@explainer-studio/shared';
+import { RunDetailDtoSchema, RunDtoSchema, RunListResponseSchema } from '@explainer-studio/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { latestEventId } from '#core/db/repositories/events.ts';
 import { listRunJobs } from '#core/db/repositories/jobs.ts';
 import { listSeries } from '#core/db/repositories/series.ts';
 import { createTopic } from '#core/db/repositories/topics.ts';
@@ -78,10 +79,13 @@ describe('GET /api/runs', () => {
     expect(items.map((r) => r.id)).toEqual([second.id, first.id]);
   });
 
-  it('returns one run by id', async () => {
+  it('returns one run by id with its SSE cursor', async () => {
     const run = await createRunViaApi();
     const res = await s.app.request(`/api/runs/${run.id}`);
-    expect(RunDtoSchema.parse(await res.json())).toEqual(run);
+    const detail = RunDetailDtoSchema.parse(await res.json());
+
+    expect(detail).toEqual({ ...run, lastEventId: latestEventId(s.db, { runId: run.id }) });
+    expect(detail.lastEventId).toBeGreaterThan(0);
   });
 
   it('returns 404 for an unknown run and 400 for a malformed id', async () => {

@@ -2,8 +2,9 @@ import {
   RunSettingsSchema,
   type RunSettings,
   type RunSettingsInput,
+  type RunStatus,
 } from '@explainer-studio/shared';
-import { and, desc, eq, isNotNull } from 'drizzle-orm';
+import { and, desc, eq, isNotNull, notInArray } from 'drizzle-orm';
 import type { Db, Executor } from '../client.ts';
 import { exports, runSources, runs, sources } from '../schema.ts';
 
@@ -34,6 +35,23 @@ export function createRun(db: Executor, input: NewRun): Run {
 
 export function getRun(db: Executor, id: number): Run | undefined {
   const row = db.select().from(runs).where(eq(runs.id, id)).get();
+  return row && toRun(row);
+}
+
+/** Statuses a run never leaves. */
+export const TERMINAL_RUN_STATUSES = ['done', 'failed', 'cancelled'] as const satisfies RunStatus[];
+
+/**
+ * Sets the status of a run that has not finished yet. Returns the updated run, or undefined when
+ * the run is unknown or already terminal (nothing changed).
+ */
+export function setActiveRunStatus(db: Executor, id: number, status: RunStatus): Run | undefined {
+  const row = db
+    .update(runs)
+    .set({ status })
+    .where(and(eq(runs.id, id), notInArray(runs.status, TERMINAL_RUN_STATUSES)))
+    .returning()
+    .get();
   return row && toRun(row);
 }
 
