@@ -53,6 +53,9 @@ globally.
 Commands (from the repo root): `pnpm dev` (server, worker and Vite via `concurrently`),
 `pnpm build`, `pnpm typecheck`, `pnpm lint`, `pnpm format`, `pnpm test`.
 
+Dev ports: the UI is on http://localhost:4310 (`WEB_PORT`, Vite, `strictPort`) and the API on 4311
+(`PORT`, Hono). Vite proxies `/api` to `PORT`; its default comes from `EnvSchema`.
+
 ## Architecture rules
 
 1. **No code per video.** Every video is a `VideoSpec` JSON. The renderer is generic and reads any

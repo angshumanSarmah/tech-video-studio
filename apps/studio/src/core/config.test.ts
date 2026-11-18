@@ -22,7 +22,7 @@ import {
 
 describe('parseEnv', () => {
   it('applies defaults', () => {
-    expect(parseEnv({})).toEqual({ DATA_DIR: './data', PORT: 8787 });
+    expect(parseEnv({})).toEqual({ DATA_DIR: './data', PORT: 4311 });
   });
 
   it('coerces PORT and treats empty strings as unset', () => {
