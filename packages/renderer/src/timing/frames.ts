@@ -70,6 +70,8 @@ export type FramedEvent = {
   frame: number;
   /** Global seconds, unrounded; elapsed times are measured from here so every fps agrees. */
   sec: number;
+  /** End (global seconds) of the beat whose narration the event is anchored in. */
+  beatEndSec: number;
   params?: Record<string, unknown>;
 };
 
@@ -88,7 +90,7 @@ export function resolveEventFrames(
       const time = anchorToTime(event.at, beat, narration, fps);
       if (!time) return [];
       const { action, targets, params } = event;
-      return [{ action, targets, ...time, ...(params ? { params } : {}) }];
+      return [{ action, targets, ...time, beatEndSec: beat.endSec, ...(params ? { params } : {}) }];
     })
     .sort((a, b) => a.frame - b.frame);
 }

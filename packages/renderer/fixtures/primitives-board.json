@@ -519,7 +519,6 @@
           "primitive": "timer_ring",
           "props": {
             "durationSec": 600,
-            "speed": 30,
             "label": "seat hold"
           }
         }

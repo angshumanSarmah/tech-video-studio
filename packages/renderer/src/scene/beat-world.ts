@@ -140,12 +140,13 @@ function patternDrafts(
     ),
     events: expansion.events.flatMap((event) => {
       const time = ctx.beat ? anchorToTime(event.at, ctx.beat, ctx.narration, ctx.fps) : undefined;
-      if (!time) return [];
+      if (!ctx.beat || !time) return [];
       return [
         {
           action: event.action,
           targets: event.targets.map(part),
           ...time,
+          beatEndSec: ctx.beat.endSec,
           ...(event.params ? { params: event.params } : {}),
         },
       ];
@@ -158,10 +159,11 @@ function withEvents(draft: Draft, events: readonly FramedEvent[]): WorldItem {
   const { targetIds, ...item } = draft;
   const mine = events
     .filter((e) => e.targets.some((t) => targetIds.includes(t)))
-    .map(({ action, frame, sec, params }) => ({
+    .map(({ action, frame, sec, beatEndSec, params }) => ({
       action,
       frame,
       sec,
+      beatEndSec,
       ...(params ? { params } : {}),
     }));
   return { ...item, events: mine };

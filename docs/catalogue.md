@@ -361,9 +361,9 @@ A card with one big figure, a label under it, and a small source footnote. The f
 
 **Family:** metric · **Actions:** `enter`, `exit`, `count`, `reject`, `highlight`, `dim`, `pulse`
 
-A countdown ring with the time left as mm:ss in the middle. It shows `durationSec` until `count` starts the clock, then ticks down at `speed` and holds at 00:00 if it gets there. `reject` expires it: 00:00, empty ring, red flash.
+A countdown ring with the time left as mm:ss in the middle. It shows `durationSec` until `count` starts the clock. Its pace is set by the narration: it reaches 00:00 exactly on the `reject` (expiry: empty ring, red flash); without `reject` it runs out at the element's `exit` or the end of the beat, and holds 00:00. It never runs slower than real time; when faster, a fast-forward tag shows the multiplier (e.g. 60×).
 
-**When to use:** A deadline or hold in the story: a seat held for 10 minutes, a token that expires, a lease or a timeout. Use `reject` on the word where the time runs out.
+**When to use:** A deadline or hold in the story: a seat held for 10 minutes, a token that expires, a lease or a timeout. Put `count` where the clock starts and `reject` on the word where the time runs out.
 
 **When not to:** A quantity that is not time (use `counter`); elapsed time across the whole video (that is the story clock in the HUD); a duration that never runs down.
 
@@ -372,7 +372,6 @@ A countdown ring with the time left as mm:ss in the middle. It shows `durationSe
 | Name | Type | Required | Notes |
 | --- | --- | --- | --- |
 | `durationSec` | integer | yes | Time on the clock when it starts, in seconds (600 shows 10:00). (min 1, max 5999) |
-| `speed` | number | no | Clock seconds per real second once `count` starts; above 1 runs it fast-forward. (min 1, max 60, default `1`) |
 | `label` | string | no | Caption under the ring: what the time is for. (min length 1, max length 24) |
 | `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Ring colour while running: neutral, focus, ok, problem or concept. (default `"focus"`) |
 
@@ -386,7 +385,6 @@ A countdown ring with the time left as mm:ss in the middle. It shows `durationSe
   "primitive": "timer_ring",
   "props": {
     "durationSec": 600,
-    "speed": 30,
     "label": "<example-caption>"
   }
 }

@@ -659,8 +659,8 @@
     {
       "id": "timer_ring",
       "family": "metric",
-      "summary": "A countdown ring with the time left as mm:ss in the middle. It shows `durationSec` until `count` starts the clock, then ticks down at `speed` and holds at 00:00 if it gets there. `reject` expires it: 00:00, empty ring, red flash.",
-      "whenToUse": "A deadline or hold in the story: a seat held for 10 minutes, a token that expires, a lease or a timeout. Use `reject` on the word where the time runs out.",
+      "summary": "A countdown ring with the time left as mm:ss in the middle. It shows `durationSec` until `count` starts the clock. Its pace is set by the narration: it reaches 00:00 exactly on the `reject` (expiry: empty ring, red flash); without `reject` it runs out at the element's `exit` or the end of the beat, and holds 00:00. It never runs slower than real time; when faster, a fast-forward tag shows the multiplier (e.g. 60×).",
+      "whenToUse": "A deadline or hold in the story: a seat held for 10 minutes, a token that expires, a lease or a timeout. Put `count` where the clock starts and `reject` on the word where the time runs out.",
       "whenNotToUse": "A quantity that is not time (use `counter`); elapsed time across the whole video (that is the story clock in the HUD); a duration that never runs down.",
       "actions": [
         "enter",
@@ -679,13 +679,6 @@
             "minimum": 1,
             "maximum": 5999,
             "description": "Time on the clock when it starts, in seconds (600 shows 10:00)."
-          },
-          "speed": {
-            "default": 1,
-            "description": "Clock seconds per real second once `count` starts; above 1 runs it fast-forward.",
-            "type": "number",
-            "minimum": 1,
-            "maximum": 60
           },
           "label": {
             "type": "string",
@@ -717,7 +710,6 @@
         "primitive": "timer_ring",
         "props": {
           "durationSec": 600,
-          "speed": 30,
           "label": "<example-caption>"
         }
       }

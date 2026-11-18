@@ -13,6 +13,8 @@ export type ElementEvent = {
   frame: number;
   /** Global seconds, unrounded: elapsed time is measured from here, so every fps agrees. */
   sec: number;
+  /** End (global seconds) of the beat the event is anchored in. */
+  beatEndSec: number;
   params?: Record<string, unknown>;
 };
 
@@ -36,6 +38,13 @@ export type ElementState = {
    * a ticking timer).
    */
   elapsed: Partial<Record<EventAction, number>>;
+  /**
+   * Seconds each action's occurrence runs (`actionRunSec`), for the latest started occurrence or,
+   * before any has started, the first one ahead. Absent when the element has no such event. Lets
+   * a component pace a process to the narration (a timer reaching 00:00 on the expiry word)
+   * without seeing events.
+   */
+  runSec: Partial<Record<EventAction, number>>;
 };
 
 /** Seconds each action takes to play out; scaled by fps so drafts (15) match finals (30). */
@@ -75,7 +84,30 @@ export function elementState(
     dimmed: heldLevel(started, 'dim', DIM_TOGGLES, progress),
     actions: latestPerAction(events, started, progress),
     elapsed: latestPerAction(events, started, elapsed),
+    runSec: runPerAction(events, started),
   };
+}
+
+/**
+ * How long an occurrence of an action runs, from resolved event times: until the element's next
+ * `reject` after it; without one, until its next `exit` or the end of the beat the occurrence is
+ * anchored in, whichever comes first. Never negative.
+ */
+export function actionRunSec(event: ElementEvent, events: readonly ElementEvent[]): number {
+  const after = events.filter((e) => e.sec > event.sec).sort((a, b) => a.sec - b.sec);
+  const reject = after.find((e) => e.action === 'reject');
+  if (reject) return reject.sec - event.sec;
+  const exit = after.find((e) => e.action === 'exit');
+  return Math.max(0, Math.min(exit?.sec ?? Infinity, event.beatEndSec) - event.sec);
+}
+
+/** `actionRunSec` of the latest started occurrence per action, else of its first one ahead. */
+function runPerAction(all: readonly ElementEvent[], started: readonly ElementEvent[]) {
+  const runs: Partial<Record<EventAction, number>> = {};
+  const ahead = [...all].sort((a, b) => b.sec - a.sec);
+  for (const event of ahead) runs[event.action] = actionRunSec(event, all);
+  for (const event of started) runs[event.action] = actionRunSec(event, all);
+  return runs;
 }
 
 /** Eased 0..1 progress of one event at `frame`. */

@@ -14,12 +14,6 @@ export const TimerRingPropsSchema = z.strictObject({
     .min(1)
     .max(TIMER_MAX_SEC)
     .describe('Time on the clock when it starts, in seconds (600 shows 10:00).'),
-  speed: z
-    .number()
-    .min(1)
-    .max(60)
-    .default(1)
-    .describe('Clock seconds per real second once `count` starts; above 1 runs it fast-forward.'),
   label: lineText(24, 'Caption under the ring: what the time is for.').optional(),
   semantic: semanticProp('focus', 'Ring colour while running'),
 });
@@ -52,14 +46,17 @@ export const timerRingPrimitive = definePrimitive({
   description: {
     summary:
       'A countdown ring with the time left as mm:ss in the middle. It shows `durationSec` until ' +
-      '`count` starts the clock, then ticks down at `speed` and holds at 00:00 if it gets there. ' +
-      '`reject` expires it: 00:00, empty ring, red flash.',
+      '`count` starts the clock. Its pace is set by the narration: it reaches 00:00 exactly on ' +
+      'the `reject` (expiry: empty ring, red flash); without `reject` it runs out at the ' +
+      "element's `exit` or the end of the beat, and holds 00:00. It never runs slower than real " +
+      'time; when faster, a fast-forward tag shows the multiplier (e.g. 60×).',
     whenToUse:
       'A deadline or hold in the story: a seat held for 10 minutes, a token that expires, a ' +
-      'lease or a timeout. Use `reject` on the word where the time runs out.',
+      'lease or a timeout. Put `count` where the clock starts and `reject` on the word where the ' +
+      'time runs out.',
     whenNotToUse:
       'A quantity that is not time (use `counter`); elapsed time across the whole video (that ' +
       'is the story clock in the HUD); a duration that never runs down.',
   },
-  example: { props: { durationSec: 600, speed: 30, label: '<example-caption>' } },
+  example: { props: { durationSec: 600, label: '<example-caption>' } },
 });

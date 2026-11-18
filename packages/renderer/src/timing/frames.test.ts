@@ -107,8 +107,8 @@ describe('resolveEventFrames', () => {
 
   it('returns resolvable events in frame order, with their global seconds', () => {
     expect(resolveEventFrames(scene, beat, narration, 30)).toEqual([
-      { action: 'enter', targets: ['x'], frame: 60, sec: 2 },
-      { action: 'dim', targets: ['x'], frame: 180, sec: 6 },
+      { action: 'enter', targets: ['x'], frame: 60, sec: 2, beatEndSec: 6 },
+      { action: 'dim', targets: ['x'], frame: 180, sec: 6, beatEndSec: 6 },
     ]);
   });
 });

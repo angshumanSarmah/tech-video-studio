@@ -1,18 +1,51 @@
-import { semanticTint, textCss } from '../../theme/index.ts';
+import { semanticTint, textCss, type Theme } from '../../theme/index.ts';
 import { stateStyle, type PrimitiveComponentProps } from '../component-props.ts';
 import { GLOW_THRESHOLD } from '../surface.ts';
 import { timerDigitsSize, timerRingDiameter, type TimerRingProps } from './definition.ts';
-import { formatClock, timerView } from './timer.ts';
+import { formatClock, speedLabel, timerView } from './timer.ts';
 
 /** Peak opacity of the expiry flash over the ring's face. */
 const FLASH_ALPHA = 0.35;
+
+type SpeedTagProps = { theme: Theme; label: string | undefined; top: number };
+
+/**
+ * "⏩ 60×" under the digits while the clock runs faster than real time. The fast-forward mark is
+ * drawn as SVG: no bundled font has U+23E9.
+ */
+function SpeedTag({ theme, label, top }: SpeedTagProps) {
+  if (!label) return null;
+  const size = theme.text.hud.size;
+  return (
+    <div
+      style={{
+        ...textCss(theme, 'hud'),
+        position: 'absolute',
+        top,
+        left: 0,
+        right: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: theme.space.xs / 2,
+        color: theme.colours.ink.muted,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      <svg width={size} height={size * 0.7} viewBox="0 0 20 14" fill="currentColor">
+        <path d="M0 0 L10 7 L0 14 Z M10 0 L20 7 L10 14 Z" />
+      </svg>
+      {label}
+    </div>
+  );
+}
 
 /** Countdown ring; what it shows comes from `timerView`. */
 export function TimerRing({ theme, props, box, state }: PrimitiveComponentProps<TimerRingProps>) {
   const view = timerView({
     durationSec: props.durationSec,
-    speed: props.speed,
     countElapsed: state.elapsed.count,
+    countRunSec: state.runSec.count,
     rejectProgress: state.actions.reject,
   });
   const tint = semanticTint(theme, view.expired ? 'problem' : props.semantic);
@@ -83,6 +116,11 @@ export function TimerRing({ theme, props, box, state }: PrimitiveComponentProps<
         >
           {formatClock(view.shownSec)}
         </div>
+        <SpeedTag
+          theme={theme}
+          label={speedLabel(view.speed)}
+          top={c + timerDigitsSize(theme) * 0.6}
+        />
       </div>
       {props.label ? (
         <div

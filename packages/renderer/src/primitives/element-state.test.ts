@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { actionProgress, elementState, type ElementEvent } from './element-state.ts';
+import { actionProgress, actionRunSec, elementState, type ElementEvent } from './element-state.ts';
 
 const FPS = 30;
-const at = (action: ElementEvent['action'], frame: number): ElementEvent => ({
+const at = (action: ElementEvent['action'], frame: number, beatEndSec = 100): ElementEvent => ({
   action,
   frame,
   sec: frame / FPS,
+  beatEndSec,
 });
 
 describe('elementState', () => {
@@ -16,6 +17,7 @@ describe('elementState', () => {
       dimmed: 0,
       actions: {},
       elapsed: {},
+      runSec: {},
     });
   });
 
@@ -66,7 +68,7 @@ describe('elapsed', () => {
   });
 
   it('measures from the unrounded event time, so draft and final rates agree', () => {
-    const event = { action: 'enter' as const, sec: 1.01 };
+    const event = { action: 'enter' as const, sec: 1.01, beatEndSec: 5 };
     const final = elementState([{ ...event, frame: 30 }], 60, 30).elapsed.enter;
     const draft = elementState([{ ...event, frame: 15 }], 30, 15).elapsed.enter;
     expect(final).toBeCloseTo(0.99);
@@ -74,7 +76,37 @@ describe('elapsed', () => {
   });
 
   it('never goes negative on the frame the event rounds onto', () => {
-    expect(elementState([{ action: 'enter', frame: 30, sec: 1.01 }], 30, 30).elapsed.enter).toBe(0);
+    const event = { action: 'enter' as const, frame: 30, sec: 1.01, beatEndSec: 5 };
+    expect(elementState([event], 30, 30).elapsed.enter).toBe(0);
+  });
+});
+
+describe('runSec', () => {
+  it('runs until the next reject after it, even past an exit or the beat end', () => {
+    const events = [at('count', 30, 3), at('exit', 60), at('reject', 150)];
+    expect(actionRunSec(events[0] as ElementEvent, events)).toBeCloseTo(4);
+  });
+
+  it('without a reject, runs until the exit when it comes before the beat end', () => {
+    const events = [at('count', 30, 5), at('exit', 90)];
+    expect(actionRunSec(events[0] as ElementEvent, events)).toBeCloseTo(2);
+  });
+
+  it('without a reject or an earlier exit, runs until the end of its beat', () => {
+    const events = [at('count', 30, 2.5), at('exit', 120)];
+    expect(actionRunSec(events[0] as ElementEvent, events)).toBeCloseTo(1.5);
+  });
+
+  it('ignores a reject before the occurrence', () => {
+    const events = [at('reject', 0), at('count', 30, 2)];
+    expect(actionRunSec(events[1] as ElementEvent, events)).toBeCloseTo(1);
+  });
+
+  it('reports the first occurrence before any starts, then the latest started one', () => {
+    const events = [at('count', 30, 10), at('count', 120, 10), at('reject', 180)];
+    expect(elementState(events, 0, FPS).runSec.count).toBeCloseTo(5);
+    expect(elementState(events, 150, FPS).runSec.count).toBeCloseTo(2);
+    expect(elementState(events, 0, FPS).runSec.enter).toBeUndefined();
   });
 });
 

@@ -315,7 +315,8 @@ primitive to `docs/primitives/<id>.png`.
 - **Components receive only `{ theme, props, box, state }`**, never events or anchors. `state`
   comes from `elementState(events, frame, fps)` (`primitives/element-state.ts`): `presence`,
   `emphasis`, `dimmed`, per-action `actions[action]` progress and `elapsed[action]` seconds (both
-  0 while the element's first such event is still ahead, absent when it has none). It is the
+  0 while the element's first such event is still ahead, absent when it has none), and
+  `runSec[action]` (below). It is the
   single place events become state; P1A.10 upgrades it (easing, focus, stagger) without touching
   components.
 - **`elapsed` is measured on the global timeline**: `frame / fps` minus the event's unrounded
@@ -323,8 +324,14 @@ primitive to `docs/primitives/<id>.png`.
   agree, including for actions that started in an earlier beat. Effects that outlast an action's
   fixed duration use it at fixed, capped rates that never depend on beat length (`typing.ts`:
   `command_bubble` ~30 chars/s capped at 1.5 s, `data_block` 0.35 s per field). Only
-  `timer_ring` runs for narration time (`count` starts it at `speed`); it holds 00:00 when it
-  runs out and expires (red flash) only on `reject`. Every visible change comes from an event.
+  `timer_ring` runs for narration time: `count` starts it, and its speed is derived, never
+  authored (`durationSec / runSec.count`, at least 1), so it reaches 00:00 exactly on the
+  `reject` word (expiry, red flash) or, without one, at the element's `exit` or the end of the
+  beat, where it holds 00:00. A "⏩ N×" tag shows when it runs faster than real time. Every
+  visible change comes from an event.
+- **`runSec[action]`** (`actionRunSec`) is how long an occurrence runs, from resolved event
+  times: until the element's next `reject`; without one, until its next `exit` or the end of the
+  beat it is anchored in (`ElementEvent.beatEndSec`), whichever comes first.
 - **Assets** (temporary until P1A.11): `src/assets/builtin.ts` is a small set of Lucide glyphs
   (ISC), split into `icon` and `item` kinds; `AssetGlyph` draws one, or a neutral dashed
   placeholder for an unknown id. Asset ids in props are slugs, not enums, so unknown ids are
