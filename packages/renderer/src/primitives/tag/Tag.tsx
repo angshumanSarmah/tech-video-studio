@@ -4,8 +4,8 @@ import type { TagProps } from './definition.ts';
 
 /** Boxed monospace label. `reject` switches it to the problem colour and adds a cross. */
 export function Tag({ theme, props, box, state }: PrimitiveComponentProps<TagProps>) {
-  const rejected = state.actions.reject;
-  const tint = semanticTint(theme, rejected === undefined ? props.semantic : 'problem');
+  const rejected = state.actions.reject ?? 0;
+  const tint = semanticTint(theme, rejected > 0 ? 'problem' : props.semantic);
   return (
     <div
       style={{
@@ -26,9 +26,7 @@ export function Tag({ theme, props, box, state }: PrimitiveComponentProps<TagPro
         boxShadow: state.emphasis > 0.05 ? tint.glowShadow : 'none',
       }}
     >
-      {rejected === undefined ? null : (
-        <span style={{ color: tint.base, opacity: rejected }}>✗</span>
-      )}
+      {rejected > 0 ? <span style={{ color: tint.base, opacity: rejected }}>✗</span> : null}
       {props.text}
     </div>
   );

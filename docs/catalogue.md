@@ -42,7 +42,7 @@ A boxed monospace label in a semantic colour, like a sticker on the board. It na
 
 **Family:** metric · **Actions:** `enter`, `exit`, `count`, `highlight`, `dim`, `pulse`
 
-A big number with an optional unit and caption. It shows `from` until a `count` event, then counts up or down to `value`, so the viewer watches a quantity grow or drain.
+A big number with an optional unit and caption. Without a `count` event it shows `value`. With one, it shows `from` (default 0) until the count begins, then counts up or down to `value`, so the viewer watches a quantity grow or drain.
 
 **When to use:** One quantity that matters to the story: requests per second, tokens left, queue length, latency. Use `count` when the change itself is the point.
 
@@ -53,7 +53,7 @@ A big number with an optional unit and caption. It shows `from` until a `count` 
 | Name | Type | Required | Notes |
 | --- | --- | --- | --- |
 | `value` | number | yes | The number shown once any count has finished. |
-| `from` | number | no | Shown until a `count` event, which then counts to `value`. Set it whenever you use `count`. |
+| `from` | number | no | Where a `count` starts (default 0). Shown until the count begins. |
 | `unit` | string | no | Short unit after the number. (min length 1, max length 16) |
 | `label` | string | no | Caption under the number. (min length 1, max length 32) |
 | `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Colour of the number: neutral, focus, ok, problem or concept. (default `"focus"`) |

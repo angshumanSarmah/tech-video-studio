@@ -10,9 +10,7 @@ export const CounterPropsSchema = z.strictObject({
     .number()
     .finite()
     .optional()
-    .describe(
-      'Shown until a `count` event, which then counts to `value`. Set it whenever you use `count`.',
-    ),
+    .describe('Where a `count` starts (default 0). Shown until the count begins.'),
   unit: z.string().trim().min(1).max(16).optional().describe('Short unit after the number.'),
   label: z.string().trim().min(1).max(32).optional().describe('Caption under the number.'),
   semantic: z
@@ -45,8 +43,9 @@ export const counterPrimitive = definePrimitive({
   sizeHints: counterSizeHints,
   description: {
     summary:
-      'A big number with an optional unit and caption. It shows `from` until a `count` event, ' +
-      'then counts up or down to `value`, so the viewer watches a quantity grow or drain.',
+      'A big number with an optional unit and caption. Without a `count` event it shows `value`. ' +
+      'With one, it shows `from` (default 0) until the count begins, then counts up or down to ' +
+      '`value`, so the viewer watches a quantity grow or drain.',
     whenToUse:
       'One quantity that matters to the story: requests per second, tokens left, queue length, ' +
       'latency. Use `count` when the change itself is the point.',

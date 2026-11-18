@@ -20,7 +20,10 @@ export type ElementState = {
   emphasis: number;
   /** 0..1: ramps up after `dim`, back down after a later `highlight` or `enter`. */
   dimmed: number;
-  /** Progress (0..1) of the latest started occurrence of each action; absent until it starts. */
+  /**
+   * Progress (0..1) of the latest started occurrence of each action the element has; 0 while its
+   * first occurrence is still ahead; absent when the element has no event with that action.
+   */
   actions: Partial<Record<EventAction, number>>;
 };
 
@@ -57,7 +60,7 @@ export function elementState(
       pulse(started, progress),
     ),
     dimmed: heldLevel(started, 'dim', DIM_TOGGLES, progress),
-    actions: latestProgress(started, progress),
+    actions: actionProgresses(events, started, progress),
   };
 }
 
@@ -94,8 +97,13 @@ function pulse(started: readonly ElementEvent[], p: Progress) {
   return last ? Math.sin(Math.PI * p(last)) : 0;
 }
 
-function latestProgress(started: readonly ElementEvent[], p: Progress) {
+function actionProgresses(
+  all: readonly ElementEvent[],
+  started: readonly ElementEvent[],
+  p: Progress,
+) {
   const actions: Partial<Record<EventAction, number>> = {};
+  for (const event of all) actions[event.action] = 0;
   for (const event of started) actions[event.action] = p(event);
   return actions;
 }

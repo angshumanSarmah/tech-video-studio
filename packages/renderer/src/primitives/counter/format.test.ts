@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { countValueAt, formatCount } from './format.ts';
+import { counterValue, countValueAt, formatCount } from './format.ts';
 
 describe('formatCount', () => {
   it('groups in lakhs and crores for en-IN', () => {
@@ -23,5 +23,28 @@ describe('countValueAt', () => {
     expect(countValueAt(0, 10, 0.55)).toBe(6);
     expect(countValueAt(10, 0, 1)).toBe(0);
     expect(countValueAt(0, 1, 0.333, 2)).toBe(0.33);
+  });
+});
+
+describe('counterValue', () => {
+  const NO_COUNT = undefined;
+
+  it('shows `value` when the counter has no count event', () => {
+    expect(counterValue({ value: 10000, decimals: 0 }, NO_COUNT)).toBe(10000);
+    expect(counterValue({ value: 10000, from: 50, decimals: 0 }, NO_COUNT)).toBe(10000);
+  });
+
+  it('counts up from the default 0: shows 0 until the count begins, then reaches `value`', () => {
+    const props = { value: 10000, decimals: 0 };
+    expect(counterValue(props, 0)).toBe(0);
+    expect(counterValue(props, 0.5)).toBe(5000);
+    expect(counterValue(props, 1)).toBe(10000);
+  });
+
+  it('counts down when `from` is above `value`', () => {
+    const props = { value: 0, from: 10, decimals: 0 };
+    expect(counterValue(props, 0)).toBe(10);
+    expect(counterValue(props, 0.3)).toBe(7);
+    expect(counterValue(props, 1)).toBe(0);
   });
 });

@@ -303,7 +303,8 @@ safe-area overlay to `docs/safe-area/zones.png`.
   placeholders.
 - **Components receive only `{ theme, props, box, state }`**, never events or anchors. `state`
   comes from `elementState(events, frame, fps)` (`primitives/element-state.ts`): `presence`,
-  `emphasis`, `dimmed` and per-action `actions[action]` progress. It is the single place events
+  `emphasis`, `dimmed` and per-action `actions[action]` progress (0 while the element's first
+  such event is still ahead, absent when it has none). It is the single place events
   become state; P1A.10 upgrades it (easing, focus, stagger) without touching components.
 - **A pattern** (`definePattern`) has the same shape minus component and size hints, plus
   `anchors` (the narration moments it needs; `params` takes an `EventAnchor` for each) and

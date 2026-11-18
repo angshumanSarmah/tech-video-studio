@@ -32,9 +32,10 @@ describe('elementState', () => {
     expect(elementState(events, 18, FPS).emphasis).toBeCloseTo(0);
   });
 
-  it('reports progress of the latest started occurrence of each action, and nothing before it starts', () => {
+  it('reports progress of the latest started occurrence: 0 before the first, absent if never', () => {
     const events = [at('count', 30), at('count', 100)];
-    expect(elementState(events, 10, FPS).actions.count).toBeUndefined();
+    expect(elementState(events, 10, FPS).actions).toEqual({ count: 0 });
+    expect(elementState(events, 10, FPS).actions.reject).toBeUndefined();
     expect(elementState(events, 90, FPS).actions.count).toBe(1);
     expect(elementState(events, 100, FPS).actions.count).toBe(0);
   });
@@ -51,5 +52,14 @@ describe('actionProgress', () => {
       actionProgress(at('enter', 0), 14, 30),
       1,
     );
+  });
+});
+
+describe('counter state end to end', () => {
+  it('a counter with a later count event sees count progress 0 from the start', () => {
+    const events = [at('enter', 0), at('count', 60)];
+    expect(elementState(events, 0, FPS).actions.count).toBe(0);
+    expect(elementState(events, 59, FPS).actions.count).toBe(0);
+    expect(elementState(events, 90, FPS).actions.count).toBe(1);
   });
 });
