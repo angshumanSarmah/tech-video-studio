@@ -1,6 +1,179 @@
 {
   "primitives": [
     {
+      "id": "icon",
+      "family": "annotation",
+      "summary": "A single line-drawn symbol from the asset library (server, database, user, lock, cloud), in a semantic colour, with no text.",
+      "whenToUse": "A visual cue next to other elements: what kind of thing is involved, or the idea of the beat (speed, security, time) at a glance.",
+      "whenNotToUse": "A component the story talks about (use `node_card` with an icon); an everyday object with a caption (use `item_icon`); anything that needs a word to be understood.",
+      "actions": [
+        "enter",
+        "exit",
+        "highlight",
+        "dim",
+        "pulse"
+      ],
+      "props": {
+        "type": "object",
+        "properties": {
+          "asset": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+          },
+          "semantic": {
+            "default": "neutral",
+            "description": "Stroke colour: neutral, focus, ok, problem or concept.",
+            "type": "string",
+            "enum": [
+              "neutral",
+              "focus",
+              "ok",
+              "problem",
+              "concept"
+            ]
+          }
+        },
+        "required": [
+          "asset"
+        ],
+        "additionalProperties": false
+      },
+      "example": {
+        "id": "<example-icon-id>",
+        "primitive": "icon",
+        "props": {
+          "asset": "database",
+          "semantic": "concept"
+        }
+      }
+    },
+    {
+      "id": "item_icon",
+      "family": "annotation",
+      "summary": "A flat everyday object from the asset library (phone, car, ticket, parcel, pizza) on a soft tile, with a caption under it. `reject` turns it red with a cross and a shake.",
+      "whenToUse": "The real-world thing the system is about: the order, the ride, the seat ticket, the user's phone. Grounds an abstract flow in something the viewer has held.",
+      "whenNotToUse": "A system component (use `node_card`); a bare symbol without a caption (use `icon`); data about the object (use `data_block`).",
+      "actions": [
+        "enter",
+        "exit",
+        "highlight",
+        "dim",
+        "pulse",
+        "reject"
+      ],
+      "props": {
+        "type": "object",
+        "properties": {
+          "asset": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+          },
+          "caption": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 24,
+            "pattern": "^[^\\n\\r]*$",
+            "description": "What the object is in this story, shown under it."
+          },
+          "semantic": {
+            "default": "neutral",
+            "description": "Tile colour: neutral, focus, ok, problem or concept.",
+            "type": "string",
+            "enum": [
+              "neutral",
+              "focus",
+              "ok",
+              "problem",
+              "concept"
+            ]
+          }
+        },
+        "required": [
+          "asset",
+          "caption"
+        ],
+        "additionalProperties": false
+      },
+      "example": {
+        "id": "<example-item_icon-id>",
+        "primitive": "item_icon",
+        "props": {
+          "asset": "ticket",
+          "caption": "<example-caption>"
+        }
+      }
+    },
+    {
+      "id": "node_card",
+      "family": "annotation",
+      "summary": "A titled card for one component of a system (a service, server, database, client or queue), with an optional subtitle and icon. `lock` adds a padlock badge; `reject` turns it red with a cross and a shake.",
+      "whenToUse": "The boxes of a system diagram: anything the story treats as a component that receives, holds or sends something.",
+      "whenNotToUse": "A label or status (use `tag`); a quantity (use `counter`); an everyday object (use `item_icon`); a bare symbol (use `icon`).",
+      "actions": [
+        "enter",
+        "exit",
+        "highlight",
+        "dim",
+        "pulse",
+        "lock",
+        "reject"
+      ],
+      "props": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 24,
+            "pattern": "^[^\\n\\r]*$",
+            "description": "Name of the component, shown in uppercase."
+          },
+          "subtitle": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40,
+            "pattern": "^[^\\n\\r]*$",
+            "description": "Optional second line: its role or a detail."
+          },
+          "icon": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+          },
+          "semantic": {
+            "default": "neutral",
+            "description": "Border and glow colour: neutral, focus, ok, problem or concept.",
+            "type": "string",
+            "enum": [
+              "neutral",
+              "focus",
+              "ok",
+              "problem",
+              "concept"
+            ]
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "additionalProperties": false
+      },
+      "example": {
+        "id": "<example-node_card-id>",
+        "primitive": "node_card",
+        "props": {
+          "title": "<example-name>",
+          "subtitle": "<example-role>",
+          "icon": "server"
+        }
+      }
+    },
+    {
       "id": "tag",
       "family": "annotation",
       "summary": "A boxed monospace label in a semantic colour, like a sticker on the board. It names a thing, a state or a result in two or three words (\"429\", \"CACHE HIT\", \"RATE LIMITED\").",
@@ -47,6 +220,210 @@
         "props": {
           "text": "<example-label>",
           "semantic": "problem"
+        }
+      }
+    },
+    {
+      "id": "command_bubble",
+      "family": "data",
+      "summary": "A speech bubble holding one line of monospace command, with the verb coloured, such as a key/value store command or a CLI call. On `enter` the command types itself out (about 30 characters a second, never more than 1.5 s). `reject` turns it red with a cross.",
+      "whenToUse": "The exact request one component sends another, when the command itself teaches something: what a client asks a cache, what a producer writes to a log.",
+      "whenNotToUse": "Data at rest (use `data_block`); several lines or real code; a plain label (use `tag`).",
+      "actions": [
+        "enter",
+        "exit",
+        "highlight",
+        "dim",
+        "pulse",
+        "reject"
+      ],
+      "props": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 48,
+            "pattern": "^[^\\n\\r]*$",
+            "description": "The command exactly as typed, on one line."
+          },
+          "semantic": {
+            "default": "concept",
+            "description": "Colour of the bubble and the command verb: neutral, focus, ok, problem or concept.",
+            "type": "string",
+            "enum": [
+              "neutral",
+              "focus",
+              "ok",
+              "problem",
+              "concept"
+            ]
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "additionalProperties": false
+      },
+      "example": {
+        "id": "<example-command_bubble-id>",
+        "primitive": "command_bubble",
+        "props": {
+          "text": "SET <example-key> \"<example-value>\""
+        }
+      }
+    },
+    {
+      "id": "data_block",
+      "family": "data",
+      "summary": "A JSON-like block of key/value pairs on a card, with an optional title. On `enter` it types in one field at a time (about a third of a second each); without `enter` all fields show at once. A field can colour its value by meaning.",
+      "whenToUse": "Showing what a thing looks like as data: a ride request, a cache entry, a message on a queue, the record a real object becomes. Up to 6 short fields.",
+      "whenNotToUse": "Code or logic (this is data only); a single command (use `command_bubble`); long text, nested objects or lists; a single number (use `counter`).",
+      "actions": [
+        "enter",
+        "exit",
+        "highlight",
+        "dim",
+        "pulse"
+      ],
+      "props": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 24,
+            "pattern": "^[^\\n\\r]*$",
+            "description": "Optional name above the block, e.g. the record type."
+          },
+          "fields": {
+            "minItems": 1,
+            "maxItems": 6,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,19}$",
+                  "description": "Field name, as it would appear in the data."
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "maxLength": 28
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Field value: a short string, a number, true/false or null."
+                },
+                "semantic": {
+                  "description": "Colours the value and tints its row: neutral, focus, ok, problem or concept.",
+                  "type": "string",
+                  "enum": [
+                    "neutral",
+                    "focus",
+                    "ok",
+                    "problem",
+                    "concept"
+                  ]
+                }
+              },
+              "required": [
+                "key",
+                "value"
+              ],
+              "additionalProperties": false
+            },
+            "description": "The key/value pairs, in display order."
+          }
+        },
+        "required": [
+          "fields"
+        ],
+        "additionalProperties": false
+      },
+      "example": {
+        "id": "<example-data_block-id>",
+        "primitive": "data_block",
+        "props": {
+          "title": "<example-record>",
+          "fields": [
+            {
+              "key": "example_key",
+              "value": "<example-value>"
+            },
+            {
+              "key": "example_state",
+              "value": "<example-state>",
+              "semantic": "ok"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "formula_card",
+      "family": "data",
+      "summary": "A card with one typeset formula (LaTeX, rendered by KaTeX) and an optional caption that reads it in plain words. At most 80 characters of LaTeX; invalid LaTeX is a spec error.",
+      "whenToUse": "The one formula a topic genuinely rests on: attention scores, a hit ratio, the hash ring position. At most one per video, and only when the narration walks through it.",
+      "whenNotToUse": "A single number (use `counter` or `stat_card`); an equation the narration never explains; code or data (use `data_block`).",
+      "actions": [
+        "enter",
+        "exit",
+        "highlight",
+        "dim",
+        "pulse"
+      ],
+      "props": {
+        "type": "object",
+        "properties": {
+          "latex": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "description": "One formula in LaTeX math mode, without $ delimiters. Rendered by KaTeX."
+          },
+          "caption": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 48,
+            "pattern": "^[^\\n\\r]*$",
+            "description": "Optional plain-words reading of the formula, shown under it."
+          },
+          "semantic": {
+            "default": "concept",
+            "description": "Border and glow colour: neutral, focus, ok, problem or concept.",
+            "type": "string",
+            "enum": [
+              "neutral",
+              "focus",
+              "ok",
+              "problem",
+              "concept"
+            ]
+          }
+        },
+        "required": [
+          "latex"
+        ],
+        "additionalProperties": false
+      },
+      "example": {
+        "id": "<example-formula_card-id>",
+        "primitive": "formula_card",
+        "props": {
+          "latex": "\\text{<example-term>} = \\frac{a}{a + b}",
+          "caption": "<example-reading>"
         }
       }
     },
@@ -119,6 +496,228 @@
           "value": 10000,
           "from": 0,
           "unit": "<example-unit>",
+          "label": "<example-caption>"
+        }
+      }
+    },
+    {
+      "id": "counter_transition",
+      "family": "metric",
+      "summary": "A big number changing to another, shown as \"10 → 9\": the old number in one colour, an arrow, the new number in another. Without a `count` event it shows the change as done. With one, the old number stands alone until the count, then the arrow and the new number come in and the old one fades back.",
+      "whenToUse": "One discrete change the story turns on: a stock of 10 seats dropping to 9, a version going from 1 to 2, a retry count ticking up. The colour change carries the meaning (e.g. neutral to problem).",
+      "whenNotToUse": "A quantity that counts smoothly up or down (use `counter`); a countdown in time; more than one change at once.",
+      "actions": [
+        "enter",
+        "exit",
+        "count",
+        "highlight",
+        "dim",
+        "pulse"
+      ],
+      "props": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "number",
+            "description": "The number before the change."
+          },
+          "to": {
+            "type": "number",
+            "description": "The number after the change."
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 16,
+            "pattern": "^[^\\n\\r]*$",
+            "description": "Short unit after the new number."
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32,
+            "pattern": "^[^\\n\\r]*$",
+            "description": "Caption under the numbers."
+          },
+          "fromSemantic": {
+            "default": "neutral",
+            "description": "Colour of the old number: neutral, focus, ok, problem or concept.",
+            "type": "string",
+            "enum": [
+              "neutral",
+              "focus",
+              "ok",
+              "problem",
+              "concept"
+            ]
+          },
+          "toSemantic": {
+            "default": "focus",
+            "description": "Colour of the new number: neutral, focus, ok, problem or concept.",
+            "type": "string",
+            "enum": [
+              "neutral",
+              "focus",
+              "ok",
+              "problem",
+              "concept"
+            ]
+          },
+          "decimals": {
+            "default": 0,
+            "description": "Digits after the decimal point.",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2
+          }
+        },
+        "required": [
+          "from",
+          "to"
+        ],
+        "additionalProperties": false
+      },
+      "example": {
+        "id": "<example-counter_transition-id>",
+        "primitive": "counter_transition",
+        "props": {
+          "from": 10,
+          "to": 9,
+          "unit": "<example-unit>",
+          "fromSemantic": "ok",
+          "toSemantic": "problem"
+        }
+      }
+    },
+    {
+      "id": "stat_card",
+      "family": "metric",
+      "summary": "A card with one big figure, a label under it, and a small source footnote. The figure is text, so units and formatting stay as written (\"10k/s\", \"₹2,000 Cr\", \"99.9%\").",
+      "whenToUse": "A cited real-world number that makes the problem concrete: traffic at peak, money lost, a benchmark. Every figure from research needs its source.",
+      "whenNotToUse": "A number that animates or changes (use `counter` or `counter_transition`); an illustrative number with no source (use `counter`); a label or status (use `tag`).",
+      "actions": [
+        "enter",
+        "exit",
+        "highlight",
+        "dim",
+        "pulse"
+      ],
+      "props": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 12,
+            "pattern": "^[^\\n\\r]*$",
+            "description": "The figure as displayed, units included."
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32,
+            "pattern": "^[^\\n\\r]*$",
+            "description": "What the figure measures."
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60,
+            "pattern": "^[^\\n\\r]*$",
+            "description": "Where the figure comes from, shown as a footnote. Required."
+          },
+          "semantic": {
+            "default": "focus",
+            "description": "Colour of the value: neutral, focus, ok, problem or concept.",
+            "type": "string",
+            "enum": [
+              "neutral",
+              "focus",
+              "ok",
+              "problem",
+              "concept"
+            ]
+          }
+        },
+        "required": [
+          "value",
+          "label",
+          "source"
+        ],
+        "additionalProperties": false
+      },
+      "example": {
+        "id": "<example-stat_card-id>",
+        "primitive": "stat_card",
+        "props": {
+          "value": "<example-n>",
+          "label": "<example-label>",
+          "source": "<example-source>"
+        }
+      }
+    },
+    {
+      "id": "timer_ring",
+      "family": "metric",
+      "summary": "A countdown ring with the time left as mm:ss in the middle. It shows `durationSec` until `count` starts the clock, then ticks down at `speed` and holds at 00:00 if it gets there. `reject` expires it: 00:00, empty ring, red flash.",
+      "whenToUse": "A deadline or hold in the story: a seat held for 10 minutes, a token that expires, a lease or a timeout. Use `reject` on the word where the time runs out.",
+      "whenNotToUse": "A quantity that is not time (use `counter`); elapsed time across the whole video (that is the story clock in the HUD); a duration that never runs down.",
+      "actions": [
+        "enter",
+        "exit",
+        "count",
+        "reject",
+        "highlight",
+        "dim",
+        "pulse"
+      ],
+      "props": {
+        "type": "object",
+        "properties": {
+          "durationSec": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5999,
+            "description": "Time on the clock when it starts, in seconds (600 shows 10:00)."
+          },
+          "speed": {
+            "default": 1,
+            "description": "Clock seconds per real second once `count` starts; above 1 runs it fast-forward.",
+            "type": "number",
+            "minimum": 1,
+            "maximum": 60
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 24,
+            "pattern": "^[^\\n\\r]*$",
+            "description": "Caption under the ring: what the time is for."
+          },
+          "semantic": {
+            "default": "focus",
+            "description": "Ring colour while running: neutral, focus, ok, problem or concept.",
+            "type": "string",
+            "enum": [
+              "neutral",
+              "focus",
+              "ok",
+              "problem",
+              "concept"
+            ]
+          }
+        },
+        "required": [
+          "durationSec"
+        ],
+        "additionalProperties": false
+      },
+      "example": {
+        "id": "<example-timer_ring-id>",
+        "primitive": "timer_ring",
+        "props": {
+          "durationSec": 600,
+          "speed": 30,
           "label": "<example-caption>"
         }
       }

@@ -2,11 +2,21 @@ import { describe, expect, it } from 'vitest';
 import { actionProgress, elementState, type ElementEvent } from './element-state.ts';
 
 const FPS = 30;
-const at = (action: ElementEvent['action'], frame: number): ElementEvent => ({ action, frame });
+const at = (action: ElementEvent['action'], frame: number): ElementEvent => ({
+  action,
+  frame,
+  sec: frame / FPS,
+});
 
 describe('elementState', () => {
   it('is present from the start when nothing enters it', () => {
-    expect(elementState([], 0, FPS)).toEqual({ presence: 1, emphasis: 0, dimmed: 0, actions: {} });
+    expect(elementState([], 0, FPS)).toEqual({
+      presence: 1,
+      emphasis: 0,
+      dimmed: 0,
+      actions: {},
+      elapsed: {},
+    });
   });
 
   it('is absent until its enter, ramps in, and ramps out on exit', () => {
@@ -43,6 +53,28 @@ describe('elementState', () => {
   it('ignores event order in the input', () => {
     const events = [at('exit', 90), at('enter', 30)];
     expect(elementState(events, 60, FPS).presence).toBe(1);
+  });
+});
+
+describe('elapsed', () => {
+  it('counts seconds since the latest started occurrence: 0 before the first, absent if never', () => {
+    const events = [at('count', 30), at('count', 120)];
+    expect(elementState(events, 0, FPS).elapsed).toEqual({ count: 0 });
+    expect(elementState(events, 90, FPS).elapsed.count).toBeCloseTo(2);
+    expect(elementState(events, 150, FPS).elapsed.count).toBeCloseTo(1);
+    expect(elementState(events, 150, FPS).elapsed.enter).toBeUndefined();
+  });
+
+  it('measures from the unrounded event time, so draft and final rates agree', () => {
+    const event = { action: 'enter' as const, sec: 1.01 };
+    const final = elementState([{ ...event, frame: 30 }], 60, 30).elapsed.enter;
+    const draft = elementState([{ ...event, frame: 15 }], 30, 15).elapsed.enter;
+    expect(final).toBeCloseTo(0.99);
+    expect(draft).toBe(final);
+  });
+
+  it('never goes negative on the frame the event rounds onto', () => {
+    expect(elementState([{ action: 'enter', frame: 30, sec: 1.01 }], 30, 30).elapsed.enter).toBe(0);
   });
 });
 

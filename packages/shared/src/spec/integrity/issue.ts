@@ -27,7 +27,8 @@ export const SPEC_ERROR_CODES = [
 ] as const;
 export type SpecErrorCode = (typeof SPEC_ERROR_CODES)[number];
 
-export const SPEC_WARNING_CODES = ['target_length_mismatch'] as const;
+/** `unknown_asset` is raised by the renderer's registry checks (`withRegistryChecks`). */
+export const SPEC_WARNING_CODES = ['target_length_mismatch', 'unknown_asset'] as const;
 export type SpecWarningCode = (typeof SPEC_WARNING_CODES)[number];
 
 export type SpecIssueCode = SpecErrorCode | SpecWarningCode;

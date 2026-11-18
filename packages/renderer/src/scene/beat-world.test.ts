@@ -5,7 +5,7 @@ import { DEFAULT_REGISTRIES, type Registries } from '../catalog/registries.ts';
 import { fixtureSpec, registryValidSpec } from '../catalog/test-specs.ts';
 import { buildPatternRegistry } from '../patterns/registry.ts';
 import { bouncePattern } from '../patterns/test-pattern.ts';
-import { PRIMITIVES } from '../primitives/registry.ts';
+import { elementState } from '../primitives/element-state.ts';
 import { beatWorld, sceneChain } from './beat-world.ts';
 
 const FPS = 30;
@@ -20,14 +20,16 @@ function world(
 
 describe('beatWorld', () => {
   it('draws unknown primitives and patterns as error items, never as content', () => {
-    const items = world(parseRenderableSpec(fixtureSpec()), 'hook');
+    const input = fixtureSpec();
+    Object.assign(input.scenes[0]?.elements?.[0] ?? {}, { primitive: 'node_box' });
+    const items = world(parseRenderableSpec(input), 'hook');
     expect(items.map((i) => [i.key, i.kind])).toEqual([
       ['client', 'error'],
-      ['api', 'error'],
+      ['api', 'primitive'],
       ['rps', 'primitive'],
       ['flood', 'error'],
     ]);
-    expect(items[0]).toMatchObject({ title: 'Unknown primitive', detail: 'node_card · client' });
+    expect(items[0]).toMatchObject({ title: 'Unknown primitive', detail: 'node_box · client' });
     expect(items[3]).toMatchObject({
       title: 'Unknown pattern',
       detail: 'flood_then_funnel · flood',
@@ -85,12 +87,42 @@ describe('beatWorld', () => {
       action: 'enter',
       targets: ['bounce'],
     });
-    const registries = { primitives: PRIMITIVES, patterns: buildPatternRegistry([bouncePattern]) };
+    const registries = { ...DEFAULT_REGISTRIES, patterns: buildPatternRegistry([bouncePattern]) };
     const items = world(parseRenderableSpec(input), 'hook', registries);
     const parts = items.filter((i) => i.key.startsWith('bounce/'));
     expect(parts.map((p) => p.key)).toEqual(['bounce/held', 'bounce/second']);
     const actions = parts.map((p) => (p.kind === 'primitive' ? p.events.map((e) => e.action) : []));
     expect(actions).toEqual([['enter'], ['enter', 'enter', 'reject']]);
+  });
+});
+
+describe('elapsed time across beats', () => {
+  const spec = parseRenderableSpec(registryValidSpec());
+  const timing = effectiveTiming(spec);
+  const nextStart = timing.beats.find((b) => b.beatId === 'bucket-intro')?.startSec ?? 0;
+  // One second into the next beat, on a frame boundary at both the draft and final rates.
+  const nowSec = Math.ceil(nextStart * 15) / 15 + 1;
+
+  function rpsState(fps: number) {
+    const items = beatWorld(spec, timing, 'bucket-intro', fps, DEFAULT_REGISTRIES);
+    const rps = items.find((i) => i.key === 'rps');
+    if (rps?.kind !== 'primitive') throw new Error('rps is not a primitive');
+    const enter = rps.events.find((e) => e.action === 'enter');
+    return { enterSec: enter?.sec ?? NaN, state: elementState(rps.events, nowSec * fps, fps) };
+  }
+
+  it('measures an action that started in the previous beat from its own time, not the beat cut', () => {
+    const { enterSec, state } = rpsState(30);
+    expect(enterSec).toBeLessThan(nextStart);
+    expect(state.elapsed.enter).toBeCloseTo(nowSec - enterSec, 6);
+    expect(state.elapsed.enter).toBeGreaterThan(nowSec - nextStart);
+  });
+
+  it('gives the same elapsed time at the draft and final frame rates', () => {
+    expect(rpsState(15).state.elapsed.enter).toBeCloseTo(
+      rpsState(30).state.elapsed.enter ?? NaN,
+      9,
+    );
   });
 });
 

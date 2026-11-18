@@ -1,0 +1,810 @@
+{
+  "schemaVersion": 1,
+  "meta": {
+    "id": "primitives-board",
+    "series": "system-design",
+    "title": "Primitive board",
+    "topicClass": "concept",
+    "targetLengthSec": 80
+  },
+  "story": {
+    "devices": [],
+    "chapters": [
+      {
+        "id": "annotation",
+        "title": "Annotation"
+      },
+      {
+        "id": "metric",
+        "title": "Metric"
+      },
+      {
+        "id": "data",
+        "title": "Data"
+      }
+    ],
+    "beats": [
+      {
+        "id": "tag",
+        "chapterId": "annotation",
+        "intent": "Show tag with each of its events",
+        "targetSec": 7
+      },
+      {
+        "id": "node-card",
+        "chapterId": "annotation",
+        "intent": "Show node_card with each of its events",
+        "targetSec": 7
+      },
+      {
+        "id": "icon",
+        "chapterId": "annotation",
+        "intent": "Show icon with each of its events",
+        "targetSec": 7
+      },
+      {
+        "id": "item-icon",
+        "chapterId": "annotation",
+        "intent": "Show item_icon with each of its events",
+        "targetSec": 7
+      },
+      {
+        "id": "counter",
+        "chapterId": "metric",
+        "intent": "Show counter with each of its events",
+        "targetSec": 7
+      },
+      {
+        "id": "counter-transition",
+        "chapterId": "metric",
+        "intent": "Show counter_transition with each of its events",
+        "targetSec": 7
+      },
+      {
+        "id": "timer-ring",
+        "chapterId": "metric",
+        "intent": "Show timer_ring with each of its events",
+        "targetSec": 7
+      },
+      {
+        "id": "stat-card",
+        "chapterId": "metric",
+        "intent": "Show stat_card with each of its events",
+        "targetSec": 7
+      },
+      {
+        "id": "data-block",
+        "chapterId": "data",
+        "intent": "Show data_block with each of its events",
+        "targetSec": 7
+      },
+      {
+        "id": "command-bubble",
+        "chapterId": "data",
+        "intent": "Show command_bubble with each of its events",
+        "targetSec": 7
+      },
+      {
+        "id": "formula-card",
+        "chapterId": "data",
+        "intent": "Show formula_card with each of its events",
+        "targetSec": 7
+      }
+    ],
+    "ending": {
+      "kind": "summary"
+    }
+  },
+  "hud": {
+    "heroMetric": false,
+    "storyClock": false,
+    "headline": false
+  },
+  "script": [
+    {
+      "beatId": "tag",
+      "narration": "A tag names a state in two words. It can glow, pulse for attention, get rejected in red, and then fade into the background."
+    },
+    {
+      "beatId": "node-card",
+      "narration": "A node card is one component of the system. It lights up when it matters, pulses under load, locks while it holds a resource, crashes with a reject, and then dims."
+    },
+    {
+      "beatId": "icon",
+      "narration": "An icon is a bare symbol, like this database. It glows when the story points at it, pulses once, then dims, and finally leaves."
+    },
+    {
+      "beatId": "item-icon",
+      "narration": "An item icon is an everyday object, like a movie ticket. It glows when it matters, pulses, gets rejected when someone else took the seat, and finally dims."
+    },
+    {
+      "beatId": "counter",
+      "narration": "A counter is one big number. It counts up as the traffic grows, glows at the peak, pulses for effect, and then dims."
+    },
+    {
+      "beatId": "counter-transition",
+      "narration": "A counter transition shows one change. Ten seats become nine the moment one is booked. It glows, pulses, and then dims."
+    },
+    {
+      "beatId": "timer-ring",
+      "narration": "A timer ring counts down a hold. The ten minute clock starts ticking now, glows as time runs short, pulses, expires when the payment never comes, and then dims."
+    },
+    {
+      "beatId": "stat-card",
+      "narration": "A stat card shows one cited figure with its source underneath. It glows when the narration lands on it, pulses, and then dims."
+    },
+    {
+      "beatId": "data-block",
+      "narration": "A data block types in a record field by field, like a ride request on its way to a driver. It glows when it is complete, pulses, and then dims."
+    },
+    {
+      "beatId": "command-bubble",
+      "narration": "A command bubble types out one command, like setting a key only if it does not exist yet. It glows, pulses, gets rejected when the key is taken, and dims."
+    },
+    {
+      "beatId": "formula-card",
+      "narration": "A formula card typesets the one equation a topic rests on, like the cache hit ratio. It glows, pulses, and then dims."
+    }
+  ],
+  "scenes": [
+    {
+      "beatId": "tag",
+      "kind": "board",
+      "layoutMode": "centered_focus",
+      "elements": [
+        {
+          "id": "tag",
+          "primitive": "tag",
+          "props": {
+            "text": "cache hit",
+            "semantic": "ok"
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "tag"
+          },
+          "action": "enter",
+          "targets": ["tag"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "glow"
+          },
+          "action": "highlight",
+          "targets": ["tag"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "pulse"
+          },
+          "action": "pulse",
+          "targets": ["tag"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "rejected"
+          },
+          "action": "reject",
+          "targets": ["tag"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "fade"
+          },
+          "action": "dim",
+          "targets": ["tag"]
+        }
+      ],
+      "focus": ["tag"]
+    },
+    {
+      "beatId": "node-card",
+      "kind": "board",
+      "layoutMode": "centered_focus",
+      "elements": [
+        {
+          "id": "node-card",
+          "primitive": "node_card",
+          "props": {
+            "title": "API gateway",
+            "subtitle": "routes requests",
+            "icon": "server"
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "node"
+          },
+          "action": "enter",
+          "targets": ["node-card"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "lights"
+          },
+          "action": "highlight",
+          "targets": ["node-card"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "pulses"
+          },
+          "action": "pulse",
+          "targets": ["node-card"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "locks"
+          },
+          "action": "lock",
+          "targets": ["node-card"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "crashes"
+          },
+          "action": "reject",
+          "targets": ["node-card"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "dims"
+          },
+          "action": "dim",
+          "targets": ["node-card"]
+        }
+      ],
+      "focus": ["node-card"]
+    },
+    {
+      "beatId": "icon",
+      "kind": "board",
+      "layoutMode": "centered_focus",
+      "elements": [
+        {
+          "id": "icon",
+          "primitive": "icon",
+          "props": {
+            "asset": "database",
+            "semantic": "concept"
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "icon"
+          },
+          "action": "enter",
+          "targets": ["icon"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "glows"
+          },
+          "action": "highlight",
+          "targets": ["icon"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "pulses"
+          },
+          "action": "pulse",
+          "targets": ["icon"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "dims"
+          },
+          "action": "dim",
+          "targets": ["icon"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "leaves"
+          },
+          "action": "exit",
+          "targets": ["icon"]
+        }
+      ],
+      "focus": ["icon"]
+    },
+    {
+      "beatId": "item-icon",
+      "kind": "board",
+      "layoutMode": "centered_focus",
+      "elements": [
+        {
+          "id": "item-icon",
+          "primitive": "item_icon",
+          "props": {
+            "asset": "ticket",
+            "caption": "Seat H3"
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "item"
+          },
+          "action": "enter",
+          "targets": ["item-icon"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "glows"
+          },
+          "action": "highlight",
+          "targets": ["item-icon"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "pulses"
+          },
+          "action": "pulse",
+          "targets": ["item-icon"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "rejected"
+          },
+          "action": "reject",
+          "targets": ["item-icon"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "dims"
+          },
+          "action": "dim",
+          "targets": ["item-icon"]
+        }
+      ],
+      "focus": ["item-icon"]
+    },
+    {
+      "beatId": "counter",
+      "kind": "board",
+      "layoutMode": "centered_focus",
+      "elements": [
+        {
+          "id": "counter",
+          "primitive": "counter",
+          "props": {
+            "value": 10000,
+            "unit": "req/s",
+            "label": "peak load"
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "counter"
+          },
+          "action": "enter",
+          "targets": ["counter"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "counts"
+          },
+          "action": "count",
+          "targets": ["counter"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "glows"
+          },
+          "action": "highlight",
+          "targets": ["counter"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "pulses"
+          },
+          "action": "pulse",
+          "targets": ["counter"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "dims"
+          },
+          "action": "dim",
+          "targets": ["counter"]
+        }
+      ],
+      "focus": ["counter"]
+    },
+    {
+      "beatId": "counter-transition",
+      "kind": "board",
+      "layoutMode": "centered_focus",
+      "elements": [
+        {
+          "id": "counter-transition",
+          "primitive": "counter_transition",
+          "props": {
+            "from": 10,
+            "to": 9,
+            "unit": "seats",
+            "label": "available",
+            "fromSemantic": "ok",
+            "toSemantic": "problem"
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "counter"
+          },
+          "action": "enter",
+          "targets": ["counter-transition"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "become"
+          },
+          "action": "count",
+          "targets": ["counter-transition"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "glows"
+          },
+          "action": "highlight",
+          "targets": ["counter-transition"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "pulses"
+          },
+          "action": "pulse",
+          "targets": ["counter-transition"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "dims"
+          },
+          "action": "dim",
+          "targets": ["counter-transition"]
+        }
+      ],
+      "focus": ["counter-transition"]
+    },
+    {
+      "beatId": "timer-ring",
+      "kind": "board",
+      "layoutMode": "centered_focus",
+      "elements": [
+        {
+          "id": "timer-ring",
+          "primitive": "timer_ring",
+          "props": {
+            "durationSec": 600,
+            "speed": 30,
+            "label": "seat hold"
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "timer"
+          },
+          "action": "enter",
+          "targets": ["timer-ring"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "ticking"
+          },
+          "action": "count",
+          "targets": ["timer-ring"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "glows"
+          },
+          "action": "highlight",
+          "targets": ["timer-ring"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "pulses"
+          },
+          "action": "pulse",
+          "targets": ["timer-ring"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "expires"
+          },
+          "action": "reject",
+          "targets": ["timer-ring"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "dims"
+          },
+          "action": "dim",
+          "targets": ["timer-ring"]
+        }
+      ],
+      "focus": ["timer-ring"]
+    },
+    {
+      "beatId": "stat-card",
+      "kind": "board",
+      "layoutMode": "centered_focus",
+      "elements": [
+        {
+          "id": "stat-card",
+          "primitive": "stat_card",
+          "props": {
+            "value": "10k/s",
+            "label": "peak requests",
+            "source": "Fixture data, illustrative only"
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "stat"
+          },
+          "action": "enter",
+          "targets": ["stat-card"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "glows"
+          },
+          "action": "highlight",
+          "targets": ["stat-card"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "pulses"
+          },
+          "action": "pulse",
+          "targets": ["stat-card"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "dims"
+          },
+          "action": "dim",
+          "targets": ["stat-card"]
+        }
+      ],
+      "focus": ["stat-card"]
+    },
+    {
+      "beatId": "data-block",
+      "kind": "board",
+      "layoutMode": "centered_focus",
+      "elements": [
+        {
+          "id": "data-block",
+          "primitive": "data_block",
+          "props": {
+            "title": "ride_request",
+            "fields": [
+              {
+                "key": "rider",
+                "value": "u_42"
+              },
+              {
+                "key": "pickup",
+                "value": "MG Road"
+              },
+              {
+                "key": "eta_min",
+                "value": 4
+              },
+              {
+                "key": "surge",
+                "value": false
+              },
+              {
+                "key": "status",
+                "value": "MATCHED",
+                "semantic": "ok"
+              }
+            ]
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "data"
+          },
+          "action": "enter",
+          "targets": ["data-block"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "glows"
+          },
+          "action": "highlight",
+          "targets": ["data-block"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "pulses"
+          },
+          "action": "pulse",
+          "targets": ["data-block"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "dims"
+          },
+          "action": "dim",
+          "targets": ["data-block"]
+        }
+      ],
+      "focus": ["data-block"]
+    },
+    {
+      "beatId": "command-bubble",
+      "kind": "board",
+      "layoutMode": "centered_focus",
+      "elements": [
+        {
+          "id": "command-bubble",
+          "primitive": "command_bubble",
+          "props": {
+            "text": "SET seat:H3 \"held\" NX"
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "command"
+          },
+          "action": "enter",
+          "targets": ["command-bubble"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "glows"
+          },
+          "action": "highlight",
+          "targets": ["command-bubble"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "pulses"
+          },
+          "action": "pulse",
+          "targets": ["command-bubble"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "rejected"
+          },
+          "action": "reject",
+          "targets": ["command-bubble"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "dims"
+          },
+          "action": "dim",
+          "targets": ["command-bubble"]
+        }
+      ],
+      "focus": ["command-bubble"]
+    },
+    {
+      "beatId": "formula-card",
+      "kind": "board",
+      "layoutMode": "centered_focus",
+      "elements": [
+        {
+          "id": "formula-card",
+          "primitive": "formula_card",
+          "props": {
+            "latex": "\\text{hit ratio} = \\frac{\\text{hits}}{\\text{hits} + \\text{misses}}",
+            "caption": "reads served from cache"
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "formula"
+          },
+          "action": "enter",
+          "targets": ["formula-card"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "glows"
+          },
+          "action": "highlight",
+          "targets": ["formula-card"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "pulses"
+          },
+          "action": "pulse",
+          "targets": ["formula-card"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "dims"
+          },
+          "action": "dim",
+          "targets": ["formula-card"]
+        }
+      ],
+      "focus": ["formula-card"]
+    }
+  ]
+}

@@ -2,7 +2,7 @@ import { validateRenderableVideoSpec, validateVideoSpec } from '@explainer-studi
 import { describe, expect, it } from 'vitest';
 import { buildPatternRegistry } from '../patterns/registry.ts';
 import { bouncePattern } from '../patterns/test-pattern.ts';
-import { PRIMITIVES } from '../primitives/registry.ts';
+import { listPrimitives } from '../primitives/registry.ts';
 import { DEFAULT_REGISTRIES, type Registries } from './registries.ts';
 import { fixtureSpec, registryValidSpec } from './test-specs.ts';
 import { findRegistryErrors, withRegistryChecks } from './validate.ts';
@@ -11,7 +11,7 @@ const check = (input: unknown, registries: Registries = DEFAULT_REGISTRIES) =>
   withRegistryChecks(validateVideoSpec(input), input, registries);
 
 const withPatterns: Registries = {
-  primitives: PRIMITIVES,
+  ...DEFAULT_REGISTRIES,
   patterns: buildPatternRegistry([bouncePattern]),
 };
 
@@ -24,19 +24,67 @@ describe('withRegistryChecks', () => {
   });
 
   it('rejects unknown primitive and pattern ids, listing the valid ones', () => {
-    const result = check(fixtureSpec());
+    const input = fixtureSpec();
+    Object.assign(input.scenes[0]?.elements?.[0] ?? {}, { primitive: 'node_box' });
+    const result = check(input);
     expect(result.ok).toBe(false);
     expect(result.spec).toBeUndefined();
     expect(result.errors).toContainEqual({
       path: '$.scenes[0].elements[0].primitive',
       code: 'unknown_reference',
-      message: 'Unknown primitive "node_card". Use one of: tag, counter.',
+      message: `Unknown primitive "node_box". Use one of: ${listPrimitives()
+        .map((p) => p.id)
+        .join(', ')}.`,
     });
     expect(result.errors).toContainEqual({
       path: '$.scenes[0].patterns[0].pattern',
       code: 'unknown_reference',
       message: 'Unknown pattern "flood_then_funnel". No patterns exist yet.',
     });
+  });
+
+  it('passes the rate-limiter fixture except for its pattern, which waits for P1A.8', () => {
+    const result = check(fixtureSpec());
+    expect(result.errors).toEqual([
+      expect.objectContaining({ path: '$.scenes[0].patterns[0].pattern' }),
+    ]);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('warns about asset ids that are not in the asset registry, without failing the spec', () => {
+    const input = registryValidSpec();
+    Object.assign(input.scenes[0]?.elements?.[0] ?? {}, {
+      props: { title: 'Client', icon: 'rocket_ship' },
+    });
+    const result = check(input);
+    expect(result.ok).toBe(true);
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toMatchObject({
+      path: '$.scenes[0].elements[0].props.icon',
+      code: 'unknown_asset',
+    });
+    expect(result.warnings[0]?.message).toMatch(
+      /^Unknown asset "rocket_ship" .*Use one of: server, /,
+    );
+  });
+
+  it('accepts asset ids from the built-in set', () => {
+    const input = registryValidSpec();
+    Object.assign(input.scenes[0]?.elements?.[0] ?? {}, {
+      props: { title: 'Client', icon: 'smartphone' },
+    });
+    expect(check(input).warnings).toEqual([]);
+  });
+
+  it('reports asset warnings alongside errors when the spec is invalid', () => {
+    const input = registryValidSpec();
+    Object.assign(input.scenes[0]?.elements?.[0] ?? {}, {
+      props: { title: 'Client', icon: 'nope' },
+    });
+    Object.assign(input.scenes[0]?.elements?.[2] ?? {}, { primitive: 'node_box' });
+    const result = check(input);
+    expect(result.ok).toBe(false);
+    expect(result.warnings.map((w) => w.code)).toEqual(['unknown_asset']);
   });
 
   it('rejects bad props with a JSON path into the props', () => {
@@ -82,7 +130,7 @@ describe('withRegistryChecks', () => {
         path: '$.scenes[1].events[4].targets[0]',
         code: 'unsupported_action',
         message:
-          '"api" (tag) does not support "count". Supported: enter, exit, highlight, dim, pulse, reject.',
+          '"api" (node_card) does not support "count". Supported: enter, exit, highlight, dim, pulse, lock, reject.',
       },
       expect.objectContaining({
         path: '$.scenes[2].events[4].targets[0]',
@@ -91,8 +139,10 @@ describe('withRegistryChecks', () => {
     ]);
   });
 
-  it('flags `lock` on a tag in the fixture', () => {
-    expect(check(fixtureSpec()).errors).toContainEqual(
+  it('flags `lock` on a tag', () => {
+    const input = registryValidSpec();
+    Object.assign(input.scenes[2]?.events?.[3] ?? {}, { action: 'lock' });
+    expect(check(input).errors).toContainEqual(
       expect.objectContaining({
         path: '$.scenes[2].events[3].targets[0]',
         code: 'unsupported_action',

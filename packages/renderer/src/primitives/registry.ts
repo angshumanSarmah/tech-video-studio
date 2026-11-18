@@ -1,6 +1,15 @@
 import { SpecIdSchema } from '@explainer-studio/shared';
+import { commandBubblePrimitive } from './command-bubble/definition.ts';
+import { counterTransitionPrimitive } from './counter-transition/definition.ts';
 import { counterPrimitive } from './counter/definition.ts';
+import { dataBlockPrimitive } from './data-block/definition.ts';
+import { formulaCardPrimitive } from './formula-card/definition.ts';
+import { iconPrimitive } from './icon/definition.ts';
+import { itemIconPrimitive } from './item-icon/definition.ts';
+import { nodeCardPrimitive } from './node-card/definition.ts';
+import { statCardPrimitive } from './stat-card/definition.ts';
 import { tagPrimitive } from './tag/definition.ts';
+import { timerRingPrimitive } from './timer-ring/definition.ts';
 import type { AnyPrimitiveDefinition } from './types.ts';
 
 /**
@@ -8,7 +17,19 @@ import type { AnyPrimitiveDefinition } from './types.ts';
  * component in `components.ts` (typecheck fails until both exist). Catalogues, prompts and
  * validation all read from this list.
  */
-export const PRIMITIVE_DEFINITIONS = [tagPrimitive, counterPrimitive] as const;
+export const PRIMITIVE_DEFINITIONS = [
+  tagPrimitive,
+  nodeCardPrimitive,
+  iconPrimitive,
+  itemIconPrimitive,
+  counterPrimitive,
+  counterTransitionPrimitive,
+  timerRingPrimitive,
+  statCardPrimitive,
+  dataBlockPrimitive,
+  commandBubblePrimitive,
+  formulaCardPrimitive,
+] as const;
 
 export type PrimitiveId = (typeof PRIMITIVE_DEFINITIONS)[number]['id'];
 

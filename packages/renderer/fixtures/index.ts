@@ -1,5 +1,6 @@
 import { parseRenderableSpec } from '../src/compositions/metadata.ts';
 import type { SeriesProps } from '../src/compositions/props.ts';
+import primitivesBoardJson from './primitives-board.json';
 import rateLimiterJson from './rate-limiter.json';
 
 /**
@@ -9,6 +10,13 @@ import rateLimiterJson from './rate-limiter.json';
  * every HUD part.
  */
 export const rateLimiterSpec = parseRenderableSpec(rateLimiterJson);
+
+/**
+ * One beat per registered primitive (beat and element id: the primitive id with `-` for `_`),
+ * each showing every event it supports, anchored to its narration. Studio previews it as
+ * `PrimitivesBoard`; `PrimitiveSheet` stills sample it for `docs/primitives/`.
+ */
+export const primitivesBoardSpec = parseRenderableSpec(primitivesBoardJson);
 
 /** Example series data; real values come from the DB `series` row at render time. */
 export const fixtureSeries: SeriesProps = { label: 'System Design', accentColour: '#4F8CFF' };

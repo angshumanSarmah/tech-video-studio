@@ -166,7 +166,7 @@
           "targets": ["empty"]
         },
         { "at": { "type": "word_text", "text": "429" }, "action": "enter", "targets": ["reply"] },
-        { "at": { "type": "word_text", "text": "wait" }, "action": "lock", "targets": ["reply"] }
+        { "at": { "type": "word_text", "text": "wait" }, "action": "reject", "targets": ["reply"] }
       ],
       "focus": ["reply"]
     },

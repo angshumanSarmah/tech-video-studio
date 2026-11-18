@@ -152,6 +152,15 @@ export const blueprintDark = {
       lineHeight: 1.3,
       uppercase: false,
     },
+    // Data shown as data (key/value blocks, one-line commands): mono, case kept.
+    data: {
+      font: 'mono',
+      size: 30,
+      weight: 500,
+      letterSpacing: 0,
+      lineHeight: 1.4,
+      uppercase: false,
+    },
   },
   space: { xs: 8, sm: 16, md: 24, lg: 40, xl: 64, xxl: 96 },
   radius: { sm: 6, md: 12, lg: 20, pill: 999 },

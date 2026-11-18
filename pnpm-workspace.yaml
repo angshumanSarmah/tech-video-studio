@@ -18,8 +18,14 @@ catalog:
   remotion: 4.0.540
   '@remotion/cli': 4.0.540
   '@remotion/fonts': 4.0.540
+  '@remotion/bundler': 4.0.540
+  '@remotion/renderer': 4.0.540
   react: 19.2.9
   react-dom: 19.2.9
+  # formula_card (LaTeX); its fonts are bundled from the package by Remotion's webpack
+  katex: ^0.19.1
+  # icon data for the temporary built-in asset set (until P1A.11)
+  lucide: ^1.74.0
   # fonts: subsetting script + glyph coverage test (fontkit 3 is younger than minimumReleaseAge)
   subset-font: ^2.9.0
   fontkit: ^2.0.4

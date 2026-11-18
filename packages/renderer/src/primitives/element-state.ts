@@ -6,10 +6,13 @@ import type { EventAction } from '@explainer-studio/shared';
  * ease-out); P1A.10 upgrades it (easing presets, focus, stagger) without touching components.
  */
 
-/** One event acting on an element, at a global frame (already resolved from its anchor). */
+/** One event acting on an element, on the global timeline (already resolved from its anchor). */
 export type ElementEvent = {
   action: EventAction;
+  /** Global frame: the event has started once the current frame reaches it. */
   frame: number;
+  /** Global seconds, unrounded: elapsed time is measured from here, so every fps agrees. */
+  sec: number;
   params?: Record<string, unknown>;
 };
 
@@ -25,6 +28,14 @@ export type ElementState = {
    * first occurrence is still ahead; absent when the element has no event with that action.
    */
   actions: Partial<Record<EventAction, number>>;
+  /**
+   * Seconds since the latest started occurrence of each action, on the global timeline (current
+   * frame / fps minus the event's resolved seconds), so a beat cut renders exactly like the full
+   * video. Same presence rules as `actions`: 0 while the first occurrence is ahead, absent when
+   * the element has none. For effects that run longer than an action's fixed duration (typing,
+   * a ticking timer).
+   */
+  elapsed: Partial<Record<EventAction, number>>;
 };
 
 /** Seconds each action takes to play out; scaled by fps so drafts (15) match finals (30). */
@@ -46,6 +57,7 @@ const PRESENCE: ReadonlySet<EventAction> = new Set(['enter', 'exit']);
 const DIM_TOGGLES: ReadonlySet<EventAction> = new Set(['dim', 'highlight', 'enter']);
 const HIGHLIGHT_TOGGLES: ReadonlySet<EventAction> = new Set(['highlight', 'dim', 'exit']);
 
+/** State at global `frame`; elapsed times use `frame / fps` as the absolute video time. */
 export function elementState(
   events: readonly ElementEvent[],
   frame: number,
@@ -53,6 +65,7 @@ export function elementState(
 ): ElementState {
   const started = events.filter((e) => e.frame <= frame).sort((a, b) => a.frame - b.frame);
   const progress = (e: ElementEvent) => actionProgress(e, frame, fps);
+  const elapsed = (e: ElementEvent) => Math.max(0, frame / fps - e.sec);
   return {
     presence: presence(events, started, progress),
     emphasis: Math.max(
@@ -60,7 +73,8 @@ export function elementState(
       pulse(started, progress),
     ),
     dimmed: heldLevel(started, 'dim', DIM_TOGGLES, progress),
-    actions: actionProgresses(events, started, progress),
+    actions: latestPerAction(events, started, progress),
+    elapsed: latestPerAction(events, started, elapsed),
   };
 }
 
@@ -97,13 +111,14 @@ function pulse(started: readonly ElementEvent[], p: Progress) {
   return last ? Math.sin(Math.PI * p(last)) : 0;
 }
 
-function actionProgresses(
+/** `measure` of the latest started event per action; 0 for actions whose first event is ahead. */
+function latestPerAction(
   all: readonly ElementEvent[],
   started: readonly ElementEvent[],
-  p: Progress,
+  measure: (e: ElementEvent) => number,
 ) {
-  const actions: Partial<Record<EventAction, number>> = {};
-  for (const event of all) actions[event.action] = 0;
-  for (const event of started) actions[event.action] = p(event);
-  return actions;
+  const values: Partial<Record<EventAction, number>> = {};
+  for (const event of all) values[event.action] = 0;
+  for (const event of started) values[event.action] = measure(event);
+  return values;
 }

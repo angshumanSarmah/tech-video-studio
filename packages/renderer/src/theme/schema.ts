@@ -31,6 +31,7 @@ export const TEXT_STYLES = [
   'label',
   'hud',
   'footnote',
+  'data',
 ] as const;
 export type TextStyleName = (typeof TEXT_STYLES)[number];
 

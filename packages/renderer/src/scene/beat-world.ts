@@ -9,7 +9,7 @@ import type {
 import type { Registries } from '../catalog/registries.ts';
 import type { ElementEvent } from '../primitives/element-state.ts';
 import type { AnyPrimitiveDefinition } from '../primitives/types.ts';
-import { anchorToFrame, resolveEventFrames, type FramedEvent } from '../timing/frames.ts';
+import { anchorToTime, resolveEventFrames, type FramedEvent } from '../timing/frames.ts';
 
 /**
  * What a beat shows: its own elements and expanded patterns, plus everything inherited through
@@ -139,15 +139,13 @@ function patternDrafts(
       elementDraft(e, [part(e.id), pattern.id], ctx.registries),
     ),
     events: expansion.events.flatMap((event) => {
-      const frame = ctx.beat
-        ? anchorToFrame(event.at, ctx.beat, ctx.narration, ctx.fps)
-        : undefined;
-      if (frame === undefined) return [];
+      const time = ctx.beat ? anchorToTime(event.at, ctx.beat, ctx.narration, ctx.fps) : undefined;
+      if (!time) return [];
       return [
         {
           action: event.action,
           targets: event.targets.map(part),
-          frame,
+          ...time,
           ...(event.params ? { params: event.params } : {}),
         },
       ];
@@ -160,6 +158,11 @@ function withEvents(draft: Draft, events: readonly FramedEvent[]): WorldItem {
   const { targetIds, ...item } = draft;
   const mine = events
     .filter((e) => e.targets.some((t) => targetIds.includes(t)))
-    .map(({ action, frame, params }) => (params ? { action, frame, params } : { action, frame }));
+    .map(({ action, frame, sec, params }) => ({
+      action,
+      frame,
+      sec,
+      ...(params ? { params } : {}),
+    }));
   return { ...item, events: mine };
 }

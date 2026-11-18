@@ -1,21 +1,32 @@
 import { describe, expect, it } from 'vitest';
 import { buildPatternRegistry } from '../patterns/registry.ts';
 import { bouncePattern } from '../patterns/test-pattern.ts';
-import { PRIMITIVES } from '../primitives/registry.ts';
 import { buildCatalogue, catalogueJson, catalogueMarkdown } from './catalogue.ts';
-import type { Registries } from './registries.ts';
+import { DEFAULT_REGISTRIES, type Registries } from './registries.ts';
 
 const withPatterns: Registries = {
-  primitives: PRIMITIVES,
+  ...DEFAULT_REGISTRIES,
   patterns: buildPatternRegistry([bouncePattern]),
 };
 
 describe('buildCatalogue', () => {
   it('lists every registered primitive, ordered by family, with LLM-facing fields only', () => {
     const { primitives, patterns } = buildCatalogue();
-    expect(primitives.map((p) => p.id)).toEqual(['tag', 'counter']);
+    expect(primitives.map((p) => p.id)).toEqual([
+      'icon',
+      'item_icon',
+      'node_card',
+      'tag',
+      'command_bubble',
+      'data_block',
+      'formula_card',
+      'counter',
+      'counter_transition',
+      'stat_card',
+      'timer_ring',
+    ]);
     expect(patterns).toEqual([]);
-    const tag = primitives[0];
+    const tag = primitives.find((p) => p.id === 'tag');
     expect(Object.keys(tag ?? {})).toEqual([
       'id',
       'family',

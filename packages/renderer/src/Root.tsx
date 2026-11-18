@@ -1,10 +1,16 @@
 import { Composition, Still } from 'remotion';
-import { fixtureChannelHandle, fixtureSeries, rateLimiterSpec } from '../fixtures/index.ts';
+import {
+  fixtureChannelHandle,
+  fixtureSeries,
+  primitivesBoardSpec,
+  rateLimiterSpec,
+} from '../fixtures/index.ts';
 import { BeatFromSpec } from './compositions/BeatFromSpec.tsx';
 import { calculateBeatMetadata, calculateVideoMetadata } from './compositions/metadata.ts';
 import type { BeatFromSpecProps, VideoFromSpecProps } from './compositions/props.ts';
 import { VideoFromSpec } from './compositions/VideoFromSpec.tsx';
 import { getTheme } from './theme/index.ts';
+import { PrimitiveSheet, primitiveSheetDefaults } from './stills/PrimitiveSheet.tsx';
 import { SafeAreaCalibration, safeAreaCalibrationDefaults } from './stills/SafeAreaCalibration.tsx';
 import { ThemeSwatchBoard, themeSwatchBoardDefaults } from './stills/ThemeSwatchBoard.tsx';
 
@@ -22,6 +28,8 @@ const videoDefaults: VideoFromSpecProps = {
 };
 
 const beatDefaults: BeatFromSpecProps = { ...videoDefaults, beatId: 'bucket-empty' };
+
+const boardDefaults: VideoFromSpecProps = { ...videoDefaults, spec: primitivesBoardSpec };
 
 /** Remotion root. Duration and fps of the spec compositions come from `calculateMetadata`. */
 export function Root() {
@@ -46,6 +54,23 @@ export function Root() {
         durationInFrames={1}
         defaultProps={beatDefaults}
         calculateMetadata={calculateBeatMetadata}
+      />
+      <Composition
+        id="PrimitivesBoard"
+        component={VideoFromSpec}
+        width={canvas.width}
+        height={canvas.height}
+        fps={FINAL_FPS}
+        durationInFrames={1}
+        defaultProps={boardDefaults}
+        calculateMetadata={calculateVideoMetadata}
+      />
+      <Still
+        id="PrimitiveSheet"
+        component={PrimitiveSheet}
+        width={canvas.width}
+        height={canvas.height}
+        defaultProps={primitiveSheetDefaults}
       />
       <Still
         id="ThemeSwatchBoard"

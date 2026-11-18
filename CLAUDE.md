@@ -226,7 +226,8 @@ src/web/
 `packages/renderer`: a Remotion project (`src/entry.ts`, `src/Root.tsx`). From the repo root:
 `pnpm --filter @explainer-studio/renderer studio` opens Remotion Studio; `… still:theme` renders
 the theme swatch board to `docs/themes/blueprint-dark.png`; `… still:safe-area` renders the
-safe-area overlay to `docs/safe-area/zones.png`.
+safe-area overlay to `docs/safe-area/zones.png`; `… still:primitives [ids…]` renders one sheet per
+primitive to `docs/primitives/<id>.png`.
 
 - **Themes** live in `src/theme` and are registered by id (`getTheme`, `listThemes`;
   default `blueprint-dark`). Each is validated against `ThemeSchema`. A theme holds colours
@@ -252,6 +253,9 @@ safe-area overlay to `docs/safe-area/zones.png`.
   `fonts:subset`. A role's `bundledFallbacks` (Inter) supply glyphs its font lacks (arrows, ✓ ✗,
   ₹); `src/fonts/font-coverage.test.ts` reads each file's character map and fails when a role's
   stack misses any glyph in `REQUIRED_CODE_POINTS` (`src/fonts/glyphs.ts`).
+  **Exception: KaTeX.** `formula_card` imports `katex/dist/katex.min.css`, so Remotion's webpack
+  bundles KaTeX's own font files from the pinned `katex` package (still never the network);
+  `useKatexFonts` delays the render until they load. Do not add other CSS-bundled fonts.
 - All `remotion` / `@remotion/*` packages must share one exact version in the catalog.
 
 ### Spec compositions
@@ -270,7 +274,9 @@ safe-area overlay to `docs/safe-area/zones.png`.
   is estimated at 2.6 words/sec. Event frames are always recomputed from word timings; the
   `timing.events` cache is never read.
 - Beat `<Sequence>`s tile the video with no gaps (each runs until the next beat starts).
-- Studio previews both compositions with `fixtures/rate-limiter.json` (no timing layer).
+- Studio previews both compositions with `fixtures/rate-limiter.json` (no timing layer), and
+  `PrimitivesBoard` (`VideoFromSpec` over `fixtures/primitives-board.json`: one beat per primitive
+  with every action it supports).
 - **HUD** (`src/hud`): top bar, step tracker, hero metric pill, chapter header, story clock and
   headline. Slots come from `hudLayout(theme)` (derived from `safeAreas`); what each part shows at
   a frame comes from pure functions in `hud-state.ts`. Parts are toggled per video in `spec.hud`
@@ -295,17 +301,34 @@ safe-area overlay to `docs/safe-area/zones.png`.
   catalogue builders, as `@explainer-studio/renderer/catalog` for the worker and server.
 - **A primitive** is `primitives/<id>/definition.ts` (`definePrimitive`: id, family, strict Zod
   props schema, supported actions, `sizeHints(props, theme)`, LLM description with summary, when
-  to use and when not to, one example) plus its component, wired in `primitives/components.ts`
-  (typecheck fails when a registered id has no component). Building the registry rejects
-  duplicate or non-slug ids and examples that fail their schema.
+  to use and when not to, one example, and `assetRefs(props)` if it references assets) plus its
+  component, wired in `primitives/components.ts` (typecheck fails when a registered id has no
+  component). Building the registry rejects duplicate or non-slug ids and examples that fail their
+  schema. Every primitive needs a beat in `fixtures/primitives-board.json` using each action it
+  supports (a test enforces it), and a sheet in `docs/primitives/` (`still:primitives <id>`).
+- **Shared pieces:** `common-props.ts` (semantic, asset id and one-line text schemas),
+  `surface.ts` (card surface), `badge.tsx` (corner badge), `motion.ts` (reject shake),
+  `typing.ts` (typing rates). Prefer them over per-primitive copies.
 - **Descriptions name only registered ids**, in backticks (a test checks that every backticked
   word is a registered primitive, an action or a prop). Example strings use `<example-…>`
   placeholders.
 - **Components receive only `{ theme, props, box, state }`**, never events or anchors. `state`
   comes from `elementState(events, frame, fps)` (`primitives/element-state.ts`): `presence`,
-  `emphasis`, `dimmed` and per-action `actions[action]` progress (0 while the element's first
-  such event is still ahead, absent when it has none). It is the single place events
-  become state; P1A.10 upgrades it (easing, focus, stagger) without touching components.
+  `emphasis`, `dimmed`, per-action `actions[action]` progress and `elapsed[action]` seconds (both
+  0 while the element's first such event is still ahead, absent when it has none). It is the
+  single place events become state; P1A.10 upgrades it (easing, focus, stagger) without touching
+  components.
+- **`elapsed` is measured on the global timeline**: `frame / fps` minus the event's unrounded
+  resolved seconds (`ElementEvent.sec`), so a beat cut, a draft (15 fps) and the final (30 fps)
+  agree, including for actions that started in an earlier beat. Effects that outlast an action's
+  fixed duration use it at fixed, capped rates that never depend on beat length (`typing.ts`:
+  `command_bubble` ~30 chars/s capped at 1.5 s, `data_block` 0.35 s per field). Only
+  `timer_ring` runs for narration time (`count` starts it at `speed`); it holds 00:00 when it
+  runs out and expires (red flash) only on `reject`. Every visible change comes from an event.
+- **Assets** (temporary until P1A.11): `src/assets/builtin.ts` is a small set of Lucide glyphs
+  (ISC), split into `icon` and `item` kinds; `AssetGlyph` draws one, or a neutral dashed
+  placeholder for an unknown id. Asset ids in props are slugs, not enums, so unknown ids are
+  warnings, never schema errors.
 - **A pattern** (`definePattern`) has the same shape minus component and size hints, plus
   `anchors` (the narration moments it needs; `params` takes an `EventAnchor` for each) and
   `expand(params) → { elements, events }`. Building the registry expands each example and rejects
@@ -315,7 +338,13 @@ safe-area overlay to `docs/safe-area/zones.png`.
   `validateRenderableVideoSpec`) adds registry errors in the same `{ path, code, message }` shape:
   `unknown_reference` for unknown primitive/pattern ids (the message lists valid ids), Zod issue
   codes for props/params with paths into them, and `unsupported_action` for an event action a
-  target (including one inherited through `continuesPrevious`) does not support.
+  target (including one inherited through `continuesPrevious`) does not support. It also adds
+  `unknown_asset` **warnings** for asset ids (from `assetRefs`) missing from the asset registry:
+  the spec stays valid and the placeholder is drawn, but agent output repairs them (warnings
+  count as failures there) and Studio shows them.
+- **LaTeX** (`formula_card`) is validated by rendering it with KaTeX in the props schema
+  (`latexProblem`: parse errors, refused commands such as `\href`, `maxSize`, `maxExpand`, at
+  most 80 characters), so a formula that passes validation always renders.
 - **Catalogue:** `pnpm --filter @explainer-studio/renderer gen:catalogue` writes
   `docs/catalogue.md` and `docs/catalogue.json` (LLM-facing fields only, props as input-side JSON
   Schema, no size hints). A test fails when either is stale. Prompts build theirs at runtime with

@@ -57,10 +57,12 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       invalid props as red error markers (`src/scene/BeatScene.tsx`). A final render must refuse
       any spec that fails `withRegistryChecks(validateRenderableVideoSpec(spec), spec)` and report
       the structured errors to the run, so a marker can never reach an exported MP4.
-- [ ] **P1A.6 — Fixture primitives.** `fixtures/rate-limiter.json` uses `node_card` and the
-      `flood_then_funnel` pattern (shown as error markers until they exist) and `lock` on the tag
-      `reply` (tags don't support `lock`). Once `node_card` exists, change that event so the
-      fixture passes `withRegistryChecks`, and add a test that it does.
+  - It must also refuse a spec with any `unknown_asset` warning (a warning everywhere else), so
+    an asset placeholder never reaches an export.
+- [ ] **P1A.8 — Rate-limiter fixture pattern.** `fixtures/rate-limiter.json` uses
+      `flood_then_funnel`, drawn as an error marker until it exists. `validate.test.ts` pins it as
+      the fixture's only registry error; once the pattern is registered, assert the fixture passes
+      `withRegistryChecks` with no errors.
 - [ ] **P1A.8 — Pattern anchors.** Word anchors inside pattern `params` are not checked against
       the beat's narration (`anchor_out_of_range` covers only `events[].at`). Check them with
       `anchorProblem` in `withRegistryChecks`, using each pattern's declared `anchors`.
@@ -68,9 +70,15 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       (`src/primitives/measure.ts`). If the layout engine needs exact widths, measure glyphs
       (`@remotion/layout-utils` or the font files) instead. `BeatScene`'s centred wrap is
       temporary; the layout engine replaces it.
+  - `formula_card` estimates its extent from the LaTeX (`latex-size.ts`: glyph count, fractions
+    as wide as their wider part); KaTeX only lays out in a browser. Measure the rendered DOM if
+    formulas overflow their card.
+  - Sizes are fixed per props, so typing (`data_block`, `command_bubble`) and transitions
+    (`counter_transition`) reserve their final size up front and never reflow.
 - [ ] **P1A.10 — Element state.** `elementState` uses linear ramps with an ease-out and fixed
       durations per action. P1A.10 adds easing presets, group stagger and focus dimming there
-      (components read only `ElementState`, so they need no changes).
+      (components read only `ElementState`, so they need no changes). Keep `elapsed` measured on
+      the global timeline (seconds, not beat-local frames) when reworking it.
 - [ ] **P3.4 — Number locale per channel.** `numberLocale` lives on the theme (`en-IN` in
       `blueprint-dark`). When channels get their own settings, let a channel override it (passed
       through composition props) instead of forking a theme.
@@ -98,6 +106,10 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       `suggestedPatternIds`, `story.devices`, `story.beats[].device`, `story.metaphorWorld`,
       `story.ending.kind`, `story.missingPrimitiveRequests[].fallbackUsed`. Validate each against
       its registry or catalogue (structured errors with JSON paths, like `validateVideoSpec`).
+- [ ] **P1A.8 — Targeting parts of an element.** A `data_block` can only be highlighted as a
+      whole; pointing at one field ("this `status` flips") needs an event that targets a field.
+      Decide this together with pattern parts below (same target-syntax question), then pass the
+      targeted part through `ElementState` rather than giving components events.
 - [ ] **P1A.8 — Targeting pattern internals.** Events and focus may target a pattern instance id,
       but not the elements a pattern expands into. Decide whether patterns expose named parts
       (e.g. `<instance>.<part>`) and extend the target check in `spec/integrity/scenes.ts`.
@@ -122,6 +134,14 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       the run's approved custom elements (and the max of 2 per video).
 - [ ] **P1C ingest — Pin sources per run.** Call `recordRunSources` when a run starts research,
       and write extracted text via `sourceTextPath` so re-fetches never overwrite older versions.
+- [ ] **P1A.11 — Asset library replaces the built-in set.** `src/assets/builtin.ts` (Lucide
+      glyphs, ISC) is temporary. P1A.11 swaps the registry behind `getAsset` / `ASSETS` for the
+      on-disk library, keeping ids slugs and unknown ids as placeholder + `unknown_asset` warning.
+  - Prompts need the closed list of asset ids (rule: closed lists for every id). Add assets to
+    `buildCatalogue()` (ids, kind, label) when the library lands.
+  - `unknown_asset` is checked only for scene elements. Check elements that patterns expand into
+    once a pattern references assets (P1A.8).
+  - Record the run's missing assets (the placeholder path) for P1C.12 and the gate 3 panel.
 - [ ] **P1C.12 — Asset drafts.** Reuse the `assets` table (status `draft | approved | rejected`)
       for drafts; do not add a separate `asset_drafts` table. Variant SVGs live in files, listed
       in a `variants` column on the asset row.

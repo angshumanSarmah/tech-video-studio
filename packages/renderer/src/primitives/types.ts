@@ -40,6 +40,9 @@ export type SizeHints = {
 
 export type Size = { width: number; height: number };
 
+/** An asset id a primitive's props reference, with its path inside `props`. */
+export type AssetRef = { path: (string | number)[]; id: string };
+
 export interface PrimitiveDefinition<Id extends string = string, S extends z.ZodType = z.ZodType> {
   id: Id;
   family: PrimitiveFamily;
@@ -49,6 +52,8 @@ export interface PrimitiveDefinition<Id extends string = string, S extends z.Zod
   actions: readonly EventAction[];
   /** Method syntax keeps definitions with specific props assignable to the registry's type. */
   sizeHints(props: z.output<S>, theme: Theme): SizeHints;
+  /** Asset ids in the props, for `unknown_asset` warnings. Omit when the primitive uses none. */
+  assetRefs?(props: z.output<S>): AssetRef[];
   description: LlmDescription;
   /** One example usage; its props must parse (checked when the registry is built). */
   example: { props: z.input<S> };

@@ -6,6 +6,106 @@ Everything the Generator may put in a beat scene. Ids are exhaustive: there are 
 
 ## Primitives
 
+### icon
+
+**Family:** annotation · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`
+
+A single line-drawn symbol from the asset library (server, database, user, lock, cloud), in a semantic colour, with no text.
+
+**When to use:** A visual cue next to other elements: what kind of thing is involved, or the idea of the beat (speed, security, time) at a glance.
+
+**When not to:** A component the story talks about (use `node_card` with an icon); an everyday object with a caption (use `item_icon`); anything that needs a word to be understood.
+
+**Props:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `asset` | string | yes | Asset id from the asset library (an unknown id is drawn as a placeholder and reported). (max length 64) |
+| `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Stroke colour: neutral, focus, ok, problem or concept. (default `"neutral"`) |
+
+**Size hint** (example, blueprint-dark): 120 × 120 px (min 120 × 120).
+
+**Example:**
+
+```json
+{
+  "id": "<example-icon-id>",
+  "primitive": "icon",
+  "props": {
+    "asset": "database",
+    "semantic": "concept"
+  }
+}
+```
+
+### item_icon
+
+**Family:** annotation · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`, `reject`
+
+A flat everyday object from the asset library (phone, car, ticket, parcel, pizza) on a soft tile, with a caption under it. `reject` turns it red with a cross and a shake.
+
+**When to use:** The real-world thing the system is about: the order, the ride, the seat ticket, the user's phone. Grounds an abstract flow in something the viewer has held.
+
+**When not to:** A system component (use `node_card`); a bare symbol without a caption (use `icon`); data about the object (use `data_block`).
+
+**Props:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `asset` | string | yes | Asset id from the asset library (an unknown id is drawn as a placeholder and reported). (max length 64) |
+| `caption` | string | yes | What the object is in this story, shown under it. (min length 1, max length 24) |
+| `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Tile colour: neutral, focus, ok, problem or concept. (default `"neutral"`) |
+
+**Size hint** (example, blueprint-dark): 302 × 230 px (min 302 × 230).
+
+**Example:**
+
+```json
+{
+  "id": "<example-item_icon-id>",
+  "primitive": "item_icon",
+  "props": {
+    "asset": "ticket",
+    "caption": "<example-caption>"
+  }
+}
+```
+
+### node_card
+
+**Family:** annotation · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`, `lock`, `reject`
+
+A titled card for one component of a system (a service, server, database, client or queue), with an optional subtitle and icon. `lock` adds a padlock badge; `reject` turns it red with a cross and a shake.
+
+**When to use:** The boxes of a system diagram: anything the story treats as a component that receives, holds or sends something.
+
+**When not to:** A label or status (use `tag`); a quantity (use `counter`); an everyday object (use `item_icon`); a bare symbol (use `icon`).
+
+**Props:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `title` | string | yes | Name of the component, shown in uppercase. (min length 1, max length 24) |
+| `subtitle` | string | no | Optional second line: its role or a detail. (min length 1, max length 40) |
+| `icon` | string | no | Asset id from the asset library (an unknown id is drawn as a placeholder and reported). (max length 64) |
+| `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Border and glow colour: neutral, focus, ok, problem or concept. (default `"neutral"`) |
+
+**Size hint** (example, blueprint-dark): 598 × 155 px (min 598 × 155).
+
+**Example:**
+
+```json
+{
+  "id": "<example-node_card-id>",
+  "primitive": "node_card",
+  "props": {
+    "title": "<example-name>",
+    "subtitle": "<example-role>",
+    "icon": "server"
+  }
+}
+```
+
 ### tag
 
 **Family:** annotation · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`, `reject`
@@ -34,6 +134,112 @@ A boxed monospace label in a semantic colour, like a sticker on the board. It na
   "props": {
     "text": "<example-label>",
     "semantic": "problem"
+  }
+}
+```
+
+### command_bubble
+
+**Family:** data · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`, `reject`
+
+A speech bubble holding one line of monospace command, with the verb coloured, such as a key/value store command or a CLI call. On `enter` the command types itself out (about 30 characters a second, never more than 1.5 s). `reject` turns it red with a cross.
+
+**When to use:** The exact request one component sends another, when the command itself teaches something: what a client asks a cache, what a producer writes to a log.
+
+**When not to:** Data at rest (use `data_block`); several lines or real code; a plain label (use `tag`).
+
+**Props:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `text` | string | yes | The command exactly as typed, on one line. (min length 1, max length 48) |
+| `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Colour of the bubble and the command verb: neutral, focus, ok, problem or concept. (default `"concept"`) |
+
+**Size hint** (example, blueprint-dark): 738 × 98 px (min 738 × 98).
+
+**Example:**
+
+```json
+{
+  "id": "<example-command_bubble-id>",
+  "primitive": "command_bubble",
+  "props": {
+    "text": "SET <example-key> \"<example-value>\""
+  }
+}
+```
+
+### data_block
+
+**Family:** data · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`
+
+A JSON-like block of key/value pairs on a card, with an optional title. On `enter` it types in one field at a time (about a third of a second each); without `enter` all fields show at once. A field can colour its value by meaning.
+
+**When to use:** Showing what a thing looks like as data: a ride request, a cache entry, a message on a queue, the record a real object becomes. Up to 6 short fields.
+
+**When not to:** Code or logic (this is data only); a single command (use `command_bubble`); long text, nested objects or lists; a single number (use `counter`).
+
+**Props:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `title` | string | no | Optional name above the block, e.g. the record type. (min length 1, max length 24) |
+| `fields` | array | yes | The key/value pairs, in display order. |
+
+**Size hint** (example, blueprint-dark): 736 × 261 px (min 736 × 261).
+
+**Example:**
+
+```json
+{
+  "id": "<example-data_block-id>",
+  "primitive": "data_block",
+  "props": {
+    "title": "<example-record>",
+    "fields": [
+      {
+        "key": "example_key",
+        "value": "<example-value>"
+      },
+      {
+        "key": "example_state",
+        "value": "<example-state>",
+        "semantic": "ok"
+      }
+    ]
+  }
+}
+```
+
+### formula_card
+
+**Family:** data · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`
+
+A card with one typeset formula (LaTeX, rendered by KaTeX) and an optional caption that reads it in plain words. At most 80 characters of LaTeX; invalid LaTeX is a spec error.
+
+**When to use:** The one formula a topic genuinely rests on: attention scores, a hit ratio, the hash ring position. At most one per video, and only when the narration walks through it.
+
+**When not to:** A single number (use `counter` or `stat_card`); an equation the narration never explains; code or data (use `data_block`).
+
+**Props:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `latex` | string | yes | One formula in LaTeX math mode, without $ delimiters. Rendered by KaTeX. (min length 1, max length 80) |
+| `caption` | string | no | Optional plain-words reading of the formula, shown under it. (min length 1, max length 48) |
+| `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Border and glow colour: neutral, focus, ok, problem or concept. (default `"concept"`) |
+
+**Size hint** (example, blueprint-dark): 814 × 281 px (min 814 × 281).
+
+**Example:**
+
+```json
+{
+  "id": "<example-formula_card-id>",
+  "primitive": "formula_card",
+  "props": {
+    "latex": "\\text{<example-term>} = \\frac{a}{a + b}",
+    "caption": "<example-reading>"
   }
 }
 ```
@@ -71,6 +277,116 @@ A big number with an optional unit and caption. Without a `count` event it shows
     "value": 10000,
     "from": 0,
     "unit": "<example-unit>",
+    "label": "<example-caption>"
+  }
+}
+```
+
+### counter_transition
+
+**Family:** metric · **Actions:** `enter`, `exit`, `count`, `highlight`, `dim`, `pulse`
+
+A big number changing to another, shown as "10 → 9": the old number in one colour, an arrow, the new number in another. Without a `count` event it shows the change as done. With one, the old number stands alone until the count, then the arrow and the new number come in and the old one fades back.
+
+**When to use:** One discrete change the story turns on: a stock of 10 seats dropping to 9, a version going from 1 to 2, a retry count ticking up. The colour change carries the meaning (e.g. neutral to problem).
+
+**When not to:** A quantity that counts smoothly up or down (use `counter`); a countdown in time; more than one change at once.
+
+**Props:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `from` | number | yes | The number before the change. |
+| `to` | number | yes | The number after the change. |
+| `unit` | string | no | Short unit after the new number. (min length 1, max length 16) |
+| `label` | string | no | Caption under the numbers. (min length 1, max length 32) |
+| `fromSemantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Colour of the old number: neutral, focus, ok, problem or concept. (default `"neutral"`) |
+| `toSemantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Colour of the new number: neutral, focus, ok, problem or concept. (default `"focus"`) |
+| `decimals` | integer | no | Digits after the decimal point. (min 0, max 2, default `0`) |
+
+**Size hint** (example, blueprint-dark): 757 × 164 px (min 757 × 164).
+
+**Example:**
+
+```json
+{
+  "id": "<example-counter_transition-id>",
+  "primitive": "counter_transition",
+  "props": {
+    "from": 10,
+    "to": 9,
+    "unit": "<example-unit>",
+    "fromSemantic": "ok",
+    "toSemantic": "problem"
+  }
+}
+```
+
+### stat_card
+
+**Family:** metric · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`
+
+A card with one big figure, a label under it, and a small source footnote. The figure is text, so units and formatting stay as written ("10k/s", "₹2,000 Cr", "99.9%").
+
+**When to use:** A cited real-world number that makes the problem concrete: traffic at peak, money lost, a benchmark. Every figure from research needs its source.
+
+**When not to:** A number that animates or changes (use `counter` or `counter_transition`); an illustrative number with no source (use `counter`); a label or status (use `tag`).
+
+**Props:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `value` | string | yes | The figure as displayed, units included. (min length 1, max length 12) |
+| `label` | string | yes | What the figure measures. (min length 1, max length 32) |
+| `source` | string | yes | Where the figure comes from, shown as a footnote. Required. (min length 1, max length 60) |
+| `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Colour of the value: neutral, focus, ok, problem or concept. (default `"focus"`) |
+
+**Size hint** (example, blueprint-dark): 814 × 278 px (min 814 × 278).
+
+**Example:**
+
+```json
+{
+  "id": "<example-stat_card-id>",
+  "primitive": "stat_card",
+  "props": {
+    "value": "<example-n>",
+    "label": "<example-label>",
+    "source": "<example-source>"
+  }
+}
+```
+
+### timer_ring
+
+**Family:** metric · **Actions:** `enter`, `exit`, `count`, `reject`, `highlight`, `dim`, `pulse`
+
+A countdown ring with the time left as mm:ss in the middle. It shows `durationSec` until `count` starts the clock, then ticks down at `speed` and holds at 00:00 if it gets there. `reject` expires it: 00:00, empty ring, red flash.
+
+**When to use:** A deadline or hold in the story: a seat held for 10 minutes, a token that expires, a lease or a timeout. Use `reject` on the word where the time runs out.
+
+**When not to:** A quantity that is not time (use `counter`); elapsed time across the whole video (that is the story clock in the HUD); a duration that never runs down.
+
+**Props:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `durationSec` | integer | yes | Time on the clock when it starts, in seconds (600 shows 10:00). (min 1, max 5999) |
+| `speed` | number | no | Clock seconds per real second once `count` starts; above 1 runs it fast-forward. (min 1, max 60, default `1`) |
+| `label` | string | no | Caption under the ring: what the time is for. (min length 1, max length 24) |
+| `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Ring colour while running: neutral, focus, ok, problem or concept. (default `"focus"`) |
+
+**Size hint** (example, blueprint-dark): 317 × 362 px (min 317 × 362).
+
+**Example:**
+
+```json
+{
+  "id": "<example-timer_ring-id>",
+  "primitive": "timer_ring",
+  "props": {
+    "durationSec": 600,
+    "speed": 30,
     "label": "<example-caption>"
   }
 }

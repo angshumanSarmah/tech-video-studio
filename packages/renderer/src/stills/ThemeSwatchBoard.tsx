@@ -38,10 +38,11 @@ export function ThemeSwatchBoard({ themeId, accents }: ThemeSwatchBoardProps) {
       <Background theme={theme} />
       <AbsoluteFill
         style={{
-          padding: theme.space.xl,
+          // Tighter top, bottom and gaps than the sides: the sheet fills the canvas height.
+          padding: `${theme.space.lg}px ${theme.space.xl}px`,
           display: 'flex',
           flexDirection: 'column',
-          gap: theme.space.sm,
+          gap: theme.space.xs,
           color: theme.colours.ink.primary,
         }}
       >

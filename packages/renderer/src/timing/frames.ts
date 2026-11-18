@@ -47,14 +47,29 @@ export function anchorToFrame(
   narration: string,
   fps: number,
 ): number | undefined {
+  return anchorToTime(anchor, beat, narration, fps)?.frame;
+}
+
+/** An anchor on the global timeline: seconds (exact) and the frame it lands on at `fps`. */
+export type AnchorTime = { sec: number; frame: number };
+
+export function anchorToTime(
+  anchor: EventAnchor,
+  beat: BeatTiming,
+  narration: string,
+  fps: number,
+): AnchorTime | undefined {
   const sec = resolveAnchorSec(anchor, beat, narrationWords(narration));
-  return sec === undefined ? undefined : secToFrame(sec, fps);
+  return sec === undefined ? undefined : { sec, frame: secToFrame(sec, fps) };
 }
 
 export type FramedEvent = {
   action: EventAction;
   targets: string[];
+  /** Global frame at the composition's fps; decides when the event has started. */
   frame: number;
+  /** Global seconds, unrounded; elapsed times are measured from here so every fps agrees. */
+  sec: number;
   params?: Record<string, unknown>;
 };
 
@@ -70,10 +85,10 @@ export function resolveEventFrames(
 ): FramedEvent[] {
   return scene.events
     .flatMap((event) => {
-      const frame = anchorToFrame(event.at, beat, narration, fps);
-      if (frame === undefined) return [];
+      const time = anchorToTime(event.at, beat, narration, fps);
+      if (!time) return [];
       const { action, targets, params } = event;
-      return [params ? { action, targets, frame, params } : { action, targets, frame }];
+      return [{ action, targets, ...time, ...(params ? { params } : {}) }];
     })
     .sort((a, b) => a.frame - b.frame);
 }

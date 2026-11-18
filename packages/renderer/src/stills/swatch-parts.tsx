@@ -158,6 +158,7 @@ const TYPE_SAMPLES: Record<TextStyleName, string> = {
   label: 'Node · primary',
   hud: 'Step 3/7 · Invalidate',
   footnote: 'Source: vendor benchmark, 2025',
+  data: 'SET user:42 "online"',
 };
 
 export function TypeSamples({ theme, accent }: Props & { accent: string }) {
@@ -211,7 +212,7 @@ const TAG_SAMPLES: [(typeof SEMANTIC_COLOURS)[number], string][] = [
 
 export function TagSamples({ theme }: Props) {
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: theme.space.md }}>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: theme.space.sm }}>
       {TAG_SAMPLES.map(([semantic, text]) => {
         const tint = semanticTint(theme, semantic);
         return (
