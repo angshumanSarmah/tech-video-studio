@@ -12,6 +12,8 @@ export default defineConfig({
   target: 'node24',
   clean: true,
   sourcemap: true,
+  // The server serves the built SPA only in this build (see src/server/index.ts).
+  env: { NODE_ENV: 'production' },
   // Workspace packages ship TS source, so they must be bundled rather than left external.
   noExternal: [/^@explainer-studio\//],
 });

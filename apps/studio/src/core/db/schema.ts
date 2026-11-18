@@ -11,9 +11,11 @@ import {
   DECIDED_BY,
   GATE_IDS,
   GATE_STATUSES,
+  JOB_STATUSES,
   MEMORY_RULE_SCOPES,
   MEMORY_RULE_STATUSES,
   MODEL_ROLES,
+  RUN_EVENT_TYPES,
   RUN_STATUSES,
   SOURCE_KINDS,
   SOURCE_STATUSES,
@@ -21,6 +23,7 @@ import {
   STAGES,
   STEP_STATUSES,
   USAGE_KINDS,
+  type RunEventPayload,
   type RunSettings,
 } from '@explainer-studio/shared';
 import { sql } from 'drizzle-orm';
@@ -252,6 +255,60 @@ export const llmCalls = sqliteTable(
     createdAt: createdAt(),
   },
   (t) => [index('llm_calls_run_idx').on(t.runId)],
+);
+
+// ---------------------------------------------------------------------------------------------
+// Server <-> worker hand-off (see CLAUDE.md "Server and worker hand-off")
+
+/**
+ * Work queue. The server inserts jobs in the same transaction as the domain rows they act on; the
+ * worker claims one at a time. `type` is free text matched against the worker's handler registry.
+ * `payload` is small JSON; large inputs live in files.
+ */
+export const jobs = sqliteTable(
+  'jobs',
+  {
+    id: id(),
+    type: text('type').notNull(),
+    /** Null for jobs outside a run (asset seeding, reference analysis). */
+    runId: integer('run_id').references(() => runs.id, { onDelete: 'cascade' }),
+    payload: text('payload', { mode: 'json' })
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'`),
+    status: text('status', { enum: JOB_STATUSES }).notNull().default('queued'),
+    attempts: integer('attempts').notNull().default(0),
+    lockedAt: timestamp('locked_at'),
+    /** Worker instance that holds the lock (e.g. `<host>:<pid>`). */
+    lockedBy: text('locked_by'),
+    /** Not claimable before this time (retry backoff). */
+    runAfter: timestamp('run_after')
+      .notNull()
+      .default(sql`(cast(unixepoch('subsec') * 1000 as integer))`),
+    error: text('error'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index('jobs_claim_idx').on(t.status, t.runAfter), index('jobs_run_idx').on(t.runId)],
+);
+
+/** Append-only progress log. The worker writes; the server tails it by `id` for SSE. */
+export const runEvents = sqliteTable(
+  'run_events',
+  {
+    id: id(),
+    runId: integer('run_id')
+      .notNull()
+      .references(() => runs.id, { onDelete: 'cascade' }),
+    jobId: integer('job_id').references(() => jobs.id, { onDelete: 'set null' }),
+    type: text('type', { enum: RUN_EVENT_TYPES }).notNull(),
+    payload: text('payload', { mode: 'json' })
+      .$type<RunEventPayload>()
+      .notNull()
+      .default(sql`'{}'`),
+    createdAt: createdAt(),
+  },
+  (t) => [index('run_events_run_id_idx').on(t.runId, t.id)],
 );
 
 // ---------------------------------------------------------------------------------------------

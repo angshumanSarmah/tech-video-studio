@@ -49,6 +49,24 @@ CREATE TABLE `gates` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `gates_run_gate_uq` ON `gates` (`run_id`,`gate`);--> statement-breakpoint
+CREATE TABLE `jobs` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`type` text NOT NULL,
+	`run_id` integer,
+	`payload` text DEFAULT '{}' NOT NULL,
+	`status` text DEFAULT 'queued' NOT NULL,
+	`attempts` integer DEFAULT 0 NOT NULL,
+	`locked_at` integer,
+	`locked_by` text,
+	`run_after` integer DEFAULT (cast(unixepoch('subsec') * 1000 as integer)) NOT NULL,
+	`error` text,
+	`created_at` integer DEFAULT (cast(unixepoch('subsec') * 1000 as integer)) NOT NULL,
+	`updated_at` integer DEFAULT (cast(unixepoch('subsec') * 1000 as integer)) NOT NULL,
+	FOREIGN KEY (`run_id`) REFERENCES `runs`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE INDEX `jobs_claim_idx` ON `jobs` (`status`,`run_after`);--> statement-breakpoint
+CREATE INDEX `jobs_run_idx` ON `jobs` (`run_id`);--> statement-breakpoint
 CREATE TABLE `llm_calls` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`run_id` integer,
@@ -107,6 +125,18 @@ CREATE TABLE `reference_videos` (
 	`created_at` integer DEFAULT (cast(unixepoch('subsec') * 1000 as integer)) NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE `run_events` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`run_id` integer NOT NULL,
+	`job_id` integer,
+	`type` text NOT NULL,
+	`payload` text DEFAULT '{}' NOT NULL,
+	`created_at` integer DEFAULT (cast(unixepoch('subsec') * 1000 as integer)) NOT NULL,
+	FOREIGN KEY (`run_id`) REFERENCES `runs`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`job_id`) REFERENCES `jobs`(`id`) ON UPDATE no action ON DELETE set null
+);
+--> statement-breakpoint
+CREATE INDEX `run_events_run_id_idx` ON `run_events` (`run_id`,`id`);--> statement-breakpoint
 CREATE TABLE `run_sources` (
 	`run_id` integer NOT NULL,
 	`source_id` integer NOT NULL,
