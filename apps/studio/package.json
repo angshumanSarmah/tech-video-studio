@@ -27,10 +27,13 @@
     "better-sqlite3": "catalog:",
     "drizzle-orm": "catalog:",
     "hono": "catalog:",
+    "pinia": "catalog:",
     "vue": "catalog:",
+    "vue-router": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "catalog:",
     "@types/better-sqlite3": "catalog:",
     "@types/node": "catalog:",
     "@vitejs/plugin-vue": "catalog:",
@@ -38,6 +41,7 @@
     "concurrently": "catalog:",
     "drizzle-kit": "catalog:",
     "jsdom": "catalog:",
+    "tailwindcss": "catalog:",
     "tsup": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",

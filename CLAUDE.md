@@ -38,7 +38,7 @@ apps/studio/            one Node app, three entrypoints
   src/server/           Hono HTTP API (thin handlers; enqueue work, never do it)
   src/worker/           job runner: agents, TTS, render (separate process)
   src/core/             Node-only code shared by server + worker (config, data dirs)
-  src/web/              Vue 3 + Vite SPA
+  src/web/              Vue 3 + Vite SPA (Vue Router, Pinia, Tailwind v4; see "Web app")
   drizzle/              generated SQL migrations (drizzle-kit)
 packages/shared/        Zod schemas, catalogues, inferred types (consumed as TS source)
 packages/renderer/      Remotion compositions (React)
@@ -155,6 +155,51 @@ from `packages/shared/src/api`, list responses wrapped as `{ items }`, and every
 `ApiErrorSchema` (`{ error: { code, message, issues? } }`). Domain errors from core
 (`NotFoundError`, `RunHasExportsError`) map to statuses in `src/server/errors.ts`. Services that
 compose repositories live in `src/core/services`; handlers call them or a repository directly.
+Demo and debug endpoints live under `/api/dev` (`src/server/routes/dev.ts`), mounted only outside
+the production build (`enableDevRoutes`). There is no generic `POST /api/jobs`: jobs are queued by
+the service that owns them.
+
+## Web app
+
+Vue 3 SPA in `src/web`: Vue Router, Pinia, Tailwind v4. Vite serves it in dev and proxies `/api`.
+
+```text
+src/web/
+  api/           client.ts + one module per resource (runs.ts, dev.ts, health.ts, events.ts)
+  composables/   useEventStream, useJobEvents, useRunEvents
+  stores/        Pinia setup stores (server state)
+  lib/           pure helpers (job-summary.ts, status.ts), unit-tested
+  components/    presentational pieces;  views/  one per route
+  router.ts      `routes` drives the left nav;  styles.css  theme tokens
+  testing.ts     FakeEventSource, stubFetch, makeEvent, makeRun
+```
+
+- **API calls go through `#web/api/client.ts`** (`request`, `postJson`). Every response is parsed
+  with its shared Zod schema from `packages/shared`. A non-2xx response throws `ApiRequestError`
+  (it carries the parsed `ApiError`). A 2xx response that fails the schema throws
+  `ApiContractError`. Show errors with `errorMessage(e)`. Never call `fetch` from a component.
+  Endpoint functions are typed by the schemas; no hand-written response interfaces.
+- **SSE goes through `useEventStream(filter, { closeWhen })`.**
+  - Reactive filter: `null` stays idle, and a change reopens the stream.
+  - Listens per event type (the server names messages, so `onmessage` never fires) and parses
+    each message with `EventDtoSchema`.
+  - Closes on scope dispose. Reconnects come from `EventSource` itself, via `Last-Event-ID`.
+  - Use the wrappers:
+    - `useJobEvents(jobId)`: full replay of one job, and closes once the job is done or failed.
+    - `useRunEvents(runId)`: loads `GET /api/runs/:id`, then streams `?after=<lastEventId>`, so
+      a page load never replays history.
+- **Pinia stores are setup stores holding server state** (`items`, `loading`, `error`, `load()`)
+  that call the API modules. Per-page UI state stays in the component. Folding events into view
+  state belongs in pure `lib/` functions (e.g. `summarizeJob`), not in templates.
+- **Tailwind v4 tokens live in `styles.css` `@theme`** (no `tailwind.config`): `canvas`/`panel`
+  backgrounds, `line` borders, `ink`/`ink-muted`/`ink-faint` text, semantic `focus`/`ok`/`problem`/
+  `concept`, plus the `bg-blueprint` and `label-mono` utilities. Use tokens, never raw hex, in
+  components. Series accents are data (`series.accentColour`), not tokens. Class names must
+  appear in full in source (e.g. the map in `lib/status.ts`) so the scanner finds them.
+- **Tests** stub globals: `stubFetch({ 'GET /api/runs': … })` and `installFakeEventSource()`,
+  then `vi.unstubAllGlobals()` in `afterEach`. Mount views with `createPinia()`, and with
+  `createAppRouter(createMemoryHistory())` when routing matters. Use `data-testid` for
+  selectors.
 
 ## Code conventions
 

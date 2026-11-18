@@ -2,6 +2,7 @@ export * from './api/common.ts';
 export * from './api/errors.ts';
 export * from './api/events.ts';
 export * from './api/health.ts';
+export * from './api/jobs.ts';
 export * from './api/runs.ts';
 export * from './api/series.ts';
 export * from './api/topics.ts';

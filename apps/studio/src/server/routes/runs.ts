@@ -24,6 +24,6 @@ export function createRunsRoute(db: Db) {
     })
     .post('/', validate('json', CreateRunRequestSchema), (c) => {
       const { run } = startRun(db, c.req.valid('json'));
-      return c.json<RunDto>(toRunDto(run), 201);
+      return c.json<RunDto>(toRunDto({ ...run, lastError: null }), 201);
     });
 }

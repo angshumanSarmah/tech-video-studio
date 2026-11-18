@@ -62,7 +62,10 @@ describe('getRunDetail', () => {
     });
     startRun(t.db, { topicId, seriesId }); // newer event on another run
 
-    expect(getRunDetail(t.db, run.id)).toEqual({ run: { ...run }, lastEventId: last.id });
+    expect(getRunDetail(t.db, run.id)).toEqual({
+      run: { ...run, lastError: null },
+      lastEventId: last.id,
+    });
   });
 
   it('throws NotFoundError for an unknown run', () => {

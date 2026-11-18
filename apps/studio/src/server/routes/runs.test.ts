@@ -4,6 +4,7 @@ import { latestEventId } from '#core/db/repositories/events.ts';
 import { listRunJobs } from '#core/db/repositories/jobs.ts';
 import { listSeries } from '#core/db/repositories/series.ts';
 import { createTopic } from '#core/db/repositories/topics.ts';
+import { claimJob, failJob } from '#core/services/jobs.ts';
 import { FIRST_RUN_JOB_TYPE } from '#core/services/runs.ts';
 import { createTestServer, expectApiError, postJson, type TestServer } from '../testing.ts';
 
@@ -77,6 +78,20 @@ describe('GET /api/runs', () => {
     const res = await s.app.request('/api/runs');
     const { items } = RunListResponseSchema.parse(await res.json());
     expect(items.map((r) => r.id)).toEqual([second.id, first.id]);
+  });
+
+  it("includes the error of a failed run's newest failed job", async () => {
+    const run = await createRunViaApi();
+    expect(run.lastError).toBeNull();
+    const job = claimJob(s.db, { workerId: 'test:1', now: new Date(Date.now() + 60_000) });
+    failJob(s.db, job!, 'no handler for job type ingest', { failsRun: true });
+
+    const res = await s.app.request('/api/runs');
+    const { items } = RunListResponseSchema.parse(await res.json());
+    expect(items[0]).toMatchObject({
+      status: 'failed',
+      lastError: 'no handler for job type ingest',
+    });
   });
 
   it('returns one run by id with its SSE cursor', async () => {

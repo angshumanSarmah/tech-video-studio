@@ -4,9 +4,9 @@ import {
   type RunSettingsInput,
   type RunStatus,
 } from '@explainer-studio/shared';
-import { and, desc, eq, isNotNull, notInArray } from 'drizzle-orm';
+import { and, desc, eq, getTableColumns, isNotNull, notInArray, sql } from 'drizzle-orm';
 import type { Db, Executor } from '../client.ts';
-import { exports, runSources, runs, sources } from '../schema.ts';
+import { exports, jobs, runSources, runs, sources } from '../schema.ts';
 
 type RunRow = typeof runs.$inferSelect;
 
@@ -55,9 +55,40 @@ export function setActiveRunStatus(db: Executor, id: number, status: RunStatus):
   return row && toRun(row);
 }
 
+/** A run plus the error of its newest failed job (why it failed), or null. */
+export type RunSummary = Run & { readonly lastError: string | null };
+
+/**
+ * Error of the run's newest failed job, as a correlated subquery so a run list stays one query.
+ * Built with the query builder, which qualifies columns in `where`; inside a raw `sql` template,
+ * `jobs.run_id = runs.id` would render unqualified and compare the job with itself.
+ */
+function lastErrorOf(db: Executor) {
+  const newestFailed = db
+    .select({ error: jobs.error })
+    .from(jobs)
+    .where(and(eq(jobs.runId, runs.id), eq(jobs.status, 'failed')))
+    .orderBy(desc(jobs.id))
+    .limit(1);
+  return sql<string | null>`(${newestFailed})`;
+}
+
+function selectSummaries(db: Executor) {
+  return db.select({ ...getTableColumns(runs), lastError: lastErrorOf(db) }).from(runs);
+}
+
+function toRunSummary({ lastError, ...row }: RunRow & { lastError: string | null }): RunSummary {
+  return { ...toRun(row), lastError };
+}
+
+export function getRunSummary(db: Executor, id: number): RunSummary | undefined {
+  const row = selectSummaries(db).where(eq(runs.id, id)).get();
+  return row && toRunSummary(row);
+}
+
 /** Newest first. */
-export function listRuns(db: Executor): Run[] {
-  return db.select().from(runs).orderBy(desc(runs.id)).all().map(toRun);
+export function listRuns(db: Executor): RunSummary[] {
+  return selectSummaries(db).orderBy(desc(runs.id)).all().map(toRunSummary);
 }
 
 /** An exported run anchors variety memory (usage history), so it can never be deleted. */

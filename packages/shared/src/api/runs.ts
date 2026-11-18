@@ -16,6 +16,8 @@ export const RunDtoSchema = z.object({
   status: RunStatusSchema,
   currentStage: StageSchema.nullable(),
   settings: RunSettingsSchema,
+  /** Error of the run's newest failed job (why the run failed), or null. */
+  lastError: z.string().nullable(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 });

@@ -1,7 +1,6 @@
 import { HealthResponseSchema, type HealthResponse } from '@explainer-studio/shared';
+import { request } from './client.ts';
 
-export async function fetchHealth(fetchFn: typeof fetch = fetch): Promise<HealthResponse> {
-  const res = await fetchFn('/api/health');
-  if (!res.ok) throw new Error(`Health check failed: HTTP ${res.status}`);
-  return HealthResponseSchema.parse(await res.json());
+export function fetchHealth(): Promise<HealthResponse> {
+  return request('/health', HealthResponseSchema);
 }

@@ -4,16 +4,17 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 
 ## Open
 
-- [ ] **P0.6 — Start a noop job from the dashboard.** No generic `POST /api/jobs`. Add a dev-only
-      `POST /api/dev/noop-job` (registered only when not in production) that enqueues a run-less
-      `noop` job; the dashboard streams it with `GET /api/events?jobId=<id>`.
-- [ ] **P0.6 — SSE cursor on page load.** `useRunEvents(runId)` reads `lastEventId` from
-      `GET /api/runs/:id` and opens `/api/events?runId=<id>&after=<lastEventId>`; full replay is
-      only the fallback when no snapshot is loaded.
+- [ ] **P1A.3 — Share theme tokens with the renderer.** The studio's Tailwind `@theme` in
+      `src/web/styles.css` hand-copies the video palette and uses system fonts. Once the
+      renderer's `blueprint-dark` theme exists, generate the web tokens from it (or move the
+      colour/font tokens into `packages/shared`) and load the bundled mono font in the studio.
 - [ ] **P1C.9 — Run state transitions.** The orchestrator takes over run state transitions. Until
       then the worker only moves a run to `failed` when one of its jobs fails (unless the handler
       sets `failsRun: false`); `queued → running`, gate pauses and `done` belong to the
       orchestrator, as does resuming a run from its last finished `run_steps` row.
+- [ ] **P1A.12 / P1B.1 — Honour `ctx.signal` in long-running handlers.** Pass it to Remotion's
+      `cancelSignal` in renders and kill the Kokoro subprocess on abort; otherwise a dev restart
+      becomes a hard kill and uses up an attempt.
 - [ ] **Worker — Retries and backoff.** A handler error fails the job at once; `attempts` only
       counts hard crashes. Add per-handler retry with `run_after` backoff when a stage needs it
       (e.g. transient LLM or fetch errors).

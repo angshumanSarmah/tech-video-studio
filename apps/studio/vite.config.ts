@@ -1,4 +1,5 @@
 import { fileURLToPath } from 'node:url';
+import tailwindcss from '@tailwindcss/vite';
 import vue from '@vitejs/plugin-vue';
 import { defineConfig, loadEnv } from 'vite';
 
@@ -12,7 +13,7 @@ export default defineConfig(({ mode }) => {
   return {
     root: fileURLToPath(new URL('./src/web', import.meta.url)),
     envDir: workspaceRoot,
-    plugins: [vue()],
+    plugins: [vue(), tailwindcss()],
     server: {
       proxy: { '/api': apiTarget },
     },

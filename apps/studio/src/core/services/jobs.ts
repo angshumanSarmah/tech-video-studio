@@ -2,11 +2,13 @@ import type { Db, Executor } from '../db/client.ts';
 import { appendEvent } from '../db/repositories/events.ts';
 import {
   claimNextJob,
+  enqueueJob,
   listJobsByStatus,
   releaseJob,
   type ClaimOptions,
   type Job,
   type JobRelease,
+  type NewJob,
 } from '../db/repositories/jobs.ts';
 import { setActiveRunStatus } from '../db/repositories/runs.ts';
 
@@ -15,8 +17,24 @@ import { setActiveRunStatus } from '../db/repositories/runs.ts';
  * transaction, so the event log never disagrees with the `jobs` table.
  */
 
+/** Job type of the worker's demo handler. Queued from `/api/dev` to exercise the pipeline. */
+export const NOOP_JOB_TYPE = 'noop';
+
 /** Hard crashes a job may cause before it is failed instead of requeued. */
 export const MAX_JOB_ATTEMPTS = 3;
+
+/**
+ * Queues a job and records it as queued, so a client streaming the job sees it before the worker
+ * claims it. For jobs that start alongside other rows (e.g. a run), use `enqueueJob` in that
+ * transaction instead.
+ */
+export function queueJob(db: Db, job: NewJob): Job {
+  return db.transaction((tx) => {
+    const queued = enqueueJob(tx, job);
+    appendJobStatus(tx, queued);
+    return queued;
+  });
+}
 
 /** Claims the next due job and records it as running. */
 export function claimJob(db: Db, options: ClaimOptions): Job | undefined {

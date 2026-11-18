@@ -2,7 +2,7 @@ import type { RunSettingsInput, Stage } from '@explainer-studio/shared';
 import type { Db, Executor } from '../db/client.ts';
 import { enqueueJob, type Job } from '../db/repositories/jobs.ts';
 import { appendEvent, latestEventId } from '../db/repositories/events.ts';
-import { createRun, getRun, type Run } from '../db/repositories/runs.ts';
+import { createRun, getRunSummary, type Run, type RunSummary } from '../db/repositories/runs.ts';
 import { getSeries } from '../db/repositories/series.ts';
 import { getTopic } from '../db/repositories/topics.ts';
 import { NotFoundError } from '../errors.ts';
@@ -44,7 +44,7 @@ export function startRun(db: Db, input: StartRunInput): StartedRun {
 }
 
 export interface RunDetail {
-  readonly run: Run;
+  readonly run: RunSummary;
   /** Id of the run's newest event: the SSE cursor that continues from this snapshot. */
   readonly lastEventId: number;
 }
@@ -55,7 +55,7 @@ export interface RunDetail {
  */
 export function getRunDetail(db: Db, id: number): RunDetail {
   return db.transaction((tx) => {
-    const run = getRun(tx, id);
+    const run = getRunSummary(tx, id);
     if (!run) throw new NotFoundError('Run', id);
     return { run, lastEventId: latestEventId(tx, { runId: id }) };
   });
