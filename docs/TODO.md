@@ -32,22 +32,26 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       response and treat a masked value in PUT as "unchanged". Show when `DEEPSEEK_API_KEY` in
       `.env` overrides the stored key. Save via `saveConfig()` from `#core/config.ts`, passing
       settings (not the resolved `AppConfig`, which carries the env key).
-- [ ] **P1A.3 — Remotion compatibility.**
-  - The Remotion project exists (P1A.2: `src/entry.ts`, `src/Root.tsx`, the `ThemeSwatchBoard`
-    still). Add `VideoFromSpec` and `BeatFromSpec` to `Root.tsx`.
-  - Series label and accent are data (DB `series`, editable in Settings). The render service
-    resolves them from the DB and passes them to the compositions as props alongside the spec;
-    the renderer applies the accent with `resolveAccent` + `tintFor` from the theme.
-  - Verify Remotion's bundler compiles `@explainer-studio/shared` from TS source: `exports`
-    points at `src/index.ts` and imports use explicit `.ts` extensions, so check its loader
-    transpiles files outside `packages/renderer`.
-  - Do not use Remotion's `schema` props (it has historically required Zod 3; `shared` uses
-    Zod 4). `VideoFromSpec` and `BeatFromSpec` take the spec as plain props typed with
-    `RenderableVideoSpec`. `calculateMetadata` and the render service call
-    `validateRenderableVideoSpec()` first and fail with its structured errors.
-  - `spec.timing` is in seconds. Convert to frames with the composition's fps (draft 15,
-    final 30). `timing.events` is a derived cache: recompute event times from word timings
-    and never trust stale values after an edit.
+- [ ] **P1A.12 — Render props and narration audio.**
+  - Build `VideoFromSpecProps` / `BeatFromSpecProps` (`@explainer-studio/renderer`): resolve
+    `series` (label, accent) from the DB `series` row, pass `fps` from the preset (draft 15,
+    final 30), and validate the spec with `validateRenderableVideoSpec()` before bundling so
+    errors reach the run as structured issues (`calculateMetadata` re-validates and throws).
+  - Remotion renders in a browser, so `audioSrc` must be an http(s) URL or a `staticFile()`
+    path, never `timing.audioFile` (a path relative to the data dir). Serve the run's audio via
+    the studio server (or copy it into Remotion's public dir) and pass that URL.
+  - Before rendering, check that `audioSrc` loads (e.g. a `HEAD`/range request that returns an
+    audio content type) and fail the render with a clear error if it does not. A spec with
+    timing must never render silently; `audioSrc: null` is only for previews before TTS.
+- [ ] **P1A.4 / P1A.5 / P1B.3 — Delete the Dev\* layers.** `src/dev/` in the renderer is
+      temporary. P1A.5 replaces `DevBeatPreview` with registry-driven primitives and deletes it;
+      `src/dev/dev-layers.test.ts` fails once `src/primitives/registry.ts` exists and anything
+      outside `src/dev` still uses it (keep the registry at that path, or update the test). P1A.4
+      replaces `DevHud`, P1B.3 replaces `DevSubtitles`; delete `src/dev/` with the last of them.
+- [ ] **P1B.2 — Cache event times in seconds.** P1B.2's prompt says "resolve every event anchor to
+      a frame at 30 fps". Store seconds in `timing.events[].atSec` instead (use `resolveAnchorSec`
+      from `packages/shared`), because drafts render at 15 fps. The renderer recomputes frames
+      from word timings and never reads the cache.
 - [ ] **P1A.9 — Safe areas.** `safeAreas(theme)` returns the centred stage the layout engine
       fills, plus `avoidZones` (platform action buttons clipped to the stage). Keep text and key
       elements out of avoid zones; background decoration may pass under.

@@ -1,0 +1,64 @@
+import {
+  effectiveTiming,
+  validateRenderableVideoSpec,
+  type RenderableVideoSpec,
+} from '@explainer-studio/shared';
+import type { CalculateMetadataFunction } from 'remotion';
+import { beatFrameSpans, totalFrames, type BeatFrameSpan } from '../timing/frames.ts';
+import type { BeatFromSpecProps, VideoFromSpecProps } from './props.ts';
+
+/** Validates a spec for rendering; throws with every structured error (JSON path + code). */
+export function parseRenderableSpec(input: unknown): RenderableVideoSpec {
+  const result = validateRenderableVideoSpec(input);
+  if (result.ok) return result.spec;
+  const lines = result.errors.map((e) => `  ${e.path} [${e.code}] ${e.message}`);
+  throw new Error(`Invalid VideoSpec:\n${lines.join('\n')}`);
+}
+
+function assertFps(fps: number): void {
+  if (!Number.isInteger(fps) || fps <= 0) {
+    throw new Error(`fps must be a positive integer, got ${fps}.`);
+  }
+}
+
+/** The frame span of one beat; throws when the spec has no such beat. */
+export function findBeatSpan(
+  spec: RenderableVideoSpec,
+  beatId: string,
+  fps: number,
+): BeatFrameSpan {
+  const spans = beatFrameSpans(effectiveTiming(spec), fps);
+  const span = spans.find((s) => s.beatId === beatId);
+  if (span) return span;
+  const known = spans.map((s) => s.beatId).join(', ');
+  throw new Error(`Unknown beat "${beatId}". Beats in this spec: ${known}.`);
+}
+
+/** Whole video: duration from `spec.timing`, or estimated from word counts before TTS. */
+export function videoMetadata(props: VideoFromSpecProps) {
+  assertFps(props.fps);
+  const spec = parseRenderableSpec(props.spec);
+  return {
+    fps: props.fps,
+    durationInFrames: totalFrames(effectiveTiming(spec), props.fps),
+    props: { ...props, spec },
+  };
+}
+
+/** One beat: duration is the beat's span, as it is cut from the whole video. */
+export function beatMetadata(props: BeatFromSpecProps) {
+  assertFps(props.fps);
+  const spec = parseRenderableSpec(props.spec);
+  const span = findBeatSpan(spec, props.beatId, props.fps);
+  return {
+    fps: props.fps,
+    durationInFrames: span.durationInFrames,
+    props: { ...props, spec },
+  };
+}
+
+export const calculateVideoMetadata: CalculateMetadataFunction<VideoFromSpecProps> = ({ props }) =>
+  videoMetadata(props);
+
+export const calculateBeatMetadata: CalculateMetadataFunction<BeatFromSpecProps> = ({ props }) =>
+  beatMetadata(props);

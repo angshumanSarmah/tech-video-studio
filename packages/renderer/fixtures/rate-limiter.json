@@ -1,0 +1,179 @@
+{
+  "schemaVersion": 1,
+  "meta": {
+    "id": "rate-limiter",
+    "series": "system-design",
+    "title": "How a rate limiter works",
+    "topicClass": "concept",
+    "targetLengthSec": 45
+  },
+  "story": {
+    "devices": ["failure_before_fix", "planted_question"],
+    "heroMetric": { "label": "Requests", "startValue": 0, "endValue": 10000, "unit": "req/s" },
+    "chapters": [
+      { "id": "flood", "title": "The flood", "question": "Why did the API fall over?" },
+      { "id": "bucket", "title": "Token bucket" },
+      { "id": "payoff", "title": "Why it holds" }
+    ],
+    "beats": [
+      {
+        "id": "hook",
+        "chapterId": "flood",
+        "intent": "One client floods the API and takes everyone down",
+        "device": "failure_before_fix",
+        "targetSec": 12,
+        "factIds": ["fact-1"]
+      },
+      {
+        "id": "bucket-intro",
+        "chapterId": "bucket",
+        "intent": "Each client gets a bucket of tokens that refills",
+        "targetSec": 13
+      },
+      {
+        "id": "bucket-empty",
+        "chapterId": "bucket",
+        "intent": "An empty bucket rejects the request with a 429",
+        "targetSec": 10
+      },
+      {
+        "id": "payoff",
+        "chapterId": "payoff",
+        "intent": "The flood stops at the bucket, not the servers",
+        "targetSec": 8
+      }
+    ],
+    "plantedQuestion": {
+      "text": "Why did the API fall over?",
+      "beatId": "hook",
+      "payoffBeatId": "payoff"
+    },
+    "ending": { "kind": "callback", "cta": "Share with the teammate who DDoSed staging" }
+  },
+  "script": [
+    {
+      "beatId": "hook",
+      "narration": "One client sends ten thousand requests a second. Your API slows, then falls over. Every other user gets an error, and the on-call phone starts ringing at three in the morning.",
+      "headline": { "text": "One noisy client can take down everyone", "semantic": "problem" },
+      "statCards": [{ "value": "10k/s", "label": "peak load", "sourceRef": "fact-1" }]
+    },
+    {
+      "beatId": "bucket-intro",
+      "narration": "A rate limiter gives each client a bucket of tokens. Every request spends one token. The bucket refills at a steady rate, say ten tokens every second, and never holds more than it can fit.",
+      "headline": { "text": "Rate limit = cap requests per client", "semantic": "concept" },
+      "tags": ["token bucket"]
+    },
+    {
+      "beatId": "bucket-empty",
+      "narration": "Burst too fast and the bucket runs dry. No token, no request. The client gets a 429 and has to wait for the next refill.",
+      "headline": { "text": "No token = no request", "semantic": "decision" },
+      "commandBubble": { "text": "HTTP 429 Too Many Requests" }
+    },
+    {
+      "beatId": "payoff",
+      "narration": "Now one noisy client cannot take down everyone else. The flood hits its own empty bucket, not your servers.",
+      "headline": { "text": "The flood stops at the bucket", "semantic": "resolution" }
+    }
+  ],
+  "scenes": [
+    {
+      "beatId": "hook",
+      "kind": "board",
+      "layoutMode": "centered_focus",
+      "elements": [
+        { "id": "client", "primitive": "node_card", "props": { "title": "Client" } },
+        { "id": "api", "primitive": "node_card", "props": { "title": "API" }, "role": "focus" },
+        { "id": "rps", "primitive": "counter", "props": { "value": 10000, "unit": "req/s" } }
+      ],
+      "patterns": [{ "id": "flood", "pattern": "flood_then_funnel", "params": { "count": 20 } }],
+      "events": [
+        { "at": { "type": "word", "index": 0 }, "action": "enter", "targets": ["client"] },
+        {
+          "at": { "type": "word_text", "text": "requests" },
+          "action": "enter",
+          "targets": ["rps", "flood"]
+        },
+        { "at": { "type": "word_text", "text": "api" }, "action": "enter", "targets": ["api"] },
+        { "at": { "type": "word_text", "text": "falls" }, "action": "reject", "targets": ["api"] },
+        { "at": { "type": "word_text", "text": "error" }, "action": "pulse", "targets": ["rps"] }
+      ],
+      "focus": ["api"]
+    },
+    {
+      "beatId": "bucket-intro",
+      "kind": "board",
+      "layoutMode": "centered_focus",
+      "continuesPrevious": true,
+      "transitionIn": "fade",
+      "elements": [
+        { "id": "bucket", "primitive": "counter", "props": { "value": 10, "unit": "tokens" } }
+      ],
+      "events": [
+        {
+          "at": { "type": "word_text", "text": "bucket" },
+          "action": "enter",
+          "targets": ["bucket"]
+        },
+        {
+          "at": { "type": "word_text", "text": "spends" },
+          "action": "count",
+          "targets": ["bucket"]
+        },
+        {
+          "at": { "type": "word_text", "text": "refills" },
+          "action": "highlight",
+          "targets": ["bucket"]
+        },
+        {
+          "at": { "type": "beat", "edge": "end", "offsetSec": -0.5 },
+          "action": "dim",
+          "targets": ["api"]
+        }
+      ]
+    },
+    {
+      "beatId": "bucket-empty",
+      "kind": "board",
+      "layoutMode": "two_column",
+      "elements": [
+        { "id": "empty", "primitive": "counter", "props": { "value": 0, "unit": "tokens" } },
+        { "id": "reply", "primitive": "tag", "props": { "text": "429" } }
+      ],
+      "events": [
+        { "at": { "type": "word_text", "text": "dry" }, "action": "enter", "targets": ["empty"] },
+        {
+          "at": { "type": "word_text", "text": "no", "occurrence": 2 },
+          "action": "pulse",
+          "targets": ["empty"]
+        },
+        { "at": { "type": "word_text", "text": "429" }, "action": "enter", "targets": ["reply"] },
+        { "at": { "type": "word_text", "text": "wait" }, "action": "lock", "targets": ["reply"] }
+      ],
+      "focus": ["reply"]
+    },
+    {
+      "beatId": "payoff",
+      "kind": "board",
+      "layoutMode": "centered_focus",
+      "transitionIn": "zoom-out",
+      "elements": [
+        { "id": "servers", "primitive": "node_card", "props": { "title": "Servers" } },
+        { "id": "guard", "primitive": "tag", "props": { "text": "rate limited" } }
+      ],
+      "events": [
+        {
+          "at": { "type": "beat", "edge": "start", "offsetSec": 0.2 },
+          "action": "enter",
+          "targets": ["servers"]
+        },
+        { "at": { "type": "word_text", "text": "flood" }, "action": "enter", "targets": ["guard"] },
+        {
+          "at": { "type": "word_text", "text": "servers" },
+          "action": "highlight",
+          "targets": ["servers"]
+        }
+      ],
+      "focus": ["servers"]
+    }
+  ]
+}

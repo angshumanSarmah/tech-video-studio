@@ -401,6 +401,9 @@ importers:
 
   packages/renderer:
     dependencies:
+      '@explainer-studio/shared':
+        specifier: workspace:*
+        version: link:../shared
       '@remotion/fonts':
         specifier: 'catalog:'
         version: 4.0.540(react-dom@19.2.9(react@19.2.9))(react@19.2.9)

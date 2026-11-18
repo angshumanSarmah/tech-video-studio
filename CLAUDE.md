@@ -248,6 +248,27 @@ safe-area overlay to `docs/safe-area/zones.png`.
   `loadThemeFonts(theme)` (`@remotion/fonts` + `staticFile`). Never load fonts from the network.
 - All `remotion` / `@remotion/*` packages must share one exact version in the catalog.
 
+### Spec compositions
+
+- **`VideoFromSpec`** renders a whole `RenderableVideoSpec`; **`BeatFromSpec`** renders one beat
+  (`beatId`), cut from the same global timeline, so its frames match the full video. Props are
+  plain JSON (`src/compositions/props.ts`): `spec`, `series` (label + accent), `audioSrc`, `fps`.
+  Remotion's `schema` prop is not used (Zod 3 vs 4); `calculateMetadata` validates the spec with
+  `validateRenderableVideoSpec`, throws its structured errors, and sets duration and fps.
+- **`audioSrc` is a URL** (http(s) or `staticFile()`), never a filesystem path: Remotion renders
+  in a browser. `null` renders silently (preview before TTS).
+- **Timing is seconds in the spec, frames only in the renderer.** `effectiveTiming(spec)` and
+  `resolveAnchorSec` live in `packages/shared` (the worker needs them too); `src/timing/frames.ts`
+  converts to frames at the composition's fps (final 30, draft 15). Without `spec.timing`, timing
+  is estimated at 2.6 words/sec. Event frames are always recomputed from word timings; the
+  `timing.events` cache is never read.
+- Beat `<Sequence>`s tile the video with no gaps (each runs until the next beat starts).
+- Studio previews both compositions with `fixtures/rate-limiter.json` (no timing layer).
+- **`src/dev/` is temporary.** `DevBeatPreview`, `DevHud` and `DevSubtitles` are stand-ins until
+  P1A.5 (primitives), P1A.4 (HUD) and P1B.3 (subtitles) replace them. Do not build on them or
+  extend them. `src/dev/dev-layers.test.ts` fails once `src/primitives/registry.ts` exists and a
+  composition still uses `DevBeatPreview`.
+
 ## Code conventions
 
 - TypeScript strict everywhere (`strict`, `noUncheckedIndexedAccess`). Shared base:

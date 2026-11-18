@@ -1,0 +1,61 @@
+import { effectiveTiming } from '@explainer-studio/shared';
+import { useMemo } from 'react';
+import { AbsoluteFill, Sequence, useVideoConfig } from 'remotion';
+import { Background } from '../background/Background.tsx';
+import { DevBeatPreview } from '../dev/DevBeatPreview.tsx';
+import { DevHud } from '../dev/DevHud.tsx';
+import { DevSubtitles } from '../dev/DevSubtitles.tsx';
+import { loadThemeFonts } from '../fonts/load-theme-fonts.ts';
+import { NarrationAudio } from '../layers/NarrationAudio.tsx';
+import { DEFAULT_THEME_ID, getTheme, resolveAccent } from '../theme/index.ts';
+import { beatFrameSpans } from '../timing/frames.ts';
+import type { VideoFromSpecProps } from './props.ts';
+
+type Props = Omit<VideoFromSpecProps, 'fps'> & {
+  /** Render only this beat's scene (HUD, subtitles and audio stay global). */
+  onlyBeatId?: string;
+};
+
+/**
+ * Every layer of a spec on the global timeline (frame 0 = start of the narration track):
+ * background, one scene per beat in a `<Sequence>`, HUD, subtitles, audio.
+ */
+export function SpecLayers({ spec, series, audioSrc, onlyBeatId }: Props) {
+  const theme = getTheme(DEFAULT_THEME_ID);
+  loadThemeFonts(theme);
+  const { fps } = useVideoConfig();
+  const timing = useMemo(() => effectiveTiming(spec), [spec]);
+  const spans = useMemo(() => beatFrameSpans(timing, fps), [timing, fps]);
+  const accent = resolveAccent(theme, series.accentColour);
+  const shown = onlyBeatId ? spans.filter((s) => s.beatId === onlyBeatId) : spans;
+  return (
+    <AbsoluteFill>
+      <Background theme={theme} />
+      {shown.map((span) => (
+        <Sequence
+          key={span.beatId}
+          name={`Beat ${span.beatId}`}
+          from={span.from}
+          durationInFrames={span.durationInFrames}
+        >
+          <DevBeatPreview
+            theme={theme}
+            spec={spec}
+            timing={timing}
+            beatId={span.beatId}
+            beatFrom={span.from}
+          />
+        </Sequence>
+      ))}
+      <DevHud
+        theme={theme}
+        spec={spec}
+        seriesLabel={series.label}
+        accent={accent}
+        estimated={timing.estimated}
+      />
+      <DevSubtitles theme={theme} spec={spec} timing={timing} spans={spans} accent={accent} />
+      {audioSrc ? <NarrationAudio src={audioSrc} /> : null}
+    </AbsoluteFill>
+  );
+}
