@@ -61,14 +61,16 @@ describe.each(listThemes().map((t) => [t.id, t] as const))('safeAreas(%s)', (_id
 describe('blueprint-dark safe areas', () => {
   const areas = safeAreas(ThemeSchema.parse(blueprintDark));
 
-  it('derives the planned geometry from the starting zones', () => {
-    expect(areas.hudBand).toEqual({ x: 48, y: 220, width: 984, height: 200 });
-    expect(areas.stage).toEqual({ x: 48, y: 420, width: 984, height: 900 });
-    // Narrowed on both sides to clear the action buttons (x >= 930) and stay centred.
-    expect(areas.subtitleBand).toEqual({ x: 150, y: 1320, width: 780, height: 180 });
-    // reels.actions clips to a rect inside shorts.actions, so only one remains.
+  it('derives the planned geometry from the calibrated zones', () => {
+    // Reels still sets the HUD band's top (topBar 220) and the subtitle band's bottom (1500).
+    expect(areas.hudBand).toEqual({ x: 72, y: 220, width: 936, height: 200 });
+    expect(areas.stage).toEqual({ x: 72, y: 420, width: 936, height: 900 });
+    // Narrowed on both sides to clear the Shorts action buttons (x >= 900) and stay centred.
+    expect(areas.subtitleBand).toEqual({ x: 180, y: 1320, width: 720, height: 180 });
+    // reels.actions starts above shorts.actions, so neither contains the other.
     expect(areas.avoidZones).toEqual([
-      { id: 'shorts.actions', x: 930, y: 900, width: 102, height: 420 },
+      { id: 'shorts.actions', x: 900, y: 1020, width: 108, height: 300 },
+      { id: 'reels.actions', x: 940, y: 960, width: 68, height: 360 },
     ]);
   });
 });

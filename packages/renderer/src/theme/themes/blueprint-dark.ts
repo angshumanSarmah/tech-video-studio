@@ -122,21 +122,25 @@ export const blueprintDark = {
   space: { xs: 8, sm: 16, md: 24, lg: 40, xl: 64, xxl: 96 },
   radius: { sm: 6, md: 12, lg: 20, pill: 999 },
   stroke: { hairline: 1.5, thin: 2, regular: 4, bold: 6 },
-  // Starting values, not yet calibrated: check with `calibrate:safe-area <shorts|reels>`.
+  // Check zones with `calibrate:safe-area <shorts|reels>`.
   safeArea: {
     platforms: {
+      // Measured on a 1080x2340 phone screenshot on 2026-11-18. Tall phones scale the 9:16
+      // frame to fill the height and crop ~40 px per side.
       shorts: {
-        topBar: { x: 0, y: 0, width: 1080, height: 180 },
-        actions: { x: 930, y: 900, width: 150, height: 620 },
-        bottomInfo: { x: 0, y: 1520, width: 1080, height: 400 },
+        topBar: { x: 0, y: 0, width: 1080, height: 140 },
+        actions: { x: 900, y: 1020, width: 180, height: 880 },
+        bottomInfo: { x: 0, y: 1660, width: 1080, height: 260 },
       },
+      // Starting values, not yet calibrated.
       reels: {
         topBar: { x: 0, y: 0, width: 1080, height: 220 },
         actions: { x: 940, y: 960, width: 140, height: 600 },
         bottomInfo: { x: 0, y: 1500, width: 1080, height: 420 },
       },
     },
-    gutter: 48,
+    // Covers the side cropping on tall phones.
+    gutter: 72,
     hudBand: 200,
     subtitleBand: 180,
   },
