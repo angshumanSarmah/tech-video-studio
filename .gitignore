@@ -1,0 +1,22 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.vite/
+
+# runtime data (SQLite DB, runs, assets, exports) — keep folder skeleton only
+data/*
+!data/runs/
+!data/assets/
+!data/exports/
+data/runs/*
+data/assets/*
+data/exports/*
+!data/**/.gitkeep
+
+.env
+.env.*
+!.env.example
+
+.DS_Store
+*.log

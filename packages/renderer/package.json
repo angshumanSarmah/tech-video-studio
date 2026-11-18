@@ -1,0 +1,16 @@
+{
+  "name": "@explainer-studio/renderer",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Generic Remotion compositions (React) that render a VideoSpec. Placeholder — no compositions yet.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "catalog:"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "name": "@explainer-studio/studio",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "imports": {
+    "#core/*": "./src/core/*",
+    "#server/*": "./src/server/*",
+    "#worker/*": "./src/worker/*",
+    "#web/*": "./src/web/*"
+  },
+  "scripts": {
+    "dev": "concurrently --kill-others-on-fail --names server,worker,web --prefix-colors blue,magenta,green \"pnpm:dev:server\" \"pnpm:dev:worker\" \"pnpm:dev:web\"",
+    "dev:server": "tsx watch --clear-screen=false src/server/index.ts",
+    "dev:worker": "tsx watch --clear-screen=false src/worker/index.ts",
+    "dev:web": "vite",
+    "build": "vite build && tsup",
+    "start": "concurrently --names server,worker \"node dist/node/server/index.js\" \"node dist/node/worker/index.js\"",
+    "typecheck": "vue-tsc --build",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@explainer-studio/shared": "workspace:*",
+    "@hono/node-server": "catalog:",
+    "hono": "catalog:",
+    "vue": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@vitejs/plugin-vue": "catalog:",
+    "@vue/test-utils": "catalog:",
+    "concurrently": "catalog:",
+    "jsdom": "catalog:",
+    "tsup": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:",
+    "vue-tsc": "catalog:"
+  }
+}

@@ -1,0 +1,8 @@
+node_modules
+dist
+coverage
+data
+pnpm-lock.yaml
+
+# Author-maintained design doc
+Tech Explainer Studio Design and Claude Code Prompts.md

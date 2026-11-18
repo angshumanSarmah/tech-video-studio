@@ -1,0 +1,39 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Single source of truth for dependency versions across the workspace.
+catalog:
+  # runtime
+  hono: ^4.13.19
+  '@hono/node-server': ^2.1.9
+  vue: ^3.5.45
+  zod: ^4.6.7
+  # build / dev
+  '@vitejs/plugin-vue': ^6.0.11
+  concurrently: ^10.0.7
+  tsup: ^9.0.0
+  tsx: ^4.23.15
+  vite: ^8.3.8
+  # TypeScript pinned to 6.0.x: typescript-eslint 8 supports <6.1 (see docs/TODO.md)
+  typescript: ~6.0.3
+  vue-tsc: ^3.3.14
+  '@types/node': ^24.19.2
+  # test
+  # exact pin: 5.1.1 is younger than pnpm's minimumReleaseAge gate
+  vitest: 5.1.0
+  jsdom: ^31.0.1
+  '@vue/test-utils': ^2.6.0
+  # lint / format
+  '@eslint/js': ^10.0.1
+  eslint: ^10.15.0
+  eslint-config-prettier: ^10.1.8
+  eslint-plugin-vue: ^10.12.1
+  globals: ^17.14.0
+  prettier: ^3.10.1
+  typescript-eslint: ^8.73.0
+  vue-eslint-parser: ^10.4.2
+
+# Dependencies allowed to run install scripts.
+allowBuilds:
+  esbuild: true

@@ -1,0 +1,21 @@
+{
+  "name": "@explainer-studio/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Zod schemas, catalogues and inferred types shared across the workspace. Consumed as TS source.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
