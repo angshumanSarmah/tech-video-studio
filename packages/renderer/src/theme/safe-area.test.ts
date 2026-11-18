@@ -78,17 +78,16 @@ describe('blueprint-dark safe areas', () => {
   const areas = safeAreas(ThemeSchema.parse(blueprintDark));
 
   it('derives the planned geometry from the calibrated zones', () => {
-    // Reels still sets the HUD band's top (topBar 220) and the subtitle band's bottom (1500).
-    expect(areas.hudBand).toEqual({ x: 72, y: 220, width: 936, height: 200 });
-    expect(areas.stage).toEqual({ x: 72, y: 420, width: 936, height: 900 });
-    expect(areas.headlineBand).toEqual({ x: 72, y: 420, width: 936, height: 140 });
-    expect(areas.stageWithHeadline).toEqual({ x: 72, y: 560, width: 936, height: 760 });
+    // Reels sets the HUD band's top (topBar 200); Shorts sets the subtitle band's bottom (1660).
+    expect(areas.hudBand).toEqual({ x: 72, y: 200, width: 936, height: 200 });
+    expect(areas.stage).toEqual({ x: 72, y: 400, width: 936, height: 1080 });
+    expect(areas.headlineBand).toEqual({ x: 72, y: 400, width: 936, height: 140 });
+    expect(areas.stageWithHeadline).toEqual({ x: 72, y: 540, width: 936, height: 940 });
     // Narrowed on both sides to clear the Shorts action buttons (x >= 900) and stay centred.
-    expect(areas.subtitleBand).toEqual({ x: 180, y: 1320, width: 720, height: 180 });
-    // reels.actions starts above shorts.actions, so neither contains the other.
+    expect(areas.subtitleBand).toEqual({ x: 180, y: 1480, width: 720, height: 180 });
+    // Within the stage, reels.actions lies inside shorts.actions, so only the Shorts zone remains.
     expect(areas.avoidZones).toEqual([
-      { id: 'shorts.actions', x: 900, y: 1020, width: 108, height: 300 },
-      { id: 'reels.actions', x: 940, y: 960, width: 68, height: 360 },
+      { id: 'shorts.actions', x: 900, y: 1020, width: 108, height: 460 },
     ]);
   });
 });
@@ -146,7 +145,8 @@ describe('safe-area validation', () => {
     const cramped = {
       ...blueprintDark,
       id: 'cramped',
-      safeArea: { ...blueprintDark.safeArea, hudBand: 700, subtitleBand: 700 },
+      // Together the bands are the canvas height, more than any top bar leaves for the stage.
+      safeArea: { ...blueprintDark.safeArea, hudBand: 960, subtitleBand: 960 },
     };
     expect(() => buildThemeRegistry([cramped])).toThrow(/stage is empty/);
   });

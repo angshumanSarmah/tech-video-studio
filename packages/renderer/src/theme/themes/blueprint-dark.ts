@@ -166,11 +166,13 @@ export const blueprintDark = {
         actions: { x: 900, y: 1020, width: 180, height: 880 },
         bottomInfo: { x: 0, y: 1660, width: 1080, height: 260 },
       },
-      // Starting values, not yet calibrated.
+      // Measured on 1080x2340 screenshots (Reels tab and feed) on 2026-11-19. The Reels tab shows
+      // the 9:16 frame 1:1 with no crop; the feed puts an account header over the top and trims
+      // ~60 px top and bottom.
       reels: {
-        topBar: { x: 0, y: 0, width: 1080, height: 220 },
-        actions: { x: 940, y: 960, width: 140, height: 600 },
-        bottomInfo: { x: 0, y: 1500, width: 1080, height: 420 },
+        topBar: { x: 0, y: 0, width: 1080, height: 200 },
+        actions: { x: 940, y: 1160, width: 140, height: 760 },
+        bottomInfo: { x: 0, y: 1700, width: 1080, height: 220 },
       },
     },
     // Covers the side cropping on tall phones.

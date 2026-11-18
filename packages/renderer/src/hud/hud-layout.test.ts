@@ -32,7 +32,7 @@ describe.each(listThemes().map((t) => [t.id, t] as const))('hudLayout(%s)', (_id
 describe('hudLayout geometry', () => {
   it('follows the HUD band when the top bar zones move', () => {
     const platforms = structuredClone(blueprintDark.safeArea.platforms);
-    platforms.reels.topBar.height = 160;
+    for (const zones of Object.values(platforms)) zones.topBar.height -= 60;
     const moved = ThemeSchema.parse({
       ...blueprintDark,
       safeArea: { ...blueprintDark.safeArea, platforms },

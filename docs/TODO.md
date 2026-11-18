@@ -82,14 +82,9 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **P1A.9 — Safe areas.** `safeAreas(theme)` returns the centred stage the layout engine
       fills, plus `avoidZones` (platform action buttons clipped to the stage). Keep text and key
       elements out of avoid zones; background decoration may pass under. The layout engine picks
-      the stage per beat with `stageForBeat(areas, spec, beatId)`: `stageWithHeadline` (760 px
+      the stage per beat with `stageForBeat(areas, spec, beatId)`: `stageWithHeadline` (940 px
       tall in `blueprint-dark`) when the beat shows a headline and `hud.headline` is on, else the
-      full `stage` (900 px).
-- [ ] **Calibrate safe-area zones.** The Shorts/Reels exclusion zones in `blueprint-dark` are
-      starting values. Save a full-screen screenshot at
-      `packages/renderer/public/calibration/<platform>.png` (a non-9:16 one is centre-cropped), run
-      `pnpm --filter @explainer-studio/renderer calibrate:safe-area <shorts|reels>`, compare
-      `docs/safe-area/<platform>-check.png`, and adjust the zones (both paths are gitignored).
+      full `stage` (1080 px).
 - [ ] **P1D.8 — Accent contrast warning.** Settings should warn when a series accent fails
       `checkAccentContrast` (from `@explainer-studio/renderer/theme`, React-free). Importing it
       from `src/web` means updating the web import-boundary message in `eslint.config.js`.
