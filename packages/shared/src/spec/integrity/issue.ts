@@ -1,11 +1,14 @@
-/** A cross-reference problem found after the spec's structure has parsed. */
+/**
+ * A problem found after the spec's structure has parsed. Errors make the spec invalid; warnings
+ * do not (see the VideoSpec section of CLAUDE.md for how each caller treats them).
+ */
 export interface SpecIssue {
   path: (string | number)[];
   code: SpecIssueCode;
   message: string;
 }
 
-export const SPEC_ISSUE_CODES = [
+export const SPEC_ERROR_CODES = [
   'duplicate_id',
   'unknown_reference',
   'missing_beat',
@@ -13,7 +16,6 @@ export const SPEC_ISSUE_CODES = [
   'chapter_order',
   'empty_chapter',
   'payoff_not_after_question',
-  'beat_seconds_mismatch',
   'too_many_formula_cards',
   'continues_without_previous',
   'anchor_out_of_range',
@@ -21,7 +23,12 @@ export const SPEC_ISSUE_CODES = [
   'timing_word_count',
   'timing_word_outside_beat',
 ] as const;
-export type SpecIssueCode = (typeof SPEC_ISSUE_CODES)[number];
+export type SpecErrorCode = (typeof SPEC_ERROR_CODES)[number];
+
+export const SPEC_WARNING_CODES = ['target_length_mismatch'] as const;
+export type SpecWarningCode = (typeof SPEC_WARNING_CODES)[number];
+
+export type SpecIssueCode = SpecErrorCode | SpecWarningCode;
 
 /** Issues for every id that appears more than once; `pathOf(i)` locates item `i`. */
 export function findDuplicateIds(

@@ -107,6 +107,17 @@ Dev ports: the UI is on http://localhost:4310 (`WEB_PORT`, Vite, `strictPort`) a
 { "beatId": "<example-beat-id>", "elements": [{ "id": "<example-element-id>", "primitive": "<example-primitive-id>" }] }
 ```
 
+## VideoSpec
+
+- Schema and validation live in `packages/shared/src/spec`. Validate with `validateVideoSpec`
+  (any stage) or `validateRenderableVideoSpec` (before rendering). Both return
+  `{ ok, spec, errors, warnings }`; each issue is `{ path, code, message }` with a JSON path.
+- `errors` make a spec invalid. `warnings` never do (e.g. `target_length_mismatch`).
+- **Agent output:** warnings count as failures and trigger the repair loop, like errors.
+- **User edits at gates:** a save succeeds when `ok` is true; the UI shows the warnings.
+- A narration "word" is whatever `narrationWords()` returns. Word anchors and timed word lists
+  both count words this way.
+
 ## Database
 
 - SQLite via Drizzle + better-sqlite3. Schema: `apps/studio/src/core/db/schema.ts`; DB file:

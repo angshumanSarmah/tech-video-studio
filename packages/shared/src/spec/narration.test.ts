@@ -18,6 +18,26 @@ describe('narrationWords', () => {
     expect(narrationWords(' — ... ')).toEqual([]);
   });
 
+  // These are the cases TTS output must be mapped back onto (docs/TODO.md, P1B.1 / P1B.2).
+  it('keeps hyphenated words and formatted numbers as one word each', () => {
+    expect(narrationWords('A write-through cache holds 1,00,000 keys at 19.4 ms.')).toEqual([
+      'a',
+      'write-through',
+      'cache',
+      'holds',
+      '1,00,000',
+      'keys',
+      'at',
+      '19.4',
+      'ms',
+    ]);
+  });
+
+  it('joins words around an unspaced em dash, but not a spaced one', () => {
+    expect(narrationWords('fast—cheap')).toEqual(['fast—cheap']);
+    expect(narrationWords('fast — cheap')).toEqual(['fast', 'cheap']);
+  });
+
   it('keeps inner apostrophes', () => {
     expect(normalizeWord("Don't!")).toBe("don't");
   });

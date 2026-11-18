@@ -6,13 +6,13 @@ import { checkStory } from './story.ts';
 import { checkTiming } from './timing.ts';
 
 export * from './issue.ts';
-export { BEAT_SECONDS_TOLERANCE } from './story.ts';
+export { findSpecWarnings, TARGET_LENGTH_TOLERANCE } from './warnings.ts';
 
 /**
- * Cross-reference checks on a structurally valid spec. Registry ids (primitives, patterns,
+ * Cross-reference errors on a structurally valid spec. Registry ids (primitives, patterns,
  * layouts, devices) and research note ids are checked elsewhere.
  */
-export function findSpecIssues(spec: VideoSpec): SpecIssue[] {
+export function findSpecErrors(spec: VideoSpec): SpecIssue[] {
   const coverage = checkLayerCoverage(spec);
   return [
     ...checkStory(spec),

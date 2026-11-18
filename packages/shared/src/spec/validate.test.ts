@@ -8,12 +8,15 @@ import {
   type SpecError,
 } from './validate.ts';
 
-/** Builds a spec from the valid fixture with `mutate` applied, and returns its errors. */
-function errorsAfter(mutate: (spec: Required<VideoSpecInput>) => void): SpecError[] {
+/** The valid fixture with `mutate` applied. */
+function mutated(mutate: (spec: Required<VideoSpecInput>) => void): VideoSpecInput {
   const spec = validSpec() as Required<VideoSpecInput>;
   mutate(spec);
-  const result = validateVideoSpec(spec);
-  return result.ok ? [] : result.errors;
+  return spec;
+}
+
+function errorsAfter(mutate: (spec: Required<VideoSpecInput>) => void): SpecError[] {
+  return validateVideoSpec(mutated(mutate)).errors;
 }
 
 /** The spec with optional layers removed. */
@@ -145,11 +148,6 @@ describe('validateVideoSpec: cross-references', () => {
       { path: '$.story.rejectedAlternative.beatId', code: 'unknown_reference' },
     ],
     [
-      'beat seconds far from the target length',
-      (spec) => (at(spec.story.beats, 0).targetSec = 40),
-      { path: '$.story.beats', code: 'beat_seconds_mismatch' },
-    ],
-    [
       'a script missing a beat',
       (spec) => spec.script.pop(),
       { path: '$.script', code: 'missing_beat' },
@@ -231,6 +229,53 @@ describe('validateVideoSpec: cross-references', () => {
     const spec = without(validSpec(), 'script', 'timing');
     at(at(spec.scenes, 0).events, 0).at = { type: 'word', index: 999 };
     expect(validateVideoSpec(spec).ok).toBe(true);
+  });
+});
+
+describe('validateVideoSpec: warnings', () => {
+  const offTarget = (spec: Required<VideoSpecInput>) => (at(spec.story.beats, 0).targetSec = 40);
+
+  it('reports none for the valid fixture', () => {
+    expect(validateVideoSpec(validSpec())).toMatchObject({ ok: true, errors: [], warnings: [] });
+  });
+
+  it('warns, without failing, when beat seconds drift from the target length', () => {
+    const result = validateVideoSpec(mutated(offTarget));
+    expect(result.ok).toBe(true);
+    expect(result.warnings).toEqual([
+      expect.objectContaining({ path: '$.story.beats', code: 'target_length_mismatch' }),
+    ]);
+  });
+
+  it('allows drift within the tolerance', () => {
+    // Fixture beats sum to 45 s; 49 s is within 10%.
+    const result = validateVideoSpec(mutated((spec) => (at(spec.story.beats, 0).targetSec = 19)));
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('reports warnings alongside cross-reference errors', () => {
+    const result = validateVideoSpec(
+      mutated((spec) => {
+        offTarget(spec);
+        at(spec.story.beats, 0).chapterId = 'nope';
+      }),
+    );
+    expect(result.ok).toBe(false);
+    expect(result.spec).toBeUndefined();
+    expect(result.errors).toContainEqual(expect.objectContaining({ code: 'unknown_reference' }));
+    expect(result.warnings).toContainEqual(
+      expect.objectContaining({ code: 'target_length_mismatch' }),
+    );
+  });
+
+  it('reports no warnings when the structure does not parse', () => {
+    const result = validateVideoSpec(
+      mutated((spec) => {
+        offTarget(spec);
+        Object.assign(spec.meta, { topicClass: 'gossip' });
+      }),
+    );
+    expect(result).toMatchObject({ ok: false, warnings: [] });
   });
 });
 
