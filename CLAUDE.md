@@ -273,7 +273,9 @@ safe-area overlay to `docs/safe-area/zones.png`.
 - **HUD** (`src/hud`): top bar, step tracker, hero metric pill, chapter header, story clock and
   headline. Slots come from `hudLayout(theme)` (derived from `safeAreas`); what each part shows at
   a frame comes from pure functions in `hud-state.ts`. Parts are toggled per video in `spec.hud`
-  (all on by default; a part without data is not drawn). Every HUD animation starts at a frame
+  (a part without data is not drawn). Chapter header and step tracker default to `auto`, which
+  `resolveHud` resolves from `story.devices` (`question_chapters` → header only, else tracker
+  only); an explicit true/false is a user override and wins. Every HUD animation starts at a frame
   resolved from a word or beat-edge anchor (`headline.at`, chapter and beat starts).
 - **`src/dev/` is temporary.** `DevBeatPreview` and `DevSubtitles` are stand-ins until P1A.5
   (primitives) and P1B.3 (subtitles) replace them. Do not build on them or extend them. `src/dev/dev-layers.test.ts` fails once `src/primitives/registry.ts` exists and a

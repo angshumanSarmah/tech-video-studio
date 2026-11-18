@@ -1,5 +1,6 @@
 import {
   headlineAnchor,
+  resolveHud,
   type EffectiveTiming,
   type HeadlineSemantic,
   type HudPart,
@@ -14,9 +15,13 @@ import { anchorToFrame, type BeatFrameSpan } from '../timing/frames.ts';
 /** Something on the HUD timeline that starts at `from` (inclusive) and ends at `to` (exclusive). */
 export type FrameSpan = { from: number; to: number };
 
-/** Which HUD parts to draw: toggled on in `spec.hud` and with data to show. */
+/**
+ * Which HUD parts to draw: on in `spec.hud` (with `auto` resolved from the story devices, see
+ * `resolveHud`) and with data to show.
+ */
 export function visibleHudParts(spec: RenderableVideoSpec): Record<HudPart, boolean> {
-  const { hud, story, script } = spec;
+  const { story, script } = spec;
+  const hud = resolveHud(spec.hud, story.devices);
   return {
     topBar: hud.topBar,
     chapterHeader: hud.chapterHeader,

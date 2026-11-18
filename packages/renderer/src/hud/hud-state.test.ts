@@ -31,8 +31,21 @@ function withSpec(change: (s: RenderableVideoSpec) => RenderableVideoSpec) {
 }
 
 describe('visibleHudParts', () => {
-  it('shows every part of the fixture by default', () => {
+  it('shows every part of the fixture (chapter header forced on)', () => {
     expect(Object.values(visibleHudParts(spec)).every(Boolean)).toBe(true);
+  });
+
+  it('resolves auto chapter display from the story devices', () => {
+    const auto = (devices: string[]) =>
+      visibleHudParts(
+        withSpec((s) => ({
+          ...s,
+          hud: { ...s.hud, chapterHeader: 'auto' },
+          story: { ...s.story, devices },
+        })),
+      );
+    expect(auto(['failure_before_fix'])).toMatchObject({ chapterHeader: false, stepTracker: true });
+    expect(auto(['question_chapters'])).toMatchObject({ chapterHeader: true, stepTracker: false });
   });
 
   it('hides parts toggled off in the spec', () => {

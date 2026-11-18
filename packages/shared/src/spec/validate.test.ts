@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { HUD_PARTS } from './hud.ts';
 import type { VideoSpecInput } from './shape.ts';
 import { validSpec } from './test-fixtures.ts';
 import {
@@ -50,7 +49,11 @@ describe('validateVideoSpec: valid specs', () => {
     expect(second?.patterns).toEqual([]);
     expect(third?.transitionIn).toBe('cut');
     expect(result.spec.story.beats[1]?.factIds).toEqual([]);
-    expect(Object.values(result.spec.hud)).toEqual(HUD_PARTS.map(() => true));
+    expect(result.spec.hud).toMatchObject({
+      topBar: true,
+      chapterHeader: 'auto',
+      stepTracker: 'auto',
+    });
   });
 
   it('keeps HUD toggles that are set and defaults the rest to on', () => {

@@ -117,6 +117,11 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       to TS 7 once typescript-eslint supports it.
 - [ ] **Tooling — vitest.** Pinned exactly to `5.1.0` because 5.1.1 was published 2026-11-18 and
       is younger than pnpm's `minimumReleaseAge`. Bump to `^5.1.1` after the gate passes.
+- [ ] **P1C.4 — Chapter display device ids.** `resolveHud` (`packages/shared/src/spec/hud.ts`)
+      reads `story.devices` for `question_chapters` (chapter header only) and `roadmap` (step
+      tracker only), exported as `CHAPTER_DISPLAY_DEVICES`. Use these ids for the
+      "question-driven chapters" and "roadmap of steps" devices in the device catalogue (or move
+      the constants into it).
 - [ ] **P1C.5 — Hero metric shape in the Director.** `story.heroMetric` is now
       `{ label, value, storyClock? }` (pinned pill text, e.g. "iPhone 17" / "3.5 min"), with
       `storyClock: { from, to, startValue, endValue, keyframes[{ beatId, value }] }` in story-time
