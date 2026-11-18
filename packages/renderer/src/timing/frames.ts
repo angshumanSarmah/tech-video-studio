@@ -51,7 +51,12 @@ export function anchorToFrame(
   return sec === undefined ? undefined : secToFrame(sec, fps);
 }
 
-export type FramedEvent = { action: EventAction; targets: string[]; frame: number };
+export type FramedEvent = {
+  action: EventAction;
+  targets: string[];
+  frame: number;
+  params?: Record<string, unknown>;
+};
 
 /**
  * A beat's events with their global frames, in frame order. Recomputed from word timings; the
@@ -66,7 +71,9 @@ export function resolveEventFrames(
   return scene.events
     .flatMap((event) => {
       const frame = anchorToFrame(event.at, beat, narration, fps);
-      return frame === undefined ? [] : [{ action: event.action, targets: event.targets, frame }];
+      if (frame === undefined) return [];
+      const { action, targets, params } = event;
+      return [params ? { action, targets, frame, params } : { action, targets, frame }];
     })
     .sort((a, b) => a.frame - b.frame);
 }

@@ -27,4 +27,10 @@ describe('theme registry', () => {
     const broken = { ...blueprintDark, colours: { ...blueprintDark.colours, background: 'navy' } };
     expect(() => buildThemeRegistry([broken])).toThrow();
   });
+
+  it('rejects a number locale the runtime cannot format', () => {
+    expect(() => buildThemeRegistry([{ ...blueprintDark, numberLocale: 'not a locale' }])).toThrow(
+      /number locale/,
+    );
+  });
 });

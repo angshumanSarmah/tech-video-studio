@@ -7,3 +7,4 @@ export { HEADLINE_COLOURS } from './hud/semantic.ts';
 export { REQUIRED_CODE_POINTS, REQUIRED_SYMBOLS } from './fonts/glyphs.ts';
 export type { BeatFromSpecProps, SeriesProps, VideoFromSpecProps } from './compositions/props.ts';
 export { parseRenderableSpec } from './compositions/metadata.ts';
+export * from './catalog/index.ts';

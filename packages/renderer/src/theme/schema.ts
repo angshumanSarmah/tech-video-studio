@@ -22,6 +22,7 @@ export type FontRole = (typeof FONT_ROLES)[number];
 
 export const TEXT_STYLES = [
   'headline',
+  'metric',
   'title',
   'chapter',
   'body',
@@ -88,12 +89,24 @@ const PlatformZonesSchema = z.object(
 const scale = <K extends string>(keys: readonly [K, ...K[]]) =>
   z.object(Object.fromEntries(keys.map((k) => [k, PxSchema])) as Record<K, typeof PxSchema>);
 
+function isNumberLocale(tag: string): boolean {
+  try {
+    return Intl.NumberFormat.supportedLocalesOf([tag]).length > 0;
+  } catch {
+    return false;
+  }
+}
+
 export const ThemeSchema = z
   .object({
     id: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
     name: z.string().min(1),
     description: z.string().min(1),
     canvas: z.object({ width: z.number().int().positive(), height: z.number().int().positive() }),
+    /** BCP 47 locale for numbers on screen (counters, stats), e.g. `en-IN` groups as 1,00,000. */
+    numberLocale: z
+      .string()
+      .refine((tag) => isNumberLocale(tag), { message: 'Unsupported number locale.' }),
     colours: z.object({
       background: HexColourSchema,
       /** Edge colour of the radial vignette over the background. */

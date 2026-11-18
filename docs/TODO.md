@@ -44,12 +44,36 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
   - Before rendering, check that `audioSrc` loads (e.g. a `HEAD`/range request that returns an
     audio content type) and fail the render with a clear error if it does not. A spec with
     timing must never render silently; `audioSrc: null` is only for previews before TTS.
-- [ ] **P1A.5 / P1B.3 — Delete the Dev\* layers.** `src/dev/` in the renderer is temporary
-      (`DevHud` is gone since P1A.4). P1A.5 replaces `DevBeatPreview` with registry-driven
-      primitives and deletes it; `src/dev/dev-layers.test.ts` fails once
-      `src/primitives/registry.ts` exists and anything outside `src/dev` still uses it (keep the
-      registry at that path, or update the test). P1B.3 replaces `DevSubtitles`; delete `src/dev/`
-      with the last of them.
+- [ ] **P1B.3 — Delete `src/dev/`.** `DevSubtitles` is the last temporary layer in the renderer.
+      P1B.3 replaces it and deletes `src/dev/`; `src/dev/dev-layers.test.ts` fails once
+      `src/subtitles/` exists and anything outside `src/dev` still uses it (keep the subtitle
+      layer at that path, or update the test).
+- [ ] **P1C.7 / P1D — Wire registry checks.** `withRegistryChecks` (from
+      `@explainer-studio/renderer/catalog`) is not called anywhere yet. The Curator must run it on
+      Generator output (its errors feed the repair loop like any other), and scene-gate saves must
+      run it too, so a spec cannot pass a gate with unknown primitives, bad props or unsupported
+      actions.
+- [ ] **P1A.12 — Final renders refuse registry errors.** Studio and drafts draw unknown ids and
+      invalid props as red error markers (`src/scene/BeatScene.tsx`). A final render must refuse
+      any spec that fails `withRegistryChecks(validateRenderableVideoSpec(spec), spec)` and report
+      the structured errors to the run, so a marker can never reach an exported MP4.
+- [ ] **P1A.6 — Fixture primitives.** `fixtures/rate-limiter.json` uses `node_card` and the
+      `flood_then_funnel` pattern (shown as error markers until they exist) and `lock` on the tag
+      `reply` (tags don't support `lock`). Once `node_card` exists, change that event so the
+      fixture passes `withRegistryChecks`, and add a test that it does.
+- [ ] **P1A.8 — Pattern anchors.** Word anchors inside pattern `params` are not checked against
+      the beat's narration (`anchor_out_of_range` covers only `events[].at`). Check them with
+      `anchorProblem` in `withRegistryChecks`, using each pattern's declared `anchors`.
+- [ ] **P1A.9 — Size hints.** `sizeHints` estimate text width from per-font average advances
+      (`src/primitives/measure.ts`). If the layout engine needs exact widths, measure glyphs
+      (`@remotion/layout-utils` or the font files) instead. `BeatScene`'s centred wrap is
+      temporary; the layout engine replaces it.
+- [ ] **P1A.10 — Element state.** `elementState` uses linear ramps with an ease-out and fixed
+      durations per action. P1A.10 adds easing presets, group stagger and focus dimming there
+      (components read only `ElementState`, so they need no changes).
+- [ ] **P3.4 — Number locale per channel.** `numberLocale` lives on the theme (`en-IN` in
+      `blueprint-dark`). When channels get their own settings, let a channel override it (passed
+      through composition props) instead of forking a theme.
 - [ ] **P1A.10 — Beat transitions.** P1A.10 owns `transitionIn` (cut, fade, slide, zoom-in,
       zoom-out), semantic zoom, focus dimming and the board camera. Until then beats hard-cut:
       `SpecLayers` tiles beat `<Sequence>`s with no overlap and ignores `transitionIn` and
@@ -73,15 +97,17 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       (`getTheme`, `listThemes`). When a channel or series stores a theme id, validate it against
       the registry (or move the id list into `packages/shared`), and have the studio token
       generator follow the selected theme instead of `DEFAULT_THEME_ID`.
-- [ ] **P1A.5 / P1A.8 / P1A.9 / P1C.4 — Registry and catalogue ids.** The VideoSpec schema only
-      checks these are slugs: `scenes[].elements[].primitive` + `props`,
-      `scenes[].patterns[].pattern` + `params`, `scenes[].layoutMode`, `story.beats[].layoutMode` and
+- [ ] **P1A.9 / P1C.4 — Catalogue ids.** Primitive and pattern ids, props and params are checked
+      by `withRegistryChecks` (P1A.5). The VideoSpec schema still only checks these are slugs:
+      `scenes[].layoutMode`, `story.beats[].layoutMode` and
       `suggestedPatternIds`, `story.devices`, `story.beats[].device`, `story.metaphorWorld`,
       `story.ending.kind`, `story.missingPrimitiveRequests[].fallbackUsed`. Validate each against
       its registry or catalogue (structured errors with JSON paths, like `validateVideoSpec`).
 - [ ] **P1A.8 — Targeting pattern internals.** Events and focus may target a pattern instance id,
       but not the elements a pattern expands into. Decide whether patterns expose named parts
       (e.g. `<instance>.<part>`) and extend the target check in `spec/integrity/scenes.ts`.
+      Internally the scene layer already keys parts as `<instance>/<part>` (`beat-world.ts`);
+      `SpecIdSchema` allows neither `.` nor `/`, so exposing parts needs a target syntax.
 - [ ] **P1B.1 / P1B.2 — Word contract.** Word anchors and `timing.beats[].words` count words with
       `narrationWords()` from `packages/shared`. Map TTS tokens back onto that list so the
       timed word count equals it (enforced by `validateVideoSpec`). Cases the mapping must

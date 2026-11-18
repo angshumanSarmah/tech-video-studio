@@ -1,0 +1,128 @@
+{
+  "primitives": [
+    {
+      "id": "tag",
+      "family": "annotation",
+      "summary": "A boxed monospace label in a semantic colour, like a sticker on the board. It names a thing, a state or a result in two or three words (\"429\", \"CACHE HIT\", \"RATE LIMITED\").",
+      "whenToUse": "Labelling a state, outcome or status code; calling out the key term of the beat; marking a result as ok or problem. `reject` turns it red with a cross.",
+      "whenNotToUse": "Sentences or explanations (the narration and headline carry those); numbers that change (use `counter`); a component or service in a system diagram.",
+      "actions": [
+        "enter",
+        "exit",
+        "highlight",
+        "dim",
+        "pulse",
+        "reject"
+      ],
+      "props": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32,
+            "description": "Short label, shown in uppercase monospace."
+          },
+          "semantic": {
+            "default": "neutral",
+            "description": "Colour meaning: neutral label, focus, ok, problem or concept.",
+            "type": "string",
+            "enum": [
+              "neutral",
+              "focus",
+              "ok",
+              "problem",
+              "concept"
+            ]
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "additionalProperties": false
+      },
+      "example": {
+        "id": "<example-tag-id>",
+        "primitive": "tag",
+        "props": {
+          "text": "<example-label>",
+          "semantic": "problem"
+        }
+      }
+    },
+    {
+      "id": "counter",
+      "family": "metric",
+      "summary": "A big number with an optional unit and caption. It shows `from` until a `count` event, then counts up or down to `value`, so the viewer watches a quantity grow or drain.",
+      "whenToUse": "One quantity that matters to the story: requests per second, tokens left, queue length, latency. Use `count` when the change itself is the point.",
+      "whenNotToUse": "A word or status instead of a quantity (use `tag`); a countdown in time; several numbers at once (one counter per number, and only the ones the story needs).",
+      "actions": [
+        "enter",
+        "exit",
+        "count",
+        "highlight",
+        "dim",
+        "pulse"
+      ],
+      "props": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "number",
+            "description": "The number shown once any count has finished."
+          },
+          "from": {
+            "description": "Shown until a `count` event, which then counts to `value`. Set it whenever you use `count`.",
+            "type": "number"
+          },
+          "unit": {
+            "description": "Short unit after the number.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 16
+          },
+          "label": {
+            "description": "Caption under the number.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+          },
+          "semantic": {
+            "default": "focus",
+            "description": "Colour of the number: neutral, focus, ok, problem or concept.",
+            "type": "string",
+            "enum": [
+              "neutral",
+              "focus",
+              "ok",
+              "problem",
+              "concept"
+            ]
+          },
+          "decimals": {
+            "default": 0,
+            "description": "Digits after the decimal point.",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      "example": {
+        "id": "<example-counter-id>",
+        "primitive": "counter",
+        "props": {
+          "value": 10000,
+          "from": 0,
+          "unit": "<example-unit>",
+          "label": "<example-caption>"
+        }
+      }
+    }
+  ],
+  "patterns": []
+}

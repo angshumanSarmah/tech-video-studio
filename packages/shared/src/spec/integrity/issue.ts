@@ -19,6 +19,7 @@ export const SPEC_ERROR_CODES = [
   'too_many_formula_cards',
   'continues_without_previous',
   'anchor_out_of_range',
+  'unsupported_action',
   'clock_keyframe_order',
   'timing_overlap',
   'timing_word_count',

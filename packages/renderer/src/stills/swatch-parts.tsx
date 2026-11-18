@@ -25,7 +25,7 @@ export function Section({
   children,
 }: Props & { title: string; children: ReactNode }) {
   return (
-    <section style={{ display: 'flex', flexDirection: 'column', gap: theme.space.sm }}>
+    <section style={{ display: 'flex', flexDirection: 'column', gap: theme.space.xs }}>
       <div style={{ ...textCss(theme, 'label'), color: theme.colours.ink.muted }}>{title}</div>
       {children}
     </section>
@@ -153,6 +153,7 @@ const TYPE_SAMPLES: Record<TextStyleName, string> = {
   chapter: '— 2 · Why does it miss?',
   body: 'Reads hit memory, not disk.',
   subtitle: 'Most reads never hit disk',
+  metric: '1,00,000',
   tag: 'p99 · 4 ms',
   label: 'Node · primary',
   hud: 'Step 3/7 · Invalidate',

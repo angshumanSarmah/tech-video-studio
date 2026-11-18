@@ -231,7 +231,8 @@ safe-area overlay to `docs/safe-area/zones.png`.
 - **Themes** live in `src/theme` and are registered by id (`getTheme`, `listThemes`;
   default `blueprint-dark`). Each is validated against `ThemeSchema`. A theme holds colours
   (semantic `neutral`/`focus`/`ok`/`problem`/`concept`), tint and glow rules, grid, fonts, text
-  styles, spacing, radius, stroke widths and safe-area margins. `src/theme` is React-free and
+  styles, spacing, radius, stroke widths, safe-area margins and `numberLocale` (on-screen number
+  grouping; `en-IN` gives 1,00,000). `src/theme` is React-free and
   exported as `@explainer-studio/renderer/theme`, so Node scripts, the layout engine and the
   studio can import it.
 - **Use the helpers, not raw values:** `tintFor`/`semanticTint` (soft fill, border, glow),
@@ -277,9 +278,47 @@ safe-area overlay to `docs/safe-area/zones.png`.
   `resolveHud` resolves from `story.devices` (`question_chapters` → header only, else tracker
   only); an explicit true/false is a user override and wins. Every HUD animation starts at a frame
   resolved from a word or beat-edge anchor (`headline.at`, chapter and beat starts).
-- **`src/dev/` is temporary.** `DevBeatPreview` and `DevSubtitles` are stand-ins until P1A.5
-  (primitives) and P1B.3 (subtitles) replace them. Do not build on them or extend them. `src/dev/dev-layers.test.ts` fails once `src/primitives/registry.ts` exists and a
-  composition still uses `DevBeatPreview`.
+- **Scene layer** (`src/scene`): `beatWorld` (pure) collects a beat's elements, expanded
+  patterns and everything inherited through `continuesPrevious`, each with the events that act on
+  it; `BeatScene` draws them with their registered components. Unknown ids and invalid props are
+  drawn as red, hatched error markers, never as content. Placement is a temporary centred wrap at
+  each element's preferred size until the layout engine (P1A.9).
+- **`src/dev/` is temporary.** `DevSubtitles` is a stand-in until P1B.3 replaces it. Do not build
+  on it or extend it. `src/dev/dev-layers.test.ts` fails once `src/subtitles/` exists and a
+  composition still uses `DevSubtitles`.
+
+### Primitives and patterns
+
+- **Registries:** `src/primitives/registry.ts` (`PRIMITIVE_DEFINITIONS`) and
+  `src/patterns/registry.ts` (`PATTERN_DEFINITIONS`, empty until P1A.8). Catalogues, prompts and
+  validation read only from them. They are React-free and exported, with validation and the
+  catalogue builders, as `@explainer-studio/renderer/catalog` for the worker and server.
+- **A primitive** is `primitives/<id>/definition.ts` (`definePrimitive`: id, family, strict Zod
+  props schema, supported actions, `sizeHints(props, theme)`, LLM description with summary, when
+  to use and when not to, one example) plus its component, wired in `primitives/components.ts`
+  (typecheck fails when a registered id has no component). Building the registry rejects
+  duplicate or non-slug ids and examples that fail their schema.
+- **Descriptions name only registered ids**, in backticks (a test checks that every backticked
+  word is a registered primitive, an action or a prop). Example strings use `<example-…>`
+  placeholders.
+- **Components receive only `{ theme, props, box, state }`**, never events or anchors. `state`
+  comes from `elementState(events, frame, fps)` (`primitives/element-state.ts`): `presence`,
+  `emphasis`, `dimmed` and per-action `actions[action]` progress. It is the single place events
+  become state; P1A.10 upgrades it (easing, focus, stagger) without touching components.
+- **A pattern** (`definePattern`) has the same shape minus component and size hints, plus
+  `anchors` (the narration moments it needs; `params` takes an `EventAnchor` for each) and
+  `expand(params) → { elements, events }`. Building the registry expands each example and rejects
+  unknown primitives, bad props, duplicate part ids and dangling targets. The scene layer namespaces
+  parts as `<instance>/<part>`; spec events on the instance act on every part.
+- **Validation:** `withRegistryChecks(validateVideoSpec(input), input)` (or with
+  `validateRenderableVideoSpec`) adds registry errors in the same `{ path, code, message }` shape:
+  `unknown_reference` for unknown primitive/pattern ids (the message lists valid ids), Zod issue
+  codes for props/params with paths into them, and `unsupported_action` for an event action a
+  target (including one inherited through `continuesPrevious`) does not support.
+- **Catalogue:** `pnpm --filter @explainer-studio/renderer gen:catalogue` writes
+  `docs/catalogue.md` and `docs/catalogue.json` (LLM-facing fields only, props as input-side JSON
+  Schema, no size hints). A test fails when either is stale. Prompts build theirs at runtime with
+  `buildCatalogue()`.
 
 ## Code conventions
 

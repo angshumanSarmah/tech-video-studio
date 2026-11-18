@@ -41,7 +41,7 @@ export function ThemeSwatchBoard({ themeId, accents }: ThemeSwatchBoardProps) {
           padding: theme.space.xl,
           display: 'flex',
           flexDirection: 'column',
-          gap: theme.space.md,
+          gap: theme.space.sm,
           color: theme.colours.ink.primary,
         }}
       >

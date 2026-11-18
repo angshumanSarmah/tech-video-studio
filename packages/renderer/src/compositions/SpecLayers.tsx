@@ -2,11 +2,11 @@ import { effectiveTiming } from '@explainer-studio/shared';
 import { useMemo } from 'react';
 import { AbsoluteFill, Sequence, useVideoConfig } from 'remotion';
 import { Background } from '../background/Background.tsx';
-import { DevBeatPreview } from '../dev/DevBeatPreview.tsx';
 import { DevSubtitles } from '../dev/DevSubtitles.tsx';
 import { loadThemeFonts } from '../fonts/load-theme-fonts.ts';
 import { Hud } from '../hud/Hud.tsx';
 import { NarrationAudio } from '../layers/NarrationAudio.tsx';
+import { BeatScene } from '../scene/BeatScene.tsx';
 import { DEFAULT_THEME_ID, getTheme, resolveAccent } from '../theme/index.ts';
 import { beatFrameSpans } from '../timing/frames.ts';
 import type { VideoFromSpecProps } from './props.ts';
@@ -38,7 +38,7 @@ export function SpecLayers({ spec, series, audioSrc, channelHandle, onlyBeatId }
           from={span.from}
           durationInFrames={span.durationInFrames}
         >
-          <DevBeatPreview
+          <BeatScene
             theme={theme}
             spec={spec}
             timing={timing}

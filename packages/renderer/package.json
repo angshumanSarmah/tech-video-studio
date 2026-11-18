@@ -7,6 +7,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./theme": "./src/theme/index.ts",
+    "./catalog": "./src/catalog/index.ts",
     "./package.json": "./package.json"
   },
   "scripts": {
@@ -14,6 +15,7 @@
     "still:theme": "remotion still src/entry.ts ThemeSwatchBoard ../../docs/themes/blueprint-dark.png",
     "still:safe-area": "remotion still src/entry.ts SafeAreaCalibration ../../docs/safe-area/zones.png",
     "calibrate:safe-area": "tsx scripts/calibrate-safe-area.ts",
+    "gen:catalogue": "tsx scripts/generate-catalogue.ts",
     "typecheck": "tsc --build",
     "test": "vitest run",
     "fonts:subset": "tsx scripts/subset-fonts.ts"

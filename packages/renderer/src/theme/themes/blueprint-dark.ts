@@ -8,6 +8,7 @@ export const blueprintDark = {
   name: 'Blueprint Dark',
   description: 'Deep navy blueprint board, drifting grid, glowing semantic colours. 1080×1920.',
   canvas: { width: 1080, height: 1920 },
+  numberLocale: 'en-IN',
   colours: {
     background: '#060c1d',
     vignette: '#02050f',
@@ -74,6 +75,15 @@ export const blueprintDark = {
       letterSpacing: 0.01,
       lineHeight: 1.05,
       uppercase: true,
+    },
+    // Big numbers: counter and stat values.
+    metric: {
+      font: 'display',
+      size: 132,
+      weight: 700,
+      letterSpacing: 0,
+      lineHeight: 1,
+      uppercase: false,
     },
     title: {
       font: 'display',
