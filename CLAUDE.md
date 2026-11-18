@@ -327,7 +327,8 @@ primitive to `docs/primitives/<id>.png`.
   `timer_ring` runs for narration time: `count` starts it, and its speed is derived, never
   authored (`durationSec / runSec.count`, at least 1), so it reaches 00:00 exactly on the
   `reject` word (expiry, red flash) or, without one, at the element's `exit` or the end of the
-  beat, where it holds 00:00. A "⏩ N×" tag shows when it runs faster than real time. Every
+  beat, where it holds 00:00. A "⏩ N×" tag shows from `count` on (fading in like an `enter`) when it runs faster
+  than real time. Every
   visible change comes from an event.
 - **`runSec[action]`** (`actionRunSec`) is how long an occurrence runs, from resolved event
   times: until the element's next `reject`; without one, until its next `exit` or the end of the

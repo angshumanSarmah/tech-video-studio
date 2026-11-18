@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { formatClock, speedLabel, timerSpeed, timerView } from './timer.ts';
+import { ACTION_DURATION_SEC, easeOut } from '../element-state.ts';
+import { formatClock, speedLabel, speedTagOpacity, timerSpeed, timerView } from './timer.ts';
 
 const base = {
   durationSec: 600,
@@ -35,6 +36,7 @@ describe('timerView', () => {
       expired: false,
       flash: 0,
       speed: 1,
+      tagOpacity: 0,
     });
     expect(timerView({ ...base, countRunSec: 10, countElapsed: 0 }).shownSec).toBe(600);
   });
@@ -65,6 +67,35 @@ describe('timerView', () => {
     const done = timerView({ ...running, rejectProgress: 1 });
     expect(done.expired).toBe(true);
     expect(done.flash).toBeCloseTo(0);
+  });
+});
+
+describe('speedTagOpacity', () => {
+  const enterSec = ACTION_DURATION_SEC.enter;
+
+  it('is hidden without a count, while the count is ahead, and on its first frame', () => {
+    expect(speedTagOpacity(undefined)).toBe(0);
+    expect(speedTagOpacity(0)).toBe(0);
+    expect(timerView({ ...base, countRunSec: 10, countElapsed: 0 }).tagOpacity).toBe(0);
+  });
+
+  it('fades in from the count with the enter easing, then holds', () => {
+    expect(speedTagOpacity(enterSec / 2)).toBeCloseTo(easeOut(0.5));
+    expect(speedTagOpacity(enterSec)).toBe(1);
+    expect(timerView({ ...base, countRunSec: 10, countElapsed: 5 }).tagOpacity).toBe(1);
+  });
+
+  it('stays shown after the expiry', () => {
+    const expired = timerView({ ...base, countRunSec: 10, countElapsed: 10, rejectProgress: 1 });
+    expect(expired.tagOpacity).toBe(1);
+  });
+});
+
+describe('easeOut', () => {
+  it('is the ease-out cubic actions use, clamped to 0..1', () => {
+    expect(easeOut(-1)).toBe(0);
+    expect(easeOut(0.5)).toBeCloseTo(0.875);
+    expect(easeOut(2)).toBe(1);
   });
 });
 

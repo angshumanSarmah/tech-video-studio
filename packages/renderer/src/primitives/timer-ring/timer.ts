@@ -1,3 +1,5 @@
+import { ACTION_DURATION_SEC, easeOut } from '../element-state.ts';
+
 /**
  * Pure timer logic. Every visible change comes from an anchored event: `count` starts the clock
  * and `reject` expires it. Reaching 00:00 on its own just holds there, in its normal colour.
@@ -27,6 +29,8 @@ export type TimerView = {
   flash: number;
   /** Clock seconds per real second; 1 = real time. */
   speed: number;
+  /** 0..1 opacity of the speed tag: 0 until `count`, then fades in like an `enter`. */
+  tagOpacity: number;
 };
 
 /** Clock seconds per real second: `durationSec` over the run, never below 1. */
@@ -38,9 +42,10 @@ export function timerSpeed(durationSec: number, runSec: number | undefined): num
 export function timerView(input: TimerInput): TimerView {
   const { durationSec, countElapsed, countRunSec, rejectProgress = 0 } = input;
   const speed = timerSpeed(durationSec, countRunSec);
+  const tagOpacity = speedTagOpacity(countElapsed);
   if (rejectProgress > 0) {
     const flash = Math.sin(Math.PI * rejectProgress);
-    return { shownSec: 0, fraction: 0, expired: true, flash, speed };
+    return { shownSec: 0, fraction: 0, expired: true, flash, speed, tagOpacity };
   }
   const remaining = Math.max(0, durationSec - (countElapsed ?? 0) * speed);
   return {
@@ -49,7 +54,18 @@ export function timerView(input: TimerInput): TimerView {
     expired: false,
     flash: 0,
     speed,
+    tagOpacity,
   };
+}
+
+/**
+ * The speed tag appears only once the clock runs: 0 before `count` (and at its first frame), then
+ * eased in over an `enter`'s duration. `countElapsed` is 0 while `count` is ahead and undefined
+ * without one.
+ */
+export function speedTagOpacity(countElapsed: number | undefined): number {
+  if (countElapsed === undefined) return 0;
+  return easeOut(countElapsed / ACTION_DURATION_SEC.enter);
 }
 
 /**

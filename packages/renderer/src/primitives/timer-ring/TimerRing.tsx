@@ -7,14 +7,14 @@ import { formatClock, speedLabel, timerView } from './timer.ts';
 /** Peak opacity of the expiry flash over the ring's face. */
 const FLASH_ALPHA = 0.35;
 
-type SpeedTagProps = { theme: Theme; label: string | undefined; top: number };
+type SpeedTagProps = { theme: Theme; label: string | undefined; top: number; opacity: number };
 
 /**
- * "⏩ 60×" under the digits while the clock runs faster than real time. The fast-forward mark is
- * drawn as SVG: no bundled font has U+23E9.
+ * "⏩ 60×" under the digits once the clock runs faster than real time (from `count` on). The
+ * fast-forward mark is drawn as SVG: no bundled font has U+23E9.
  */
-function SpeedTag({ theme, label, top }: SpeedTagProps) {
-  if (!label) return null;
+function SpeedTag({ theme, label, top, opacity }: SpeedTagProps) {
+  if (!label || opacity <= 0) return null;
   const size = theme.text.hud.size;
   return (
     <div
@@ -30,6 +30,7 @@ function SpeedTag({ theme, label, top }: SpeedTagProps) {
         gap: theme.space.xs / 2,
         color: theme.colours.ink.muted,
         whiteSpace: 'nowrap',
+        opacity,
       }}
     >
       <svg width={size} height={size * 0.7} viewBox="0 0 20 14" fill="currentColor">
@@ -120,6 +121,7 @@ export function TimerRing({ theme, props, box, state }: PrimitiveComponentProps<
           theme={theme}
           label={speedLabel(view.speed)}
           top={c + timerDigitsSize(theme) * 0.6}
+          opacity={view.tagOpacity}
         />
       </div>
       {props.label ? (

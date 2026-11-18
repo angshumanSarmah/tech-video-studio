@@ -113,8 +113,13 @@ function runPerAction(all: readonly ElementEvent[], started: readonly ElementEve
 /** Eased 0..1 progress of one event at `frame`. */
 export function actionProgress(event: ElementEvent, frame: number, fps: number): number {
   const frames = Math.max(1, Math.round(ACTION_DURATION_SEC[event.action] * fps));
-  const t = Math.min(1, Math.max(0, (frame - event.frame) / frames));
-  return 1 - (1 - t) ** 3;
+  return easeOut((frame - event.frame) / frames);
+}
+
+/** The easing every action uses (ease-out cubic), for linear progress `t`, clamped to 0..1. */
+export function easeOut(t: number): number {
+  const clamped = Math.min(1, Math.max(0, t));
+  return 1 - (1 - clamped) ** 3;
 }
 
 type Progress = (e: ElementEvent) => number;
