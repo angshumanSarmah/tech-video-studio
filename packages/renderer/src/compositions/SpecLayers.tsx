@@ -3,9 +3,9 @@ import { useMemo } from 'react';
 import { AbsoluteFill, Sequence, useVideoConfig } from 'remotion';
 import { Background } from '../background/Background.tsx';
 import { DevBeatPreview } from '../dev/DevBeatPreview.tsx';
-import { DevHud } from '../dev/DevHud.tsx';
 import { DevSubtitles } from '../dev/DevSubtitles.tsx';
 import { loadThemeFonts } from '../fonts/load-theme-fonts.ts';
+import { Hud } from '../hud/Hud.tsx';
 import { NarrationAudio } from '../layers/NarrationAudio.tsx';
 import { DEFAULT_THEME_ID, getTheme, resolveAccent } from '../theme/index.ts';
 import { beatFrameSpans } from '../timing/frames.ts';
@@ -20,7 +20,7 @@ type Props = Omit<VideoFromSpecProps, 'fps'> & {
  * Every layer of a spec on the global timeline (frame 0 = start of the narration track):
  * background, one scene per beat in a `<Sequence>`, HUD, subtitles, audio.
  */
-export function SpecLayers({ spec, series, audioSrc, onlyBeatId }: Props) {
+export function SpecLayers({ spec, series, audioSrc, channelHandle, onlyBeatId }: Props) {
   const theme = getTheme(DEFAULT_THEME_ID);
   loadThemeFonts(theme);
   const { fps } = useVideoConfig();
@@ -47,12 +47,15 @@ export function SpecLayers({ spec, series, audioSrc, onlyBeatId }: Props) {
           />
         </Sequence>
       ))}
-      <DevHud
+      <Hud
         theme={theme}
         spec={spec}
+        timing={timing}
+        spans={spans}
+        fps={fps}
         seriesLabel={series.label}
         accent={accent}
-        estimated={timing.estimated}
+        channelHandle={channelHandle}
       />
       <DevSubtitles theme={theme} spec={spec} timing={timing} spans={spans} accent={accent} />
       {audioSrc ? <NarrationAudio src={audioSrc} /> : null}

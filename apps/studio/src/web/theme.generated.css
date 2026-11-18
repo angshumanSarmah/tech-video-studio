@@ -6,7 +6,7 @@
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src: url('../../../../packages/renderer/public/fonts/jetbrains-mono/jetbrains-mono-latin-500-normal.woff2') format('woff2');
+  src: url('../../../../packages/renderer/public/fonts/jetbrains-mono/jetbrains-mono-500.woff2') format('woff2');
 }
 
 @font-face {
@@ -14,7 +14,31 @@
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url('../../../../packages/renderer/public/fonts/jetbrains-mono/jetbrains-mono-latin-700-normal.woff2') format('woff2');
+  src: url('../../../../packages/renderer/public/fonts/jetbrains-mono/jetbrains-mono-700.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../../../../packages/renderer/public/fonts/inter/inter-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../../../../packages/renderer/public/fonts/inter/inter-600.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../../../../packages/renderer/public/fonts/inter/inter-700.woff2') format('woff2');
 }
 
 @theme {
@@ -31,5 +55,5 @@
   --color-ok: #3ddc97;
   --color-problem: #ff5c6c;
   --color-concept: #4f8cff;
-  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', 'Cascadia Mono', Menlo, Consolas, monospace;
+  --font-mono: 'JetBrains Mono', 'Inter', ui-monospace, 'SFMono-Regular', 'Cascadia Mono', Menlo, Consolas, monospace;
 }

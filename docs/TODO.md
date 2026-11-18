@@ -40,21 +40,26 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
   - Remotion renders in a browser, so `audioSrc` must be an http(s) URL or a `staticFile()`
     path, never `timing.audioFile` (a path relative to the data dir). Serve the run's audio via
     the studio server (or copy it into Remotion's public dir) and pass that URL.
+  - Pass `channelHandle` from the run's channel (`channels.handle`; null hides it).
   - Before rendering, check that `audioSrc` loads (e.g. a `HEAD`/range request that returns an
     audio content type) and fail the render with a clear error if it does not. A spec with
     timing must never render silently; `audioSrc: null` is only for previews before TTS.
-- [ ] **P1A.4 / P1A.5 / P1B.3 — Delete the Dev\* layers.** `src/dev/` in the renderer is
-      temporary. P1A.5 replaces `DevBeatPreview` with registry-driven primitives and deletes it;
-      `src/dev/dev-layers.test.ts` fails once `src/primitives/registry.ts` exists and anything
-      outside `src/dev` still uses it (keep the registry at that path, or update the test). P1A.4
-      replaces `DevHud`, P1B.3 replaces `DevSubtitles`; delete `src/dev/` with the last of them.
+- [ ] **P1A.5 / P1B.3 — Delete the Dev\* layers.** `src/dev/` in the renderer is temporary
+      (`DevHud` is gone since P1A.4). P1A.5 replaces `DevBeatPreview` with registry-driven
+      primitives and deletes it; `src/dev/dev-layers.test.ts` fails once
+      `src/primitives/registry.ts` exists and anything outside `src/dev` still uses it (keep the
+      registry at that path, or update the test). P1B.3 replaces `DevSubtitles`; delete `src/dev/`
+      with the last of them.
 - [ ] **P1B.2 — Cache event times in seconds.** P1B.2's prompt says "resolve every event anchor to
       a frame at 30 fps". Store seconds in `timing.events[].atSec` instead (use `resolveAnchorSec`
       from `packages/shared`), because drafts render at 15 fps. The renderer recomputes frames
       from word timings and never reads the cache.
 - [ ] **P1A.9 — Safe areas.** `safeAreas(theme)` returns the centred stage the layout engine
       fills, plus `avoidZones` (platform action buttons clipped to the stage). Keep text and key
-      elements out of avoid zones; background decoration may pass under.
+      elements out of avoid zones; background decoration may pass under. The layout engine picks
+      the stage per beat with `stageForBeat(areas, spec, beatId)`: `stageWithHeadline` (760 px
+      tall in `blueprint-dark`) when the beat shows a headline and `hud.headline` is on, else the
+      full `stage` (900 px).
 - [ ] **Calibrate safe-area zones.** The Shorts/Reels exclusion zones in `blueprint-dark` are
       starting values. Save a full-screen screenshot at
       `packages/renderer/public/calibration/<platform>.png` (a non-9:16 one is centre-cropped), run
@@ -67,8 +72,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       (`getTheme`, `listThemes`). When a channel or series stores a theme id, validate it against
       the registry (or move the id list into `packages/shared`), and have the studio token
       generator follow the selected theme instead of `DEFAULT_THEME_ID`.
-- [ ] **P1A.4 — HUD toggles.** Add per-video HUD element toggles to the spec. Headline colour
-      comes from `script[].headline.semantic`.
 - [ ] **P1A.5 / P1A.8 / P1A.9 / P1C.4 — Registry and catalogue ids.** The VideoSpec schema only
       checks these are slugs: `scenes[].elements[].primitive` + `props`,
       `scenes[].patterns[].pattern` + `params`, `scenes[].layoutMode`, `story.beats[].layoutMode` and
@@ -114,3 +117,17 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       to TS 7 once typescript-eslint supports it.
 - [ ] **Tooling — vitest.** Pinned exactly to `5.1.0` because 5.1.1 was published 2026-11-18 and
       is younger than pnpm's `minimumReleaseAge`. Bump to `^5.1.1` after the gate passes.
+- [ ] **P1C.5 — Hero metric shape in the Director.** `story.heroMetric` is now
+      `{ label, value, storyClock? }` (pinned pill text, e.g. "iPhone 17" / "3.5 min"), with
+      `storyClock: { from, to, startValue, endValue, keyframes[{ beatId, value }] }` in story-time
+      seconds. The design doc's P1A.1 still describes "label + start/end value + unit"; update it
+      and the Director's output shape and DO rules to match.
+- [ ] **P1C.5 / P1C.6 — HUD text length.** HUD rows are one line and truncate with an ellipsis.
+      With `blueprint-dark`, roughly 30 characters of chapter question fit beside the story clock,
+      and the series label + topic share the top bar with the handle. Add soft length limits to
+      the Director/Scriptwriter rules (or a deterministic check), or fit text by measuring it
+      (`@remotion/layout-utils`) if limits prove too tight.
+- [ ] **P1D — HUD toggles in the editor.** `spec.hud` (topBar, chapterHeader, stepTracker,
+      heroMetric, storyClock, headline) is user-set and not in the LLM JSON schemas. Expose the
+      toggles at the scene gate (form view), and show "estimated timing" in the preview UI (the
+      temporary in-frame badge went away with `DevHud`).

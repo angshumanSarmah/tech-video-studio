@@ -85,7 +85,8 @@ function checkAnchors(scene: BeatScene, i: number, words: string[] | undefined):
   });
 }
 
-function anchorProblem(at: EventAnchor, words: readonly string[]): string | undefined {
+/** Why a word anchor matches no word in `words`; undefined when it does (or is a beat anchor). */
+export function anchorProblem(at: EventAnchor, words: readonly string[]): string | undefined {
   if (at.type === 'word' && at.index >= words.length) {
     return `Word index ${at.index} is past the end of the narration (${words.length} words).`;
   }

@@ -23,10 +23,12 @@ export type FontRole = (typeof FONT_ROLES)[number];
 export const TEXT_STYLES = [
   'headline',
   'title',
+  'chapter',
   'body',
   'subtitle',
   'tag',
   'label',
+  'hud',
   'footnote',
 ] as const;
 export type TextStyleName = (typeof TEXT_STYLES)[number];
@@ -50,6 +52,11 @@ const FontSchema = z.object({
   /** CSS fallback stack appended after `family`. */
   fallback: z.string().min(1),
   files: z.array(FontFileSchema).min(1),
+  /**
+   * Other roles' bundled fonts to try before `fallback`, for glyphs this font lacks (e.g. arrows).
+   * `font-coverage.test.ts` checks each role's stack covers `REQUIRED_CODE_POINTS`.
+   */
+  bundledFallbacks: z.array(z.enum(FONT_ROLES)).default([]),
 });
 
 const TextStyleSchema = z.object({
@@ -153,11 +160,22 @@ export const ThemeSchema = z
       gutter: PxSchema,
       /** Height of the top HUD band (top bar, chapter header, step tracker, hero metric). */
       hudBand: z.number().positive(),
+      /** Height of the headline band at the top of the stage, on beats that show a headline. */
+      headlineBand: z.number().positive(),
       /** Height of the bottom subtitle band. */
       subtitleBand: z.number().positive(),
     }),
   })
   .superRefine((theme, ctx) => {
+    for (const role of FONT_ROLES) {
+      if (theme.fonts[role].bundledFallbacks.includes(role)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['fonts', role, 'bundledFallbacks'],
+          message: `a font cannot fall back to its own role "${role}"`,
+        });
+      }
+    }
     const { width, height } = theme.canvas;
     for (const platform of PLATFORMS) {
       for (const zone of PLATFORM_ZONES) {

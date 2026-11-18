@@ -2,6 +2,7 @@ import type { EffectiveTiming, RenderableVideoSpec } from '@explainer-studio/sha
 import { useMemo } from 'react';
 import { useCurrentFrame, useVideoConfig } from 'remotion';
 import { rectCss } from '../layers/rect-css.ts';
+import { stageForBeat } from '../hud/hud-state.ts';
 import { safeAreas, semanticTint, textCss, type Theme } from '../theme/index.ts';
 import { resolveEventFrames } from '../timing/frames.ts';
 import { devTargets, devTargetState, type DevTarget } from './dev-state.ts';
@@ -26,7 +27,8 @@ export function DevBeatPreview({ theme, spec, timing, beatId, beatFrom }: Props)
   const frame = useCurrentFrame() + beatFrom;
   const { fps } = useVideoConfig();
   const beat = useMemo(() => beatParts(spec, timing, beatId, fps), [spec, timing, beatId, fps]);
-  const { stage } = useMemo(() => safeAreas(theme), [theme]);
+  const areas = useMemo(() => safeAreas(theme), [theme]);
+  const stage = stageForBeat(areas, spec, beatId);
   if (!beat) return null;
   return (
     <div

@@ -16,6 +16,7 @@ export function checkStory({ story }: VideoSpec): SpecIssue[] {
     ...checkChapterRefs(story),
     ...checkBeatRefs(story),
     ...checkPlantedQuestion(story),
+    ...checkClockKeyframes(story),
   ];
 }
 
@@ -79,4 +80,32 @@ function checkPlantedQuestion(story: Story): SpecIssue[] {
       message: `Payoff beat "${question.payoffBeatId}" must come after "${question.beatId}".`,
     },
   ];
+}
+
+/** Keyframes name known beats, in story order, after the first beat (which is `startValue`). */
+function checkClockKeyframes(story: Story): SpecIssue[] {
+  const keyframes = story.heroMetric?.storyClock?.keyframes ?? [];
+  const path = (k: number) => ['story', 'heroMetric', 'storyClock', 'keyframes', k, 'beatId'];
+  const beatIndex = new Map(story.beats.map((b, i) => [b.id, i]));
+  const issues = findDuplicateIds(
+    keyframes.map((k) => k.beatId),
+    path,
+  );
+  let last = 0;
+  keyframes.forEach((keyframe, k) => {
+    const index = beatIndex.get(keyframe.beatId);
+    if (index === undefined) {
+      issues.push(unknownReference(path(k), 'beat', keyframe.beatId));
+      return;
+    }
+    const message =
+      index === 0
+        ? `Beat "${keyframe.beatId}" is the first beat; its clock value is startValue.`
+        : index <= last
+          ? `Keyframe for beat "${keyframe.beatId}" is out of story order.`
+          : undefined;
+    if (message) issues.push({ path: path(k), code: 'clock_keyframe_order', message });
+    last = Math.max(last, index);
+  });
+  return issues;
 }

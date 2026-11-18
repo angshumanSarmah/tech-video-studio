@@ -8,6 +8,7 @@ const props: VideoFromSpecProps = {
   spec: rateLimiterSpec,
   series: fixtureSeries,
   audioSrc: null,
+  channelHandle: null,
   fps: 30,
 };
 

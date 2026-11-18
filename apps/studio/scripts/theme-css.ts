@@ -6,6 +6,7 @@ import {
   fontStack,
   getTheme,
   withAlpha,
+  type FontRole,
   type Theme,
 } from '@explainer-studio/renderer/theme';
 
@@ -39,8 +40,14 @@ function rendererPublicDir(): string {
   return join(dirname(require.resolve('@explainer-studio/renderer/package.json')), 'public');
 }
 
+/** Faces for the mono font and its bundled fallbacks, so `--font-mono` resolves like the video. */
 function fontFaces(theme: Theme, fontHref: (path: string) => string): string[] {
-  const { family, files } = theme.fonts.mono;
+  const roles = [...new Set(['mono' as const, ...theme.fonts.mono.bundledFallbacks])];
+  return roles.flatMap((role) => roleFontFaces(theme, role, fontHref));
+}
+
+function roleFontFaces(theme: Theme, role: FontRole, fontHref: (path: string) => string): string[] {
+  const { family, files } = theme.fonts[role];
   return files.map((file) =>
     [
       '@font-face {',

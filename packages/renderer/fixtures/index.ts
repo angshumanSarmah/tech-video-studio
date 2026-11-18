@@ -10,3 +10,6 @@ export const rateLimiterSpec = parseRenderableSpec(rateLimiterJson);
 
 /** Example series data; real values come from the DB `series` row at render time. */
 export const fixtureSeries: SeriesProps = { label: 'System Design', accentColour: '#4F8CFF' };
+
+/** Example channel handle; real values come from the DB `channels.handle` at render time. */
+export const fixtureChannelHandle = '@explainer.studio';

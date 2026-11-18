@@ -10,9 +10,11 @@ export type TextCss = {
   textTransform: 'uppercase' | 'none';
 };
 
+/** The role's family, then its bundled fallbacks' families, then the system fallback. */
 export function fontStack(theme: Theme, role: FontRole): string {
-  const { family, fallback } = theme.fonts[role];
-  return `'${family}', ${fallback}`;
+  const { family, fallback, bundledFallbacks } = theme.fonts[role];
+  const bundled = bundledFallbacks.map((r) => `'${theme.fonts[r].family}', `).join('');
+  return `'${family}', ${bundled}${fallback}`;
 }
 
 export function textCss(theme: Theme, name: TextStyleName): TextCss {

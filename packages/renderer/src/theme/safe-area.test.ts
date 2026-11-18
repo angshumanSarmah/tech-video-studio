@@ -41,6 +41,22 @@ describe.each(listThemes().map((t) => [t.id, t] as const))('safeAreas(%s)', (_id
     expect(subtitleBand.height).toBe(theme.safeArea.subtitleBand);
   });
 
+  it('reserves the headline band at the top of the stage, leaving stageWithHeadline below', () => {
+    const { headlineBand, stageWithHeadline } = areas;
+    expect(headlineBand.y).toBe(stage.y);
+    expect(headlineBand.height).toBe(theme.safeArea.headlineBand);
+    expect(centreX(headlineBand)).toBe(theme.canvas.width / 2);
+    expect(contains(stage, headlineBand)).toBe(true);
+    for (const zone of areas.exclusionZones) {
+      expect(intersect(headlineBand, zone), `headlineBand vs ${zone.id}`).toBeNull();
+    }
+    expect(stageWithHeadline).toEqual({
+      ...stage,
+      y: bottom(headlineBand),
+      height: bottom(stage) - bottom(headlineBand),
+    });
+  });
+
   it('places the bands against the union top bar and bottom info', () => {
     const tops = areas.exclusionZones.filter((z) => z.id.endsWith('.topBar'));
     const bottoms = areas.exclusionZones.filter((z) => z.id.endsWith('.bottomInfo'));
@@ -65,6 +81,8 @@ describe('blueprint-dark safe areas', () => {
     // Reels still sets the HUD band's top (topBar 220) and the subtitle band's bottom (1500).
     expect(areas.hudBand).toEqual({ x: 72, y: 220, width: 936, height: 200 });
     expect(areas.stage).toEqual({ x: 72, y: 420, width: 936, height: 900 });
+    expect(areas.headlineBand).toEqual({ x: 72, y: 420, width: 936, height: 140 });
+    expect(areas.stageWithHeadline).toEqual({ x: 72, y: 560, width: 936, height: 760 });
     // Narrowed on both sides to clear the Shorts action buttons (x >= 900) and stay centred.
     expect(areas.subtitleBand).toEqual({ x: 180, y: 1320, width: 720, height: 180 });
     // reels.actions starts above shorts.actions, so neither contains the other.

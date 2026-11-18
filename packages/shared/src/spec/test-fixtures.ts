@@ -13,7 +13,17 @@ export function validSpec(): VideoSpecInput {
     },
     story: {
       devices: ['failure_before_fix', 'planted_question'],
-      heroMetric: { label: 'Requests', startValue: 0, endValue: 10000, unit: 'req/s' },
+      heroMetric: {
+        label: 'Token bucket',
+        value: '10 tokens/s',
+        storyClock: {
+          from: 'Spike',
+          to: 'Stable',
+          startValue: 0,
+          endValue: 180,
+          keyframes: [{ beatId: 'bucket-empty', value: 120 }],
+        },
+      },
       chapters: [
         { id: 'flood', title: 'The flood', question: 'Why did the API fall over?' },
         { id: 'bucket', title: 'Token bucket' },
@@ -47,7 +57,11 @@ export function validSpec(): VideoSpecInput {
       {
         beatId: 'hook',
         narration: 'One client sends ten thousand requests. The API falls over.',
-        headline: { text: 'Rate limit = cap requests per client', semantic: 'concept' },
+        headline: {
+          text: 'Rate limit = cap requests per client',
+          semantic: 'concept',
+          at: { type: 'word_text', text: 'falls' },
+        },
         tags: ['429'],
         statCards: [{ value: '10k/s', label: 'peak load', sourceRef: 'fact-1' }],
       },

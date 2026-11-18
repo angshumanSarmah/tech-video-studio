@@ -39,40 +39,54 @@ export const blueprintDark = {
     display: {
       family: 'Barlow Condensed',
       fallback: "'Arial Narrow', sans-serif",
+      // Arrows, check marks and ₹ come from Inter (Barlow has none).
+      bundledFallbacks: ['sans'],
       files: [
-        { weight: 600, path: 'fonts/barlow-condensed/barlow-condensed-latin-600-normal.woff2' },
-        { weight: 700, path: 'fonts/barlow-condensed/barlow-condensed-latin-700-normal.woff2' },
+        { weight: 600, path: 'fonts/barlow-condensed/barlow-condensed-600.woff2' },
+        { weight: 700, path: 'fonts/barlow-condensed/barlow-condensed-700.woff2' },
       ],
     },
     mono: {
       family: 'JetBrains Mono',
       fallback: MONO_FALLBACK,
+      // ₹ comes from Inter.
+      bundledFallbacks: ['sans'],
       files: [
-        { weight: 500, path: 'fonts/jetbrains-mono/jetbrains-mono-latin-500-normal.woff2' },
-        { weight: 700, path: 'fonts/jetbrains-mono/jetbrains-mono-latin-700-normal.woff2' },
+        { weight: 500, path: 'fonts/jetbrains-mono/jetbrains-mono-500.woff2' },
+        { weight: 700, path: 'fonts/jetbrains-mono/jetbrains-mono-700.woff2' },
       ],
     },
     sans: {
       family: 'Inter',
       fallback: "system-ui, -apple-system, 'Segoe UI', sans-serif",
       files: [
-        { weight: 400, path: 'fonts/inter/inter-latin-400-normal.woff2' },
-        { weight: 600, path: 'fonts/inter/inter-latin-600-normal.woff2' },
+        { weight: 400, path: 'fonts/inter/inter-400.woff2' },
+        { weight: 600, path: 'fonts/inter/inter-600.woff2' },
+        { weight: 700, path: 'fonts/inter/inter-700.woff2' },
       ],
     },
   },
   text: {
     headline: {
       font: 'display',
-      size: 84,
+      size: 60,
       weight: 700,
       letterSpacing: 0.01,
-      lineHeight: 1.02,
+      lineHeight: 1.05,
       uppercase: true,
     },
     title: {
       font: 'display',
       size: 56,
+      weight: 600,
+      letterSpacing: 0.02,
+      lineHeight: 1.1,
+      uppercase: true,
+    },
+    // HUD chapter header: below the 60 px headline in the hierarchy, so a question fits one line.
+    chapter: {
+      font: 'display',
+      size: 40,
       weight: 600,
       letterSpacing: 0.02,
       lineHeight: 1.1,
@@ -110,6 +124,16 @@ export const blueprintDark = {
       lineHeight: 1.2,
       uppercase: true,
     },
+    // HUD rows (top bar, step tracker, hero pill, story clock): tighter than `label` so two
+    // items share a row.
+    hud: {
+      font: 'mono',
+      size: 22,
+      weight: 500,
+      letterSpacing: 0.08,
+      lineHeight: 1.2,
+      uppercase: true,
+    },
     footnote: {
       font: 'sans',
       size: 22,
@@ -142,6 +166,8 @@ export const blueprintDark = {
     // Covers the side cropping on tall phones.
     gutter: 72,
     hudBand: 200,
+    // One 60 px headline line (two at most); reserved only on beats that show a headline.
+    headlineBand: 140,
     subtitleBand: 180,
   },
 } satisfies ThemeInput;

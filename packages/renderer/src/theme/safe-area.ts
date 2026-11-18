@@ -15,6 +15,10 @@ export type SafeAreas = {
   subtitleBand: Rect;
   /** Full width between the gutters, from the HUD band's bottom to the subtitle band's top. */
   stage: Rect;
+  /** Top of the stage, for the beat headline; centred, clear of every zone. */
+  headlineBand: Rect;
+  /** The stage below the headline band: what a beat with a headline has left for its board. */
+  stageWithHeadline: Rect;
   /**
    * Exclusion zones clipped to the stage, minus any contained in another. The layout engine keeps
    * text and key elements out of them; background decoration may pass under.
@@ -100,15 +104,33 @@ export function safeAreas(theme: Theme): SafeAreas {
     width,
   );
   const stage = { ...full, y: bottom(hudBand), height: subtitleBand.y - bottom(hudBand) };
+  const headlineBand = clearSymmetric(
+    { ...full, y: stage.y, height: theme.safeArea.headlineBand },
+    zones,
+    width,
+  );
+  const stageWithHeadline = {
+    ...stage,
+    y: bottom(headlineBand),
+    height: bottom(stage) - bottom(headlineBand),
+  };
   const areas = {
     canvas: { x: 0, y: 0, width, height },
     exclusionZones: zones,
     hudBand,
     subtitleBand,
     stage,
+    headlineBand,
+    stageWithHeadline,
     avoidZones: clipZones(zones, stage),
   };
-  for (const name of ['hudBand', 'subtitleBand', 'stage'] as const) {
+  for (const name of [
+    'hudBand',
+    'subtitleBand',
+    'stage',
+    'headlineBand',
+    'stageWithHeadline',
+  ] as const) {
     assertNonEmpty(name, areas[name], theme.id);
   }
   return areas;

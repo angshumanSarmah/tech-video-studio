@@ -149,11 +149,13 @@ export function AccentSamples({ theme, accents }: Props & { accents: SampleAccen
 
 const TYPE_SAMPLES: Record<TextStyleName, string> = {
   headline: 'Cache = fast copy',
-  title: '— 2 · The hot key',
+  title: 'The hot key',
+  chapter: '— 2 · Why does it miss?',
   body: 'Reads hit memory, not disk.',
   subtitle: 'Most reads never hit disk',
   tag: 'p99 · 4 ms',
-  label: 'Step 3/7 · Invalidate',
+  label: 'Node · primary',
+  hud: 'Step 3/7 · Invalidate',
   footnote: 'Source: vendor benchmark, 2025',
 };
 

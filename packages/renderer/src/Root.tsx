@@ -1,5 +1,5 @@
 import { Composition, Still } from 'remotion';
-import { fixtureSeries, rateLimiterSpec } from '../fixtures/index.ts';
+import { fixtureChannelHandle, fixtureSeries, rateLimiterSpec } from '../fixtures/index.ts';
 import { BeatFromSpec } from './compositions/BeatFromSpec.tsx';
 import { calculateBeatMetadata, calculateVideoMetadata } from './compositions/metadata.ts';
 import type { BeatFromSpecProps, VideoFromSpecProps } from './compositions/props.ts';
@@ -17,6 +17,7 @@ const videoDefaults: VideoFromSpecProps = {
   spec: rateLimiterSpec,
   series: fixtureSeries,
   audioSrc: null,
+  channelHandle: fixtureChannelHandle,
   fps: FINAL_FPS,
 };
 

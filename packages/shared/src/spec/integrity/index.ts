@@ -2,6 +2,7 @@ import type { VideoSpec } from '../shape.ts';
 import { checkFormulaCards, checkLayerCoverage } from './coverage.ts';
 import type { SpecIssue } from './issue.ts';
 import { checkScenes } from './scenes.ts';
+import { checkScript } from './script.ts';
 import { checkStory } from './story.ts';
 import { checkTiming } from './timing.ts';
 
@@ -18,6 +19,7 @@ export function findSpecErrors(spec: VideoSpec): SpecIssue[] {
     ...checkStory(spec),
     ...coverage,
     ...checkFormulaCards(spec),
+    ...checkScript(spec),
     // Scene and timing checks assume layers line up with story beats.
     ...(coverage.length === 0 ? [...checkScenes(spec), ...checkTiming(spec)] : []),
   ];

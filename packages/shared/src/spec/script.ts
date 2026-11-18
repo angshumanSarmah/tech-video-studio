@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { SpecIdSchema } from './ids.ts';
+import { EventAnchorSchema, type EventAnchor } from './scene.ts';
 
 /** Script layer, written by the Scriptwriter: one entry per story beat, in story order. */
 
@@ -11,8 +12,17 @@ export const HeadlineSchema = z.strictObject({
   /** "X = plain meaning" style for concept beats. */
   text: z.string().min(1),
   semantic: HeadlineSemanticSchema,
+  /** When the headline animates in; `DEFAULT_HEADLINE_ANCHOR` when omitted. */
+  at: EventAnchorSchema.optional(),
 });
 export type Headline = z.infer<typeof HeadlineSchema>;
+
+/** Shortly after the beat starts, so the headline does not land on the cut. */
+export const DEFAULT_HEADLINE_ANCHOR: EventAnchor = { type: 'beat', edge: 'start', offsetSec: 0.3 };
+
+export function headlineAnchor(headline: Headline): EventAnchor {
+  return headline.at ?? DEFAULT_HEADLINE_ANCHOR;
+}
 
 export const StatCardSchema = z.strictObject({
   /** Display value, kept as text so units and formatting survive (e.g. "10k/s"). */

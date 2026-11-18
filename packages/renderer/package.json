@@ -15,7 +15,8 @@
     "still:safe-area": "remotion still src/entry.ts SafeAreaCalibration ../../docs/safe-area/zones.png",
     "calibrate:safe-area": "tsx scripts/calibrate-safe-area.ts",
     "typecheck": "tsc --build",
-    "test": "vitest run"
+    "test": "vitest run",
+    "fonts:subset": "tsx scripts/subset-fonts.ts"
   },
   "dependencies": {
     "@explainer-studio/shared": "workspace:*",
@@ -27,9 +28,12 @@
   },
   "devDependencies": {
     "@remotion/cli": "catalog:",
+    "@types/fontkit": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "fontkit": "catalog:",
+    "subset-font": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

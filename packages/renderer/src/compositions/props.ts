@@ -19,6 +19,8 @@ export type VideoFromSpecProps = {
    * filesystem path will not load. Null renders without sound (preview before TTS).
    */
   audioSrc: string | null;
+  /** Channel handle for the top bar (DB `channels.handle`); null hides it. */
+  channelHandle: string | null;
   /** Frame rate of the preset: 30 final, 15 draft. */
   fps: number;
 };

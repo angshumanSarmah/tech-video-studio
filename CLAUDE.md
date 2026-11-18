@@ -239,20 +239,26 @@ safe-area overlay to `docs/safe-area/zones.png`.
 - **Safe areas** come from per-platform exclusion zones (`topBar`, `actions`, `bottomInfo`: rects
   where Shorts/Reels UI covers the video). `safeAreas(theme)` derives a centred HUD band, stage
   and subtitle band from their union, plus `avoidZones` inside the stage that text and key
-  elements must stay out of. Calibrate zones with `calibrate:safe-area <shorts|reels>` against a
+  elements must stay out of. The stage's top `headlineBand` is reserved only on beats that show
+  a headline: such a beat's board gets `stageWithHeadline` (`stageForBeat(areas, spec, beatId)`). Calibrate zones with `calibrate:safe-area <shorts|reels>` against a
   screenshot in `public/calibration/` (gitignored, as are the `docs/safe-area/*-check.png`
   outputs: they show other creators' videos).
 - **Series accents are data**, passed in as props. Apply them with
   `tintFor(theme, resolveAccent(theme, accent))`. `checkAccentContrast` reports low contrast.
 - **Fonts** are committed `.woff2` files with their OFL licences in `public/fonts/`, loaded with
   `loadThemeFonts(theme)` (`@remotion/fonts` + `staticFile`). Never load fonts from the network.
+  They are subsets of pinned, checksummed sources (`scripts/font-sources.ts`), rebuilt with
+  `fonts:subset`. A role's `bundledFallbacks` (Inter) supply glyphs its font lacks (arrows, ✓ ✗,
+  ₹); `src/fonts/font-coverage.test.ts` reads each file's character map and fails when a role's
+  stack misses any glyph in `REQUIRED_CODE_POINTS` (`src/fonts/glyphs.ts`).
 - All `remotion` / `@remotion/*` packages must share one exact version in the catalog.
 
 ### Spec compositions
 
 - **`VideoFromSpec`** renders a whole `RenderableVideoSpec`; **`BeatFromSpec`** renders one beat
   (`beatId`), cut from the same global timeline, so its frames match the full video. Props are
-  plain JSON (`src/compositions/props.ts`): `spec`, `series` (label + accent), `audioSrc`, `fps`.
+  plain JSON (`src/compositions/props.ts`): `spec`, `series` (label + accent), `channelHandle`,
+  `audioSrc`, `fps`.
   Remotion's `schema` prop is not used (Zod 3 vs 4); `calculateMetadata` validates the spec with
   `validateRenderableVideoSpec`, throws its structured errors, and sets duration and fps.
 - **`audioSrc` is a URL** (http(s) or `staticFile()`), never a filesystem path: Remotion renders
@@ -264,9 +270,13 @@ safe-area overlay to `docs/safe-area/zones.png`.
   `timing.events` cache is never read.
 - Beat `<Sequence>`s tile the video with no gaps (each runs until the next beat starts).
 - Studio previews both compositions with `fixtures/rate-limiter.json` (no timing layer).
-- **`src/dev/` is temporary.** `DevBeatPreview`, `DevHud` and `DevSubtitles` are stand-ins until
-  P1A.5 (primitives), P1A.4 (HUD) and P1B.3 (subtitles) replace them. Do not build on them or
-  extend them. `src/dev/dev-layers.test.ts` fails once `src/primitives/registry.ts` exists and a
+- **HUD** (`src/hud`): top bar, step tracker, hero metric pill, chapter header, story clock and
+  headline. Slots come from `hudLayout(theme)` (derived from `safeAreas`); what each part shows at
+  a frame comes from pure functions in `hud-state.ts`. Parts are toggled per video in `spec.hud`
+  (all on by default; a part without data is not drawn). Every HUD animation starts at a frame
+  resolved from a word or beat-edge anchor (`headline.at`, chapter and beat starts).
+- **`src/dev/` is temporary.** `DevBeatPreview` and `DevSubtitles` are stand-ins until P1A.5
+  (primitives) and P1B.3 (subtitles) replace them. Do not build on them or extend them. `src/dev/dev-layers.test.ts` fails once `src/primitives/registry.ts` exists and a
   composition still uses `DevBeatPreview`.
 
 ## Code conventions

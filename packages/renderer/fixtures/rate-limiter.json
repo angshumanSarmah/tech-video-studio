@@ -9,7 +9,17 @@
   },
   "story": {
     "devices": ["failure_before_fix", "planted_question"],
-    "heroMetric": { "label": "Requests", "startValue": 0, "endValue": 10000, "unit": "req/s" },
+    "heroMetric": {
+      "label": "Token bucket",
+      "value": "10 tokens/s",
+      "storyClock": {
+        "from": "Spike",
+        "to": "Stable",
+        "startValue": 0,
+        "endValue": 180,
+        "keyframes": [{ "beatId": "bucket-empty", "value": 120 }]
+      }
+    },
     "chapters": [
       { "id": "flood", "title": "The flood", "question": "Why did the API fall over?" },
       { "id": "bucket", "title": "Token bucket" },
@@ -54,7 +64,11 @@
     {
       "beatId": "hook",
       "narration": "One client sends ten thousand requests a second. Your API slows, then falls over. Every other user gets an error, and the on-call phone starts ringing at three in the morning.",
-      "headline": { "text": "One noisy client can take down everyone", "semantic": "problem" },
+      "headline": {
+        "text": "One noisy client can take down everyone",
+        "semantic": "problem",
+        "at": { "type": "word_text", "text": "falls" }
+      },
       "statCards": [{ "value": "10k/s", "label": "peak load", "sourceRef": "fact-1" }]
     },
     {
@@ -66,7 +80,11 @@
     {
       "beatId": "bucket-empty",
       "narration": "Burst too fast and the bucket runs dry. No token, no request. The client gets a 429 and has to wait for the next refill.",
-      "headline": { "text": "No token = no request", "semantic": "decision" },
+      "headline": {
+        "text": "No token = no request",
+        "semantic": "decision",
+        "at": { "type": "word_text", "text": "dry" }
+      },
       "commandBubble": { "text": "HTTP 429 Too Many Requests" }
     },
     {

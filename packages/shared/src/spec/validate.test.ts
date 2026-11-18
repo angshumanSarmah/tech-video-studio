@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { HUD_PARTS } from './hud.ts';
 import type { VideoSpecInput } from './shape.ts';
 import { validSpec } from './test-fixtures.ts';
 import {
@@ -28,6 +29,12 @@ function without(
   return spec;
 }
 
+function clockKeyframes(spec: Required<VideoSpecInput>) {
+  const keyframes = spec.story.heroMetric?.storyClock?.keyframes;
+  if (!keyframes) throw new Error('fixture has no story clock keyframes');
+  return keyframes;
+}
+
 const at = <T>(items: T[] | undefined, index: number): T => {
   const item = items?.[index];
   if (item === undefined) throw new Error(`fixture has no item ${index}`);
@@ -43,6 +50,12 @@ describe('validateVideoSpec: valid specs', () => {
     expect(second?.patterns).toEqual([]);
     expect(third?.transitionIn).toBe('cut');
     expect(result.spec.story.beats[1]?.factIds).toEqual([]);
+    expect(Object.values(result.spec.hud)).toEqual(HUD_PARTS.map(() => true));
+  });
+
+  it('keeps HUD toggles that are set and defaults the rest to on', () => {
+    const result = validateVideoSpec({ ...validSpec(), hud: { storyClock: false } });
+    expect(result.ok && result.spec.hud).toMatchObject({ storyClock: false, headline: true });
   });
 
   it('accepts a story-only spec (Gate 2)', () => {
@@ -100,6 +113,29 @@ describe('validateVideoSpec: structure', () => {
       { path: '$.scenes[0].events[0].at.offsetSec', code: 'custom' },
     ],
     [
+      'an unknown HUD part',
+      (spec) => Object.assign(spec, { hud: { ticker: false } }),
+      { path: '$.hud', code: 'unrecognized_keys' },
+    ],
+    [
+      'a story clock keyframe with a negative value',
+      (spec) =>
+        Object.assign(spec.story, {
+          heroMetric: {
+            label: 'l',
+            value: 'v',
+            storyClock: {
+              from: 'a',
+              to: 'b',
+              startValue: 0,
+              endValue: 1,
+              keyframes: [{ beatId: 'bucket-intro', value: -1 }],
+            },
+          },
+        }),
+      { path: '$.story.heroMetric.storyClock.keyframes[0].value', code: 'too_small' },
+    ],
+    [
       'an event with no targets',
       (spec) => Object.assign(at(at(spec.scenes, 0).events, 0), { targets: [] }),
       { path: '$.scenes[0].events[0].targets', code: 'too_small' },
@@ -146,6 +182,34 @@ describe('validateVideoSpec: cross-references', () => {
       'a rejected alternative in an unknown beat',
       (spec) => Object.assign(spec.story, { rejectedAlternative: { beatId: 'x', summary: 's' } }),
       { path: '$.story.rejectedAlternative.beatId', code: 'unknown_reference' },
+    ],
+    [
+      'a story clock keyframe for an unknown beat',
+      (spec) => (clockKeyframes(spec)[0] = { beatId: 'nope', value: 60 }),
+      { path: '$.story.heroMetric.storyClock.keyframes[0].beatId', code: 'unknown_reference' },
+    ],
+    [
+      'a story clock keyframe on the first beat',
+      (spec) => (clockKeyframes(spec)[0] = { beatId: 'hook', value: 60 }),
+      { path: '$.story.heroMetric.storyClock.keyframes[0].beatId', code: 'clock_keyframe_order' },
+    ],
+    [
+      'story clock keyframes out of story order',
+      (spec) => clockKeyframes(spec).push({ beatId: 'bucket-intro', value: 60 }),
+      { path: '$.story.heroMetric.storyClock.keyframes[1].beatId', code: 'clock_keyframe_order' },
+    ],
+    [
+      'two story clock keyframes for one beat',
+      (spec) => clockKeyframes(spec).push({ beatId: 'bucket-empty', value: 150 }),
+      { path: '$.story.heroMetric.storyClock.keyframes[1].beatId', code: 'duplicate_id' },
+    ],
+    [
+      'a headline anchored to a word not in its narration',
+      (spec) => {
+        const headline = at(spec.script, 0).headline;
+        if (headline) headline.at = { type: 'word_text', text: 'bucket' };
+      },
+      { path: '$.script[0].headline.at', code: 'anchor_out_of_range' },
     ],
     [
       'a script missing a beat',

@@ -24,6 +24,9 @@ describe('studio theme CSS', () => {
     expect(css).toContain(`--color-problem: ${theme.colours.semantic.problem};`);
     expect(css).toContain('--color-grid: rgb(79 140 255 / 0.07);');
     expect(css).toContain("--font-mono: 'JetBrains Mono', ");
-    expect(css).toContain("url('/x/fonts/jetbrains-mono/jetbrains-mono-latin-700-normal.woff2')");
+    expect(css).toContain("--font-mono: 'JetBrains Mono', 'Inter', ");
+    expect(css).toContain("url('/x/fonts/jetbrains-mono/jetbrains-mono-700.woff2')");
+    // The mono stack's bundled fallback (Inter, for ₹) is loaded too.
+    expect(css).toContain("url('/x/fonts/inter/inter-400.woff2')");
   });
 });
