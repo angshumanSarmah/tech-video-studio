@@ -1,8 +1,9 @@
-import type { RunDto, RunEventDto, SeriesDto, TopicDto } from '@explainer-studio/shared';
-import type { RunEvent } from '#core/db/repositories/run-events.ts';
+import type { EventDto, RunDetailDto, RunDto, SeriesDto, TopicDto } from '@explainer-studio/shared';
+import type { StoredEvent } from '#core/db/repositories/events.ts';
 import type { Run } from '#core/db/repositories/runs.ts';
 import type { Series } from '#core/db/repositories/series.ts';
 import type { Topic } from '#core/db/repositories/topics.ts';
+import type { RunDetail } from '#core/services/runs.ts';
 
 /** DB rows -> wire shapes (`Date` -> ISO string, internal columns dropped). */
 
@@ -27,13 +28,11 @@ export function toRunDto(r: Run): RunDto {
   };
 }
 
-export function toRunEventDto(e: RunEvent): RunEventDto {
-  return {
-    id: e.id,
-    runId: e.runId,
-    jobId: e.jobId,
-    type: e.type,
-    payload: e.payload,
-    createdAt: e.createdAt.toISOString(),
-  };
+export function toRunDetailDto(d: RunDetail): RunDetailDto {
+  return { ...toRunDto(d.run), lastEventId: d.lastEventId };
+}
+
+export function toEventDto(e: StoredEvent): EventDto {
+  const { createdAt, ...rest } = e;
+  return { ...rest, createdAt: createdAt.toISOString() };
 }

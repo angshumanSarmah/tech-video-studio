@@ -1,13 +1,13 @@
 import { eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { listRunJobs } from '../db/repositories/jobs.ts';
-import { listRunEventsSince } from '../db/repositories/run-events.ts';
+import { appendEvent, listEventsSince } from '../db/repositories/events.ts';
 import { listRuns } from '../db/repositories/runs.ts';
 import { createTopic } from '../db/repositories/topics.ts';
 import { series } from '../db/schema.ts';
 import { createTestDb, type TestDb } from '../db/testing.ts';
 import { NotFoundError } from '../errors.ts';
-import { FIRST_RUN_JOB_TYPE, startRun } from './runs.ts';
+import { FIRST_RUN_JOB_TYPE, getRunDetail, startRun } from './runs.ts';
 
 let t: TestDb;
 let topicId: number;
@@ -22,15 +22,15 @@ beforeEach(() => {
 afterEach(() => t.cleanup());
 
 describe('startRun', () => {
-  it('creates the run, its first job and a status event', () => {
+  it('creates the run, its first job and a run_status event', () => {
     const { run, job } = startRun(t.db, { topicId, seriesId, settings: { lengthOverrideSec: 60 } });
 
     expect(run).toMatchObject({ topicId, seriesId, status: 'queued' });
     expect(run.settings.lengthOverrideSec).toBe(60);
     expect(listRunJobs(t.db, run.id)).toEqual([job]);
     expect(job).toMatchObject({ type: FIRST_RUN_JOB_TYPE, status: 'queued', attempts: 0 });
-    expect(listRunEventsSince(t.db, { runId: run.id, afterId: 0, limit: 10 })).toMatchObject([
-      { runId: run.id, jobId: job.id, type: 'status', payload: { status: 'queued' } },
+    expect(listEventsSince(t.db, { runId: run.id, afterId: 0, limit: 10 })).toMatchObject([
+      { runId: run.id, jobId: job.id, type: 'run_status', payload: { status: 'queued' } },
     ]);
   });
 
@@ -49,5 +49,23 @@ describe('startRun', () => {
 
     expect(() => startRun(t.db, { topicId, seriesId })).toThrow(/enqueue failed/);
     expect(listRuns(t.db)).toEqual([]);
+  });
+});
+
+describe('getRunDetail', () => {
+  it("returns the run with its newest event id, ignoring other runs' events", () => {
+    const { run } = startRun(t.db, { topicId, seriesId });
+    const last = appendEvent(t.db, {
+      runId: run.id,
+      type: 'progress',
+      payload: { pct: 10 },
+    });
+    startRun(t.db, { topicId, seriesId }); // newer event on another run
+
+    expect(getRunDetail(t.db, run.id)).toEqual({ run: { ...run }, lastEventId: last.id });
+  });
+
+  it('throws NotFoundError for an unknown run', () => {
+    expect(() => getRunDetail(t.db, 999)).toThrow(new NotFoundError('Run', 999));
   });
 });

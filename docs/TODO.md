@@ -4,16 +4,22 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 
 ## Open
 
-- [ ] **P0.5 — Claim and run jobs.** The `jobs` table exists with every column P0.5 needs (do
-      not regenerate it); the worker already opens the DB. Replace the no-op `idleTick` in
-      `apps/studio/src/worker/index.ts` (polling seam: `startPollLoop` in `poll-loop.ts`) with
-      claim-and-run, set `locked_by`, honour `run_after`, and release stale locks on startup.
-- [ ] **P0.5 — Unknown job types fail.** A claimed job whose `type` has no registered handler
-      (e.g. the `ingest` job `POST /api/runs` enqueues, before its handler exists) must be marked
-      `failed` with `no handler for job type <type>`, not left queued or retried forever.
-- [ ] **P0.5 — Run event payloads.** `run_events.payload` is an open record for now. Define a
-      payload schema per `RUN_EVENT_TYPES` entry (discriminated union in `packages/shared`) with
-      the progress emitter, and validate on write.
+- [ ] **P0.6 — Start a noop job from the dashboard.** No generic `POST /api/jobs`. Add a dev-only
+      `POST /api/dev/noop-job` (registered only when not in production) that enqueues a run-less
+      `noop` job; the dashboard streams it with `GET /api/events?jobId=<id>`.
+- [ ] **P0.6 — SSE cursor on page load.** `useRunEvents(runId)` reads `lastEventId` from
+      `GET /api/runs/:id` and opens `/api/events?runId=<id>&after=<lastEventId>`; full replay is
+      only the fallback when no snapshot is loaded.
+- [ ] **P1C.9 — Run state transitions.** The orchestrator takes over run state transitions. Until
+      then the worker only moves a run to `failed` when one of its jobs fails (unless the handler
+      sets `failsRun: false`); `queued → running`, gate pauses and `done` belong to the
+      orchestrator, as does resuming a run from its last finished `run_steps` row.
+- [ ] **Worker — Retries and backoff.** A handler error fails the job at once; `attempts` only
+      counts hard crashes. Add per-handler retry with `run_after` backoff when a stage needs it
+      (e.g. transient LLM or fetch errors).
+- [ ] **Worker — More than one worker.** Stale-lock recovery assumes a single worker (every
+      `running` job is stale at startup). A second worker needs a lease (`locked_at` heartbeat +
+      timeout) instead.
 - [ ] **P1D.2 — List pagination.** `GET /api/runs` and `GET /api/topics` return everything
       (newest first) wrapped as `{ items }`. Add cursor pagination once lists grow.
 - [ ] **P0.2 / P1C.1 — Missing API key.** `DEEPSEEK_API_KEY` is optional at boot so `pnpm dev`

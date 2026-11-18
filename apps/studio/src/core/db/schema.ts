@@ -9,13 +9,13 @@ import {
   ASSET_STATUSES,
   BACKLOG_STATUSES,
   DECIDED_BY,
+  EVENT_TYPES,
   GATE_IDS,
   GATE_STATUSES,
   JOB_STATUSES,
   MEMORY_RULE_SCOPES,
   MEMORY_RULE_STATUSES,
   MODEL_ROLES,
-  RUN_EVENT_TYPES,
   RUN_STATUSES,
   SOURCE_KINDS,
   SOURCE_STATUSES,
@@ -23,7 +23,7 @@ import {
   STAGES,
   STEP_STATUSES,
   USAGE_KINDS,
-  type RunEventPayload,
+  type EventBody,
   type RunSettings,
 } from '@explainer-studio/shared';
 import { sql } from 'drizzle-orm';
@@ -292,23 +292,26 @@ export const jobs = sqliteTable(
   (t) => [index('jobs_claim_idx').on(t.status, t.runAfter), index('jobs_run_idx').on(t.runId)],
 );
 
-/** Append-only progress log. The worker writes; the server tails it by `id` for SSE. */
-export const runEvents = sqliteTable(
-  'run_events',
+/**
+ * Append-only progress log for runs and jobs. The worker writes; the server tails it by `id` for
+ * SSE. `run_id` is null for jobs outside a run; every event has a run, a job or both. Payloads
+ * are validated against `EventBodySchema` on write (`#core/db/repositories/events.ts`).
+ */
+export const events = sqliteTable(
+  'events',
   {
     id: id(),
-    runId: integer('run_id')
-      .notNull()
-      .references(() => runs.id, { onDelete: 'cascade' }),
-    jobId: integer('job_id').references(() => jobs.id, { onDelete: 'set null' }),
-    type: text('type', { enum: RUN_EVENT_TYPES }).notNull(),
-    payload: text('payload', { mode: 'json' })
-      .$type<RunEventPayload>()
-      .notNull()
-      .default(sql`'{}'`),
+    runId: integer('run_id').references(() => runs.id, { onDelete: 'cascade' }),
+    jobId: integer('job_id').references(() => jobs.id, { onDelete: 'cascade' }),
+    type: text('type', { enum: EVENT_TYPES }).notNull(),
+    payload: text('payload', { mode: 'json' }).$type<EventBody['payload']>().notNull(),
     createdAt: createdAt(),
   },
-  (t) => [index('run_events_run_id_idx').on(t.runId, t.id)],
+  (t) => [
+    index('events_run_id_idx').on(t.runId, t.id),
+    index('events_job_id_idx').on(t.jobId, t.id),
+    check('events_owner_ck', sql`${t.runId} is not null or ${t.jobId} is not null`),
+  ],
 );
 
 // ---------------------------------------------------------------------------------------------

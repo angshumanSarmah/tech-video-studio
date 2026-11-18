@@ -20,6 +20,20 @@ CREATE TABLE `channels` (
 	`created_at` integer DEFAULT (cast(unixepoch('subsec') * 1000 as integer)) NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE `events` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`run_id` integer,
+	`job_id` integer,
+	`type` text NOT NULL,
+	`payload` text NOT NULL,
+	`created_at` integer DEFAULT (cast(unixepoch('subsec') * 1000 as integer)) NOT NULL,
+	FOREIGN KEY (`run_id`) REFERENCES `runs`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`job_id`) REFERENCES `jobs`(`id`) ON UPDATE no action ON DELETE cascade,
+	CONSTRAINT "events_owner_ck" CHECK("events"."run_id" is not null or "events"."job_id" is not null)
+);
+--> statement-breakpoint
+CREATE INDEX `events_run_id_idx` ON `events` (`run_id`,`id`);--> statement-breakpoint
+CREATE INDEX `events_job_id_idx` ON `events` (`job_id`,`id`);--> statement-breakpoint
 CREATE TABLE `exports` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`run_id` integer NOT NULL,
@@ -125,18 +139,6 @@ CREATE TABLE `reference_videos` (
 	`created_at` integer DEFAULT (cast(unixepoch('subsec') * 1000 as integer)) NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE `run_events` (
-	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-	`run_id` integer NOT NULL,
-	`job_id` integer,
-	`type` text NOT NULL,
-	`payload` text DEFAULT '{}' NOT NULL,
-	`created_at` integer DEFAULT (cast(unixepoch('subsec') * 1000 as integer)) NOT NULL,
-	FOREIGN KEY (`run_id`) REFERENCES `runs`(`id`) ON UPDATE no action ON DELETE cascade,
-	FOREIGN KEY (`job_id`) REFERENCES `jobs`(`id`) ON UPDATE no action ON DELETE set null
-);
---> statement-breakpoint
-CREATE INDEX `run_events_run_id_idx` ON `run_events` (`run_id`,`id`);--> statement-breakpoint
 CREATE TABLE `run_sources` (
 	`run_id` integer NOT NULL,
 	`source_id` integer NOT NULL,

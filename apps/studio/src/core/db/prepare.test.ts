@@ -12,6 +12,7 @@ import { TEST_MIGRATIONS_DIR } from './testing.ts';
 const EXPECTED_TABLES = [
   'assets',
   'channels',
+  'events',
   'exports',
   'gates',
   'jobs',
@@ -19,7 +20,6 @@ const EXPECTED_TABLES = [
   'memory_rules',
   'missing_primitive_requests',
   'reference_videos',
-  'run_events',
   'run_sources',
   'run_steps',
   'runs',
