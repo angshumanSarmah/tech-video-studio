@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { errorMessage } from '#web/api/client.ts';
-import { startNoopJob } from '#web/api/dev.ts';
+import { errorMessage } from '#web/http/client.ts';
+import { startNoopJob } from '#web/http/dev.ts';
 import JobProgress from '#web/components/JobProgress.vue';
 import PageHeader from '#web/components/PageHeader.vue';
 import RunsTable from '#web/components/RunsTable.vue';

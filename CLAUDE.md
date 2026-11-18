@@ -165,7 +165,8 @@ Vue 3 SPA in `src/web`: Vue Router, Pinia, Tailwind v4. Vite serves it in dev an
 
 ```text
 src/web/
-  api/           client.ts + one module per resource (runs.ts, dev.ts, health.ts, events.ts)
+  http/          client.ts + one module per resource (runs.ts, dev.ts, health.ts, events.ts)
+  public/        static files served at / (favicon.svg)
   composables/   useEventStream, useJobEvents, useRunEvents
   stores/        Pinia setup stores (server state)
   lib/           pure helpers (job-summary.ts, status.ts), unit-tested
@@ -174,7 +175,10 @@ src/web/
   testing.ts     FakeEventSource, stubFetch, makeEvent, makeRun
 ```
 
-- **API calls go through `#web/api/client.ts`** (`request`, `postJson`). Every response is parsed
+- **No top-level folder under `src/web` may be named `api`.** Vite serves `src/web` as its root,
+  so `src/web/api/x.ts` is requested as `/api/x.ts`, which the dev proxy sends to Hono (404, blank
+  page). `src/web/layout.test.ts` enforces this.
+- **API calls go through `#web/http/client.ts`** (`request`, `postJson`). Every response is parsed
   with its shared Zod schema from `packages/shared`. A non-2xx response throws `ApiRequestError`
   (it carries the parsed `ApiError`). A 2xx response that fails the schema throws
   `ApiContractError`. Show errors with `errorMessage(e)`. Never call `fetch` from a component.

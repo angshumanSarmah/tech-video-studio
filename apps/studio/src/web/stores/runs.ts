@@ -1,8 +1,8 @@
 import type { RunDto } from '@explainer-studio/shared';
 import { defineStore } from 'pinia';
 import { ref, shallowRef } from 'vue';
-import { errorMessage } from '#web/api/client.ts';
-import { listRuns } from '#web/api/runs.ts';
+import { errorMessage } from '#web/http/client.ts';
+import { listRuns } from '#web/http/runs.ts';
 
 /** The runs list, shared by pages that show it. Server state only: no UI state in stores. */
 export const useRunsStore = defineStore('runs', () => {

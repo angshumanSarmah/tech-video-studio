@@ -9,7 +9,7 @@ import {
   watch,
   type MaybeRefOrGetter,
 } from 'vue';
-import { eventsUrl, type EventStreamFilter } from '#web/api/events.ts';
+import { eventsUrl, type EventStreamFilter } from '#web/http/events.ts';
 
 /** `idle`: no filter yet. `reconnecting`: the browser is retrying after a dropped connection. */
 export type StreamState = 'idle' | 'connecting' | 'open' | 'reconnecting' | 'closed';

@@ -1,7 +1,7 @@
 import type { RunDetailDto } from '@explainer-studio/shared';
 import { computed, ref, shallowRef, toValue, watch, type MaybeRefOrGetter } from 'vue';
-import { errorMessage } from '#web/api/client.ts';
-import { getRun } from '#web/api/runs.ts';
+import { errorMessage } from '#web/http/client.ts';
+import { getRun } from '#web/http/runs.ts';
 import { useEventStream } from './useEventStream.ts';
 
 /**

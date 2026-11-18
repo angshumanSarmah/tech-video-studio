@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { fetchHealth } from '#web/api/health.ts';
+import { fetchHealth } from '#web/http/health.ts';
 import { routes } from '#web/router.ts';
 
 const status = ref<'checking' | 'ok' | 'error'>('checking');

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { effectScope, nextTick, ref } from 'vue';
 import { FakeEventSource, installFakeEventSource, makeEvent } from '#web/testing.ts';
-import type { EventStreamFilter } from '#web/api/events.ts';
+import type { EventStreamFilter } from '#web/http/events.ts';
 import { useEventStream, type EventStreamOptions } from './useEventStream.ts';
 import { isJobFinished, useJobEvents } from './useJobEvents.ts';
 
