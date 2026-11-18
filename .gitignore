@@ -20,5 +20,9 @@ data/exports/*
 .env.*
 !.env.example
 
+# Safe-area calibration: screenshots show other creators' videos
+packages/renderer/public/calibration/
+docs/safe-area/*-check.png
+
 .DS_Store
 *.log

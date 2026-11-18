@@ -49,6 +49,7 @@ export default tseslint.config(
     files: [
       'apps/studio/src/{core,server,worker}/**',
       'apps/studio/scripts/**',
+      'packages/renderer/scripts/**',
       '**/*.config.{ts,js}',
     ],
     languageOptions: { globals: globals.node },

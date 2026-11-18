@@ -35,6 +35,10 @@ export type TextStyleName = (typeof TEXT_STYLES)[number];
 export const PLATFORMS = ['shorts', 'reels'] as const;
 export type Platform = (typeof PLATFORMS)[number];
 
+/** Where each platform's UI covers the video. */
+export const PLATFORM_ZONES = ['topBar', 'actions', 'bottomInfo'] as const;
+export type PlatformZone = (typeof PLATFORM_ZONES)[number];
+
 const FontFileSchema = z.object({
   weight: z.number().int().min(100).max(900),
   /** Path under the renderer's `public/` directory (loaded with `staticFile`). */
@@ -58,83 +62,116 @@ const TextStyleSchema = z.object({
   uppercase: z.boolean(),
 });
 
-const InsetsSchema = z.object({ top: PxSchema, right: PxSchema, bottom: PxSchema, left: PxSchema });
-export type Insets = z.infer<typeof InsetsSchema>;
+/** A rectangle in canvas pixels. */
+export const RectSchema = z.object({
+  x: PxSchema,
+  y: PxSchema,
+  width: z.number().positive(),
+  height: z.number().positive(),
+});
+export type Rect = z.infer<typeof RectSchema>;
+
+const PlatformZonesSchema = z.object(
+  Object.fromEntries(PLATFORM_ZONES.map((k) => [k, RectSchema])) as Record<
+    PlatformZone,
+    typeof RectSchema
+  >,
+);
 
 const scale = <K extends string>(keys: readonly [K, ...K[]]) =>
   z.object(Object.fromEntries(keys.map((k) => [k, PxSchema])) as Record<K, typeof PxSchema>);
 
-export const ThemeSchema = z.object({
-  id: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
-  name: z.string().min(1),
-  description: z.string().min(1),
-  canvas: z.object({ width: z.number().int().positive(), height: z.number().int().positive() }),
-  colours: z.object({
-    background: HexColourSchema,
-    /** Edge colour of the radial vignette over the background. */
-    vignette: HexColourSchema,
-    surface: HexColourSchema,
-    surfaceRaised: HexColourSchema,
-    line: HexColourSchema,
-    ink: z.object({ primary: HexColourSchema, muted: HexColourSchema, faint: HexColourSchema }),
-    semantic: z.object(
-      Object.fromEntries(SEMANTIC_COLOURS.map((k) => [k, HexColourSchema])) as Record<
-        SemanticColour,
-        typeof HexColourSchema
+export const ThemeSchema = z
+  .object({
+    id: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+    name: z.string().min(1),
+    description: z.string().min(1),
+    canvas: z.object({ width: z.number().int().positive(), height: z.number().int().positive() }),
+    colours: z.object({
+      background: HexColourSchema,
+      /** Edge colour of the radial vignette over the background. */
+      vignette: HexColourSchema,
+      surface: HexColourSchema,
+      surfaceRaised: HexColourSchema,
+      line: HexColourSchema,
+      ink: z.object({ primary: HexColourSchema, muted: HexColourSchema, faint: HexColourSchema }),
+      semantic: z.object(
+        Object.fromEntries(SEMANTIC_COLOURS.map((k) => [k, HexColourSchema])) as Record<
+          SemanticColour,
+          typeof HexColourSchema
+        >,
+      ),
+      /** Used when a series has no accent or an invalid one. Series accents themselves are data. */
+      fallbackAccent: HexColourSchema,
+    }),
+    /** How any colour (semantic or series accent) is applied as fills and glows. */
+    tint: z.object({ softAlpha: AlphaSchema, borderAlpha: AlphaSchema }),
+    glow: z.object({
+      innerBlur: PxSchema,
+      innerAlpha: AlphaSchema,
+      outerBlur: PxSchema,
+      outerAlpha: AlphaSchema,
+    }),
+    minimumContrast: z.object({
+      /** Text, including accent-coloured labels and karaoke highlights. */
+      text: z.number().min(1),
+      /** Strokes, icons and other non-text graphics. */
+      graphic: z.number().min(1),
+    }),
+    grid: z.object({
+      minorCell: z.number().positive(),
+      majorEvery: z.number().int().min(1),
+      colour: HexColourSchema,
+      minorAlpha: AlphaSchema,
+      majorAlpha: AlphaSchema,
+      /** Background drift in px per second; keep it subtle. */
+      drift: z.object({ x: z.number(), y: z.number() }),
+    }),
+    fonts: z.object({ display: FontSchema, mono: FontSchema, sans: FontSchema }),
+    text: z.object(
+      Object.fromEntries(TEXT_STYLES.map((k) => [k, TextStyleSchema])) as Record<
+        TextStyleName,
+        typeof TextStyleSchema
       >,
     ),
-    /** Used when a series has no accent or an invalid one. Series accents themselves are data. */
-    fallbackAccent: HexColourSchema,
-  }),
-  /** How any colour (semantic or series accent) is applied as fills and glows. */
-  tint: z.object({ softAlpha: AlphaSchema, borderAlpha: AlphaSchema }),
-  glow: z.object({
-    innerBlur: PxSchema,
-    innerAlpha: AlphaSchema,
-    outerBlur: PxSchema,
-    outerAlpha: AlphaSchema,
-  }),
-  minimumContrast: z.object({
-    /** Text, including accent-coloured labels and karaoke highlights. */
-    text: z.number().min(1),
-    /** Strokes, icons and other non-text graphics. */
-    graphic: z.number().min(1),
-  }),
-  grid: z.object({
-    minorCell: z.number().positive(),
-    majorEvery: z.number().int().min(1),
-    colour: HexColourSchema,
-    minorAlpha: AlphaSchema,
-    majorAlpha: AlphaSchema,
-    /** Background drift in px per second; keep it subtle. */
-    drift: z.object({ x: z.number(), y: z.number() }),
-  }),
-  fonts: z.object({ display: FontSchema, mono: FontSchema, sans: FontSchema }),
-  text: z.object(
-    Object.fromEntries(TEXT_STYLES.map((k) => [k, TextStyleSchema])) as Record<
-      TextStyleName,
-      typeof TextStyleSchema
-    >,
-  ),
-  space: scale(['xs', 'sm', 'md', 'lg', 'xl', 'xxl']),
-  radius: scale(['sm', 'md', 'lg', 'pill']),
-  stroke: scale(['hairline', 'thin', 'regular', 'bold']),
-  safeArea: z.object({
-    /** Margins covered by each platform's UI (buttons, captions, progress bar). */
-    platforms: z.object(
-      Object.fromEntries(PLATFORMS.map((k) => [k, InsetsSchema])) as Record<
-        Platform,
-        typeof InsetsSchema
-      >,
-    ),
-    /** Height of the top HUD band (top bar, chapter header, step tracker, hero metric). */
-    hudBand: PxSchema,
-    /** Height of the bottom subtitle band. */
-    subtitleBand: PxSchema,
-    /** Gap between the stage and each band. */
-    gap: PxSchema,
-  }),
-});
+    space: scale(['xs', 'sm', 'md', 'lg', 'xl', 'xxl']),
+    radius: scale(['sm', 'md', 'lg', 'pill']),
+    stroke: scale(['hairline', 'thin', 'regular', 'bold']),
+    safeArea: z.object({
+      /**
+       * Exclusion zones per platform: rectangles in canvas coordinates where the platform's UI
+       * covers the video. `topBar` touches the top edge, `bottomInfo` the bottom edge; `actions` is
+       * the button column on the side. Calibrate with `calibrate:safe-area`.
+       */
+      platforms: z.object(
+        Object.fromEntries(PLATFORMS.map((k) => [k, PlatformZonesSchema])) as Record<
+          Platform,
+          typeof PlatformZonesSchema
+        >,
+      ),
+      /** Horizontal margin on both sides, so content stays centred. */
+      gutter: PxSchema,
+      /** Height of the top HUD band (top bar, chapter header, step tracker, hero metric). */
+      hudBand: z.number().positive(),
+      /** Height of the bottom subtitle band. */
+      subtitleBand: z.number().positive(),
+    }),
+  })
+  .superRefine((theme, ctx) => {
+    const { width, height } = theme.canvas;
+    for (const platform of PLATFORMS) {
+      for (const zone of PLATFORM_ZONES) {
+        const r = theme.safeArea.platforms[platform][zone];
+        if (r.x + r.width > width || r.y + r.height > height) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['safeArea', 'platforms', platform, zone],
+            message: `zone must lie inside the ${width}x${height} canvas`,
+          });
+        }
+      }
+    }
+  });
 
 export type Theme = z.infer<typeof ThemeSchema>;
 export type ThemeInput = z.input<typeof ThemeSchema>;

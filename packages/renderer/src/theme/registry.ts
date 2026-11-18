@@ -1,4 +1,5 @@
 import { ThemeSchema, type Theme, type ThemeInput } from './schema.ts';
+import { safeAreas } from './safe-area.ts';
 import { blueprintDark } from './themes/blueprint-dark.ts';
 
 /** Every theme the renderer knows. Add a theme by adding its module here. */
@@ -11,6 +12,7 @@ export function buildThemeRegistry(inputs: readonly ThemeInput[]): ReadonlyMap<s
   const registry = new Map<string, Theme>();
   for (const input of inputs) {
     const theme = ThemeSchema.parse(input);
+    safeAreas(theme); // throws when the safe-area settings leave no room for a band or the stage
     if (registry.has(theme.id)) throw new Error(`Duplicate theme id "${theme.id}"`);
     registry.set(theme.id, theme);
   }

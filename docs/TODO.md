@@ -48,10 +48,14 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
   - `spec.timing` is in seconds. Convert to frames with the composition's fps (draft 15,
     final 30). `timing.events` is a derived cache: recompute event times from word timings
     and never trust stale values after an edit.
-- [ ] **P1A.9 — Safe areas.** `safeAreas(theme)` returns the stage the layout engine fills. The
-      Shorts/Reels margins in `blueprint-dark` are approximations; check them against real
-      screenshots. The stage is off-centre (the right margin is larger); decide whether the
-      layout engine centres content on the canvas or on the stage.
+- [ ] **P1A.9 — Safe areas.** `safeAreas(theme)` returns the centred stage the layout engine
+      fills, plus `avoidZones` (platform action buttons clipped to the stage). Keep text and key
+      elements out of avoid zones; background decoration may pass under.
+- [ ] **Calibrate safe-area zones.** The Shorts/Reels exclusion zones in `blueprint-dark` are
+      starting values. Save a screenshot cropped to the 9:16 video frame at
+      `packages/renderer/public/calibration/<platform>.png`, run
+      `pnpm --filter @explainer-studio/renderer calibrate:safe-area <shorts|reels>`, compare
+      `docs/safe-area/<platform>-check.png`, and adjust the zones (both paths are gitignored).
 - [ ] **P1D.8 — Accent contrast warning.** Settings should warn when a series accent fails
       `checkAccentContrast` (from `@explainer-studio/renderer/theme`, React-free). Importing it
       from `src/web` means updating the web import-boundary message in `eslint.config.js`.

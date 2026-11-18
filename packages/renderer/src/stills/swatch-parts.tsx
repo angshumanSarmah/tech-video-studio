@@ -283,8 +283,9 @@ const DIAGRAM_SCALE = 0.17;
 export function SafeAreaDiagram({ theme }: Props) {
   const areas = safeAreas(theme);
   const { semantic, ink, line } = theme.colours;
-  const box = (rect: Rect, colour: string, fill: boolean) => (
+  const box = (rect: Rect, colour: string, fill: boolean, key?: string) => (
     <rect
+      key={key}
       x={rect.x * DIAGRAM_SCALE}
       y={rect.y * DIAGRAM_SCALE}
       width={rect.width * DIAGRAM_SCALE}
@@ -293,11 +294,12 @@ export function SafeAreaDiagram({ theme }: Props) {
       fillOpacity={0.18}
       stroke={colour}
       strokeWidth={1.5}
-      strokeDasharray={fill ? undefined : '4 3'}
+      strokeDasharray={fill ? '4 3' : undefined}
     />
   );
   const legend: [string, string][] = [
-    ['platform safe', ink.muted],
+    ['platform ui', ink.muted],
+    ['avoid zone', semantic.problem],
     ['hud band', semantic.focus],
     ['stage', semantic.concept],
     ['subtitle band', semantic.ok],
@@ -309,10 +311,11 @@ export function SafeAreaDiagram({ theme }: Props) {
         height={areas.canvas.height * DIAGRAM_SCALE}
         style={{ background: theme.colours.surface, outline: `1px solid ${line}` }}
       >
-        {box(areas.platformSafe, ink.muted, false)}
+        {areas.exclusionZones.map((z) => box(z, ink.muted, false, z.id))}
         {box(areas.hudBand, semantic.focus, true)}
         {box(areas.stage, semantic.concept, true)}
         {box(areas.subtitleBand, semantic.ok, true)}
+        {areas.avoidZones.map((z) => box(z, semantic.problem, true, z.id))}
       </svg>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {legend.map(([name, colour]) => (

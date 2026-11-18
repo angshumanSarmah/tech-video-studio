@@ -12,6 +12,8 @@
   "scripts": {
     "studio": "remotion studio src/entry.ts",
     "still:theme": "remotion still src/entry.ts ThemeSwatchBoard ../../docs/themes/blueprint-dark.png",
+    "still:safe-area": "remotion still src/entry.ts SafeAreaCalibration ../../docs/safe-area/zones.png",
+    "calibrate:safe-area": "tsx scripts/calibrate-safe-area.ts",
     "typecheck": "tsc --build",
     "test": "vitest run"
   },
@@ -27,6 +29,7 @@
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "tsx": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

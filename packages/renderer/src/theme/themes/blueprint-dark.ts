@@ -122,15 +122,22 @@ export const blueprintDark = {
   space: { xs: 8, sm: 16, md: 24, lg: 40, xl: 64, xxl: 96 },
   radius: { sm: 6, md: 12, lg: 20, pill: 999 },
   stroke: { hairline: 1.5, thin: 2, regular: 4, bold: 6 },
-  // Platform margins are approximations of each app's overlay at 1080×1920; tune against real
-  // screenshots when they drift.
+  // Starting values, not yet calibrated: check with `calibrate:safe-area <shorts|reels>`.
   safeArea: {
     platforms: {
-      shorts: { top: 120, right: 150, bottom: 360, left: 48 },
-      reels: { top: 200, right: 130, bottom: 400, left: 48 },
+      shorts: {
+        topBar: { x: 0, y: 0, width: 1080, height: 180 },
+        actions: { x: 930, y: 900, width: 150, height: 620 },
+        bottomInfo: { x: 0, y: 1520, width: 1080, height: 400 },
+      },
+      reels: {
+        topBar: { x: 0, y: 0, width: 1080, height: 220 },
+        actions: { x: 940, y: 960, width: 140, height: 600 },
+        bottomInfo: { x: 0, y: 1500, width: 1080, height: 420 },
+      },
     },
+    gutter: 48,
     hudBand: 200,
     subtitleBand: 180,
-    gap: 24,
   },
 } satisfies ThemeInput;

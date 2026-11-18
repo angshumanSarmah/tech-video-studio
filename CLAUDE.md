@@ -225,7 +225,8 @@ src/web/
 
 `packages/renderer`: a Remotion project (`src/entry.ts`, `src/Root.tsx`). From the repo root:
 `pnpm --filter @explainer-studio/renderer studio` opens Remotion Studio; `… still:theme` renders
-the theme swatch board to `docs/themes/blueprint-dark.png`.
+the theme swatch board to `docs/themes/blueprint-dark.png`; `… still:safe-area` renders the
+safe-area overlay to `docs/safe-area/zones.png`.
 
 - **Themes** live in `src/theme` and are registered by id (`getTheme`, `listThemes`;
   default `blueprint-dark`). Each is validated against `ThemeSchema`. A theme holds colours
@@ -234,7 +235,13 @@ the theme swatch board to `docs/themes/blueprint-dark.png`.
   exported as `@explainer-studio/renderer/theme`, so Node scripts, the layout engine and the
   studio can import it.
 - **Use the helpers, not raw values:** `tintFor`/`semanticTint` (soft fill, border, glow),
-  `textCss`, `safeAreas` (HUD band, stage, subtitle band inside every platform's UI margins).
+  `textCss`, `safeAreas`.
+- **Safe areas** come from per-platform exclusion zones (`topBar`, `actions`, `bottomInfo`: rects
+  where Shorts/Reels UI covers the video). `safeAreas(theme)` derives a centred HUD band, stage
+  and subtitle band from their union, plus `avoidZones` inside the stage that text and key
+  elements must stay out of. Calibrate zones with `calibrate:safe-area <shorts|reels>` against a
+  screenshot in `public/calibration/` (gitignored, as are the `docs/safe-area/*-check.png`
+  outputs: they show other creators' videos).
 - **Series accents are data**, passed in as props. Apply them with
   `tintFor(theme, resolveAccent(theme, accent))`. `checkAccentContrast` reports low contrast.
 - **Fonts** are committed `.woff2` files with their OFL licences in `public/fonts/`, loaded with
