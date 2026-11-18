@@ -45,6 +45,10 @@ data/                   runtime data: SQLite DB, runs/, assets/, exports/ (gitig
 docs/TODO.md            follow-ups logged instead of done
 ```
 
+Prerequisites: `nvm use` (Node 24, from `.nvmrc`), then `corepack enable pnpm` so `pnpm` resolves to
+the version pinned in `packageManager`. Re-run it after switching Node versions; do not install pnpm
+globally.
+
 Commands (from the repo root): `pnpm dev` (server, worker and Vite via `concurrently`),
 `pnpm build`, `pnpm typecheck`, `pnpm lint`, `pnpm format`, `pnpm test`.
 

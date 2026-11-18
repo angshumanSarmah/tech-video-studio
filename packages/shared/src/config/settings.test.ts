@@ -1,0 +1,62 @@
+import { describe, expect, it } from 'vitest';
+import { SettingsSchema } from './settings.ts';
+
+describe('SettingsSchema defaults', () => {
+  it('turns an empty object into a complete config', () => {
+    const settings = SettingsSchema.parse({});
+    expect(settings.tts).toEqual({
+      binaryPath: 'apps/studio/tts-python/.venv/bin/python',
+      voice: 'af_heart',
+      speed: 1,
+    });
+    expect(settings.render).toEqual({
+      concurrency: 4,
+      presets: {
+        draft: { width: 540, height: 960, fps: 15 },
+        final: { width: 1080, height: 1920, fps: 30 },
+      },
+    });
+    expect(settings.llm.models.director).toBe('deepseek-v4-pro');
+  });
+
+  it('fills defaults around a partial override', () => {
+    const settings = SettingsSchema.parse({
+      render: { presets: { draft: { width: 720, height: 1280, fps: 24 } } },
+    });
+    expect(settings.render.presets.draft.width).toBe(720);
+    expect(settings.render.presets.final.fps).toBe(30);
+    expect(settings.render.concurrency).toBe(4);
+  });
+
+  it('is idempotent: parsing its own output yields the same value', () => {
+    const once = SettingsSchema.parse({});
+    expect(SettingsSchema.parse(once)).toEqual(once);
+  });
+});
+
+describe('SettingsSchema validation', () => {
+  const paths = (input: unknown): string[] => {
+    const result = SettingsSchema.safeParse(input);
+    return result.success ? [] : result.error.issues.map((i) => i.path.join('.'));
+  };
+
+  it('rejects unknown keys at any level so typos fail loudly', () => {
+    expect(paths({ rendr: {} })).toEqual(['']);
+    expect(paths({ tts: { voise: 'x' } })).toEqual(['tts']);
+  });
+
+  it('rejects odd preset dimensions and out-of-range fps', () => {
+    expect(
+      paths({ render: { presets: { final: { width: 1081, height: 1920, fps: 0 } } } }),
+    ).toEqual(['render.presets.final.width', 'render.presets.final.fps']);
+  });
+
+  it('rejects non-integer or zero render concurrency', () => {
+    expect(paths({ render: { concurrency: 0 } })).toEqual(['render.concurrency']);
+    expect(paths({ render: { concurrency: 1.5 } })).toEqual(['render.concurrency']);
+  });
+
+  it('rejects an empty voice and out-of-range speed', () => {
+    expect(paths({ tts: { voice: ' ', speed: 3 } })).toEqual(['tts.voice', 'tts.speed']);
+  });
+});
