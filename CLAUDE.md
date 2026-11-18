@@ -118,6 +118,25 @@ Commands (from the repo root): `pnpm dev` (server, worker and Vite via `concurre
   `topics/<topic_id>/sources/<source_id>/<content_hash>.txt`). The DB stores paths relative to the
   data dir; use the helpers in `#core/data-files.ts`.
 
+## Server and worker hand-off
+
+Server and worker are separate processes that share only the SQLite file. **They talk through
+tables, not IPC**: no channel exists between them under `concurrently`, and either can restart
+without the other noticing.
+
+- **`jobs`** (server → worker). The server inserts a job in the same transaction as the rows it
+  acts on (e.g. `startRun` writes the run, its first job and a `status` event atomically). The
+  worker claims and runs jobs by `type` from a handler registry.
+- **`run_events`** (worker → server). Append-only progress log. `GET /api/events` tails it by `id`
+  and relays it over SSE; the event id is the SSE id, so `Last-Event-ID` resumes a stream. With
+  `runId` a stream replays that run from its start; without it, it streams new events for all runs.
+
+API conventions: routes under `/api`, inputs validated with the `validate()` helper against schemas
+from `packages/shared/src/api`, list responses wrapped as `{ items }`, and every error is
+`ApiErrorSchema` (`{ error: { code, message, issues? } }`). Domain errors from core
+(`NotFoundError`, `RunHasExportsError`) map to statuses in `src/server/errors.ts`. Services that
+compose repositories live in `src/core/services`; handlers call them or a repository directly.
+
 ## Code conventions
 
 - TypeScript strict everywhere (`strict`, `noUncheckedIndexedAccess`). Shared base:

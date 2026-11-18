@@ -4,14 +4,18 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 
 ## Open
 
-- [ ] **P0.5 — Job hand-off between server and worker.** Add a `jobs` table to the Drizzle
-      schema (P0.3 is done) polled by the worker. Do not use `node:sqlite`. The worker's polling seam already exists: `startPollLoop` in
-      `apps/studio/src/worker/poll-loop.ts`, wired with a no-op `idleTick` in
-      `apps/studio/src/worker/index.ts`. Replace that tick with claim-and-run.
-- [ ] **P0.5 — Progress transport.** Choose between an events table and IPC for worker → server
-      progress (relayed over SSE), and document the choice in CLAUDE.md. Server and worker run
-      as separate processes under `concurrently`, so IPC would need a channel between them; an
-      events table needs none.
+- [ ] **P0.5 — Claim and run jobs.** The `jobs` table exists with every column P0.5 needs (do
+      not regenerate it); the worker already opens the DB. Replace the no-op `idleTick` in
+      `apps/studio/src/worker/index.ts` (polling seam: `startPollLoop` in `poll-loop.ts`) with
+      claim-and-run, set `locked_by`, honour `run_after`, and release stale locks on startup.
+- [ ] **P0.5 — Unknown job types fail.** A claimed job whose `type` has no registered handler
+      (e.g. the `ingest` job `POST /api/runs` enqueues, before its handler exists) must be marked
+      `failed` with `no handler for job type <type>`, not left queued or retried forever.
+- [ ] **P0.5 — Run event payloads.** `run_events.payload` is an open record for now. Define a
+      payload schema per `RUN_EVENT_TYPES` entry (discriminated union in `packages/shared`) with
+      the progress emitter, and validate on write.
+- [ ] **P1D.2 — List pagination.** `GET /api/runs` and `GET /api/topics` return everything
+      (newest first) wrapped as `{ items }`. Add cursor pagination once lists grow.
 - [ ] **P0.2 / P1C.1 — Missing API key.** `DEEPSEEK_API_KEY` is optional at boot so `pnpm dev`
       works without a key. The LLM client must fail fast with a clear error when the key is
       missing.
@@ -25,20 +29,20 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       response and treat a masked value in PUT as "unchanged". Show when `DEEPSEEK_API_KEY` in
       `.env` overrides the stored key. Save via `saveConfig()` from `#core/config.ts`, passing
       settings (not the resolved `AppConfig`, which carries the env key).
-- [ ] **P0.4 — Serve the SPA in prod.** Serve `apps/studio/dist/web` from Hono. `pnpm start` runs
-      only the built server and worker for now; in dev the SPA is served by Vite, which proxies
-      `/api`.
 - [ ] **P1A.3 — Remotion compatibility.**
   - Verify Remotion's bundler compiles `@explainer-studio/shared` from TS source: `exports`
     points at `src/index.ts` and imports use explicit `.ts` extensions, so check its loader
     transpiles files outside `packages/renderer`.
   - Check Zod version compatibility with Remotion's schema props: Remotion's `schema` support
     has historically required Zod 3, while `shared` uses Zod 4.
-- [ ] **P0.4 — DB in server and worker.** Open the DB with `openDatabase(dbPathFor(dataDir))`
-      from `#core/db/client.ts` in both processes; add topics/series repositories next to
-      `#core/db/repositories/runs.ts`.
 - [ ] **P1C ingest — Pin sources per run.** Call `recordRunSources` when a run starts research,
       and write extracted text via `sourceTextPath` so re-fetches never overwrite older versions.
+- [ ] **P1C.12 — Asset drafts.** Reuse the `assets` table (status `draft | approved | rejected`)
+      for drafts; do not add a separate `asset_drafts` table. Variant SVGs live in files, listed
+      in a `variants` column on the asset row.
+- [ ] **P1C.15 — Custom element review gate.** The run must pause for custom element review even
+      with auto-approve on. Add the gate/pause value (`custom_elements`) to `GATE_IDS` then, and
+      decide whether `AutoApproveSchema` excludes it (it is never auto-approved).
 - [ ] **DB — Migrations that rebuild tables.** Drizzle's SQLite migrator runs each migration in a
       transaction, where `PRAGMA foreign_keys=OFF` is a no-op. Once migrations are append-only,
       a generated migration that recreates a table with inbound FKs (cascade deletes) needs

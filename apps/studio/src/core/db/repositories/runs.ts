@@ -3,9 +3,9 @@ import {
   type RunSettings,
   type RunSettingsInput,
 } from '@explainer-studio/shared';
-import { and, eq, isNotNull } from 'drizzle-orm';
-import type { Db } from '../client.ts';
-import { runSources, runs, sources } from '../schema.ts';
+import { and, desc, eq, isNotNull } from 'drizzle-orm';
+import type { Db, Executor } from '../client.ts';
+import { exports, runSources, runs, sources } from '../schema.ts';
 
 type RunRow = typeof runs.$inferSelect;
 
@@ -22,7 +22,7 @@ function toRun(row: RunRow): Run {
   return { ...row, settings: RunSettingsSchema.parse(row.settings) };
 }
 
-export function createRun(db: Db, input: NewRun): Run {
+export function createRun(db: Executor, input: NewRun): Run {
   const settings = RunSettingsSchema.parse(input.settings ?? {});
   const row = db
     .insert(runs)
@@ -32,9 +32,34 @@ export function createRun(db: Db, input: NewRun): Run {
   return toRun(row);
 }
 
-export function getRun(db: Db, id: number): Run | undefined {
+export function getRun(db: Executor, id: number): Run | undefined {
   const row = db.select().from(runs).where(eq(runs.id, id)).get();
   return row && toRun(row);
+}
+
+/** Newest first. */
+export function listRuns(db: Executor): Run[] {
+  return db.select().from(runs).orderBy(desc(runs.id)).all().map(toRun);
+}
+
+/** An exported run anchors variety memory (usage history), so it can never be deleted. */
+export class RunHasExportsError extends Error {
+  constructor(readonly runId: number) {
+    super(`Run ${runId} has exports and cannot be deleted`);
+    this.name = 'RunHasExportsError';
+  }
+}
+
+/**
+ * Deletes a run that never exported; its steps, gates, specs and usage history cascade. Returns
+ * false for an unknown id. The `exports` FK is `restrict`, so the DB enforces this too.
+ */
+export function deleteRun(db: Db, id: number): boolean {
+  return db.transaction((tx) => {
+    const exported = tx.select({ id: exports.id }).from(exports).where(eq(exports.runId, id)).get();
+    if (exported) throw new RunHasExportsError(id);
+    return tx.delete(runs).where(eq(runs.id, id)).run().changes > 0;
+  });
 }
 
 export interface RunSourceVersion {
@@ -66,7 +91,7 @@ export function recordRunSources(db: Db, runId: number): RunSourceVersion[] {
   });
 }
 
-export function listRunSources(db: Pick<Db, 'select'>, runId: number): RunSourceVersion[] {
+export function listRunSources(db: Executor, runId: number): RunSourceVersion[] {
   return db
     .select({ sourceId: runSources.sourceId, contentHash: runSources.contentHash })
     .from(runSources)

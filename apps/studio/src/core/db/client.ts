@@ -6,6 +6,12 @@ import * as schema from './schema.ts';
 
 export type Db = BetterSQLite3Database<typeof schema> & { $client: Database.Database };
 
+/**
+ * A connection or an open transaction. Repository functions take this so a service can compose
+ * several of them in one transaction.
+ */
+export type Executor = Pick<Db, 'select' | 'insert' | 'update' | 'delete'>;
+
 export const DB_FILENAME = 'studio.db';
 
 /** Generated SQL migrations, relative to the workspace root. */

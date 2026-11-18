@@ -134,6 +134,13 @@ Rules for this task:
 - Finish with a short summary: what changed, how to verify, any open questions.
 ```
 
+**Workflow and review checkpoints**
+
+- One commit per prompt, with the message starting with the prompt id (e.g. `P1A.4: HUD layer`). Committing to `main` or opening a PR per prompt both work.
+- Must-review checkpoints (send the commit or PR link before continuing): P0.1 (done), P1A.1 VideoSpec schema, P1A.5 primitive registry, P1A.9 layout engine, P1C.5 Director prompt, and the end of every phase.
+- Paste review follow-ups at the start of the next Claude Code session; it logs anything deferred in `docs/TODO.md`.
+- Whenever this doc changes, export it into the repo (overwrite `Tech Explainer Studio Design and Claude Code Prompts.md`) so Claude Code always reads the current version.
+
 ## Phase 0: Foundation
 
 Goal: an empty but running app. One command starts the server, the worker and the SPA; jobs flow from UI to worker and progress flows back.
@@ -710,7 +717,8 @@ can't render yet). Missing primitives go into the backlog with a link to the ref
 Retrieval for the Director: pick 2–3 references by topic class and device overlap (simple scoring,
 no embeddings needed yet).
 Seed with the four DevMonk breakdowns (Uber heat map, Cricbuzz, BookMyShow, Flipkart Minutes) as
-text fixtures in data/seed/references/.
+text files in apps/studio/seed/references/ (committed to the repo, because data/ is gitignored).
+The four breakdown files are provided alongside this design doc.
 Acceptance: seeding produces four valid records; retrieval returns sensible picks for two test topics.
 ```
 
@@ -725,8 +733,9 @@ Implement asset drafting in the worker, using the "asset" model role from config
   foreignObject, images, text, gradients and filters; enforce the house viewBox, a maximum element
   count and file size; colours must be theme tokens (currentColor or the CSS variables named in the
   style doc). Retry failed variants up to 2 times.
-- Store drafts as pending (asset_drafts table: name, description, family, variants, status
-  pending | approved | rejected, the run ids that requested it, notes).
+- Store drafts in the existing assets table with status draft (no separate drafts table): name,
+  description, family, variant SVG files listed in a variants column, status
+  draft | approved | rejected, the run ids that requested it, notes.
 - approveDraft(draftId, variantIndex, tags) moves the chosen variant into the asset library;
   rejectDraft records a note; regenerateDraft(draftId, note) makes new variants.
 - suggestSwap(name, description): rank existing assets by word overlap on name, tags and
@@ -765,7 +774,8 @@ director, scriptwriter, generator (one beat or all beats), curator review.
   surrounding prose), validate it with the same schema, registry and layout checks as the in-app
   agent; on failure return readable errors plus a ready-to-paste "fix these errors" message for the
   chat model.
-- On success save a spec version marked source = external:<label> and resume the pipeline from the
+- On success save a spec version with created_by = external and source_label = <label> (e.g.
+  chatgpt), and resume the pipeline from the
   next stage. The Curator still reviews imported work.
 - A run can mix in-app and external stages.
 Acceptance: export/import round-trip tests per stage with fixture outputs; invalid JSON produces a
@@ -789,6 +799,7 @@ Add custom elements: a controlled way to get a one-off visual the library can't 
 - A custom-element agent (generator model role) drafts it from the request, using docs/asset-style.md
   and 2 approved custom elements as examples; validate, render a short preview clip per state, and
   retry on errors.
+- Add a custom_elements gate id (after generate, before curate) to the shared gate list.
 - Always reviewed: the run pauses at a "custom element review" step after generation, even with
   auto-approve on. A setting can instead use the fallback and continue, leaving the element pending.
 - Review API: approve for this video; refine with feedback (new version that keeps what was liked);
@@ -801,7 +812,7 @@ malicious SVG is rejected; the run pauses and resumes after approval; refine cre
 
 ## Phase 1D: UI
 
-Goal: you can start a run, watch it, review and edit at every gate, preview, and export, all from the browser.
+Goal: you can start a run, watch it, review and edit at every gate, preview, and export, all from the browser. Each prompt lists the API endpoints it needs. Any that don't exist yet are added in the same prompt as thin Hono handlers with Zod-validated input from packages/shared, calling services in core; no heavy work in handlers.
 
 **P1D.1 New run**
 
@@ -810,6 +821,8 @@ Build the New Run page: topic title, series (System Design | AI), free-text angl
 (multi-line) and file uploads (.md .txt .pdf), target length (auto or 45–90 s), per-gate
 auto-approve checkboxes with an "auto-approve all" toggle, and an estimated cost range from recent
 runs. Submitting creates the topic, sources and run, then navigates to the run page.
+Endpoints: POST /api/topics, POST /api/topics/:id/sources (URLs + multipart upload), POST /api/runs,
+GET /api/runs/estimate (cost range from recent runs).
 Acceptance: creating a run enqueues ingestion and shows it on the dashboard.
 ```
 
@@ -819,6 +832,8 @@ Acceptance: creating a run enqueues ingestion and shows it on the dashboard.
 Build the Run page: a vertical stage timeline (ingest … export) with live status via SSE, elapsed
 time per stage, a cost meter (total and per agent), expandable step logs including LLM prompt and
 response viewers, and a banner when a gate is waiting. Include source status (fetched, failed + retry).
+Endpoints: GET /api/runs/:id (stages, steps, costs), GET /api/runs/:id/llm-calls,
+GET /api/llm-calls/:id (prompt and response files), POST /api/sources/:id/retry, SSE /api/events.
 Acceptance: a dry-run pipeline updates the page live without reloads.
 ```
 
@@ -832,6 +847,8 @@ Build the gate review views for gate 1 (research notes) and gate 2 (beat sheet):
   and payoff highlighted, missing primitive requests listed; reorder/delete beats, edit intents.
 Buttons: Approve, Save edits and approve, Regenerate with feedback (whole stage). Leaving a note
 offers to propose a style rule (P1C.10).
+Endpoints: GET /api/runs/:id/gates/:gate, POST /api/runs/:id/gates/:gate (approve | edit |
+regenerate, from P1C.9), POST /api/memory/rules/propose.
 Acceptance: edits create a new spec version and the run continues from the right stage.
 ```
 
@@ -845,6 +862,9 @@ Build the gate 3 Scene editor, beat by beat:
 - right: tabs "Form" (auto-generated from primitive/pattern Zod schemas: elements, props, events with a
   word picker for anchors, focus, transition) and "JSON" (Monaco editor with schema validation).
 Saving validates, runs layout, re-renders that beat's still.
+Endpoints: GET /api/runs/:id/spec, PUT /api/runs/:id/spec (validates, saves a new version),
+GET /api/catalogue (primitive and pattern schemas as JSON Schema for the form),
+POST /api/runs/:id/beats/:beatId/still.
 Acceptance: editing a tag label in the form and a prop in JSON both persist and refresh the still.
 ```
 
@@ -854,6 +874,9 @@ Acceptance: editing a tag label in the form and a prop in JSON both persist and 
 Build gate 4 preview: the draft MP4 player with chapter markers, a strip of beat stills, and per-beat
 actions: re-render beat, regenerate beat with feedback (choose: narration, visuals, or both), and
 view diff between spec versions for that beat. Then Approve final render.
+Endpoints: GET /api/runs/:id/draft (video + beat stills), POST /api/runs/:id/beats/:beatId/render,
+POST /api/runs/:id/beats/:beatId/regenerate, GET /api/runs/:id/spec/diff?beat=&from=&to=,
+POST /api/runs/:id/render-final.
 Acceptance: regenerating one beat re-renders only that beat and the player updates.
 ```
 
@@ -870,6 +893,9 @@ Build the Assets page:
 - "Draft new asset": name + description, calls P1C.12.
 - "Seed from topic list": paste topics, start P1C.13, then review its drafts in the queue.
 - Logo slot uploads are per video and marked as user-supplied.
+Endpoints: GET /api/assets, GET/PUT /api/assets/:id, POST /api/assets (upload), GET /api/assets/drafts,
+POST /api/assets/drafts, POST /api/assets/drafts/:id/(approve|reject|regenerate),
+POST /api/assets/drafts/bulk-approve, POST /api/assets/seed.
 Acceptance: approving a pending draft makes it usable in the next render of the run that asked for it;
 bulk approve works on 20+ drafts.
 ```
@@ -881,6 +907,8 @@ Build the References page: list reference videos, add one by pasting a breakdown
 screenshots), view the extracted record and edit it. Build a Backlog page listing missing primitive
 requests grouped by name with counts and links to the runs/references that asked for them, with
 status (open, planned, built, rejected).
+Endpoints: GET/POST /api/references, GET/PUT /api/references/:id, GET /api/backlog,
+PATCH /api/backlog/:id.
 Acceptance: adding a reference creates backlog entries for its missing primitives.
 ```
 
@@ -892,6 +920,10 @@ usage history charts (devices/layouts/patterns over the last N videos).
 Build Settings: LLM base URL/key (masked), model per role, price table, TTS voice and speed with a
 "test voice" button, pronunciation dictionary editor, render concurrency and presets, channel handle,
 series names, tags and accent colours.
+Endpoints: GET /api/memory/rules, PATCH /api/memory/rules/:id, GET /api/memory/usage,
+GET/PUT /api/settings (API key never returned: masked in GET, a masked value in PUT means unchanged;
+show when DEEPSEEK_API_KEY in .env overrides it), POST /api/settings/test-voice,
+GET/PUT /api/pronunciations, GET/PUT /api/series/:id (label, tag, accent colour).
 Acceptance: changing the model for a role takes effect on the next run; test voice plays audio.
 ```
 
@@ -901,6 +933,8 @@ Acceptance: changing the model for a role takes effect on the next run; test voi
 Build Exports: list finished videos with thumbnail, duration, cost, date; download MP4 and SRT;
 copy a suggested title, description and hashtags (generated by the scriptwriter role at export time,
 shown for you to edit; nothing is uploaded).
+Endpoints: GET /api/exports, GET /api/exports/:id/(mp4|srt) (download),
+POST /api/exports/:id/metadata (title, description, hashtags).
 Acceptance: a finished dry-run video appears with working downloads.
 ```
 
@@ -913,6 +947,8 @@ swap), and actions: approve a draft (inline variant picker), accept the suggeste
 existing asset, or skip (keep the placeholder). Each action updates the affected beats and re-renders
 their stills. With auto-approve on, the run uses swaps or placeholders and leaves drafts pending in
 the Assets queue.
+Endpoints: GET /api/runs/:id/missing-assets, POST /api/runs/:id/missing-assets/:name
+(approve-draft | swap | skip).
 Acceptance: resolving one missing asset updates the still of every beat that used it.
 ```
 
@@ -923,6 +959,7 @@ At each gate and on the run page, add "Do this stage externally": the prompt pac
 clipboard and its size, a paste box for the returned output, validation results, a "Copy fix
 message" button when there are errors, and "Import and continue". External stages get a badge in
 the run timeline and in spec version history.
+Endpoints: GET /api/runs/:id/stages/:stage/prompt-pack, POST /api/runs/:id/stages/:stage/import.
 Acceptance: a round trip with pasted fixture JSON resumes the run from the right stage.
 ```
 
@@ -936,9 +973,23 @@ Build the Custom element review screen, opened when a run pauses for it:
 - "Refine": text feedback creates a new version; version history with side-by-side compare;
 - a JSON editor (SVG, states, animations) with live preview and validation errors;
 - actions: Approve for this video, Approve and save to library, Reject (use the fallback).
+Endpoints: GET /api/runs/:id/custom-elements, PUT /api/custom-elements/:id,
+POST /api/custom-elements/:id/(refine|approve|approve-to-library|reject).
 Acceptance: refine twice, compare versions, approve; the run resumes and the beat renders with the
 approved element.
 ```
+
+## Phase 1 exit criteria
+
+Phase 1 is done when all of these hold; phase 2 starts only after.
+
+- [ ] Asset seeding pass done for the first topic batch (P1C.13) and its drafts reviewed.
+- [ ] Three real videos made end to end from the UI: one System Design, one AI, one internals topic.
+- [ ] Each passed the gate reviews with only small edits, no hand-rewritten scenes.
+- [ ] Watched back to back: no two share the same hook device, main pattern sequence or ending, and the Memory page confirms it.
+- [ ] Cost per video recorded (target under about $0.30) and final render time on the M5 noted.
+- [ ] Every fact and number in each video traces to a cited source in the research notes.
+- [ ] Backlog reviewed and the top missing primitives chosen for the next build round.
 
 ## Phase 2 and 3
 

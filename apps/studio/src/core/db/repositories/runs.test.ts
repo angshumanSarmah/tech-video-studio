@@ -1,9 +1,16 @@
 import { eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { contentHash, sourceTextPath } from '../../data-files.ts';
-import { series, sources, topics } from '../schema.ts';
+import { exports, series, sources, specVersions, topics, usageHistory } from '../schema.ts';
 import { createTestDb, type TestDb } from '../testing.ts';
-import { createRun, getRun, listRunSources, recordRunSources } from './runs.ts';
+import {
+  createRun,
+  deleteRun,
+  getRun,
+  listRunSources,
+  recordRunSources,
+  RunHasExportsError,
+} from './runs.ts';
 
 let t: TestDb;
 let topicId: number;
@@ -102,5 +109,82 @@ describe('recordRunSources', () => {
 
   it('throws for an unknown run', () => {
     expect(() => recordRunSources(t.db, 999)).toThrow(/Run 999 not found/);
+  });
+});
+
+describe('deleteRun', () => {
+  function addUsage(runId: number): void {
+    t.db.insert(usageHistory).values({ runId, kind: 'device', value: 'cold-open' }).run();
+  }
+
+  function addExport(runId: number): void {
+    t.db
+      .insert(exports)
+      .values({
+        runId,
+        mp4Path: 'exports/a.mp4',
+        srtPath: 'exports/a.srt',
+        durationMs: 60_000,
+        costUsd: 0.2,
+      })
+      .run();
+  }
+
+  function usageRows(runId: number): number {
+    return t.db.select().from(usageHistory).where(eq(usageHistory.runId, runId)).all().length;
+  }
+
+  it('deletes a run that never exported and cascades its usage history', () => {
+    const run = createRun(t.db, { topicId, seriesId });
+    addUsage(run.id);
+
+    expect(deleteRun(t.db, run.id)).toBe(true);
+    expect(getRun(t.db, run.id)).toBeUndefined();
+    expect(usageRows(run.id)).toBe(0);
+  });
+
+  it('refuses to delete an exported run and keeps its usage history', () => {
+    const run = createRun(t.db, { topicId, seriesId });
+    addUsage(run.id);
+    addExport(run.id);
+
+    expect(() => deleteRun(t.db, run.id)).toThrow(RunHasExportsError);
+    expect(getRun(t.db, run.id)).toBeDefined();
+    expect(usageRows(run.id)).toBe(1);
+  });
+
+  it('is enforced by the database for direct deletes too', () => {
+    const run = createRun(t.db, { topicId, seriesId });
+    addExport(run.id);
+
+    expect(() => t.db.$client.prepare('delete from runs where id = ?').run(run.id)).toThrow(
+      /FOREIGN KEY/,
+    );
+  });
+
+  it('returns false for an unknown id', () => {
+    expect(deleteRun(t.db, 999)).toBe(false);
+  });
+});
+
+describe('spec_versions source label', () => {
+  function insertSpec(createdBy: 'agent' | 'external', sourceLabel: string | null): void {
+    const run = createRun(t.db, { topicId, seriesId });
+    t.db
+      .insert(specVersions)
+      .values({ runId: run.id, version: 1, jsonPath: 'runs/1/spec.json', createdBy, sourceLabel })
+      .run();
+  }
+
+  it('accepts an external spec with a label and an agent spec without one', () => {
+    expect(() => insertSpec('external', 'chatgpt')).not.toThrow();
+    expect(() => insertSpec('agent', null)).not.toThrow();
+  });
+
+  it.each([
+    ['external', null],
+    ['agent', 'chatgpt'],
+  ] as const)('rejects created_by=%s with source_label=%s', (createdBy, label) => {
+    expect(() => insertSpec(createdBy, label)).toThrow(/CHECK constraint/);
   });
 });

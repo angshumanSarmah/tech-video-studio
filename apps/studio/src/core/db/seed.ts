@@ -4,8 +4,8 @@ import { channels, series } from './schema.ts';
 export const DEFAULT_CHANNEL = { name: 'Explainer Studio' } as const;
 
 export const DEFAULT_SERIES = [
-  { name: 'System Design', tag: 'system-design', accentColour: '#4F8CFF' },
-  { name: 'AI', tag: 'ai', accentColour: '#B07CFF' },
+  { name: 'System Design', tag: 'system-design', label: 'SYSTEM DESIGN', accentColour: '#4F8CFF' },
+  { name: 'AI', tag: 'ai', label: 'AI', accentColour: '#B07CFF' },
 ] as const;
 
 /**
