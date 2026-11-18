@@ -13,3 +13,4 @@ export * from './domain/events.ts';
 export * from './domain/job.ts';
 export * from './domain/library.ts';
 export * from './domain/run.ts';
+export * from './spec/index.ts';
