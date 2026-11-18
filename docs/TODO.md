@@ -60,7 +60,15 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       (e.g. `<instance>.<part>`) and extend the target check in `spec/integrity/scenes.ts`.
 - [ ] **P1B.1 / P1B.2 — Word contract.** Word anchors and `timing.beats[].words` count words with
       `narrationWords()` from `packages/shared`. Map TTS tokens back onto that list so the
-      timed word count equals it (enforced by `validateVideoSpec`).
+      timed word count equals it (enforced by `validateVideoSpec`). Cases the mapping must
+      handle, where one narration word is several TTS tokens (pinned in `narration.test.ts`):
+  - hyphenated words: `write-through` is one word;
+  - numbers with separators or decimals: `1,00,000` and `19.4` are one word each, though TTS
+    reads them as several;
+  - em dashes without spaces: `fast—cheap` is one word, `fast — cheap` is two.
+- [ ] **P1C.6 — Dashes in narration.** The Scriptwriter puts spaces around dashes (`fast — cheap`)
+      so each side is its own word and can be an anchor. Add it to the Scriptwriter's DO rules
+      and have the normalizer or a deterministic check flag unspaced dashes.
 - [ ] **P1C.5 / P1C.6 — Research note references.** Check that `story.beats[].factIds` and
       `script[].statCards[].sourceRef` resolve to ids in the run's research notes. These are the
       only spec checks that need research notes; everything else is in `validateVideoSpec`.

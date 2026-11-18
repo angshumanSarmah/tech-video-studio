@@ -1,13 +1,9 @@
 import type { VideoSpec } from '../shape.ts';
 import { findDuplicateIds, unknownReference, type SpecIssue } from './issue.ts';
 
-/** Allowed drift between the beats' target seconds and the video's target length. */
-export const BEAT_SECONDS_TOLERANCE = 0.1;
-
 type Story = VideoSpec['story'];
 
-export function checkStory(spec: VideoSpec): SpecIssue[] {
-  const { story } = spec;
+export function checkStory({ story }: VideoSpec): SpecIssue[] {
   return [
     ...findDuplicateIds(
       story.chapters.map((c) => c.id),
@@ -20,7 +16,6 @@ export function checkStory(spec: VideoSpec): SpecIssue[] {
     ...checkChapterRefs(story),
     ...checkBeatRefs(story),
     ...checkPlantedQuestion(story),
-    ...checkBeatSeconds(spec),
   ];
 }
 
@@ -82,19 +77,6 @@ function checkPlantedQuestion(story: Story): SpecIssue[] {
       path: ['story', 'plantedQuestion', 'payoffBeatId'],
       code: 'payoff_not_after_question',
       message: `Payoff beat "${question.payoffBeatId}" must come after "${question.beatId}".`,
-    },
-  ];
-}
-
-function checkBeatSeconds(spec: VideoSpec): SpecIssue[] {
-  const target = spec.meta.targetLengthSec;
-  const total = spec.story.beats.reduce((sum, beat) => sum + beat.targetSec, 0);
-  if (Math.abs(total - target) <= target * BEAT_SECONDS_TOLERANCE) return [];
-  return [
-    {
-      path: ['story', 'beats'],
-      code: 'beat_seconds_mismatch',
-      message: `Beat targetSec values sum to ${total} s; expected ${target} s ±${BEAT_SECONDS_TOLERANCE * 100}%.`,
     },
   ];
 }

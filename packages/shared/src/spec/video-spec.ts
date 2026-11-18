@@ -1,10 +1,10 @@
 import type { z } from 'zod';
-import { findSpecIssues } from './integrity/index.ts';
+import { findSpecErrors } from './integrity/index.ts';
 import { RenderableVideoSpecShapeSchema, VideoSpecShapeSchema, type VideoSpec } from './shape.ts';
 
 /** Reports cross-reference issues as custom Zod issues; `params.code` carries the issue code. */
 function addSpecIssues(spec: VideoSpec, ctx: z.RefinementCtx): void {
-  for (const issue of findSpecIssues(spec)) {
+  for (const issue of findSpecErrors(spec)) {
     ctx.addIssue({
       code: 'custom',
       path: issue.path,
