@@ -15,8 +15,9 @@ import type { Registries } from './registries.ts';
 
 /**
  * Warnings that need each element's events in time order across its `continuesPrevious` chain:
- * a primitive's own `eventWarnings`, overlays that show at the same time (`overlay_overlap`), and
- * contained children that act before their container enters (`child_before_container`). Times
+ * a primitive's own `eventWarnings`, overlays that show at the same time (`overlay_overlap`),
+ * contained children that act before their container enters (`child_before_container`), and
+ * endings with nothing held to end (`recover_without_reject`, `release_without_lock`). Times
  * come from the timing layer, or are estimated from the script; without a script only the
  * primitives' own checks run.
  */
@@ -51,6 +52,7 @@ export function findTimelineWarnings(spec: VideoSpec, registries: Registries): S
     ...placed.flatMap(primitiveWarnings),
     ...overlayOverlapWarnings(placed),
     ...placed.flatMap((p) => childBeforeContainerWarnings(p, placed)),
+    ...placed.flatMap(endingWarnings),
   ];
 }
 
@@ -215,6 +217,53 @@ function firstEnterSec(events: readonly TimedEvent[]): number | undefined {
     .filter((e) => (e.action === 'enter' || e.action === 'exit') && !e.parts && e.sec !== undefined)
     .sort((a, b) => (a.sec ?? 0) - (b.sec ?? 0))[0];
   return first?.action === 'enter' ? first.sec : undefined;
+}
+
+/** Each ending action, the held action it ends, and the warning when nothing is held. */
+const ENDINGS = [
+  { ending: 'recover', held: 'reject', code: 'recover_without_reject' },
+  { ending: 'release', held: 'lock', code: 'release_without_lock' },
+] as const;
+
+/**
+ * A `recover` (`release`) ends a held `reject` (`lock`) on the same element or part; one with no
+ * earlier reject (lock) still held there does nothing. Whole-element and part states are apart.
+ */
+function endingWarnings(p: PlacedElement): SpecError[] {
+  const ordered = inTimeOrder(p.events);
+  const tracks = new Set(ordered.flatMap((e) => e.parts ?? ['']));
+  return ENDINGS.flatMap(({ ending, held, code }) =>
+    [...tracks].flatMap((track) => {
+      let heldSince: TimedEvent | undefined;
+      const problems: SpecError[] = [];
+      for (const event of ordered.filter((e) => (e.parts ?? ['']).includes(track))) {
+        if (event.action === held) heldSince = event;
+        if (event.action !== ending) continue;
+        if (!heldSince || !strictlyBefore(heldSince, event)) {
+          const what = track ? `part "${track}" of "${p.id}"` : `"${p.id}"`;
+          problems.push({
+            path: toJsonPath(event.path),
+            code,
+            message:
+              `${what} ${ending}s with no ${held} held before it, so it does nothing. ` +
+              `A ${ending} only ends an earlier ${held} on the same element or part.`,
+          });
+        }
+        heldSince = undefined;
+      }
+      return problems;
+    }),
+  );
+}
+
+/** By resolved seconds when every event has them; otherwise in spec order. */
+function inTimeOrder(events: readonly TimedEvent[]): TimedEvent[] {
+  if (events.some((e) => e.sec === undefined)) return [...events];
+  return [...events].sort((a, b) => (a.sec ?? 0) - (b.sec ?? 0));
+}
+
+function strictlyBefore(a: TimedEvent, b: TimedEvent): boolean {
+  return a.sec === undefined || b.sec === undefined || a.sec < b.sec - OVERLAP_EPSILON_SEC;
 }
 
 function secs(sec: number): string {

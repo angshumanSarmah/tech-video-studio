@@ -18,6 +18,7 @@ export const SPEC_ERROR_CODES = [
   'payoff_not_after_question',
   'too_many_formula_cards',
   'continues_without_previous',
+  'invalid_zoom_from',
   'anchor_out_of_range',
   'unsupported_action',
   'clock_keyframe_order',
@@ -28,7 +29,11 @@ export const SPEC_ERROR_CODES = [
 export type SpecErrorCode = (typeof SPEC_ERROR_CODES)[number];
 
 /** `unknown_asset` is raised by the renderer's registry checks (`withRegistryChecks`). */
-export const SPEC_WARNING_CODES = ['target_length_mismatch', 'unknown_asset'] as const;
+export const SPEC_WARNING_CODES = [
+  'target_length_mismatch',
+  'transition_on_continuing_beat',
+  'unknown_asset',
+] as const;
 export type SpecWarningCode = (typeof SPEC_WARNING_CODES)[number];
 
 export type SpecIssueCode = SpecErrorCode | SpecWarningCode;

@@ -107,7 +107,7 @@
     },
     {
       "beatId": "node-card",
-      "narration": "A node card is one component of the system. Its crown marks the leader; the crown steps away and returns. It lights up when it matters, pulses under load, locks while it holds a resource, crashes with a reject, recovers, and then dims."
+      "narration": "A node card is one component of the system. Its crown marks the leader; the crown steps away and returns. It lights up when it matters, pulses under load, locks while it holds a resource, releases it, crashes with a reject, recovers, and then dims."
     },
     {
       "beatId": "icon",
@@ -252,6 +252,14 @@
             "text": "locks"
           },
           "action": "lock",
+          "targets": ["node-card"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "releases"
+          },
+          "action": "release",
           "targets": ["node-card"]
         },
         {

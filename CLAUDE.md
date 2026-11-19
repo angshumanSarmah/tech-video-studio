@@ -119,6 +119,10 @@ Dev ports: the UI is on http://localhost:4310 (`WEB_PORT`, Vite, `strictPort`) a
   both count words this way.
 - `meta.format` is `full` (default) or `card` (title header, 16:9 diagram window, headline,
   subtitles). It is a run setting: the LLM `meta` schema leaves it out.
+- A scene's `transitionIn` (cut, fade, slide, zoom-in, zoom-out) applies only to a beat that
+  starts a new board; on a `continuesPrevious` beat it is ignored and warned
+  (`transition_on_continuing_beat`). `zoomFrom` (with `zoom-in` only, never on a continuing or
+  first beat; `invalid_zoom_from`) names an element of the previous board: a semantic zoom.
 
 ## Database
 
@@ -410,7 +414,7 @@ message }` for the Curator): `too_many_elements` (mode `maxUnits`), `text_too_sm
   component, wired in `primitives/components.ts` (typecheck fails when a registered id has no
   component). Building the registry rejects duplicate or non-slug ids and examples that fail their
   schema. Every primitive needs a beat on exactly one primitive board using each action and part
-  action it supports (a test enforces it; `exit` and `recover` once per board), and a sheet in `docs/primitives/`
+  action it supports (a test enforces it; `exit`, `recover` and `release` once per board), and a sheet in `docs/primitives/`
   (`still:primitives <id>`; sheets shrink their panels to fit up to 10 events).
 - **Shared pieces:** `common-props.ts` (semantic, asset id, one-line text, part list and element
   ref schemas), `surface.ts` (card surface), `badge.tsx` (corner badge; `SMALL_BADGE` on small
@@ -457,15 +461,19 @@ message }` for the Curator): `too_many_elements` (mode `maxUnits`), `text_too_sm
   recover starts, `actions.reject` reads 0, so components drop their problem look without code
   of their own, and the element plays a short settle bump (emphasis; a ripple in mark themes via
   `markLevels`) in its own colour. `definePrimitive` adds `recover` wherever `reject` is
-  supported (`withRecover`, element and parts); definitions never list it. Boards exercise it once
+  supported (`withEndings`, element and parts); definitions never list it. Boards exercise it once
   per board, like `exit`.
+- **Lock → release.** The same rules for `lock`: held until a later `release` on the same
+  element or part (only that ends it), which fades `actions.lock` back to 0 with the same settle
+  bump. `withEndings` adds `release` wherever `lock` is supported. `recover_without_reject` and
+  `release_without_lock` warn on an ending with nothing held before it.
 - **Parts.** A primitive with `parts: { actions, ids(props) }` (slots, cells, zones, queue
   items, route stops, time segments) lets an event act on named parts: `params.parts: [<id>…]`
   with exactly one target. Those events drive only `state.parts[id]` (read it with
   `partState(state, id)`, `IDLE_STATE` when no event names the part), under the same rules as the
   whole element; the other events drive the element. Verbs map to existing actions, never new
-  ones: pick/take → `exit` on the part, put back → `enter`, claim → `lock`, turn red → `reject`,
-  back to normal → `recover`,
+  ones: pick/take → `exit` on the part, put back → `enter`, claim → `lock`, free → `release`,
+  turn red → `reject`, back to normal → `recover`,
   change state (a button's label, a jumpy route smoothing) → `morph`. Optional parts work too: a
   `node_card` with a `role` has the part `role` (move a role: `exit` it on the old holder, `enter`
   it on the new one); a primitive whose `ids(props)` is empty has no parts to address. The
@@ -539,7 +547,9 @@ message }` for the Curator): `too_many_elements` (mode `maxUnits`), `text_too_sm
   asset ids (from `assetRefs`) missing from the asset registry (a placeholder is drawn), and
   timeline warnings (`catalog/timeline-checks.ts`, from real or estimated timing):
   `overlay_overlap` (two overlays visible at once), `child_before_container` (a contained
-  child's event before its container enters) and each primitive's own `eventWarnings(props,
+  child's event before its container enters), `recover_without_reject` /
+  `release_without_lock` (an ending with no reject / lock held on that element or part) and
+  each primitive's own `eventWarnings(props,
 events)` (`route_moves_exceed_stops`: a jumpy `route_path` with more `move`s than hops;
   `morph_without_change`: a `device_frame` morph without `button.then`).
   Pattern instances (`catalog/pattern-checks.ts`): params against the schema,

@@ -93,7 +93,6 @@ export function validSpec(): VideoSpecInput {
         kind: 'board',
         layoutMode: 'centered_focus',
         continuesPrevious: true,
-        transitionIn: 'fade',
         elements: [{ id: 'bucket', primitive: 'counter', props: { value: 10 } }],
         events: [
           { at: { type: 'word_text', text: 'bucket' }, action: 'enter', targets: ['bucket'] },

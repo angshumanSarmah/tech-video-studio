@@ -144,7 +144,7 @@ describe('withRegistryChecks', () => {
         path: '$.scenes[1].events[4].targets[0]',
         code: 'unsupported_action',
         message:
-          '"api" (node_card) does not support "count". Supported: enter, exit, highlight, dim, pulse, lock, reject, recover.',
+          '"api" (node_card) does not support "count". Supported: enter, exit, highlight, dim, pulse, lock, release, reject, recover.',
       },
       expect.objectContaining({
         path: '$.scenes[2].events[4].targets[0]',
@@ -253,7 +253,7 @@ describe('parts', () => {
         code: 'unsupported_action',
         message:
           'Parts of "seats" (slot_grid) do not support "count". ' +
-          'Supported: enter, exit, lock, highlight, reject, recover, pulse, dim.',
+          'Supported: enter, exit, lock, release, highlight, reject, recover, pulse, dim.',
       },
     ]);
   });
@@ -489,6 +489,48 @@ describe('containers, overlays and timeline warnings', () => {
     expect(codes(check(hook([note, question, zoom], [])).warnings)).toEqual([
       ['$.scenes[0].elements[5]', 'overlay_overlap'],
     ]);
+  });
+
+  it('warns on a recover with no reject held before it, on the element or the part', () => {
+    const fine = check(
+      hook([], [ev('reject', 'client', 'slows'), ev('recover', 'client', 'error')]),
+    );
+    expect(fine.warnings).toEqual([]);
+    const early = check(
+      hook([], [ev('recover', 'client', 'client'), ev('reject', 'client', 'slows')]),
+    );
+    expect(codes(early.warnings)).toEqual([['$.scenes[0].events[5]', 'recover_without_reject']]);
+    expect(early.warnings[0]?.message).toMatch(/"client" recovers with no reject held before it/);
+    const twice = [
+      ev('reject', 'client', 'slows'),
+      ev('recover', 'client', 'falls'),
+      ev('recover', 'client', 'error'),
+    ];
+    expect(codes(check(hook([], twice)).warnings)).toEqual([
+      ['$.scenes[0].events[7]', 'recover_without_reject'],
+    ]);
+  });
+
+  it('warns on a release with no lock held before it; parts are tracked apart', () => {
+    const seats = {
+      id: 'seats',
+      primitive: 'slot_grid',
+      props: {
+        kind: 'seats',
+        slots: [
+          { id: 'a', label: 'A' },
+          { id: 'b', label: 'B' },
+        ],
+      },
+    };
+    const part = (action: string, text: string, id: string) =>
+      ev(action, 'seats', text, { parts: [id] });
+    const fine = [part('lock', 'client', 'a'), part('release', 'slows', 'a')];
+    expect(check(hook([seats], fine)).warnings).toEqual([]);
+    const wrongPart = [part('lock', 'client', 'a'), part('release', 'slows', 'b')];
+    const result = check(hook([seats], wrongPart));
+    expect(codes(result.warnings)).toEqual([['$.scenes[0].events[6]', 'release_without_lock']]);
+    expect(result.warnings[0]?.message).toMatch(/part "b" of "seats" releases with no lock/);
   });
 
   it('warns when a jumpy route has more moves than hops', () => {

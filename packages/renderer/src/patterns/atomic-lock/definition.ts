@@ -9,6 +9,13 @@ const ANCHORS = [
   { name: 'lock', description: 'The resource is locked and the hold timer starts.' },
   { name: 'second', description: 'A second request arrives for the same resource.' },
   { name: 'bounce', description: 'The second request is turned away.' },
+  {
+    name: 'release',
+    description:
+      'The hold ends: the timer runs out and the resource is free again. Leave it out to keep ' +
+      'the lock held to the end of the beat.',
+    optional: true,
+  },
 ] as const;
 
 export const atomicLockPattern = definePattern({
@@ -38,14 +45,15 @@ export const atomicLockPattern = definePattern({
     { id: 'second', description: 'The request that bounces.' },
     { id: 'first-link', description: 'Arrow from the first request to the resource.' },
     { id: 'second-link', description: 'Arrow from the second request (rejected on bounce).' },
-    { id: 'hold', description: 'The hold timer.' },
+    { id: 'hold', description: 'The hold timer (it exits when the hold ends).' },
     { id: 'bounced', description: 'The tag on the turned-away request.' },
   ],
   description: {
     summary:
       'Two requests race for one resource. The first arrives and locks it (padlock) and a hold ' +
       'timer starts; the second arrives while it is held, its arrow turns red and it is tagged ' +
-      'with a cross.',
+      'with a cross. With a `release` anchor, the hold timer runs out there and the resource is ' +
+      'released.',
     whenToUse:
       'Contention for one thing: two users booking the same room, two workers claiming the same ' +
       'job, two writers on one row. The moment the lock makes the second attempt fail.',
@@ -66,6 +74,7 @@ export const atomicLockPattern = definePattern({
         lock: { type: 'word', index: 1 },
         second: { type: 'word', index: 2 },
         bounce: { type: 'word', index: 3 },
+        release: { type: 'word', index: 4 },
       },
     },
   },
@@ -98,6 +107,9 @@ export const atomicLockPattern = definePattern({
       on(p.at.bounce, 'reject', ['second-link', 'second']),
       on(p.at.bounce, 'enter', ['bounced']),
       on(p.at.bounce, 'reject', ['bounced']),
+      ...(p.at.release
+        ? [on(p.at.release, 'release', ['resource']), on(p.at.release, 'exit', ['hold'])]
+        : []),
     ],
   }),
 });

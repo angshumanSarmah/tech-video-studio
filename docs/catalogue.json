@@ -356,6 +356,7 @@
         "dim",
         "pulse",
         "lock",
+        "release",
         "reject",
         "recover"
       ],
@@ -1326,6 +1327,7 @@
         "highlight",
         "pulse",
         "lock",
+        "release",
         "reject",
         "recover"
       ],
@@ -2108,6 +2110,7 @@
         "enter",
         "exit",
         "lock",
+        "release",
         "highlight",
         "reject",
         "recover",
@@ -4371,7 +4374,7 @@
     {
       "id": "atomic_lock",
       "family": "flow",
-      "summary": "Two requests race for one resource. The first arrives and locks it (padlock) and a hold timer starts; the second arrives while it is held, its arrow turns red and it is tagged with a cross.",
+      "summary": "Two requests race for one resource. The first arrives and locks it (padlock) and a hold timer starts; the second arrives while it is held, its arrow turns red and it is tagged with a cross. With a `release` anchor, the hold timer runs out there and the resource is released.",
       "whenToUse": "Contention for one thing: two users booking the same room, two workers claiming the same job, two writers on one row. The moment the lock makes the second attempt fail.",
       "whenNotToUse": "Rejecting a repeat of the same request (use `reject_duplicate`); many requests overwhelming a server (use `flood_then_funnel`).",
       "actions": [
@@ -4396,6 +4399,11 @@
         {
           "name": "bounce",
           "description": "The second request is turned away."
+        },
+        {
+          "name": "release",
+          "description": "The hold ends: the timer runs out and the resource is free again. Leave it out to keep the lock held to the end of the beat.",
+          "optional": true
         }
       ],
       "layoutMode": "hub_spoke",
@@ -4425,7 +4433,7 @@
         },
         {
           "id": "hold",
-          "description": "The hold timer."
+          "description": "The hold timer (it exits when the hold ends)."
         },
         {
           "id": "bounced",
@@ -4824,6 +4832,79 @@
                   }
                 ],
                 "description": "The second request is turned away."
+              },
+              "release": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word"
+                      },
+                      "index": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "index"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word_text"
+                      },
+                      "text": {
+                        "type": "string",
+                        "pattern": "^\\S+$"
+                      },
+                      "occurrence": {
+                        "default": 1,
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "beat"
+                      },
+                      "edge": {
+                        "type": "string",
+                        "enum": [
+                          "start",
+                          "end"
+                        ]
+                      },
+                      "offsetSec": {
+                        "default": 0,
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "edge"
+                    ],
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "The hold ends: the timer runs out and the resource is free again. Leave it out to keep the lock held to the end of the beat."
               }
             },
             "required": [
@@ -4880,6 +4961,10 @@
             "bounce": {
               "type": "word",
               "index": 3
+            },
+            "release": {
+              "type": "word",
+              "index": 4
             }
           }
         }

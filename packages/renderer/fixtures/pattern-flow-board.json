@@ -79,7 +79,7 @@
   "script": [
     {
       "beatId": "atomic-lock",
-      "narration": "Two people tap room B2 at once. Mira arrives first and the room locks for ten minutes. Theo taps a moment later and bounces off."
+      "narration": "Two people tap room B2 at once. Mira arrives first and the room locks for ten minutes. Theo taps a moment later and bounces off. When the ten minutes run out, the room frees up again."
     },
     {
       "beatId": "reject-duplicate",
@@ -147,6 +147,10 @@
               "bounce": {
                 "type": "word_text",
                 "text": "bounces"
+              },
+              "release": {
+                "type": "word_text",
+                "text": "frees"
               }
             }
           }

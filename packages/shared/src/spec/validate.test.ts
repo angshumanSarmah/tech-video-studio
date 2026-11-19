@@ -289,6 +289,26 @@ describe('validateVideoSpec: cross-references', () => {
       { path: '$.scenes[2].focus[0]', code: 'unknown_reference' },
     ],
     [
+      'zoomFrom without a zoom-in',
+      (spec) => (at(spec.scenes, 2).zoomFrom = 'api'),
+      { path: '$.scenes[2].zoomFrom', code: 'invalid_zoom_from' },
+    ],
+    [
+      'zoomFrom on a continuing beat',
+      (spec) => Object.assign(at(spec.scenes, 1), { transitionIn: 'zoom-in', zoomFrom: 'api' }),
+      { path: '$.scenes[1].zoomFrom', code: 'invalid_zoom_from' },
+    ],
+    [
+      'zoomFrom on the first beat',
+      (spec) => Object.assign(at(spec.scenes, 0), { transitionIn: 'zoom-in', zoomFrom: 'api' }),
+      { path: '$.scenes[0].zoomFrom', code: 'invalid_zoom_from' },
+    ],
+    [
+      'zoomFrom naming an element the previous board does not have',
+      (spec) => Object.assign(at(spec.scenes, 2), { transitionIn: 'zoom-in', zoomFrom: 'empty' }),
+      { path: '$.scenes[2].zoomFrom', code: 'unknown_reference' },
+    ],
+    [
       'continuesPrevious on the first beat',
       (spec) => (at(spec.scenes, 0).continuesPrevious = true),
       { path: '$.scenes[0].continuesPrevious', code: 'continues_without_previous' },
@@ -343,7 +363,28 @@ describe('validateVideoSpec: cross-references', () => {
   });
 });
 
+describe('validateVideoSpec: semantic zoom', () => {
+  it('accepts zoomFrom naming an element of the previous board, inherited ones included', () => {
+    const spec = mutated((s) =>
+      Object.assign(at(s.scenes, 2), { transitionIn: 'zoom-in', zoomFrom: 'api' }),
+    );
+    expect(validateVideoSpec(spec)).toMatchObject({ ok: true, warnings: [] });
+  });
+});
+
 describe('validateVideoSpec: warnings', () => {
+  it('warns when a continuing beat sets a transition (it keeps its board)', () => {
+    const spec = mutated((s) => (at(s.scenes, 1).transitionIn = 'fade'));
+    const result = validateVideoSpec(spec);
+    expect(result.ok).toBe(true);
+    expect(result.warnings).toEqual([
+      expect.objectContaining({
+        path: '$.scenes[1].transitionIn',
+        code: 'transition_on_continuing_beat',
+      }),
+    ]);
+  });
+
   const offTarget = (spec: Required<VideoSpecInput>) => (at(spec.story.beats, 0).targetSec = 40);
 
   it('reports none for the valid fixture', () => {

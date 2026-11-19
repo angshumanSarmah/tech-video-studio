@@ -87,6 +87,7 @@ describe('buildCatalogue', () => {
       'enter',
       'exit',
       'lock',
+      'release',
       'highlight',
       'reject',
       'recover',

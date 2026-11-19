@@ -31,7 +31,8 @@ export type ElementState = {
   /**
    * Progress (0..1) of the latest started occurrence of each action the element has; 0 while its
    * first occurrence is still ahead; absent when the element has no event with that action.
-   * Exception: `reject` is held, and reads 0 again once a later `recover` has started.
+   * Exceptions: `reject` is held, and reads 0 again once a later `recover` has started; `lock` is
+   * held, and fades back to 0 over a later `release`.
    */
   actions: Partial<Record<EventAction, number>>;
   /**
@@ -92,6 +93,7 @@ export const ACTION_DURATION_SEC: Record<EventAction, number> = {
   morph: 0.6,
   count: 0.9,
   lock: 0.4,
+  release: 0.4,
   reject: 0.5,
   recover: 0.6,
   pulse: 0.6,
@@ -106,7 +108,9 @@ const HIGHLIGHT_TOGGLES: ReadonlySet<EventAction> = new Set(['highlight', 'dim',
  * it). `actions.reject` then reads 0, so every component drops its problem look by itself.
  */
 const REJECT_TOGGLES: ReadonlySet<EventAction> = new Set(['reject', 'recover']);
-/** Peak of the settle bump a `recover` plays in the element's own colour. */
+/** A lock is held until a later `release` (only that), which fades it out. */
+const LOCK_TOGGLES: ReadonlySet<EventAction> = new Set(['lock', 'release']);
+/** Peak of the settle bump a `recover` or `release` plays in the element's own colour. */
 const SETTLE_PEAK = 0.6;
 
 /**
@@ -143,6 +147,7 @@ function stateOf(events: readonly ElementEvent[], frame: number, fps: number): P
   if (actions.reject !== undefined) {
     actions.reject = heldLevel(started, 'reject', REJECT_TOGGLES, progress);
   }
+  if (actions.lock !== undefined) actions.lock = lockLevel(started, progress);
   return {
     presence: presence(events, started, progress),
     emphasis: Math.max(highlight, pulse(started, progress), settle(started, progress)),
@@ -229,9 +234,18 @@ function pulse(started: readonly ElementEvent[], p: Progress) {
   return last ? Math.sin(Math.PI * p(last)) : 0;
 }
 
-/** The short bump a `recover` plays as the element settles back into its own colour. */
+/** Held by the latest `lock`; faded out by a later `release` (which alone ends it). */
+function lockLevel(started: readonly ElementEvent[], p: Progress) {
+  const last = started.findLast((e) => LOCK_TOGGLES.has(e.action));
+  if (!last) return 0;
+  if (last.action === 'lock') return p(last);
+  const locked = started.some((e) => e.action === 'lock' && e.frame <= last.frame);
+  return locked ? 1 - p(last) : 0;
+}
+
+/** The short bump a `recover` or `release` plays as the element settles into its own colour. */
 function settle(started: readonly ElementEvent[], p: Progress) {
-  const last = started.findLast((e) => e.action === 'recover');
+  const last = started.findLast((e) => e.action === 'recover' || e.action === 'release');
   return last ? SETTLE_PEAK * Math.sin(Math.PI * p(last)) : 0;
 }
 

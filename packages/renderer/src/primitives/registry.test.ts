@@ -5,7 +5,7 @@ import { getTheme } from '../theme/index.ts';
 import { componentFor } from './components.ts';
 import { buildPrimitiveRegistry, getPrimitive, listPrimitives } from './registry.ts';
 import { tagPrimitive } from './tag/definition.ts';
-import { PRIMITIVE_FAMILIES, withRecover } from './types.ts';
+import { PRIMITIVE_FAMILIES, withEndings } from './types.ts';
 
 const theme = getTheme();
 const ids = new Set(listPrimitives().map((p) => p.id));
@@ -74,11 +74,16 @@ describe('primitive registry', () => {
   });
 });
 
-describe('withRecover', () => {
+describe('withEndings', () => {
   it('adds recover right after reject, once, and nowhere else', () => {
-    expect(withRecover(['enter', 'reject', 'dim'])).toEqual(['enter', 'reject', 'recover', 'dim']);
-    expect(withRecover(['enter', 'dim'])).toEqual(['enter', 'dim']);
-    expect(withRecover(['reject', 'recover'])).toEqual(['reject', 'recover']);
+    expect(withEndings(['enter', 'reject', 'dim'])).toEqual(['enter', 'reject', 'recover', 'dim']);
+    expect(withEndings(['enter', 'dim'])).toEqual(['enter', 'dim']);
+    expect(withEndings(['reject', 'recover'])).toEqual(['reject', 'recover']);
+  });
+
+  it('adds release right after lock, once', () => {
+    expect(withEndings(['lock', 'reject'])).toEqual(['lock', 'release', 'reject', 'recover']);
+    expect(withEndings(['lock', 'release'])).toEqual(['lock', 'release']);
   });
 });
 

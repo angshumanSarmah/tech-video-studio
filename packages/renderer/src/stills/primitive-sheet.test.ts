@@ -65,10 +65,11 @@ describe.each(boards)('%s fixture', (_name, json) => {
 });
 
 /**
- * Exercised once per board rather than on every primitive's beat: exit, and recover, whose look is
- * shared (the held reject ends in `elementState`; components draw nothing of their own for it).
+ * Exercised once per board rather than on every primitive's beat: exit, and recover and release,
+ * whose looks are shared (the held reject or lock ends in `elementState`; components draw nothing
+ * of their own for them).
  */
-const ONCE_PER_BOARD: ReadonlySet<string> = new Set(['exit', 'recover']);
+const ONCE_PER_BOARD: ReadonlySet<string> = new Set(['exit', 'recover', 'release']);
 
 describe('primitive boards', () => {
   it('recover at least one part across the boards', () => {
@@ -76,6 +77,14 @@ describe('primitive boards', () => {
       .flatMap((spec) => spec.scenes.flatMap((s) => s.events))
       .filter((e) => e.action === 'recover' && eventParts(e.params));
     expect(partRecovers.length).toBeGreaterThan(0);
+  });
+
+  it('release a whole element and a part across the boards', () => {
+    const releases = primitiveBoardSpecs
+      .flatMap((spec) => spec.scenes.flatMap((s) => s.events))
+      .filter((e) => e.action === 'release');
+    expect(releases.some((e) => !eventParts(e.params))).toBe(true);
+    expect(releases.some((e) => eventParts(e.params))).toBe(true);
   });
 
   const sceneFor = (id: string) =>
@@ -96,7 +105,8 @@ describe('primitive boards', () => {
       }
       const onParts = new Set(mine.filter((e) => eventParts(e.params)).map((e) => e.action));
       for (const action of primitive.parts?.actions ?? []) {
-        if (action !== 'recover') expect(onParts, `${id} · part ${action}`).toContain(action);
+        if (!ONCE_PER_BOARD.has(action))
+          expect(onParts, `${id} · part ${action}`).toContain(action);
       }
     },
   );
@@ -125,6 +135,7 @@ describe('planPrimitiveSheet', () => {
       '@"lights" · highlight',
       '@"pulses" · pulse',
       '@"locks" · lock',
+      '@"releases" · release',
       '@"crashes" · reject',
       '@"recovers" · recover',
       '@"dims" · dim',

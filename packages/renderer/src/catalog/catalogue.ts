@@ -136,6 +136,10 @@ export function catalogueMarkdown(
       'a reject (`highlight`, `enter` and `pulse` do not). Every primitive and part that supports ' +
       '`reject` supports `recover`.',
     '',
+    'Lock → release: a `lock` holds (padlock) until a later `release` on the same element or ' +
+      'part fades it out. Only `release` ends a lock. Every primitive and part that supports ' +
+      '`lock` supports `release`.',
+    '',
     '## Primitives',
     '',
     ...primitives.flatMap((entry) => primitiveSection(entry, registries, theme)),

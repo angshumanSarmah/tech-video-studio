@@ -18,6 +18,7 @@ export function checkScenes(spec: VideoSpec): SpecIssue[] {
     ...checkSceneIds(scene, i),
     ...checkContinuation(scene, i),
     ...checkTargets(scene, i, scopes[i] ?? { ids: new Set(), patterns: new Set() }),
+    ...checkZoomFrom(scene, i, scopes[i - 1]),
     ...checkAnchors(scene, i, wordsByBeat.get(scene.beatId)),
   ]);
 }
@@ -42,6 +43,24 @@ function checkContinuation(scene: BeatScene, i: number): SpecIssue[] {
       message: 'The first beat has no previous beat to continue.',
     },
   ];
+}
+
+/**
+ * `zoomFrom` names something on the previous beat's board, and only a `zoom-in` into a new board
+ * can use it (a continuing beat keeps its board, so it has no transition).
+ */
+function checkZoomFrom(scene: BeatScene, i: number, previous: TargetScope | undefined) {
+  if (scene.zoomFrom === undefined) return [];
+  const path = ['scenes', i, 'zoomFrom'];
+  const invalid = (message: string): SpecIssue[] => [{ path, code: 'invalid_zoom_from', message }];
+  if (scene.transitionIn !== 'zoom-in') {
+    return invalid('zoomFrom needs transitionIn "zoom-in".');
+  }
+  if (scene.continuesPrevious) {
+    return invalid('A continuing beat keeps the previous board; it cannot zoom from it.');
+  }
+  if (!previous) return invalid('The first beat has no previous board to zoom from.');
+  return targetIssues(path, scene.zoomFrom, previous);
 }
 
 /** Ids each scene may target, plus which of them are pattern instances. */

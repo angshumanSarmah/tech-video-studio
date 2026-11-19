@@ -120,6 +120,24 @@ describe('elementState', () => {
     expect(elementState(events, 120, FPS).actions).toMatchObject({ lock: 1, reject: 1 });
   });
 
+  it('holds a lock until a release fades it out, with a settle bump (lock → release)', () => {
+    const events = [at('lock', 0), at('reject', 20), at('release', 60)];
+    expect(elementState(events, 50, FPS).actions.lock).toBe(1);
+    const releasing = elementState(events, 64, FPS);
+    expect(releasing.actions.lock).toBeGreaterThan(0);
+    expect(releasing.actions.lock).toBeLessThan(1);
+    expect(releasing.emphasis).toBeGreaterThan(0.3);
+    const released = elementState(events, 120, FPS);
+    expect(released.actions).toMatchObject({ lock: 0, release: 1, reject: 1 });
+  });
+
+  it('can be locked again after a release; a release without a lock does nothing', () => {
+    const events = [at('lock', 0), at('release', 30), at('lock', 90)];
+    expect(elementState(events, 80, FPS).actions.lock).toBe(0);
+    expect(elementState(events, 150, FPS).actions.lock).toBe(1);
+    expect(elementState([at('release', 0)], 30, FPS).actions.lock).toBeUndefined();
+  });
+
   it('ignores a recover with nothing to recover from', () => {
     const state = elementState([at('recover', 0)], 30, FPS);
     expect(state.actions.reject).toBeUndefined();

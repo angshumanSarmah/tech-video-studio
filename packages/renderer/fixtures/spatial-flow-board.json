@@ -103,7 +103,7 @@
     },
     {
       "beatId": "slot-grid",
-      "narration": "A slot grid shows lockers. You pick one and it glows. Your app locks it. A second app grabs it too and is refused, then cleared. Another is emptied, one blinks, one dims, then the emptied locker is back. The bank glows, then dims."
+      "narration": "A slot grid shows lockers. You pick one and it glows. Your app locks it. A second app grabs it too and is refused, then cleared and released. Another is emptied, one blinks, one dims, then the emptied locker is back. The bank glows, then dims."
     },
     {
       "beatId": "connector",
@@ -624,6 +624,17 @@
             "text": "cleared"
           },
           "action": "recover",
+          "targets": ["slot-grid"],
+          "params": {
+            "parts": ["b2"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "released"
+          },
+          "action": "release",
           "targets": ["slot-grid"],
           "params": {
             "parts": ["b2"]

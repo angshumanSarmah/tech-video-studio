@@ -20,6 +20,7 @@ export const EVENT_ACTIONS = [
   'morph',
   'count',
   'lock',
+  'release',
   'reject',
   'recover',
   'pulse',
@@ -109,6 +110,11 @@ export const BeatSceneSchema = z.strictObject({
   events: z.array(SceneEventSchema).default([]),
   focus: z.array(SpecIdSchema).default([]),
   transitionIn: TransitionSchema.default('cut'),
+  /**
+   * Semantic zoom, with `transitionIn: 'zoom-in'` only: an element (or pattern instance) of the
+   * previous beat. The previous board pushes into it, then cuts to this beat's board.
+   */
+  zoomFrom: EventTargetSchema.optional(),
   /** Keeps the previous beat's world and layout; this beat only adds or changes things in it. */
   continuesPrevious: z.boolean().default(false),
 });

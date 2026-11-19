@@ -64,6 +64,7 @@ describe('planPatternSheet', () => {
       'lock · @"locks"',
       'second · @"later"',
       'bounce · @"bounces"',
+      'release · @"frees"',
     ]);
     const frames = plan?.panels.map((p) => p.frame) ?? [];
     expect(frames).toEqual([...frames].sort((a, b) => a - b));

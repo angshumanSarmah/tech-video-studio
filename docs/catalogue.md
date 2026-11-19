@@ -8,6 +8,8 @@ An event acts on its whole target. On primitives with **part actions**, an event
 
 Fail → recover: a `reject` holds (red, crossed out) until a later `recover` on the same element or part ends it, with a short settle back to its own colour. Only `recover` ends a reject (`highlight`, `enter` and `pulse` do not). Every primitive and part that supports `reject` supports `recover`.
 
+Lock → release: a `lock` holds (padlock) until a later `release` on the same element or part fades it out. Only `release` ends a lock. Every primitive and part that supports `lock` supports `release`.
+
 ## Primitives
 
 ### bracket
@@ -188,7 +190,7 @@ A flat everyday object from the asset library (phone, car, ticket, parcel, pizza
 
 ### node_card
 
-**Family:** annotation · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`, `lock`, `reject`, `recover`
+**Family:** annotation · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`, `lock`, `release`, `reject`, `recover`
 
 A titled card for one component of a system (a service, server, database, client or queue), with an optional subtitle and icon. `lock` adds a padlock badge; `reject` turns it red with a cross and a shake. An optional `role` badge (a crown for the leader) sits at the top centre as the part "role": `exit` it on the old holder and `enter` it on the new one to hand the role over (a role whose first part event is `enter` starts hidden).
 
@@ -672,7 +674,7 @@ A horizontal belt carrying labelled blocks toward its right end, where they are 
 
 **When not to:** Traffic that never waits (use `packet_stream`); items on a shelf or seats picked in any order (use `slot_grid`); a count of waiting work (use `counter`).
 
-**Part actions** (events with `params.parts`): `enter`, `exit`, `highlight`, `pulse`, `lock`, `reject`, `recover`
+**Part actions** (events with `params.parts`): `enter`, `exit`, `highlight`, `pulse`, `lock`, `release`, `reject`, `recover`
 
 **Props:**
 
@@ -1004,7 +1006,7 @@ A grid of labelled slots: bins of stock, a shelf, cinema seats or documents. Eac
 
 **When not to:** Items moving in order (use `conveyor_queue`); a spatial grid over a map (use `grid_overlay`); one standalone object (use `item_icon`).
 
-**Part actions** (events with `params.parts`): `enter`, `exit`, `lock`, `highlight`, `reject`, `recover`, `pulse`, `dim`
+**Part actions** (events with `params.parts`): `enter`, `exit`, `lock`, `release`, `highlight`, `reject`, `recover`, `pulse`, `dim`
 
 **Props:**
 
@@ -1420,7 +1422,7 @@ Candidates around a target, optionally inside a search ring that encloses them. 
 
 **Family:** flow · **Actions:** `exit`, `highlight`, `dim`, `pulse`
 
-Two requests race for one resource. The first arrives and locks it (padlock) and a hold timer starts; the second arrives while it is held, its arrow turns red and it is tagged with a cross.
+Two requests race for one resource. The first arrives and locks it (padlock) and a hold timer starts; the second arrives while it is held, its arrow turns red and it is tagged with a cross. With a `release` anchor, the hold timer runs out there and the resource is released.
 
 **When to use:** Contention for one thing: two users booking the same room, two workers claiming the same job, two writers on one row. The moment the lock makes the second attempt fail.
 
@@ -1436,6 +1438,7 @@ Two requests race for one resource. The first arrives and locks it (padlock) and
 - `lock`: The resource is locked and the hold timer starts.
 - `second`: A second request arrives for the same resource.
 - `bounce`: The second request is turned away.
+- `release` (optional): The hold ends: the timer runs out and the resource is free again. Leave it out to keep the lock held to the end of the beat.
 
 **Inner elements** (target as `<instance>/<id>` with `highlight`, `pulse`, `dim`):
 
@@ -1444,7 +1447,7 @@ Two requests race for one resource. The first arrives and locks it (padlock) and
 - `second`: The request that bounces.
 - `first-link`: Arrow from the first request to the resource.
 - `second-link`: Arrow from the second request (rejected on bounce).
-- `hold`: The hold timer.
+- `hold`: The hold timer (it exits when the hold ends).
 - `bounced`: The tag on the turned-away request.
 
 **Params:**
@@ -1497,6 +1500,10 @@ Two requests race for one resource. The first arrives and locks it (padlock) and
       "bounce": {
         "type": "word",
         "index": 3
+      },
+      "release": {
+        "type": "word",
+        "index": 4
       }
     }
   }

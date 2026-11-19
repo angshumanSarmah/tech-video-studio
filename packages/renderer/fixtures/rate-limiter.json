@@ -122,7 +122,6 @@
       "kind": "board",
       "layoutMode": "centered_focus",
       "continuesPrevious": true,
-      "transitionIn": "fade",
       "elements": [
         { "id": "bucket", "primitive": "counter", "props": { "value": 10, "unit": "tokens" } }
       ],

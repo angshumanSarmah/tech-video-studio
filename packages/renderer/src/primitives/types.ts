@@ -150,23 +150,34 @@ export interface PrimitiveDefinition<Id extends string = string, S extends z.Zod
 
 export type AnyPrimitiveDefinition = PrimitiveDefinition<string, z.ZodType>;
 
-/** Keeps the literal id and the props type of a definition, and adds `recover` (`withRecover`). */
+/**
+ * Keeps the literal id and the props type of a definition, and adds the actions that end held
+ * states (`withEndings`: `recover`, `release`).
+ */
 export function definePrimitive<const Id extends string, S extends z.ZodType>(
   definition: PrimitiveDefinition<Id, S>,
 ): PrimitiveDefinition<Id, S> {
   const { parts } = definition;
   return {
     ...definition,
-    actions: withRecover(definition.actions),
-    ...(parts ? { parts: { ...parts, actions: withRecover(parts.actions) } } : {}),
+    actions: withEndings(definition.actions),
+    ...(parts ? { parts: { ...parts, actions: withEndings(parts.actions) } } : {}),
   };
 }
 
+/** Held actions and the action that ends each one (`withEndings`). */
+export const HELD_ENDINGS = { reject: 'recover', lock: 'release' } as const satisfies Partial<
+  Record<EventAction, EventAction>
+>;
+
 /**
- * Anything that can be rejected can recover: `recover` is supported exactly where `reject` is (on
- * the element and on its parts), added right after it. Definitions never list it themselves.
+ * Anything that can be rejected can recover, and anything that can be locked can be released:
+ * `recover` and `release` are supported exactly where `reject` and `lock` are (on the element and
+ * on its parts), each added right after the action it ends. Definitions never list them.
  */
-export function withRecover(actions: readonly EventAction[]): readonly EventAction[] {
-  if (!actions.includes('reject') || actions.includes('recover')) return actions;
-  return actions.flatMap((a) => (a === 'reject' ? ['reject', 'recover'] : [a]));
+export function withEndings(actions: readonly EventAction[]): readonly EventAction[] {
+  return actions.flatMap((a) => {
+    const ending = (HELD_ENDINGS as Partial<Record<EventAction, EventAction>>)[a];
+    return ending && !actions.includes(ending) ? [a, ending] : [a];
+  });
 }
