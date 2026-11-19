@@ -231,7 +231,10 @@ each theme's swatch board to `docs/themes/<theme>.png`; `… still:safe-area` re
 safe-area overlay to `docs/safe-area/zones.png`; `… still:primitives [ids…]` renders one sheet per
 primitive to `docs/primitives/<id>.png`; `… still:patterns [ids…]` renders one sheet per pattern
 to `docs/patterns/<id>.png` (a panel per narration anchor, elements in one row per zone);
-`… still:layouts` renders `docs/layouts/<mode>-<format>.png` from the layout board.
+`… still:layouts` renders `docs/layouts/<mode>-<format>.png` from the layout board;
+`… still:pattern-layouts [ids…]` renders `docs/patterns/<id>-layout-<format>.png`: each pattern's
+beat through the real layout engine (placement, camera, routing) at its settled moment
+(`settledPatternFrame`), in both formats. The per-anchor sheets stay the record of timing.
 
 - **Themes** live in `src/theme` and are registered by id (`getTheme`, `listThemes`;
   default `drafting-paper`, a light engineering-drawing look). Each is validated against

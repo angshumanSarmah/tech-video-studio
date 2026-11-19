@@ -1,4 +1,5 @@
-import { validateRenderableVideoSpec } from '@explainer-studio/shared';
+import { effectiveTiming, validateRenderableVideoSpec } from '@explainer-studio/shared';
+import { beatFrameSpans } from '../timing/frames.ts';
 import { describe, expect, it } from 'vitest';
 import { patternBoardSpecs, patternFlowBoardSpec } from '../../fixtures/index.ts';
 import patternDecisionBoardJson from '../../fixtures/pattern-decision-board.json';
@@ -11,6 +12,7 @@ import {
   patternPanelRoom,
   planPatternSheet,
   RELATIONS_ROW,
+  settledPatternFrame,
   rowsSize,
   zoneRows,
 } from './pattern-sheet.ts';
@@ -113,4 +115,24 @@ describe('sheet geometry', () => {
     expect(patternPanelRoom(5).height).toBeLessThan(patternPanelRoom(3).height);
     expect(patternPanelRoom(5).height).toBeGreaterThan(0);
   });
+});
+
+describe('settledPatternFrame', () => {
+  it.each(listPatterns().map((p) => p.id))(
+    '%s: the last anchor played out, inside its beat',
+    (patternId) => {
+      const spec = patternBoardSpecs.find((s) =>
+        s.scenes.some((scene) => scene.patterns.some((p) => p.pattern === patternId)),
+      );
+      if (!spec) throw new Error(`no board shows ${patternId}`);
+      const settled = settledPatternFrame(spec, patternId, 30, DEFAULT_REGISTRIES);
+      const plan = planPatternSheet(spec, patternId, 30, DEFAULT_REGISTRIES);
+      expect(settled?.frame).toBe(plan?.panels.at(-1)?.frame);
+      const span = beatFrameSpans(effectiveTiming(spec), 30).find(
+        (s) => s.beatId === settled?.beatId,
+      );
+      expect(span && settled && settled.frame >= span.from).toBe(true);
+      expect(span && settled && settled.frame < span.from + span.durationInFrames).toBe(true);
+    },
+  );
 });

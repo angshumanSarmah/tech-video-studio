@@ -66,6 +66,21 @@ export function planPatternSheet(
   };
 }
 
+/**
+ * The settled moment of a pattern's beat, for stills through the layout engine: the sheet's last
+ * panel (the last anchor played out, up to 2 s later, within the beat). Global frame.
+ */
+export function settledPatternFrame(
+  spec: RenderableVideoSpec,
+  patternId: string,
+  fps: number,
+  registries: Registries,
+): { beatId: string; frame: number } | undefined {
+  const plan = planPatternSheet(spec, patternId, fps, registries);
+  const last = plan?.panels.at(-1);
+  return plan && last ? { beatId: plan.beatId, frame: last.frame } : undefined;
+}
+
 /** Label of the row that holds elements without a zone (connectors, streams, brackets, rings). */
 export const RELATIONS_ROW = 'relations';
 
