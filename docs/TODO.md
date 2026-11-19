@@ -24,8 +24,9 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       are still per primitive; they apply in both styles, like the shared `stateStyle` pulse. Mark
       geometry (8 px overhang, −1°, ripple spread) is constants in `src/emphasis/emphasis.ts`;
       make them theme tokens if a second mark theme needs different values.
-- [ ] **Emphasis — HUD.** In mark themes the step tracker marks the current "STEP n/N" as its
-      chapter starts; the hero metric, chapter header and headline have no emphasis yet.
+- [ ] **Emphasis — HUD.** In mark themes the step tracker (bar style) and the title block's
+      SHEET cell mark the current chapter as it starts; the hero metric, chapter header and
+      headline have no emphasis yet.
 - [ ] **Theme — Adapted accents drift from the stored colour.** `seriesAccent` darkens
       (lightens) an accent's OKLCH lightness until it passes on the theme; a strongly adapted
       accent can look unlike the series colour the user picked (e.g. a pale yellow becomes
@@ -153,6 +154,16 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       placed by `BeatScene` in the stage's bottom-left corner (`scene/source-footnote.ts`,
       `footnoteRect`), clear of the avoid zones. Its position is owned by the layout engine:
       move it there, and in the "card" format it must sit inside the diagram window.
+- [ ] **P1A.9 — Card format header region.** The card format gets its own header region,
+      taller than `hudBand` (its diagram window is only 16:9, so the room is there). It holds
+      the title block's `header` variant (`TitleBlock`, `titleBlockLayout(theme, 'header')`)
+      plus the hero metric dimension (`DimensionMetric`) and the chapter header, which do not
+      fit beside the header inside the 200 px `hudBand`. Replace the temporary `cardHeader`
+      flag (`SpecLayers` → `Hud`, `CardHeaderPreview` composition, `rate-limiter-header`
+      still) with `meta.format: "card"`.
+- [ ] **Runs — Episode number in the title block.** The title block's REV cell is the constant
+      `REVISION_LABEL` ("REV A"). Replace it with the episode number ("NO. 12") once runs
+      carry one.
 - [ ] **P1A.9 — Inset, ring and bracket geometry.** `inset_panel` zooms from its own centre;
       `enter` should zoom out of its `anchor` element's placed box (transform origin from layout
       output) and lay its children out in its own frame (nested layout) instead of the scaled

@@ -311,6 +311,14 @@ to `docs/patterns/<id>.png` (a panel per narration anchor, elements in one row p
   `resolveHud` resolves from `story.devices` (`question_chapters` → header only, else tracker
   only); an explicit true/false is a user override and wins. Every HUD animation starts at a frame
   resolved from a word or beat-edge anchor (`headline.at`, chapter and beat starts).
+  The theme's `hud.style` picks how the same data is drawn (`Hud` dispatches; `useHudModel` is
+  shared): `bar` (blueprint-dark, `BarHud`) or `title-block` (drafting-paper, `TitleBlockHud`):
+  a ruled title block (`SERIES · TOPIC` over `SHEET n/N | REV A | handle`; SHEET is the step
+  tracker), the hero metric as a dimension (`DimensionMetric`), then the chapter header and
+  story clock. Its slots come from `titleBlockLayout(theme, variant)`. `TitleBlock` has a
+  `header` variant (the title in display type over the cells) for the card format's persistent
+  header. P1A.9 wires it; until then the `CardHeaderPreview` composition shows it, and
+  `still:compare` renders it as the `rate-limiter-header` target.
 - **Scene layer** (`src/scene`): `beatWorld` (pure) collects a beat's elements, expanded
   patterns and everything inherited through `continuesPrevious`, each with the events that act on
   it; `BeatScene` draws them with their registered components (through `WorldItemView`, which

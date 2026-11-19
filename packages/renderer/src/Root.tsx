@@ -10,6 +10,7 @@ import {
   spatialFlowBoardSpec,
 } from '../fixtures/index.ts';
 import { BeatFromSpec } from './compositions/BeatFromSpec.tsx';
+import { CardHeaderPreview } from './compositions/CardHeaderPreview.tsx';
 import { calculateBeatMetadata, calculateVideoMetadata } from './compositions/metadata.ts';
 import type { BeatFromSpecProps, VideoFromSpecProps } from './compositions/props.ts';
 import { VideoFromSpec } from './compositions/VideoFromSpec.tsx';
@@ -70,6 +71,16 @@ export function Root() {
         durationInFrames={1}
         defaultProps={beatDefaults}
         calculateMetadata={calculateBeatMetadata}
+      />
+      <Composition
+        id="CardHeaderPreview"
+        component={CardHeaderPreview}
+        width={canvas.width}
+        height={canvas.height}
+        fps={FINAL_FPS}
+        durationInFrames={1}
+        defaultProps={videoDefaults}
+        calculateMetadata={calculateVideoMetadata}
       />
       <Composition
         id="PrimitivesBoard"

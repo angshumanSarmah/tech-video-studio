@@ -20,6 +20,14 @@ const AlphaSchema = z.number().min(0).max(1);
 export const EMPHASIS_STYLES = ['glow', 'mark'] as const;
 export type EmphasisStyle = (typeof EMPHASIS_STYLES)[number];
 
+/**
+ * How the HUD top band is drawn (same HUD data and spec toggles either way): `bar` is the open
+ * top bar, step tracker and hero metric pill; `title-block` draws them as an engineering drawing's
+ * title block (a ruled strip of cells, SHEET n/N) with the hero metric as a dimension.
+ */
+export const HUD_STYLES = ['bar', 'title-block'] as const;
+export type HudStyle = (typeof HUD_STYLES)[number];
+
 /** Semantic colours used by tags, headlines and primitive states. */
 export const SEMANTIC_COLOURS = ['neutral', 'focus', 'ok', 'problem', 'concept'] as const;
 export type SemanticColour = (typeof SEMANTIC_COLOURS)[number];
@@ -172,6 +180,8 @@ export const ThemeSchema = z
     }),
     /** How emphasis (`highlight`, `pulse`) is drawn; see `src/emphasis`. */
     emphasis: z.object({ style: z.enum(EMPHASIS_STYLES) }),
+    /** How the HUD top band is drawn; see `src/hud`. */
+    hud: z.object({ style: z.enum(HUD_STYLES) }),
     glow: z.object({
       innerBlur: PxSchema,
       innerAlpha: AlphaSchema,

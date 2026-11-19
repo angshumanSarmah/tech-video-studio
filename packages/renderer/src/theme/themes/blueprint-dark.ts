@@ -30,6 +30,7 @@ export const blueprintDark = {
   },
   tint: { softAlpha: 0.14, borderAlpha: 0.7 },
   emphasis: { style: 'glow' },
+  hud: { style: 'bar' },
   glow: { innerBlur: 6, innerAlpha: 0.75, outerBlur: 22, outerAlpha: 0.4 },
   minimumContrast: { text: 4.5, graphic: 3 },
   grid: {

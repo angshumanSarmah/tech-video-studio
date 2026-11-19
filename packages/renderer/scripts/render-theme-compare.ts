@@ -9,11 +9,13 @@ import { listThemes } from '../src/theme/index.ts';
 
 /**
  * Renders theme comparison stills for every registered theme (or the theme ids given as
- * arguments). `--only <targets>` (comma-separated: `swatch`, `rate-limiter` or primitive ids)
+ * arguments). `--only <targets>` (comma-separated: `swatch`, `rate-limiter`, `rate-limiter-header`
+ * or primitive ids)
  * limits what is rendered; without it, everything is:
  *   docs/themes/<theme>.png                          swatch board
  *   docs/themes/compare/<primitive>-<theme>.png      one primitive sheet per primitive
  *   docs/themes/compare/rate-limiter-<theme>.png     middle frame of the rate-limiter fixture
+ *   docs/themes/compare/rate-limiter-header-<theme>.png  the same frame with the card header
  * The rate-limiter frame uses the fixture series accent, adapted to each theme (`seriesAccent`).
  */
 
@@ -25,6 +27,7 @@ type Serve = { serveUrl: string };
 
 const SWATCH = 'swatch';
 const RATE_LIMITER = 'rate-limiter';
+const RATE_LIMITER_HEADER = 'rate-limiter-header';
 
 type Plan = { themeIds: string[]; targets: Set<string> };
 
@@ -39,7 +42,12 @@ function parseArgs(argv: string[]): Plan {
   const onlyAt = argv.indexOf('--only');
   const only = onlyAt >= 0 ? (argv[onlyAt + 1] ?? '').split(',').filter(Boolean) : [];
   const positional = onlyAt >= 0 ? argv.filter((_, i) => i !== onlyAt && i !== onlyAt + 1) : argv;
-  const allTargets = [SWATCH, ...listPrimitives().map((p) => p.id), RATE_LIMITER];
+  const allTargets = [
+    SWATCH,
+    ...listPrimitives().map((p) => p.id),
+    RATE_LIMITER,
+    RATE_LIMITER_HEADER,
+  ];
   return {
     themeIds: pick(
       positional,
@@ -72,10 +80,15 @@ async function renderTheme(serve: Serve, themeId: string, targets: Set<string>):
     const output = resolve(compareDir, `${primitiveId}-${themeId}.png`);
     await still(serve, 'PrimitiveSheet', { primitiveId, themeId }, output);
   }
+  const props = { themeId, series: fixtureSeries };
+  const middle = (d: number) => Math.floor(d / 2);
   if (targets.has(RATE_LIMITER)) {
     const output = resolve(compareDir, `${RATE_LIMITER}-${themeId}.png`);
-    const props = { themeId, series: fixtureSeries };
-    await still(serve, 'VideoFromSpec', props, output, (d) => Math.floor(d / 2));
+    await still(serve, 'VideoFromSpec', props, output, middle);
+  }
+  if (targets.has(RATE_LIMITER_HEADER)) {
+    const output = resolve(compareDir, `${RATE_LIMITER_HEADER}-${themeId}.png`);
+    await still(serve, 'CardHeaderPreview', props, output, middle);
   }
 }
 

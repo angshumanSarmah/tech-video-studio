@@ -14,13 +14,16 @@ import type { VideoFromSpecProps } from './props.ts';
 type Props = Omit<VideoFromSpecProps, 'fps'> & {
   /** Render only this beat's scene (HUD, subtitles and audio stay global). */
   onlyBeatId?: string;
+  /** Draw the card format's title-block header as the HUD. Temporary until P1A.9 (`meta.format`). */
+  cardHeader?: boolean;
 };
 
 /**
  * Every layer of a spec on the global timeline (frame 0 = start of the narration track):
  * background, one scene per beat in a `<Sequence>`, HUD, subtitles, audio.
  */
-export function SpecLayers({ spec, series, audioSrc, channelHandle, themeId, onlyBeatId }: Props) {
+export function SpecLayers(props: Props) {
+  const { spec, series, audioSrc, channelHandle, themeId, onlyBeatId, cardHeader } = props;
   const theme = getTheme(themeId ?? DEFAULT_THEME_ID);
   loadThemeFonts(theme);
   const { fps } = useVideoConfig();
@@ -57,6 +60,7 @@ export function SpecLayers({ spec, series, audioSrc, channelHandle, themeId, onl
         seriesLabel={series.label}
         accent={accent}
         channelHandle={channelHandle}
+        cardHeader={cardHeader}
       />
       <DevSubtitles theme={theme} spec={spec} timing={timing} spans={spans} accent={accent} />
       {audioSrc ? <NarrationAudio src={audioSrc} /> : null}

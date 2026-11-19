@@ -61,6 +61,8 @@ export const draftingPaper = {
   },
   // A highlighter swipe and bolder ink instead of glow.
   emphasis: { style: 'mark' },
+  // The top band as a drawing title block; the hero metric as a dimension.
+  hud: { style: 'title-block' },
   // Off: a flat drawing has no glow and no drop shadow.
   glow: { innerBlur: 0, innerAlpha: 0, outerBlur: 0, outerAlpha: 0 },
   minimumContrast: { text: 4.5, graphic: 3 },
