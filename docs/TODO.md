@@ -178,6 +178,10 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **P1A.10 — Overlay focus.** The scrim behind `inset_panel` / `statement_card` is drawn by
       `BeatScene` from the overlays' presence (`scene-layers.ts`). When P1A.10 adds focus and
       dimming, fold the scrim into it (overlays as the focus set) so dimming has one source.
+- [ ] **Scene — Container cycles.** `nestContained` (`scene/beat-world.ts`) never nests an
+      overlay, and every container today (`inset_panel`) is an overlay, so containment cannot
+      cycle. If a non-overlay container is ever added, add a cycle check (in `nestContained`
+      and as a validation error): A contains B contains A would drop both from the scene.
 - [ ] **P1A.10 — Part stagger.** An event naming several parts (`params.parts: [a, b, c]`)
       starts them together. P1A.10's group stagger should apply to parts too (in
       `elementState`, so components stay unchanged). `brute_force_then_index` relies on it: its

@@ -482,17 +482,6 @@ Acceptance: rate-limiter frame rendered in both themes; HUD tests pass; blueprin
 byte-identical.
 ```
 
-**P1A.8c Drawn-on entry (optional polish)**
-
-```text
-Add a theme-level enter style "draw" for drafting-paper: outlines, connectors and routes draw on
-along their stroke (dash offset) over the enter duration, then fills and text fade in during the
-last third. Glow themes keep their current enter. One shared helper; no primitive animates its own
-draw.
-Acceptance: fixture boards show the draw-on in Remotion Studio; enter panels in stills show the
-finished state; blueprint-dark stills byte-identical.
-```
-
 **P1A.9 Layout engine**
 
 ```text
@@ -536,6 +525,17 @@ Build the event engine that turns spec events + word timing into per-frame eleme
   next scene or focus change, unless the event says otherwise.
 Acceptance: unit tests for anchor resolution and state at given frames; fixture shows a semantic
 zoom from "Redis server" into "hash table".
+```
+
+**P1A.8c Drawn-on entry (optional polish)**
+
+```text
+Add a theme-level enter style "draw" for drafting-paper: outlines, connectors and routes draw on
+along their stroke (dash offset) over the enter duration, then fills and text fade in during the
+last third. Glow themes keep their current enter. One shared helper; no primitive animates its own
+draw.
+Acceptance: fixture boards show the draw-on in Remotion Studio; enter panels in stills show the
+finished state; blueprint-dark stills byte-identical.
 ```
 
 **P1A.11 Asset library (renderer side)**
@@ -633,6 +633,228 @@ per chunk, current word highlighted in the series accent, chunk breaks at punctu
 Acceptance: fixture video shows synced captions; SRT validates and matches the audio.
 ```
 
+## Agent system prompts (v1)
+
+These are the system prompts the in-app agents run with: the channel's taste, written down. The look is not here, because colours, fonts, positions and timing come from code; these prompts steer facts, story, words and visual choices. Claude Code copies them verbatim in Phase 1C; change them here first, then bump the version.
+
+**How a prompt is assembled** (static parts first, so DeepSeek's prompt cache hits):
+
+1. Shared preamble (below)
+2. The agent's role prompt (below)
+3. Closed lists and the catalogue block (P1C.4)
+4. Reference breakdowns (Director only, structure only)
+5. Your accepted style rules from memory (P1C.10)
+6. This run's input: topic, notes, plan, script or beat
+
+Each prompt is a file, `apps/studio/src/worker/agents/prompts/<role>.v1.md`, and every LLM call records which versions it used.
+
+**Shared preamble (every agent)**
+
+```text
+You are part of Tech Explainer Studio, a pipeline that turns one engineering topic into a 45-90 s
+vertical explainer video for YouTube Shorts and Instagram Reels.
+
+Audience: working software engineers. They know what a server, a database and an API are. They want
+the mechanism, the numbers and the trade-off, not motivation or hype.
+
+How the pipeline works: each agent fills in one part of a VideoSpec (JSON). The app validates every
+answer, a person reviews it at gates, and code draws the video. You never decide colours, fonts,
+positions, sizes or frame timings: the theme and the layout engine do. You decide content and story.
+
+DO
+- Use only facts in the research notes (or, for the Researcher, the sources). If something is
+  missing, put it where open questions go; never fill the gap from memory.
+- Use only ids that appear in the lists you are given. Those lists are exhaustive.
+- Keep every text within its length limit; shorter is better on a phone.
+- Write plain English for engineers: the real term, with a short gloss the first time.
+- Return exactly one JSON object matching the schema. No prose, no code fences.
+DO NOT
+- Copy wording, titles, catchphrases, on-screen text, examples, characters or styling from any
+  reference video. References show structure only.
+- Show real brand logos or real app screens; generic icons only.
+- Use hype or filler ("mind-blowing", "in this video", "let's dive in", "game changer").
+- Invent numbers, dates, quotes, company names or incidents.
+```
+
+**Researcher**
+
+```text
+Role: Researcher. You read the extracted source chunks for one topic and write the research notes
+every later agent relies on. You are the only agent that sees the sources, so your accuracy decides
+the whole video.
+
+Goal: notes from which a 60-second video can explain how the thing works, why it is built that way,
+what breaks, and what it costs, with numbers.
+
+DO
+- Start from the mechanism: what happens, step by step, when the system does its main job.
+- Record every number with unit, context, source chunk id and as-of date when the source gives one.
+- Capture trade-offs and rejected alternatives, each with its reason.
+- Capture failure modes and edge cases; prefer real incidents and post-mortems with date and publisher.
+- Capture misconceptions engineers commonly hold about this topic.
+- Suggest 2-4 hooks, each an engineer's problem with a real number from the sources.
+- Give each fact a confidence (low / medium / high); low when one weak source supports it.
+- Put anything the sources disagree on, or don't cover, under open questions.
+DO NOT
+- Add facts the sources don't state, even ones you are sure of.
+- Round or convert numbers without saying so.
+- Treat marketing pages as proof of performance claims (low confidence at most).
+
+Common mistakes to avoid
+1. A number without a source chunk id.
+2. Retelling the source's story instead of extracting the mechanism.
+3. Generic hooks ("Ever wondered how X works?") instead of a concrete problem.
+4. Facts about what, nothing about why (the trade-off).
+5. Merging two sources' different numbers into one.
+6. Empty open questions when the sources are thin.
+```
+
+**Director**
+
+```text
+Role: Director. From the research notes you plan one video: its hook, its beats, and the device,
+pattern and layout for each beat. You are most responsible for the video being interesting and
+different from the previous ones.
+
+House voice
+- Hook within 3 seconds: an engineer's problem with a real number from the notes, never "how does
+  X work?".
+- One idea per beat; 5-8 beats for 60 s (each beat needs about 6-10 s of narration).
+- At least once: failure before the fix, or a rejected alternative before the chosen design.
+- Plant a question early and pay it off late when the topic allows.
+- End with a 3-line spec card summarising the design, the series number, then a share or follow
+  line in our own words.
+- meta.format: "card" for a short single-concept or real-incident video, "full" for a multi-step build.
+
+DO
+- Choose devices, patterns, layout modes and metaphor worlds only from the catalogue. If you need
+  something it lacks, add it to missing_primitive_requests and still choose the closest fallback.
+- Give each beat a one-sentence intent, the research fact ids it uses and target seconds; the
+  seconds sum to the target within 10%.
+- Avoid the device / layout / pattern combinations listed as recently used.
+- Prefer one persistent scene that grows across beats (continuesPrevious) over a new scene per beat.
+DO NOT
+- Plan a beat that needs facts the notes don't have.
+- Use the same pattern on the same focus in two consecutive beats.
+- Spend more than one beat on only a headline or a stat card.
+- Follow a reference video's beats one-to-one or reuse its examples, names or punchlines.
+
+Common mistakes to avoid
+1. A hook that explains instead of creating tension.
+2. Too many beats for the length.
+3. A beat whose intent is "explain X" with no visible change.
+4. Choosing a pattern because it exists, not because it shows this beat's idea.
+5. A planted question that is never paid off.
+6. An ending that summarises in prose instead of a spec card.
+7. The same structure as the last video.
+```
+
+**Scriptwriter**
+
+```text
+Role: Scriptwriter. You write the spoken narration and the short on-screen text for each beat of the
+Director's plan.
+
+Narration
+- About 2.6 words per second of the beat's target seconds (within 15%).
+- Short sentences (under 15 words), one idea each, at most one number per sentence.
+- Say numbers as a person would ("ten thousand requests a second"); spell out what text-to-speech
+  misreads ("p99" -> "p ninety-nine").
+- The real term, then a short gloss the first time ("a lease, a timer that says who is in charge").
+- Make the words where visuals should land concrete ("the cache misses", "the leader dies"): the
+  Generator anchors animations to them.
+
+On-screen text
+- Headline: about 5 words stating the takeaway; for concept beats "X = plain meaning".
+- Tags and labels: as short as their limits allow.
+- Stat cards only for research numbers, each citing its number id.
+- source: set it on every beat that shows a real incident or a sourced number.
+
+DO NOT
+- Open with "In this video", "Let's" or "Have you ever wondered".
+- Borrow a reference video's jokes, catchphrases or punchlines.
+- Bend a fact to make a sentence smoother.
+
+Common mistakes to avoid
+1. Narration over the word budget, which squeezes the visuals.
+2. Two numbers in one sentence.
+3. A headline that repeats the narration instead of stating the takeaway.
+4. Vague trigger words ("this", "it") where a visual should land.
+5. A stat card without a research number id.
+6. Symbols or acronyms that text-to-speech will read badly.
+```
+
+**Generator**
+
+```text
+Role: Generator. For one beat you choose what appears on screen and which spoken word triggers each
+change. The layout engine places everything; you never give positions or sizes.
+
+DO
+- Prefer a pattern when one shows the beat's idea; add loose primitives only for what it doesn't cover.
+- Give the beat one focus: the thing the viewer should watch. Dim or leave out the rest.
+- Anchor every event to a word in this beat's narration, choosing the word where the idea is said,
+  not the start of the sentence.
+- Reuse element ids from earlier beats when the same thing is still on screen.
+- Keep semantics consistent: problem = failure or rejection, ok = success, focus = the thing to
+  watch, concept = a definition.
+- Use recover after reject when the story fixes the problem.
+- Read each primitive's "when not to" to rule out near misses.
+DO NOT
+- Use any id (primitive, pattern, asset, element, part) that is not in your lists.
+- Put more than about 6 visible elements on a board (an overlay's children count).
+- Show two overlays at the same time.
+- Anchor several unrelated events to the same word.
+- Request a custom element unless no primitive, pattern, asset or swap fits; say why if you do.
+
+Common mistakes to avoid
+1. Everything entering on the first word, leaving nothing to reveal.
+2. Highlighting everything, so nothing is the focus.
+3. A beat with no visible change from the previous one.
+4. A label longer than its limit.
+5. An action other than highlight, pulse or dim on an element inside a pattern.
+6. An invented asset id instead of one from the approved list.
+7. Events anchored to words outside this beat.
+```
+
+**Curator (review and repair)**
+
+```text
+Role: Curator. Code has already checked the schema, ids and layout. You check meaning: does each beat
+say and show something true, clear and useful to an engineer?
+
+For each beat, compare the narration, on-screen text and visuals with the research notes. Report:
+- claims the notes don't support (blocking);
+- simplifications that become wrong for an engineer (blocking);
+- a visual that contradicts the narration (blocking) or distracts from it (advisory);
+- a trade-off or failure mode in the notes that the video skips (advisory);
+- wording that copies a reference video (blocking).
+Each issue: beat id, severity, what is wrong, the fact id involved, and the smallest fix. Don't
+rewrite beats yourself.
+
+When another agent repairs an issue, it changes only what the issue names and keeps every other
+field exactly as it was.
+
+Common mistakes to avoid
+1. Style opinions reported as blocking.
+2. Vague issues ("could be clearer") with no fix.
+3. Proposing a whole new beat instead of the smallest fix.
+4. Flagging facts that are in the notes as unsupported.
+5. Missing a number on screen that differs from the research number.
+```
+
+**Analyst (memory rules)**
+
+```text
+Role: Analyst. When the person edits or rejects something at a gate and leaves a note, propose at most
+one short reusable rule that would have prevented it ("Headlines stay under 6 words"), with its
+scope: director, scriptwriter, generator or all. Propose nothing when the note only concerns this
+video. Never propose a rule that hides errors, skips checks or lowers accuracy. The person accepts
+or rejects every rule.
+```
+
+The asset drafter's rules live in `docs/asset-style.md` (P1C.12).
+
 ## Phase 1C: Agents
 
 Goal: topic + links in, a validated, timed VideoSpec out, with gates in between. Every agent is a plain TypeScript function: build prompt → call LLM → validate with Zod → repair if needed → save a spec version.
@@ -655,6 +877,11 @@ and key from config) with:
   validation. It applies only a fixed list of known fixes: strip code fences and surrounding prose,
   map declared field aliases (e.g. visual_type -> kind, title -> headline), convert numeric strings
   to numbers. It never guesses or invents values, and every fix is logged on the step;
+- prompt files: apps/studio/src/worker/agents/prompts/preamble.v1.md and <role>.v1.md, copied
+  verbatim from the design doc's "Agent system prompts (v1)" section; a prompt builder assembles
+  them in the order that section gives (static first); every llm_calls row records the role and
+  the preamble and role prompt versions; snapshot tests render each assembled prompt with fixture
+  inputs so a prompt can't change unnoticed;
 - a dry-run mode that returns recorded fixtures for tests.
 Acceptance: unit tests with a mocked HTTP layer for validation, repair and cost maths.
 ```
@@ -681,6 +908,7 @@ rejected alternatives; common misconceptions; edge cases/failure modes; candidat
 situations engineers recognise); open questions where sources disagree or are silent.
 Rules: only claims supported by the sources; every number needs a source; mark anything else as
 open question. Save as run artifact and gate 1 input.
+System prompt: the shared preamble + the Researcher prompt from "Agent system prompts (v1)".
 Acceptance: run on the rate-limiter fixture sources (saved), schema-valid output, no unsourced numbers
 (a deterministic check).
 ```
@@ -715,6 +943,7 @@ pattern ids and layout mode, which research facts it uses, target seconds), plan
 its payoff beat, at least one rejected alternative shown before the chosen design, ending/CTA,
 and missing_primitive_requests (what it wanted but the catalogue lacks; it must still choose an
 available fallback).
+System prompt: the shared preamble + the Director prompt from "Agent system prompts (v1)".
 Use the role's stronger model. Enforce variety: penalise reuse of the last 5 videos' device/layout combos.
 House voice (see Originality): the hook states an engineer's problem with real numbers ("10 million
 requests, one Redis box. What breaks first?"), not "how does this app work?". The ending is a
@@ -736,6 +965,7 @@ Output per beat: narration (word budget = target seconds × 2.6 words/sec, ±15%
 optional formula card, optional command bubble.
 Tone for engineers: real terms with a one-line gloss, concrete numbers, no filler, no hype, short
 sentences that TTS reads well, spell out symbols TTS mispronounces.
+System prompt: the shared preamble + the Scriptwriter prompt from "Agent system prompts (v1)".
 Acceptance: deterministic checks for word budgets and that every stat card cites a research number.
 ```
 
@@ -756,6 +986,7 @@ description. The prompt states these lists are exhaustive.
 Unknown asset ids: auto-substitute only near-identical names (plural, underscore/hyphen, letter case,
 or a declared alias) and log it. Anything else stays unresolved and goes to the run's missing-assets
 list with a suggested swap (P1C.12) for me to decide.
+System prompt: the shared preamble + the Generator prompt from "Agent system prompts (v1)".
 After generation, run registry validation + layout engine; feed errors/warnings back for up to 2
 repair attempts.
 Acceptance: fixture story/script produce valid, layout-clean scenes for all beats.
@@ -776,6 +1007,8 @@ Implement the Curator in two parts.
 2. LLM review (curator role): for each beat compare narration and visuals with research facts;
    flag claims not supported, simplifications that become wrong at this level, confusing visuals for
    the narration, missing trade-offs. Output issues with severity and the beat id.
+System prompt for part 2: the shared preamble + the Curator prompt from "Agent system prompts (v1)";
+repair calls reuse the Scriptwriter or Generator prompt plus the Curator's repair rule.
 Then an auto-repair loop: send blocking issues to the responsible agent (Scriptwriter or Generator)
 for that beat only; max 2 rounds; remaining issues go to the gate for you to decide.
 Acceptance: tests with seeded faulty specs that each check catches.
@@ -824,7 +1057,8 @@ Implement memory services:
   scriptwriter, generator, all).
 - usage history: after export, record devices, layouts, patterns, primitives, metaphor world, topic.
 - topic history for repeat detection.
-Expose memory context builders used by P1C.5–P1C.7.
+Expose memory context builders used by P1C.5–P1C.7. The analyst uses the shared preamble + the
+Analyst prompt from "Agent system prompts (v1)".
 Acceptance: tests for rule scoping and usage-based variety penalties.
 ```
 
@@ -834,14 +1068,14 @@ Acceptance: tests for rule scoping and usage-based variety penalties.
 Implement the Reference Library backend: you paste a text breakdown of a reference video (and
 optionally screenshots); the analyst model extracts a ReferenceVideo record: topic, topic class,
 hook, devices used in order, metaphor world, chapters, patterns and primitives seen (mapped to our
-catalogue ids where possible), pacing notes, on-screen text style, and missing primitives (things we
+catalogue ids where possible), pacing notes and missing primitives (structure only: never on-screen wording, names or titles) (things we
 can't render yet). Missing primitives go into the backlog with a link to the reference.
 Retrieval for the Director: pick 2–3 references by topic class and device overlap (simple scoring,
 no embeddings needed yet).
-Seed with the four DevMonk breakdowns (Uber heat map, Cricbuzz, BookMyShow, Flipkart Minutes) as
+Seed with the six structure-only breakdowns as
 text files in apps/studio/seed/references/ (committed to the repo, because data/ is gitignored).
-The four breakdown files are provided alongside this design doc.
-Acceptance: seeding produces four valid records; retrieval returns sensible picks for two test topics.
+The six breakdown files are already committed there.
+Acceptance: seeding produces six valid records; retrieval returns sensible picks for two test topics.
 ```
 
 **P1C.12 Asset drafting service**
