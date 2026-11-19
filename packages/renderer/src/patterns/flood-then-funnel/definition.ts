@@ -8,7 +8,8 @@ const ANCHORS = [
   { name: 'overwhelm', description: 'The target gives way: it shakes red and a warning shows.' },
   {
     name: 'funnel',
-    description: 'The middle layer appears and turns the flood into one steady line.',
+    description:
+      'The middle layer appears, turns the flood into one steady line, and the target recovers.',
   },
 ] as const;
 
@@ -49,7 +50,7 @@ export const floodThenFunnelPattern = definePattern({
     summary:
       'A dense stream of requests hits a node directly while the rate counts up; the node ' +
       'shakes red and a warning shows. Then a middle layer steps in: the flood goes into it and ' +
-      'a single, slow, steady line comes out to the node.',
+      'a single, slow, steady line comes out to the node, which recovers.',
     whenToUse:
       'Failure before the fix for load: a rate limiter, a queue, a cache or a CDN absorbing a ' +
       'spike that would knock a server over.',
@@ -102,6 +103,7 @@ export const floodThenFunnelPattern = definePattern({
       on(p.at.overwhelm, 'enter', ['warning']),
       on(p.at.overwhelm, 'pulse', ['rate']),
       on(p.at.funnel, 'exit', ['direct', 'flood', 'warning']),
+      on(p.at.funnel, 'recover', ['target']),
       on(p.at.funnel, 'enter', ['layer', 'in', 'in-flow', 'out', 'out-flow']),
     ],
   }),

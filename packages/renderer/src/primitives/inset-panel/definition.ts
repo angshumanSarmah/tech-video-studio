@@ -67,7 +67,7 @@ export const insetPanelPrimitive = definePrimitive({
       'shrinks it back in. Children keep their own events (enter, count, highlight).',
     whenToUse:
       'A closer look at one part of the diagram: what is inside a cache entry, the features a ' +
-      'model reads for one order, the shelf behind a store pin, the time budget of one ride.',
+      'model reads for one transaction, the bins behind a warehouse pin, the time budget of one build.',
     whenNotToUse:
       'Text only (use `statement_card` or `callout`); a whole new scene (start a new beat). ' +
       'Show at most one overlay at a time, and never put an overlay inside it.',

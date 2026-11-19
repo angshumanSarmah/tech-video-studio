@@ -16,7 +16,7 @@ export const atomicLockPattern = definePattern({
   family: 'flow',
   layoutMode: 'hub_spoke',
   paramsSchema: z.strictObject({
-    resource: nodeParam('The one thing both requests want (a seat, a row, a slot).'),
+    resource: nodeParam('The one thing both requests want (a room, a row, a slot).'),
     first: nodeParam('The request that gets there first.'),
     second: nodeParam('The request that arrives while the lock is held.'),
     holdSec: z
@@ -46,7 +46,7 @@ export const atomicLockPattern = definePattern({
       'timer starts; the second arrives while it is held, its arrow turns red and it is tagged ' +
       'with a cross.',
     whenToUse:
-      'Contention for one thing: two users booking the same seat, two workers claiming the same ' +
+      'Contention for one thing: two users booking the same room, two workers claiming the same ' +
       'job, two writers on one row. The moment the lock makes the second attempt fail.',
     whenNotToUse:
       'Rejecting a repeat of the same request (use `reject_duplicate`); many requests ' +

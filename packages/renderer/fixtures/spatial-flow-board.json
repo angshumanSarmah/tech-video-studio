@@ -91,23 +91,23 @@
     },
     {
       "beatId": "route-path",
-      "narration": "A route path pins the store and the home. The bike hops to the crossing, hops home, then the route smooths into one curve. The whole route glows and pulses. The crossing lights up, blinks, then closes. Finally it dims."
+      "narration": "A route path pins the depot and the locker. The van hops to the bridge, hops on to the locker, then the route smooths into one curve. The whole route glows and pulses. The bridge lights up, blinks, then closes. Finally it dims."
     },
     {
       "beatId": "zone-polygon",
-      "narration": "Zone polygons mark delivery areas that overlap. North appears, central glows, south pulses and then overloads. North fades, central leaves, and the map glows, pulses, then dims."
+      "narration": "Zone polygons mark service areas that overlap. North appears, central glows, south pulses and then overloads. North fades, central leaves, and the map glows, pulses, then dims."
     },
     {
       "beatId": "grid-overlay",
-      "narration": "A grid overlay drops over the city. Your cell lights up and pulses. A busy cell turns red, then fades. The grid glows and dims."
+      "narration": "A grid overlay drops over the city. The hot cell lights up and pulses. A busy cell turns red, then fades. The grid glows and dims."
     },
     {
       "beatId": "slot-grid",
-      "narration": "A slot grid shows seats. You pick one and it glows. Your app locks it. A rival grabs it too and is refused. Another is sold, one blinks, one dims, then the sold seat is back. The hall glows, then dims."
+      "narration": "A slot grid shows lockers. You pick one and it glows. Your app locks it. A second app grabs it too and is refused, then cleared. Another is emptied, one blinks, one dims, then the emptied locker is back. The bank glows, then dims."
     },
     {
       "beatId": "connector",
-      "narration": "A connector draws from the client to the API. A request travels, glows, then pulses. The link breaks, and finally dims."
+      "narration": "A connector draws from the client to the API. A request travels, glows, then pulses. The link breaks, comes back, and finally dims."
     },
     {
       "beatId": "packet-stream",
@@ -115,11 +115,11 @@
     },
     {
       "beatId": "conveyor-queue",
-      "narration": "A conveyor queue carries orders. A new order joins at the back. The front order is claimed, then taken. The next is flagged, one blinks, one is bad. The belt glows, pulses, and dims."
+      "narration": "A conveyor queue carries print jobs. A new job joins at the back. The front job is claimed, then taken. The next is flagged, one blinks, one is bad. The belt glows, pulses, and dims."
     },
     {
       "beatId": "segmented-time-bar",
-      "narration": "A segmented time bar fills with each step of the order. Packing glows, picking blinks, the ride blows the budget, and picking fades. The total glows, pulses, then dims."
+      "narration": "A segmented time bar fills with each step of a release. Testing glows, building blinks, the deploy blows the budget, and building fades. The total glows, pulses, then dims."
     }
   ],
   "scenes": [
@@ -183,21 +183,21 @@
           "props": {
             "stops": [
               {
-                "id": "store",
-                "label": "STORE"
+                "id": "depot",
+                "label": "DEPOT"
               },
               {
-                "id": "crossing",
-                "label": "CROSSING"
+                "id": "bridge",
+                "label": "BRIDGE"
               },
               {
-                "id": "home",
-                "label": "HOME"
+                "id": "locker",
+                "label": "LOCKER"
               }
             ],
             "distance": "4.2 KM",
             "mode": "jumpy",
-            "mover": "bike"
+            "mover": "car"
           }
         }
       ],
@@ -259,7 +259,7 @@
           "action": "highlight",
           "targets": ["route-path"],
           "params": {
-            "parts": ["crossing"]
+            "parts": ["bridge"]
           }
         },
         {
@@ -270,7 +270,7 @@
           "action": "pulse",
           "targets": ["route-path"],
           "params": {
-            "parts": ["crossing"]
+            "parts": ["bridge"]
           }
         },
         {
@@ -281,7 +281,7 @@
           "action": "reject",
           "targets": ["route-path"],
           "params": {
-            "parts": ["crossing"]
+            "parts": ["bridge"]
           }
         },
         {
@@ -440,10 +440,10 @@
             "cols": 6,
             "cells": [
               {
-                "id": "mine",
+                "id": "hot",
                 "row": 3,
                 "col": 4,
-                "label": "YOUR CELL"
+                "label": "HOT CELL"
               },
               {
                 "id": "busy",
@@ -472,7 +472,7 @@
           "action": "highlight",
           "targets": ["grid-overlay"],
           "params": {
-            "parts": ["mine"]
+            "parts": ["hot"]
           }
         },
         {
@@ -483,7 +483,7 @@
           "action": "pulse",
           "targets": ["grid-overlay"],
           "params": {
-            "parts": ["mine"]
+            "parts": ["hot"]
           }
         },
         {
@@ -536,7 +536,7 @@
           "id": "slot-grid",
           "primitive": "slot_grid",
           "props": {
-            "kind": "seats",
+            "kind": "inventory",
             "cols": 4,
             "slots": [
               {
@@ -572,7 +572,7 @@
                 "label": "B4"
               }
             ],
-            "label": "SCREEN 2"
+            "label": "LOCKER BANK 2"
           }
         }
       ],
@@ -621,7 +621,18 @@
         {
           "at": {
             "type": "word_text",
-            "text": "sold"
+            "text": "cleared"
+          },
+          "action": "recover",
+          "targets": ["slot-grid"],
+          "params": {
+            "parts": ["b2"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "emptied"
           },
           "action": "exit",
           "targets": ["slot-grid"],
@@ -756,6 +767,14 @@
         {
           "at": {
             "type": "word_text",
+            "text": "comes"
+          },
+          "action": "recover",
+          "targets": ["connector"]
+        },
+        {
+          "at": {
+            "type": "word_text",
             "text": "dims"
           },
           "action": "dim",
@@ -863,23 +882,23 @@
           "props": {
             "items": [
               {
-                "id": "o41",
+                "id": "j41",
                 "label": "#41"
               },
               {
-                "id": "o42",
+                "id": "j42",
                 "label": "#42"
               },
               {
-                "id": "o43",
+                "id": "j43",
                 "label": "#43"
               },
               {
-                "id": "o44",
+                "id": "j44",
                 "label": "#44"
               }
             ],
-            "label": "ORDERS"
+            "label": "PRINT JOBS"
           }
         }
       ],
@@ -900,7 +919,7 @@
           "action": "enter",
           "targets": ["conveyor-queue"],
           "params": {
-            "parts": ["o44"]
+            "parts": ["j44"]
           }
         },
         {
@@ -911,7 +930,7 @@
           "action": "lock",
           "targets": ["conveyor-queue"],
           "params": {
-            "parts": ["o41"]
+            "parts": ["j41"]
           }
         },
         {
@@ -922,7 +941,7 @@
           "action": "exit",
           "targets": ["conveyor-queue"],
           "params": {
-            "parts": ["o41"]
+            "parts": ["j41"]
           }
         },
         {
@@ -933,7 +952,7 @@
           "action": "highlight",
           "targets": ["conveyor-queue"],
           "params": {
-            "parts": ["o42"]
+            "parts": ["j42"]
           }
         },
         {
@@ -944,7 +963,7 @@
           "action": "pulse",
           "targets": ["conveyor-queue"],
           "params": {
-            "parts": ["o43"]
+            "parts": ["j43"]
           }
         },
         {
@@ -955,7 +974,7 @@
           "action": "reject",
           "targets": ["conveyor-queue"],
           "params": {
-            "parts": ["o44"]
+            "parts": ["j44"]
           }
         },
         {
@@ -996,24 +1015,24 @@
           "props": {
             "segments": [
               {
-                "id": "pick",
-                "label": "PICK",
+                "id": "build",
+                "label": "BUILD",
                 "sec": 60
               },
               {
-                "id": "pack",
-                "label": "PACK",
+                "id": "test",
+                "label": "TEST",
                 "sec": 90
               },
               {
-                "id": "ride",
-                "label": "RIDE",
+                "id": "deploy",
+                "label": "DEPLOY",
                 "sec": 330,
                 "semantic": "focus"
               }
             ],
             "budgetSec": 420,
-            "label": "ORDER TO DOOR"
+            "label": "COMMIT TO LIVE"
           }
         }
       ],
@@ -1034,7 +1053,7 @@
           "action": "highlight",
           "targets": ["segmented-time-bar"],
           "params": {
-            "parts": ["pack"]
+            "parts": ["test"]
           }
         },
         {
@@ -1045,7 +1064,7 @@
           "action": "pulse",
           "targets": ["segmented-time-bar"],
           "params": {
-            "parts": ["pick"]
+            "parts": ["build"]
           }
         },
         {
@@ -1056,7 +1075,7 @@
           "action": "reject",
           "targets": ["segmented-time-bar"],
           "params": {
-            "parts": ["ride"]
+            "parts": ["deploy"]
           }
         },
         {
@@ -1067,7 +1086,7 @@
           "action": "dim",
           "targets": ["segmented-time-bar"],
           "params": {
-            "parts": ["pick"]
+            "parts": ["build"]
           }
         },
         {

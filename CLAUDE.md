@@ -346,7 +346,7 @@ to `docs/patterns/<id>.png` (a panel per narration anchor, elements in one row p
   component, wired in `primitives/components.ts` (typecheck fails when a registered id has no
   component). Building the registry rejects duplicate or non-slug ids and examples that fail their
   schema. Every primitive needs a beat on exactly one primitive board using each action and part
-  action it supports (a test enforces it), and a sheet in `docs/primitives/`
+  action it supports (a test enforces it; `exit` and `recover` once per board), and a sheet in `docs/primitives/`
   (`still:primitives <id>`; sheets shrink their panels to fit up to 10 events).
 - **Shared pieces:** `common-props.ts` (semantic, asset id, one-line text, part list and element
   ref schemas), `surface.ts` (card surface), `badge.tsx` (corner badge; `SMALL_BADGE` on small
@@ -375,6 +375,10 @@ to `docs/patterns/<id>.png` (a panel per narration anchor, elements in one row p
   word is a registered primitive, an action, a part action or a prop). Example strings use
   `<example-…>` placeholders; ids that must be slugs (part ids, element refs) use
   `example-…`.
+- **Example text is invented.** Fixture text (narration, labels, names, ids, sources) and
+  catalogue text (descriptions, param hints, examples) is made up for this project, never taken
+  from the reference breakdowns or their videos (no scenarios, names, labels or numbers lifted
+  from them; see Originality in the design doc). Agents read the catalogue and copy from it.
 - **Components receive only `{ theme, props, box, state }`**, never events or anchors. `state`
   comes from `elementState(events, frame, fps)` (`primitives/element-state.ts`): `presence`,
   `emphasis` (held highlight or pulse bump), `highlight` (the held highlight alone), `dimmed`, per-action `actions[action]` progress and `elapsed[action]` seconds (both
@@ -383,12 +387,20 @@ to `docs/patterns/<id>.png` (a panel per narration anchor, elements in one row p
   that step once per occurrence) and `parts` (below). It is the single place events become state;
   P1A.10 upgrades it (easing, focus, stagger) without touching components. An element is present
   from the start unless its first `enter`/`exit` is an `enter`, so it can exit and re-enter.
+- **Fail → recover.** A `reject` is held until a later `recover` on the same element or part;
+  nothing else ends it (highlight, enter and pulse leave it red; lock is separate). Once a
+  recover starts, `actions.reject` reads 0, so components drop their problem look without code
+  of their own, and the element plays a short settle bump (emphasis; a ripple in mark themes via
+  `markLevels`) in its own colour. `definePrimitive` adds `recover` wherever `reject` is
+  supported (`withRecover`, element and parts); definitions never list it. Boards exercise it once
+  per board, like `exit`.
 - **Parts.** A primitive with `parts: { actions, ids(props) }` (slots, cells, zones, queue
   items, route stops, time segments) lets an event act on named parts: `params.parts: [<id>…]`
   with exactly one target. Those events drive only `state.parts[id]` (read it with
   `partState(state, id)`, `IDLE_STATE` when no event names the part), under the same rules as the
   whole element; the other events drive the element. Verbs map to existing actions, never new
   ones: pick/take → `exit` on the part, put back → `enter`, claim → `lock`, turn red → `reject`,
+  back to normal → `recover`,
   change state (a button's label, a jumpy route smoothing) → `morph`. Optional parts work too: a
   `node_card` with a `role` has the part `role` (move a role: `exit` it on the old holder, `enter`
   it on the new one); a primitive whose `ids(props)` is empty has no parts to address. The

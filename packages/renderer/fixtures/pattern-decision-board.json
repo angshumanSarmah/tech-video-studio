@@ -81,11 +81,11 @@
     },
     {
       "beatId": "inference-card",
-      "narration": "The model reads the order's features: three items, two kilometres, dinner hour. It weighs them, and the prep time flips from unknown to fourteen minutes. Change the hour to lunch and it predicts nine."
+      "narration": "The model reads the payment's features: a large amount, a new device, three in the morning. It weighs them, and the fraud risk flips from unknown to eighty-seven percent. Change to a known device and it predicts six."
     },
     {
       "beatId": "pick-by-rule",
-      "narration": "Three riders sit inside the two kilometre ring. The nearest one looks obvious, but would wait at the counter, so that pick is crossed out. The rider who arrives just as the food is ready wins."
+      "narration": "Three servers sit inside the fifty millisecond ring. The nearest one looks obvious, but it is overloaded, so that pick is crossed out. The server with spare capacity wins."
     },
     {
       "beatId": "failover",
@@ -93,7 +93,7 @@
     },
     {
       "beatId": "split-brain",
-      "narration": "Two regions share one leader. Then the link between them snaps, and the clock starts. The far replica, cut off, crowns itself. Each side takes a different booking for seat H3. When the link heals, two leaders hold conflicting data."
+      "narration": "Two regions share one leader. Then the link between them snaps, and the clock starts. The far replica, cut off, crowns itself. Each side takes a different write to row seven. When the link heals, two leaders hold conflicting data."
     }
   ],
   "scenes": [
@@ -187,41 +187,41 @@
           "id": "inference-card",
           "pattern": "inference_card",
           "params": {
-            "title": "ORDER 4127",
+            "title": "TXN 9051",
             "features": [
               {
-                "key": "items",
-                "value": 3
+                "key": "amount",
+                "value": 4999
               },
               {
-                "key": "distance_km",
-                "value": 2
+                "key": "new_device",
+                "value": true
               },
               {
                 "key": "hour",
-                "value": "dinner"
+                "value": 3
               }
             ],
             "model": {
-              "title": "Prep model",
-              "icon": "cpu"
+              "title": "Risk model",
+              "icon": "shield"
             },
             "prediction": {
-              "value": 14,
-              "unit": "MIN",
-              "label": "PREP TIME"
+              "value": 87,
+              "unit": "%",
+              "label": "FRAUD RISK"
             },
             "comparison": {
-              "title": "SAME ORDER, LUNCH",
+              "title": "SAME TXN, KNOWN DEVICE",
               "features": [
                 {
-                  "key": "hour",
-                  "value": "lunch"
+                  "key": "new_device",
+                  "value": false
                 }
               ],
               "prediction": {
-                "value": 9,
-                "unit": "MIN"
+                "value": 6,
+                "unit": "%"
               }
             },
             "at": {
@@ -258,42 +258,42 @@
           "pattern": "pick_by_rule",
           "params": {
             "target": {
-              "title": "Order 4127",
-              "icon": "package"
+              "title": "Request",
+              "icon": "globe"
             },
-            "radius": "2 KM",
+            "radius": "50 MS",
             "candidates": [
               {
-                "id": "r1",
-                "title": "Rider 1",
-                "detail": "400 M · ETA 1:00",
-                "icon": "bike"
+                "id": "s1",
+                "title": "Server 1",
+                "detail": "8 MS · CPU 98%",
+                "icon": "server"
               },
               {
-                "id": "r2",
-                "title": "Rider 2",
-                "detail": "1.2 KM · ETA 3:00",
-                "icon": "bike"
+                "id": "s2",
+                "title": "Server 2",
+                "detail": "12 MS · CPU 40%",
+                "icon": "server"
               },
               {
-                "id": "r3",
-                "title": "Rider 3",
-                "detail": "1.8 KM · ETA 5:00",
-                "icon": "bike"
+                "id": "s3",
+                "title": "Server 3",
+                "detail": "30 MS · CPU 20%",
+                "icon": "server"
               }
             ],
             "obvious": {
-              "candidate": "r1",
+              "candidate": "s1",
               "reason": "NEAREST"
             },
             "pick": {
-              "candidate": "r2",
-              "reason": "ETA 3:00 = PREP 3:00"
+              "candidate": "s2",
+              "reason": "FREE + 12 MS"
             },
             "at": {
               "show": {
                 "type": "word_text",
-                "text": "riders"
+                "text": "servers"
               },
               "obvious": {
                 "type": "word_text",
@@ -398,10 +398,10 @@
               "durationSec": 10
             },
             "writes": {
-              "leader": "H3 → ASHA",
-              "replica": "H3 → RAVI"
+              "leader": "ROW 7 → v2",
+              "replica": "ROW 7 → v3"
             },
-            "conflict": "Seat H3 sold twice: two leaders, two truths",
+            "conflict": "Row 7 has two versions: two leaders, two truths",
             "at": {
               "steady": {
                 "type": "word_text",
@@ -417,7 +417,7 @@
               },
               "writes": {
                 "type": "word_text",
-                "text": "booking"
+                "text": "write"
               },
               "heal": {
                 "type": "word_text",

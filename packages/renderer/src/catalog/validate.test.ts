@@ -132,7 +132,7 @@ describe('withRegistryChecks', () => {
         path: '$.scenes[1].events[4].targets[0]',
         code: 'unsupported_action',
         message:
-          '"api" (node_card) does not support "count". Supported: enter, exit, highlight, dim, pulse, lock, reject.',
+          '"api" (node_card) does not support "count". Supported: enter, exit, highlight, dim, pulse, lock, reject, recover.',
       },
       expect.objectContaining({
         path: '$.scenes[2].events[4].targets[0]',
@@ -210,7 +210,7 @@ describe('parts', () => {
       props: {
         kind: 'seats',
         slots: [
-          { id: 'h3', label: 'H3' },
+          { id: 'k7', label: 'K7' },
           { id: 'h4', label: 'H4' },
         ],
       },
@@ -224,7 +224,7 @@ describe('parts', () => {
   };
 
   it('accepts events on known parts with a part action', () => {
-    const result = check(withSeats({ action: 'lock', params: { parts: ['h3', 'h4'] } }));
+    const result = check(withSeats({ action: 'lock', params: { parts: ['k7', 'h4'] } }));
     expect(result.errors).toEqual([]);
   });
 
@@ -235,34 +235,34 @@ describe('parts', () => {
         code: 'unsupported_action',
       }),
     ]);
-    expect(check(withSeats({ action: 'count', params: { parts: ['h3'] } })).errors).toEqual([
+    expect(check(withSeats({ action: 'count', params: { parts: ['k7'] } })).errors).toEqual([
       {
         path: '$.scenes[0].events[5].action',
         code: 'unsupported_action',
         message:
           'Parts of "seats" (slot_grid) do not support "count". ' +
-          'Supported: enter, exit, lock, highlight, reject, pulse, dim.',
+          'Supported: enter, exit, lock, highlight, reject, recover, pulse, dim.',
       },
     ]);
   });
 
   it('rejects unknown part ids, listing the valid ones', () => {
-    expect(check(withSeats({ action: 'lock', params: { parts: ['h3', 'z9'] } })).errors).toEqual([
+    expect(check(withSeats({ action: 'lock', params: { parts: ['k7', 'z9'] } })).errors).toEqual([
       {
         path: '$.scenes[0].events[5].params.parts[1]',
         code: 'unknown_part',
-        message: '"seats" has no part "z9". Its parts: h3, h4.',
+        message: '"seats" has no part "z9". Its parts: k7, h4.',
       },
     ]);
   });
 
   it('rejects parts on a target without parts, on several targets, and malformed parts', () => {
-    const onCard = withSeats({ action: 'lock', params: { parts: ['h3'] } });
+    const onCard = withSeats({ action: 'lock', params: { parts: ['k7'] } });
     Object.assign(onCard.scenes[0]?.events?.[5] ?? {}, { targets: ['api'] });
     expect(check(onCard).errors).toEqual([
       expect.objectContaining({ path: '$.scenes[0].events[5].params.parts', code: 'unknown_part' }),
     ]);
-    const two = withSeats({ action: 'lock', params: { parts: ['h3'] } });
+    const two = withSeats({ action: 'lock', params: { parts: ['k7'] } });
     Object.assign(two.scenes[0]?.events?.[5] ?? {}, { targets: ['seats', 'api'] });
     expect(check(two).errors.map((e) => e.code)).toEqual(['parts_need_one_target']);
     const bad = withSeats({ action: 'lock', params: { parts: [] } });
@@ -272,7 +272,7 @@ describe('parts', () => {
   });
 
   it('finds parts of elements inherited through continuesPrevious', () => {
-    const input = withSeats({ action: 'lock', params: { parts: ['h3'] } });
+    const input = withSeats({ action: 'lock', params: { parts: ['k7'] } });
     input.scenes[1]?.events?.push({
       at: { type: 'word', index: 0 },
       action: 'exit',

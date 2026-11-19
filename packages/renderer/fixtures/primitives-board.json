@@ -107,7 +107,7 @@
     },
     {
       "beatId": "node-card",
-      "narration": "A node card is one component of the system. Its crown marks the leader; the crown steps away and returns. It lights up when it matters, pulses under load, locks while it holds a resource, crashes with a reject, and then dims."
+      "narration": "A node card is one component of the system. Its crown marks the leader; the crown steps away and returns. It lights up when it matters, pulses under load, locks while it holds a resource, crashes with a reject, recovers, and then dims."
     },
     {
       "beatId": "icon",
@@ -115,7 +115,7 @@
     },
     {
       "beatId": "item-icon",
-      "narration": "An item icon is an everyday object, like a movie ticket. It glows when it matters, pulses, gets rejected when someone else took the seat, and finally dims."
+      "narration": "An item icon is an everyday object, like a parcel. It glows when it matters, pulses, gets rejected when the locker is full, and finally dims."
     },
     {
       "beatId": "counter",
@@ -123,11 +123,11 @@
     },
     {
       "beatId": "counter-transition",
-      "narration": "A counter transition shows one change. Ten seats become nine the moment one is booked. It glows, pulses, and then dims."
+      "narration": "A counter transition shows one change. Ten free lockers become nine the moment one is booked. It glows, pulses, and then dims."
     },
     {
       "beatId": "timer-ring",
-      "narration": "A timer ring counts down a hold. The ten minute clock starts ticking now, glows as time runs short, pulses, expires when the payment never comes, and then dims."
+      "narration": "A timer ring counts down a hold. The ten minute clock starts ticking now, glows as time runs short, pulses, expires when nobody collects the parcel, and then dims."
     },
     {
       "beatId": "stat-card",
@@ -135,7 +135,7 @@
     },
     {
       "beatId": "data-block",
-      "narration": "A data block types in a record field by field, like a ride request on its way to a driver. It glows when it is complete, pulses, and then dims."
+      "narration": "A data block types in a record field by field, like a locker booking on its way to the depot. It glows when it is complete, pulses, and then dims."
     },
     {
       "beatId": "command-bubble",
@@ -265,6 +265,14 @@
         {
           "at": {
             "type": "word_text",
+            "text": "recovers"
+          },
+          "action": "recover",
+          "targets": ["node-card"]
+        },
+        {
+          "at": {
+            "type": "word_text",
             "text": "dims"
           },
           "action": "dim",
@@ -373,8 +381,8 @@
           "id": "item-icon",
           "primitive": "item_icon",
           "props": {
-            "asset": "ticket",
-            "caption": "Seat H3"
+            "asset": "package",
+            "caption": "Parcel P-42"
           }
         }
       ],
@@ -500,7 +508,7 @@
           "props": {
             "from": 10,
             "to": 9,
-            "unit": "seats",
+            "unit": "lockers",
             "label": "available",
             "fromSemantic": "ok",
             "toSemantic": "problem"
@@ -561,7 +569,7 @@
           "primitive": "timer_ring",
           "props": {
             "durationSec": 600,
-            "label": "seat hold"
+            "label": "locker hold"
           }
         }
       ],
@@ -677,27 +685,27 @@
           "id": "data-block",
           "primitive": "data_block",
           "props": {
-            "title": "ride_request",
+            "title": "locker_booking",
             "fields": [
               {
-                "key": "rider",
+                "key": "owner",
                 "value": "u_42"
               },
               {
-                "key": "pickup",
-                "value": "MG Road"
+                "key": "locker",
+                "value": "L-17"
               },
               {
-                "key": "eta_min",
-                "value": 4
+                "key": "hold_min",
+                "value": 10
               },
               {
-                "key": "surge",
+                "key": "fragile",
                 "value": false
               },
               {
                 "key": "status",
-                "value": "MATCHED",
+                "value": "RESERVED",
                 "semantic": "ok"
               }
             ]
@@ -749,7 +757,7 @@
           "id": "command-bubble",
           "primitive": "command_bubble",
           "props": {
-            "text": "SET seat:H3 \"held\" NX"
+            "text": "SET locker:L17 \"held\" NX"
           }
         }
       ],

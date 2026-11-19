@@ -13,8 +13,8 @@ const ANCHORS = [
 
 const CandidateSchema = z.strictObject({
   id: SpecIdSchema.describe('Short slug for this candidate, used by obvious and pick.'),
-  title: lineText(24, 'Name of the candidate, e.g. RIDER 2.'),
-  detail: lineText(40, 'Optional detail under the name, e.g. 400 M AWAY.').optional(),
+  title: lineText(24, 'Name of the candidate, e.g. SERVER 2.'),
+  detail: lineText(40, 'Optional detail under the name, e.g. 12 MS AWAY.').optional(),
   icon: AssetIdSchema.optional(),
 });
 
@@ -78,9 +78,9 @@ export const pickByRulePattern = definePattern({
     summary:
       'Candidates around a target, optionally inside a search ring. The obvious pick (nearest, ' +
       'first, cheapest) gets a tag and is crossed out; the right one is ringed, linked to the ' +
-      'target and tagged with the rule that makes it win ("ETA 3:00 = PREP 3:00").',
+      'target and tagged with the rule that makes it win ("FREE + 12 MS").',
     whenToUse:
-      'Matching and scheduling decisions where the naive rule is wrong: riders to orders, ' +
+      'Matching and scheduling decisions where the naive rule is wrong: couriers to parcels, ' +
       'servers to requests, cache nodes to keys, workers to jobs.',
     whenNotToUse:
       'A prediction from features (use `inference_card`); two designs compared (use ' +

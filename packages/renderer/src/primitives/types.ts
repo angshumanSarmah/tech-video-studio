@@ -114,9 +114,23 @@ export interface PrimitiveDefinition<Id extends string = string, S extends z.Zod
 
 export type AnyPrimitiveDefinition = PrimitiveDefinition<string, z.ZodType>;
 
-/** Identity helper that keeps the literal id and the props type of a definition. */
+/** Keeps the literal id and the props type of a definition, and adds `recover` (`withRecover`). */
 export function definePrimitive<const Id extends string, S extends z.ZodType>(
   definition: PrimitiveDefinition<Id, S>,
 ): PrimitiveDefinition<Id, S> {
-  return definition;
+  const { parts } = definition;
+  return {
+    ...definition,
+    actions: withRecover(definition.actions),
+    ...(parts ? { parts: { ...parts, actions: withRecover(parts.actions) } } : {}),
+  };
+}
+
+/**
+ * Anything that can be rejected can recover: `recover` is supported exactly where `reject` is (on
+ * the element and on its parts), added right after it. Definitions never list it themselves.
+ */
+export function withRecover(actions: readonly EventAction[]): readonly EventAction[] {
+  if (!actions.includes('reject') || actions.includes('recover')) return actions;
+  return actions.flatMap((a) => (a === 'reject' ? ['reject', 'recover'] : [a]));
 }

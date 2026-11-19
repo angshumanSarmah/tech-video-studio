@@ -4,13 +4,13 @@ import { dataLines, formatDataValue, lineText, visibleParts } from './lines.ts';
 describe('dataLines', () => {
   it('prints JSON-like rows with commas between fields', () => {
     const lines = dataLines([
-      { key: 'rider', value: 'u_42' },
+      { key: 'owner', value: 'u_42' },
       { key: 'eta_min', value: 4 },
       { key: 'surge', value: false },
       { key: 'driver', value: null },
     ]).map(lineText);
     expect(lines).toEqual([
-      '  "rider": "u_42",',
+      '  "owner": "u_42",',
       '  "eta_min": 4,',
       '  "surge": false,',
       '  "driver": null',

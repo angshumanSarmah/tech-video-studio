@@ -119,6 +119,11 @@ export function catalogueMarkdown(
     'An event acts on its whole target. On primitives with **part actions**, an event with ' +
       '`params.parts` (a list of part ids) and exactly one target acts on those parts only.',
     '',
+    'Fail → recover: a `reject` holds (red, crossed out) until a later `recover` on the same ' +
+      'element or part ends it, with a short settle back to its own colour. Only `recover` ends ' +
+      'a reject (`highlight`, `enter` and `pulse` do not). Every primitive and part that supports ' +
+      '`reject` supports `recover`.',
+    '',
     '## Primitives',
     '',
     ...primitives.flatMap((entry) => primitiveSection(entry, registries, theme)),

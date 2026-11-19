@@ -79,7 +79,7 @@
   "script": [
     {
       "beatId": "atomic-lock",
-      "narration": "Two fans tap seat H3 at once. Asha arrives first and the seat locks for ten minutes. Ravi taps a moment later and bounces off."
+      "narration": "Two people tap room B2 at once. Mira arrives first and the room locks for ten minutes. Theo taps a moment later and bounces off."
     },
     {
       "beatId": "reject-duplicate",
@@ -117,20 +117,20 @@
           "pattern": "atomic_lock",
           "params": {
             "resource": {
-              "title": "Seat H3",
-              "icon": "ticket"
+              "title": "Room B2",
+              "icon": "key"
             },
             "first": {
-              "title": "Asha",
+              "title": "Mira",
               "icon": "user"
             },
             "second": {
-              "title": "Ravi",
+              "title": "Theo",
               "icon": "user"
             },
             "holdSec": 600,
             "holdLabel": "HOLD",
-            "bounce": "SEAT HELD",
+            "bounce": "ROOM HELD",
             "at": {
               "arrive": {
                 "type": "word_text",

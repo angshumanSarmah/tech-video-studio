@@ -7,7 +7,7 @@ import { definePrimitive, type SizeHints } from '../types.ts';
 
 export const TimeSegmentSchema = z.strictObject({
   id: PartIdSchema,
-  label: lineText(8, 'Short name of the step, e.g. RIDE or PACK.'),
+  label: lineText(8, 'Short name of the step, e.g. BUILD or TEST.'),
   sec: z.number().int().min(1).max(TIMER_MAX_SEC).describe('How long the step takes, in seconds.'),
   semantic: semanticProp('concept', 'Segment colour'),
 });
@@ -25,7 +25,7 @@ export const SegmentedTimeBarPropsSchema = z.strictObject({
     .max(TIMER_MAX_SEC)
     .optional()
     .describe('Optional time budget: a marker on the bar; time past it is drawn red.'),
-  label: lineText(24, 'Optional caption: what the time is for, e.g. ORDER TO DOOR.').optional(),
+  label: lineText(24, 'Optional caption: what the time is for, e.g. COMMIT TO DEPLOY.').optional(),
 });
 export type SegmentedTimeBarProps = z.output<typeof SegmentedTimeBarPropsSchema>;
 
@@ -81,7 +81,7 @@ export const segmentedTimeBarPrimitive = definePrimitive({
   },
   description: {
     summary:
-      'A stacked bar splitting a time budget into steps (RIDE | PACK), each segment as wide as ' +
+      'A stacked bar splitting a time budget into steps (BUILD | TEST), each segment as wide as ' +
       'its time with its mm:ss under it, and the total at the top right. With `budgetSec`, a ' +
       'marker shows the budget and any time past it turns red. `enter` fills the segments left ' +
       'to right; segments are parts: highlight the step being discussed, reject the one that ' +

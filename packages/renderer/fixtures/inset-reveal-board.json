@@ -69,7 +69,7 @@
   "script": [
     {
       "beatId": "inset-panel",
-      "narration": "Zoom into the store and an inset panel opens over the scene. Inside, the order features type in, and the prediction flips from unknown to fourteen minutes. The panel lights up, pulses, dims, then shrinks back into the store."
+      "narration": "Zoom into the payments node and an inset panel opens over the scene. Inside, the transaction features type in, and the risk score flips from unknown to eighty-seven percent. The panel lights up, pulses, dims, then shrinks back into the node."
     },
     {
       "beatId": "bracket",
@@ -77,20 +77,20 @@
     },
     {
       "beatId": "callout",
-      "narration": "A callout pops in beside the kitchen with a what if. It lights up, pulses, then the assumption is ruled out, it dims, and leaves.",
-      "source": "Example Eats delivery study, March 2025"
+      "narration": "A callout pops in beside the scheduler with a what if. It lights up, pulses, then the assumption is ruled out, comes back, it dims, and leaves.",
+      "source": "Example Labs scheduler study, March 2025"
     },
     {
       "beatId": "device-frame",
-      "narration": "A device frame shows a rider's phone. A third order slides in. The first order lights up and blinks. The second is declined, and the third drops off. The whole phone glows, pulses, and the button turns to accepted. Then it dims."
+      "narration": "A device frame shows a support agent's phone. A third ticket slides in. The first ticket lights up and blinks. The second is declined, and the third drops off. The whole phone glows, pulses, and the button turns to claimed. Then it dims."
     },
     {
       "beatId": "radius-ring",
-      "narration": "A radius ring grows out around the restaurant: two kilometres. The ring lights up, pulses, dims, and fades away."
+      "narration": "A radius ring grows out around the depot: two kilometres. The ring lights up, pulses, dims, and fades away."
     },
     {
       "beatId": "statement-card",
-      "narration": "A statement card rises over the scene. Easy: find nearby riders. Hard: pick the right one. The hard line glows and throbs. The card lights up, pulses, dims, and the easy line leaves before the card goes."
+      "narration": "A statement card rises over the scene. Easy: copy the data. Hard: keep it in sync. The hard line glows and throbs. The card lights up, pulses, dims, and the easy line leaves before the card goes."
     }
   ],
   "scenes": [
@@ -107,31 +107,31 @@
           }
         },
         {
-          "id": "store",
+          "id": "payments",
           "primitive": "node_card",
           "props": {
-            "title": "Store",
-            "subtitle": "kitchen 4",
-            "icon": "shopping_bag"
+            "title": "Payments",
+            "subtitle": "gateway 2",
+            "icon": "credit_card"
           }
         },
         {
           "id": "features",
           "primitive": "data_block",
           "props": {
-            "title": "order features",
+            "title": "txn features",
             "fields": [
               {
-                "key": "items",
-                "value": 3
+                "key": "amount",
+                "value": 4999
               },
               {
-                "key": "distance_km",
-                "value": 2.4
+                "key": "new_device",
+                "value": true
               },
               {
                 "key": "hour",
-                "value": 19
+                "value": 3
               }
             ]
           }
@@ -141,9 +141,9 @@
           "primitive": "counter_transition",
           "props": {
             "from": null,
-            "to": 14,
-            "unit": "MIN",
-            "label": "PREDICTED PREP",
+            "to": 87,
+            "unit": "%",
+            "label": "FRAUD RISK",
             "fromSemantic": "neutral",
             "toSemantic": "focus"
           }
@@ -152,8 +152,8 @@
           "id": "inset-panel",
           "primitive": "inset_panel",
           "props": {
-            "title": "ORDER 4127",
-            "anchor": "store",
+            "title": "TXN 9051",
+            "anchor": "payments",
             "children": ["features", "prediction"]
           }
         }
@@ -306,12 +306,12 @@
       "layoutMode": "centered_focus",
       "elements": [
         {
-          "id": "kitchen",
+          "id": "scheduler",
           "primitive": "node_card",
           "props": {
-            "title": "Kitchen",
-            "subtitle": "prep 20 min",
-            "icon": "pizza"
+            "title": "Scheduler",
+            "subtitle": "lease 30 s",
+            "icon": "clock"
           }
         },
         {
@@ -319,7 +319,7 @@
           "primitive": "callout",
           "props": {
             "title": "WHAT IF",
-            "text": "If prep takes 20 min: rider waits 17 min ✗",
+            "text": "If the lease never expires: the lock is held forever ✗",
             "semantic": "problem"
           }
         }
@@ -360,6 +360,14 @@
         {
           "at": {
             "type": "word_text",
+            "text": "comes"
+          },
+          "action": "recover",
+          "targets": ["callout"]
+        },
+        {
+          "at": {
+            "type": "word_text",
             "text": "dims"
           },
           "action": "dim",
@@ -385,32 +393,32 @@
           "id": "device-frame",
           "primitive": "device_frame",
           "props": {
-            "status": "3 NEW ORDERS",
+            "status": "3 NEW TICKETS",
             "rows": [
               {
-                "id": "order-a",
-                "label": "Paneer wrap",
-                "detail": "2 KM",
-                "icon": "package"
+                "id": "ticket-a",
+                "label": "Login loop",
+                "detail": "P1",
+                "icon": "user"
               },
               {
-                "id": "order-b",
-                "label": "Masala dosa",
-                "detail": "4 KM",
-                "icon": "package"
+                "id": "ticket-b",
+                "label": "Refund stuck",
+                "detail": "P2",
+                "icon": "credit_card"
               },
               {
-                "id": "order-c",
-                "label": "Cold coffee",
-                "detail": "1 KM",
-                "icon": "coffee"
+                "id": "ticket-c",
+                "label": "Typo on pricing page",
+                "detail": "P3",
+                "icon": "document"
               }
             ],
             "button": {
-              "label": "Accept",
+              "label": "Claim",
               "semantic": "focus",
               "then": {
-                "label": "Accepted ✓",
+                "label": "Claimed ✓",
                 "semantic": "ok"
               }
             }
@@ -434,7 +442,7 @@
           "action": "enter",
           "targets": ["device-frame"],
           "params": {
-            "parts": ["order-c"]
+            "parts": ["ticket-c"]
           }
         },
         {
@@ -445,7 +453,7 @@
           "action": "highlight",
           "targets": ["device-frame"],
           "params": {
-            "parts": ["order-a"]
+            "parts": ["ticket-a"]
           }
         },
         {
@@ -456,7 +464,7 @@
           "action": "pulse",
           "targets": ["device-frame"],
           "params": {
-            "parts": ["order-a"]
+            "parts": ["ticket-a"]
           }
         },
         {
@@ -467,7 +475,7 @@
           "action": "reject",
           "targets": ["device-frame"],
           "params": {
-            "parts": ["order-b"]
+            "parts": ["ticket-b"]
           }
         },
         {
@@ -478,7 +486,7 @@
           "action": "exit",
           "targets": ["device-frame"],
           "params": {
-            "parts": ["order-c"]
+            "parts": ["ticket-c"]
           }
         },
         {
@@ -522,10 +530,10 @@
       "layoutMode": "centered_focus",
       "elements": [
         {
-          "id": "restaurant",
+          "id": "depot",
           "primitive": "node_card",
           "props": {
-            "title": "Restaurant",
+            "title": "Depot",
             "icon": "map_pin"
           }
         },
@@ -533,7 +541,7 @@
           "id": "radius-ring",
           "primitive": "radius_ring",
           "props": {
-            "around": "restaurant",
+            "around": "depot",
             "label": "2 KM"
           }
         }
@@ -595,12 +603,12 @@
           }
         },
         {
-          "id": "riders",
+          "id": "replicas",
           "primitive": "node_card",
           "props": {
-            "title": "Riders",
-            "subtitle": "12 nearby",
-            "icon": "bike"
+            "title": "Replicas",
+            "subtitle": "3 regions",
+            "icon": "database"
           }
         },
         {
@@ -610,12 +618,12 @@
             "lines": [
               {
                 "id": "easy",
-                "text": "Easy: find nearby riders.",
+                "text": "Easy: copy the data.",
                 "semantic": "ok"
               },
               {
                 "id": "hard",
-                "text": "Hard: pick the right one.",
+                "text": "Hard: keep it in sync.",
                 "semantic": "problem"
               }
             ]

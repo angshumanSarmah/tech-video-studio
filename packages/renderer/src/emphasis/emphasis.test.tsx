@@ -93,6 +93,14 @@ describe('emphasis in a mark theme (drafting-paper)', () => {
     expect(html(<svg>{line}</svg>)).toContain('mask=');
   });
 
+  it('recover: the settle ripples like a pulse while it plays, then draws nothing', () => {
+    const settling = state({ emphasis: 0.5, actions: { reject: 0, recover: 0.5, pulse: 1 } });
+    expect(markLevels(settling).pulse).toBe(0.5);
+    expect(markView(paper, markLevels(settling))).toMatchObject({ swipe: 0, ripple: {} });
+    const settled = state({ actions: { reject: 0, recover: 1, pulse: 1 } });
+    expect(markView(paper, markLevels(settled))).toBeNull();
+  });
+
   it('draws nothing at rest or once a pulse has played out', () => {
     expect(markView(paper, markLevels(idle))).toBeNull();
     expect(markView(paper, markLevels(pulsed))).toBeNull();

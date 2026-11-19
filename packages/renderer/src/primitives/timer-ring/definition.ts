@@ -51,7 +51,7 @@ export const timerRingPrimitive = definePrimitive({
       "element's `exit` or the end of the beat, and holds 00:00. It never runs slower than real " +
       'time; when faster, a fast-forward tag shows the multiplier (e.g. 60×).',
     whenToUse:
-      'A deadline or hold in the story: a seat held for 10 minutes, a token that expires, a ' +
+      'A deadline or hold in the story: a room held for 10 minutes, a token that expires, a ' +
       'lease or a timeout. Put `count` where the clock starts and `reject` on the word where the ' +
       'time runs out.',
     whenNotToUse:

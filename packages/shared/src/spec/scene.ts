@@ -21,6 +21,7 @@ export const EVENT_ACTIONS = [
   'count',
   'lock',
   'reject',
+  'recover',
   'pulse',
 ] as const;
 export const EventActionSchema = z.enum(EVENT_ACTIONS);

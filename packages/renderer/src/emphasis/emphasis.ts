@@ -96,9 +96,14 @@ export type MarkView = {
 /** Mark levels: `highlight` (held, 0..1) and `pulse` (the latest pulse's progress, 0..1). */
 export type MarkLevels = { highlight: number; pulse?: number | undefined };
 
-/** The levels a mark reads from an element or part state. */
+/**
+ * The levels a mark reads from an element or part state. A `recover` that is playing ripples like
+ * a pulse (the settle back into the element's own colour).
+ */
 export function markLevels(state: EmphasisState): MarkLevels {
-  return { highlight: state.highlight, pulse: state.actions.pulse };
+  const recover = state.actions.recover;
+  const settling = recover !== undefined && recover > 0 && recover < 1;
+  return { highlight: state.highlight, pulse: settling ? recover : state.actions.pulse };
 }
 
 /** The mark to draw at these levels; null in glow themes or when neither level shows. */

@@ -37,7 +37,7 @@ export const itemIconPrimitive = definePrimitive({
       'A flat everyday object from the asset library (phone, car, ticket, parcel, pizza) on a ' +
       'soft tile, with a caption under it. `reject` turns it red with a cross and a shake.',
     whenToUse:
-      'The real-world thing the system is about: the order, the ride, the seat ticket, the ' +
+      'The real-world thing the system is about: the parcel, the payment card, the ticket, the ' +
       "user's phone. Grounds an abstract flow in something the viewer has held.",
     whenNotToUse:
       'A system component (use `node_card`); a bare symbol without a caption (use `icon`); data ' +

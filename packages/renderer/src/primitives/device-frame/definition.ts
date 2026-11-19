@@ -15,18 +15,18 @@ export const DEVICE_KINDS = ['phone', 'tablet'] as const;
 
 export const DeviceRowSchema = z.strictObject({
   id: PartIdSchema,
-  label: lineText(22, 'Row text: an order, a rider, a message.'),
+  label: lineText(22, 'Row text: a task, a contact, a message.'),
   detail: lineText(12, 'Optional short value at the right, e.g. 3 MIN.').optional(),
   icon: AssetIdSchema.optional(),
 });
 
 export const DeviceButtonStateSchema = z.strictObject({
-  label: lineText(16, 'Button text, e.g. Accepted ✓.'),
+  label: lineText(16, 'Button text, e.g. Claimed ✓.'),
   semantic: semanticProp('ok', 'Button colour'),
 });
 
 export const DeviceButtonSchema = z.strictObject({
-  label: lineText(16, 'Button text, e.g. Accept.'),
+  label: lineText(16, 'Button text, e.g. Claim.'),
   semantic: semanticProp('focus', 'Button colour'),
   then: DeviceButtonStateSchema.optional().describe(
     'Optional label and colour the button changes to on morph.',
@@ -104,10 +104,10 @@ export const deviceFramePrimitive = definePrimitive({
     summary:
       'A generic phone or tablet outline (`kind`) with a simple screen: a `status` line, list ' +
       '`rows`, and a `button`. `morph` changes the button to its "then" label and colour ' +
-      '(Accept → Accepted ✓). Rows are parts: enter one as it arrives, highlight it, or ' +
+      '(Claim → Claimed ✓). Rows are parts: enter one as it arrives, highlight it, or ' +
       'reject it (red with a cross: declined, failed). Never a real app, screenshot or logo.',
     whenToUse:
-      'What a user or a driver sees: an incoming order, a ride request to accept, a list of ' +
+      'What a user sees: an incoming task, a request to approve, a list of ' +
       'notifications, the status of a payment.',
     whenNotToUse:
       'A server or service (use `node_card`); a phone as an everyday object without a screen ' +

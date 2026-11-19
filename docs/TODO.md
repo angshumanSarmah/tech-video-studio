@@ -246,10 +246,12 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
     show together; they should share one path.
   - A pattern's mode is static per definition; a pattern that wants a different mode by params
     would move `layoutMode` into the expansion.
-- [ ] **P1A.10 — Recovering from `reject`.** A `reject` is held for good: no later event clears
-      it. `flood_then_funnel`'s target stays red after the funnel fixes the load. Decide in
-      `elementState` how a rejected element recovers (e.g. a later `highlight` or `enter` clears
-      it), so components stay unchanged.
+- [ ] **Recover without a reject.** A `recover` on an element or part that was never rejected
+      (in its `continuesPrevious` chain) is a silent no-op. Add a timeline warning
+      (`recover_without_reject`) so agents repair it; the board fixtures are checked by a test.
+- [ ] **Recover settle colour.** A recover switches the problem look off at once and plays a
+      settle bump in the element's own colour. A cross-fade from problem to the own colour would
+      need each component to blend two tints; do it centrally if the snap reads as abrupt.
 - [ ] **Timeline warnings for pattern elements.** `findTimelineWarnings` reads only
       `scenes[].elements`, so expanded elements (and spec events on `<instance>/<id>`) get no
       `overlay_overlap`, `child_before_container` or primitive `eventWarnings`. Pattern code is

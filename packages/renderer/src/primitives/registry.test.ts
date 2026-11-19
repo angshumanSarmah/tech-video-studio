@@ -5,7 +5,7 @@ import { getTheme } from '../theme/index.ts';
 import { componentFor } from './components.ts';
 import { buildPrimitiveRegistry, getPrimitive, listPrimitives } from './registry.ts';
 import { tagPrimitive } from './tag/definition.ts';
-import { PRIMITIVE_FAMILIES } from './types.ts';
+import { PRIMITIVE_FAMILIES, withRecover } from './types.ts';
 
 const theme = getTheme();
 const ids = new Set(listPrimitives().map((p) => p.id));
@@ -39,6 +39,12 @@ describe.each(listPrimitives().map((p) => [p.id, p] as const))('primitive %s', (
     expect(hints.preferredHeight).toBeGreaterThanOrEqual(hints.minHeight);
   });
 
+  it('supports recover exactly where it supports reject, on the element and its parts', () => {
+    expect(primitive.actions.includes('recover')).toBe(primitive.actions.includes('reject'));
+    const parts = primitive.parts?.actions ?? [];
+    expect(parts.includes('recover')).toBe(parts.includes('reject'));
+  });
+
   it('lists the parts of its example, without duplicates', () => {
     if (!primitive.parts) return;
     const partIds = primitive.parts.ids(primitive.propsSchema.parse(primitive.example.props));
@@ -65,6 +71,14 @@ describe('primitive registry', () => {
     expect(() => buildPrimitiveRegistry([{ ...tagPrimitive, id: 'Tag Box' }])).toThrow(/Invalid/);
     const badExample = { ...tagPrimitive, example: { props: { text: '' } } };
     expect(() => buildPrimitiveRegistry([badExample])).toThrow(/Example props of primitive "tag"/);
+  });
+});
+
+describe('withRecover', () => {
+  it('adds recover right after reject, once, and nowhere else', () => {
+    expect(withRecover(['enter', 'reject', 'dim'])).toEqual(['enter', 'reject', 'recover', 'dim']);
+    expect(withRecover(['enter', 'dim'])).toEqual(['enter', 'dim']);
+    expect(withRecover(['reject', 'recover'])).toEqual(['reject', 'recover']);
   });
 });
 

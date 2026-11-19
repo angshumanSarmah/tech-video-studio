@@ -48,7 +48,7 @@ export const calloutPrimitive = definePrimitive({
   description: {
     summary:
       'A small card with one or two lines of text and an optional `title`, for a counterfactual ' +
-      'or a warning: "If prep takes 20 min: rider waits 17 min ✗". Tinted by `semantic`: ' +
+      'or a warning: "If the lease never expires: the lock is held forever ✗". Tinted by `semantic`: ' +
       'problem, focus or concept. `reject` turns it red with a cross and a shake (the ' +
       'assumption it states is ruled out).',
     whenToUse:

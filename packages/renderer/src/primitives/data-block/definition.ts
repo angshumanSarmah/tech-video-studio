@@ -61,7 +61,7 @@ export const dataBlockPrimitive = definePrimitive({
       'types in one field at a time (about a third of a second each); without `enter` all ' +
       'fields show at once. A field can colour its value by meaning.',
     whenToUse:
-      'Showing what a thing looks like as data: a ride request, a cache entry, a message on a ' +
+      'Showing what a thing looks like as data: a booking, a cache entry, a message on a ' +
       'queue, the record a real object becomes. Up to 6 short fields.',
     whenNotToUse:
       'Code or logic (this is data only); a single command (use `command_bubble`); long text, ' +

@@ -57,7 +57,7 @@ export const counterTransitionPrimitive = definePrimitive({
       'come in and the old one fades back. A null `from` shows "?": an unknown value revealed ' +
       'as a prediction or a measured result ("? → 0.82").',
     whenToUse:
-      'One discrete change the story turns on: a stock of 10 seats dropping to 9, a version ' +
+      'One discrete change the story turns on: 10 free lockers dropping to 9, a version ' +
       'going from 1 to 2, a retry count ticking up. The colour change carries the meaning (e.g. ' +
       'neutral to problem). With `from` null: a prediction appearing, an unknown ' +
       'measured for the first time.',

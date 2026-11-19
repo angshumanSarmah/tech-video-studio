@@ -3,25 +3,25 @@ import { deviceFrameEventWarnings, DeviceFramePropsSchema } from './definition.t
 import { buttonFaces } from './button.ts';
 
 const button = {
-  label: 'Accept',
+  label: 'Claim',
   semantic: 'focus',
-  then: { label: 'Accepted ✓', semantic: 'ok' },
+  then: { label: 'Claimed ✓', semantic: 'ok' },
 } as const;
 
 describe('buttonFaces', () => {
   it('shows the authored button until the morph starts', () => {
     expect(buttonFaces(button, undefined)).toEqual([
-      { label: 'Accept', semantic: 'focus', opacity: 1 },
+      { label: 'Claim', semantic: 'focus', opacity: 1 },
     ]);
     expect(buttonFaces(button, 0)).toHaveLength(1);
   });
 
   it('cross-fades into then, and shows only then once done', () => {
     expect(buttonFaces(button, 0.25)).toEqual([
-      { label: 'Accept', semantic: 'focus', opacity: 0.75 },
-      { label: 'Accepted ✓', semantic: 'ok', opacity: 0.25 },
+      { label: 'Claim', semantic: 'focus', opacity: 0.75 },
+      { label: 'Claimed ✓', semantic: 'ok', opacity: 0.25 },
     ]);
-    expect(buttonFaces(button, 1)).toEqual([{ label: 'Accepted ✓', semantic: 'ok', opacity: 1 }]);
+    expect(buttonFaces(button, 1)).toEqual([{ label: 'Claimed ✓', semantic: 'ok', opacity: 1 }]);
   });
 
   it('ignores morph without then', () => {

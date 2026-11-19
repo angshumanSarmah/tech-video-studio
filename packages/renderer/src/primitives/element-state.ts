@@ -31,6 +31,7 @@ export type ElementState = {
   /**
    * Progress (0..1) of the latest started occurrence of each action the element has; 0 while its
    * first occurrence is still ahead; absent when the element has no event with that action.
+   * Exception: `reject` is held, and reads 0 again once a later `recover` has started.
    */
   actions: Partial<Record<EventAction, number>>;
   /**
@@ -92,6 +93,7 @@ export const ACTION_DURATION_SEC: Record<EventAction, number> = {
   count: 0.9,
   lock: 0.4,
   reject: 0.5,
+  recover: 0.6,
   pulse: 0.6,
 };
 
@@ -99,6 +101,13 @@ const PRESENCE: ReadonlySet<EventAction> = new Set(['enter', 'exit']);
 const DIM_TOGGLES: ReadonlySet<EventAction> = new Set(['dim', 'highlight', 'enter']);
 /** A held highlight ends at a later dim, exit or reject (a new highlight after it starts again). */
 const HIGHLIGHT_TOGGLES: ReadonlySet<EventAction> = new Set(['highlight', 'dim', 'exit', 'reject']);
+/**
+ * A reject is held until a later `recover` (and only that: highlight, enter, pulse and lock leave
+ * it). `actions.reject` then reads 0, so every component drops its problem look by itself.
+ */
+const REJECT_TOGGLES: ReadonlySet<EventAction> = new Set(['reject', 'recover']);
+/** Peak of the settle bump a `recover` plays in the element's own colour. */
+const SETTLE_PEAK = 0.6;
 
 /**
  * State at global `frame`; elapsed times use `frame / fps` as the absolute video time. Events that
@@ -130,12 +139,16 @@ function stateOf(events: readonly ElementEvent[], frame: number, fps: number): P
   const progress = (e: ElementEvent) => actionProgress(e, frame, fps);
   const elapsed = (e: ElementEvent) => Math.max(0, frame / fps - e.sec);
   const highlight = heldLevel(started, 'highlight', HIGHLIGHT_TOGGLES, progress);
+  const actions = latestPerAction(events, started, progress);
+  if (actions.reject !== undefined) {
+    actions.reject = heldLevel(started, 'reject', REJECT_TOGGLES, progress);
+  }
   return {
     presence: presence(events, started, progress),
-    emphasis: Math.max(highlight, pulse(started, progress)),
+    emphasis: Math.max(highlight, pulse(started, progress), settle(started, progress)),
     highlight,
     dimmed: heldLevel(started, 'dim', DIM_TOGGLES, progress),
-    actions: latestPerAction(events, started, progress),
+    actions,
     elapsed: latestPerAction(events, started, elapsed),
     runSec: runPerAction(events, started),
     starts: startsPerAction(events, started),
@@ -214,6 +227,12 @@ function heldLevel(
 function pulse(started: readonly ElementEvent[], p: Progress) {
   const last = started.findLast((e) => e.action === 'pulse');
   return last ? Math.sin(Math.PI * p(last)) : 0;
+}
+
+/** The short bump a `recover` plays as the element settles back into its own colour. */
+function settle(started: readonly ElementEvent[], p: Progress) {
+  const last = started.findLast((e) => e.action === 'recover');
+  return last ? SETTLE_PEAK * Math.sin(Math.PI * p(last)) : 0;
 }
 
 /** `measure` of the latest started event per action; 0 for actions whose first event is ahead. */

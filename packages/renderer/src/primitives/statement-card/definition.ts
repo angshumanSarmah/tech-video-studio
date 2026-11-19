@@ -77,8 +77,8 @@ export const statementCardPrimitive = definePrimitive({
       'line on its word to build the statement up, highlight or pulse the one that matters. ' +
       'It is an overlay: everything else on the board dims while it shows.',
     whenToUse:
-      'A planted question ("Why not just pick the nearest rider?"), a two-line takeaway ' +
-      '("Easy: find riders. Hard: pick the right one."), a verdict before the next chapter.',
+      'A planted question ("Why not just retry forever?"), a two-line takeaway ' +
+      '("Easy: copy the data. Hard: keep it in sync."), a verdict before the next chapter.',
     whenNotToUse:
       'A label next to a diagram part (use `tag` or `callout`); the beat headline (that is the ' +
       'HUD headline); a detail view with diagram parts in it (use `inset_panel`). Show at most ' +

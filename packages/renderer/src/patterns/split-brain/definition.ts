@@ -49,11 +49,11 @@ export const splitBrainPattern = definePattern({
       .describe('Optional lease timer that runs out when the replica promotes itself.'),
     writes: z
       .strictObject({
-        leader: lineText(24, 'The write the leader accepts, e.g. SEAT H3 → ASHA.'),
+        leader: lineText(24, 'The write the leader accepts, e.g. ROW 7 → v2.'),
         replica: lineText(24, 'The conflicting write the replica accepts.'),
       })
       .describe('The divergent writes, one per side.'),
-    conflict: lineText(64, 'The conflict, stated plainly, e.g. Two owners for seat H3.'),
+    conflict: lineText(64, 'The conflict, stated plainly, e.g. Two owners for one record.'),
     at: anchorsSchema(ANCHORS),
   }),
   actions: ['exit', 'highlight', 'dim', 'pulse'],

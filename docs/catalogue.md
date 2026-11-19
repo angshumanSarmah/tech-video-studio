@@ -6,6 +6,8 @@ Everything the Generator may put in a beat scene. Ids are exhaustive: there are 
 
 An event acts on its whole target. On primitives with **part actions**, an event with `params.parts` (a list of part ids) and exactly one target acts on those parts only.
 
+Fail → recover: a `reject` holds (red, crossed out) until a later `recover` on the same element or part ends it, with a short settle back to its own colour. Only `recover` ends a reject (`highlight`, `enter` and `pulse` do not). Every primitive and part that supports `reject` supports `recover`.
+
 ## Primitives
 
 ### bracket
@@ -49,9 +51,9 @@ A curly brace that groups a run of sibling elements (`targets`), or some `parts`
 
 ### callout
 
-**Family:** annotation · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`, `reject`
+**Family:** annotation · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`, `reject`, `recover`
 
-A small card with one or two lines of text and an optional `title`, for a counterfactual or a warning: "If prep takes 20 min: rider waits 17 min ✗". Tinted by `semantic`: problem, focus or concept. `reject` turns it red with a cross and a shake (the assumption it states is ruled out).
+A small card with one or two lines of text and an optional `title`, for a counterfactual or a warning: "If the lease never expires: the lock is held forever ✗". Tinted by `semantic`: problem, focus or concept. `reject` turns it red with a cross and a shake (the assumption it states is ruled out).
 
 **When to use:** A what-if, a caveat or a consequence that sits beside the diagram: the cost of the naive choice, a warning about a failure mode, an aside that explains a term.
 
@@ -119,7 +121,7 @@ A single line-drawn symbol from the asset library (server, database, user, lock,
 
 A framed detail card that zooms in over the scene while everything behind it dims. It holds other elements of the beat (`children`: e.g. a `data_block`, a `counter_transition`, a `slot_grid`, a `map_base` or a `segmented_time_bar`), drawn inside it and shown only while it is. `enter` zooms it out of its `anchor`; `exit` shrinks it back in. Children keep their own events (enter, count, highlight).
 
-**When to use:** A closer look at one part of the diagram: what is inside a cache entry, the features a model reads for one order, the shelf behind a store pin, the time budget of one ride.
+**When to use:** A closer look at one part of the diagram: what is inside a cache entry, the features a model reads for one transaction, the bins behind a warehouse pin, the time budget of one build.
 
 **When not to:** Text only (use `statement_card` or `callout`); a whole new scene (start a new beat). Show at most one overlay at a time, and never put an overlay inside it.
 
@@ -152,11 +154,11 @@ A framed detail card that zooms in over the scene while everything behind it dim
 
 ### item_icon
 
-**Family:** annotation · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`, `reject`
+**Family:** annotation · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`, `reject`, `recover`
 
 A flat everyday object from the asset library (phone, car, ticket, parcel, pizza) on a soft tile, with a caption under it. `reject` turns it red with a cross and a shake.
 
-**When to use:** The real-world thing the system is about: the order, the ride, the seat ticket, the user's phone. Grounds an abstract flow in something the viewer has held.
+**When to use:** The real-world thing the system is about: the parcel, the payment card, the ticket, the user's phone. Grounds an abstract flow in something the viewer has held.
 
 **When not to:** A system component (use `node_card`); a bare symbol without a caption (use `icon`); data about the object (use `data_block`).
 
@@ -185,7 +187,7 @@ A flat everyday object from the asset library (phone, car, ticket, parcel, pizza
 
 ### node_card
 
-**Family:** annotation · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`, `lock`, `reject`
+**Family:** annotation · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`, `lock`, `reject`, `recover`
 
 A titled card for one component of a system (a service, server, database, client or queue), with an optional subtitle and icon. `lock` adds a padlock badge; `reject` turns it red with a cross and a shake. An optional `role` badge (a crown for the leader) sits at the top centre as the part "role": `exit` it on the old holder and `enter` it on the new one to hand the role over (a role whose first part event is `enter` starts hidden).
 
@@ -228,7 +230,7 @@ A titled card for one component of a system (a service, server, database, client
 
 One to three large `lines` at display size on a card that spans the stage, over the dimmed scene, each line in its own colour meaning. Long lines wrap; the text never shrinks. `enter` fades it in with a slight rise. Lines are parts: `enter` a line on its word to build the statement up, highlight or pulse the one that matters. It is an overlay: everything else on the board dims while it shows.
 
-**When to use:** A planted question ("Why not just pick the nearest rider?"), a two-line takeaway ("Easy: find riders. Hard: pick the right one."), a verdict before the next chapter.
+**When to use:** A planted question ("Why not just retry forever?"), a two-line takeaway ("Easy: copy the data. Hard: keep it in sync."), a verdict before the next chapter.
 
 **When not to:** A label next to a diagram part (use `tag` or `callout`); the beat headline (that is the HUD headline); a detail view with diagram parts in it (use `inset_panel`). Show at most one overlay at a time.
 
@@ -270,7 +272,7 @@ One to three large `lines` at display size on a card that spans the stage, over 
 
 ### tag
 
-**Family:** annotation · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`, `reject`
+**Family:** annotation · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`, `reject`, `recover`
 
 A boxed monospace label in a semantic colour, like a sticker on the board. It names a thing, a state or a result in two or three words ("429", "CACHE HIT", "RATE LIMITED").
 
@@ -302,7 +304,7 @@ A boxed monospace label in a semantic colour, like a sticker on the board. It na
 
 ### command_bubble
 
-**Family:** data · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`, `reject`
+**Family:** data · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`, `reject`, `recover`
 
 A speech bubble holding one line of monospace command, with the verb coloured, such as a key/value store command or a CLI call. On `enter` the command types itself out (about 30 characters a second, never more than 1.5 s). `reject` turns it red with a cross.
 
@@ -337,7 +339,7 @@ A speech bubble holding one line of monospace command, with the verb coloured, s
 
 A JSON-like block of key/value pairs on a card, with an optional title. On `enter` it types in one field at a time (about a third of a second each); without `enter` all fields show at once. A field can colour its value by meaning.
 
-**When to use:** Showing what a thing looks like as data: a ride request, a cache entry, a message on a queue, the record a real object becomes. Up to 6 short fields.
+**When to use:** Showing what a thing looks like as data: a booking, a cache entry, a message on a queue, the record a real object becomes. Up to 6 short fields.
 
 **When not to:** Code or logic (this is data only); a single command (use `command_bubble`); long text, nested objects or lists; a single number (use `counter`).
 
@@ -413,13 +415,13 @@ A card with one typeset formula (LaTeX, rendered by KaTeX) and an optional capti
 
 **Family:** spatial · **Actions:** `enter`, `exit`, `highlight`, `dim`
 
-A grid of square cells dropped over a map or zones. `enter` drops it in from above. The `cells` are parts addressed by row and column: `highlight` one to light it with its tag (e.g. YOUR CELL), `pulse` it for attention, `reject` it to turn it red.
+A grid of square cells dropped over a map or zones. `enter` drops it in from above. The `cells` are parts addressed by row and column: `highlight` one to light it with its tag (e.g. HOT CELL), `pulse` it for attention, `reject` it to turn it red.
 
 **When to use:** Turning space into buckets: geohash cells, a spatial index, a quadtree level, partitioning a city for drivers. Set `over` to the `map_base` it divides.
 
 **When not to:** Irregular areas (use `zone_polygon`); a grid of items or seats (use `slot_grid`); a table of data (use `data_block`).
 
-**Part actions** (events with `params.parts`): `highlight`, `pulse`, `reject`, `dim`
+**Part actions** (events with `params.parts`): `highlight`, `pulse`, `reject`, `recover`, `dim`
 
 **Props:**
 
@@ -432,7 +434,7 @@ A grid of square cells dropped over a map or zones. `enter` drops it in from abo
 | `cells[].id` | string | yes | Part id, unique in this element; events act on it with params.parts. (max length 64) |
 | `cells[].row` | integer | yes | Row, counted from 1 at the top. (min 1, max 12) |
 | `cells[].col` | integer | yes | Column, counted from 1 at the left. (min 1, max 12) |
-| `cells[].label` | string | no | Optional tag shown when the cell lights up, e.g. YOUR CELL. (min length 1, max length 14) |
+| `cells[].label` | string | no | Optional tag shown when the cell lights up, e.g. HOT CELL. (min length 1, max length 14) |
 | `cells[].semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Cell colour when lit: neutral, focus, ok, problem or concept. (default `"focus"`) |
 
 **Size hint** (example, drafting-paper): 880 × 880 px (min 600 × 600).
@@ -495,7 +497,7 @@ A stylised top-down city: blocks, streets, avenues, parks and, in the riverside 
 
 A dashed search circle centred on the element `around`, with an optional `label` on its rim (the radius, or what is searched). `enter` grows it out from the centre.
 
-**When to use:** A search area or reach: riders within 2 km of a restaurant, servers within one network hop, the candidates a matcher considers around a target.
+**When to use:** A search area or reach: couriers within 2 km of a depot, servers within one network hop, the candidates a matcher considers around a target.
 
 **When not to:** A named area with edges (use `zone_polygon`); a grid of cells (use `grid_overlay`); a countdown (use `timer_ring`).
 
@@ -532,7 +534,7 @@ A glowing route through named `stops`, with a pin at the start and at the end an
 
 **When not to:** A link between two components (use `connector`); traffic over time (use `packet_stream`); areas on a map (use `zone_polygon`).
 
-**Part actions** (events with `params.parts`): `highlight`, `pulse`, `reject`
+**Part actions** (events with `params.parts`): `highlight`, `pulse`, `reject`, `recover`
 
 **Props:**
 
@@ -582,7 +584,7 @@ Labelled areas drawn as soft, irregular shapes that can overlap. The `zones` are
 
 **When not to:** A regular grid of cells (use `grid_overlay`); components with names (use `node_card`); items in slots (use `slot_grid`).
 
-**Part actions** (events with `params.parts`): `enter`, `exit`, `highlight`, `dim`, `pulse`, `reject`
+**Part actions** (events with `params.parts`): `enter`, `exit`, `highlight`, `dim`, `pulse`, `reject`, `recover`
 
 **Props:**
 
@@ -619,7 +621,7 @@ Labelled areas drawn as soft, irregular shapes that can overlap. The `zones` are
 
 ### connector
 
-**Family:** flow · **Actions:** `enter`, `exit`, `move`, `highlight`, `dim`, `pulse`, `reject`
+**Family:** flow · **Actions:** `enter`, `exit`, `move`, `highlight`, `dim`, `pulse`, `reject`, `recover`
 
 An arrow or line from one element to another, with an optional label at its middle. `enter` draws it from `from` to `to`; each `move` sends one glowing packet along it; `reject` turns it red with a cross at the middle (the link is broken or refused).
 
@@ -664,7 +666,7 @@ A horizontal belt carrying labelled blocks toward its right end, where they are 
 
 **When not to:** Traffic that never waits (use `packet_stream`); items on a shelf or seats picked in any order (use `slot_grid`); a count of waiting work (use `counter`).
 
-**Part actions** (events with `params.parts`): `enter`, `exit`, `highlight`, `pulse`, `lock`, `reject`
+**Part actions** (events with `params.parts`): `enter`, `exit`, `highlight`, `pulse`, `lock`, `reject`, `recover`
 
 **Props:**
 
@@ -702,7 +704,7 @@ A horizontal belt carrying labelled blocks toward its right end, where they are 
 
 ### packet_stream
 
-**Family:** flow · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`, `reject`
+**Family:** flow · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`, `reject`, `recover`
 
 A steady stream of small packets flowing along a `connector`, at `rate` packets per second. `enter` starts the flow from the source; `exit` stops sending (packets in flight still arrive); `reject` blocks the stream before the target: packets turn red and vanish at a barrier.
 
@@ -736,7 +738,7 @@ A steady stream of small packets flowing along a `connector`, at `rate` packets 
 
 ### counter
 
-**Family:** metric · **Actions:** `enter`, `exit`, `count`, `highlight`, `dim`, `pulse`, `reject`
+**Family:** metric · **Actions:** `enter`, `exit`, `count`, `highlight`, `dim`, `pulse`, `reject`, `recover`
 
 A big number with an optional unit and caption. Without a `count` event it shows `value`. With one, it shows `from` (default 0) until the count begins, then counts up or down to `value`, so the viewer watches a quantity grow or drain. With `ticking` the count runs on narration time and lands on `value` exactly at the `reject` (an outage clock that stops when the outage ends). `reject` turns the number red with a shake.
 
@@ -779,7 +781,7 @@ A big number with an optional unit and caption. Without a `count` event it shows
 
 A big number changing to another, shown as "10 → 9": the old number in one colour, an arrow, the new number in another. Without a `count` event it shows the change as done. With one, the old number stands alone until the count, then the arrow and the new number come in and the old one fades back. A null `from` shows "?": an unknown value revealed as a prediction or a measured result ("? → 0.82").
 
-**When to use:** One discrete change the story turns on: a stock of 10 seats dropping to 9, a version going from 1 to 2, a retry count ticking up. The colour change carries the meaning (e.g. neutral to problem). With `from` null: a prediction appearing, an unknown measured for the first time.
+**When to use:** One discrete change the story turns on: 10 free lockers dropping to 9, a version going from 1 to 2, a retry count ticking up. The colour change carries the meaning (e.g. neutral to problem). With `from` null: a prediction appearing, an unknown measured for the first time.
 
 **When not to:** A quantity that counts smoothly up or down (use `counter`); a countdown in time; more than one change at once.
 
@@ -817,13 +819,13 @@ A big number changing to another, shown as "10 → 9": the old number in one col
 
 **Family:** metric · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`
 
-A stacked bar splitting a time budget into steps (RIDE | PACK), each segment as wide as its time with its mm:ss under it, and the total at the top right. With `budgetSec`, a marker shows the budget and any time past it turns red. `enter` fills the segments left to right; segments are parts: highlight the step being discussed, reject the one that blows the budget.
+A stacked bar splitting a time budget into steps (BUILD | TEST), each segment as wide as its time with its mm:ss under it, and the total at the top right. With `budgetSec`, a marker shows the budget and any time past it turns red. `enter` fills the segments left to right; segments are parts: highlight the step being discussed, reject the one that blows the budget.
 
 **When to use:** Where time goes in a flow: a 10-minute delivery promise, the latency budget of a request, the stages of a deploy. Use it when the split matters more than one number.
 
 **When not to:** A single countdown (use `timer_ring`); one number (use `counter` or `stat_card`); steps without durations (use `node_card` and `connector`).
 
-**Part actions** (events with `params.parts`): `highlight`, `pulse`, `reject`, `dim`
+**Part actions** (events with `params.parts`): `highlight`, `pulse`, `reject`, `recover`, `dim`
 
 **Props:**
 
@@ -831,11 +833,11 @@ A stacked bar splitting a time budget into steps (RIDE | PACK), each segment as 
 | --- | --- | --- | --- |
 | `segments` | array | yes | Steps in order, left to right (1 to 5). (min items 1, max items 5) |
 | `segments[].id` | string | yes | Part id, unique in this element; events act on it with params.parts. (max length 64) |
-| `segments[].label` | string | yes | Short name of the step, e.g. RIDE or PACK. (min length 1, max length 8) |
+| `segments[].label` | string | yes | Short name of the step, e.g. BUILD or TEST. (min length 1, max length 8) |
 | `segments[].sec` | integer | yes | How long the step takes, in seconds. (min 1, max 5999) |
 | `segments[].semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Segment colour: neutral, focus, ok, problem or concept. (default `"concept"`) |
 | `budgetSec` | integer | no | Optional time budget: a marker on the bar; time past it is drawn red. (min 1, max 5999) |
-| `label` | string | no | Optional caption: what the time is for, e.g. ORDER TO DOOR. (min length 1, max length 24) |
+| `label` | string | no | Optional caption: what the time is for, e.g. COMMIT TO DEPLOY. (min length 1, max length 24) |
 
 **Size hint** (example, drafting-paper): 840 × 187 px (min 310 × 187).
 
@@ -900,11 +902,11 @@ A card with one big figure, a label under it, and a small source footnote. The f
 
 ### timer_ring
 
-**Family:** metric · **Actions:** `enter`, `exit`, `count`, `reject`, `highlight`, `dim`, `pulse`
+**Family:** metric · **Actions:** `enter`, `exit`, `count`, `reject`, `recover`, `highlight`, `dim`, `pulse`
 
 A countdown ring with the time left as mm:ss in the middle. It shows `durationSec` until `count` starts the clock. Its pace is set by the narration: it reaches 00:00 exactly on the `reject` (expiry: empty ring, red flash); without `reject` it runs out at the element's `exit` or the end of the beat, and holds 00:00. It never runs slower than real time; when faster, a fast-forward tag shows the multiplier (e.g. 60×).
 
-**When to use:** A deadline or hold in the story: a seat held for 10 minutes, a token that expires, a lease or a timeout. Put `count` where the clock starts and `reject` on the word where the time runs out.
+**When to use:** A deadline or hold in the story: a room held for 10 minutes, a token that expires, a lease or a timeout. Put `count` where the clock starts and `reject` on the word where the time runs out.
 
 **When not to:** A quantity that is not time (use `counter`); elapsed time across the whole video (that is the story clock in the HUD); a duration that never runs down.
 
@@ -935,13 +937,13 @@ A countdown ring with the time left as mm:ss in the middle. It shows `durationSe
 
 **Family:** object · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`, `morph`
 
-A generic phone or tablet outline (`kind`) with a simple screen: a `status` line, list `rows`, and a `button`. `morph` changes the button to its "then" label and colour (Accept → Accepted ✓). Rows are parts: enter one as it arrives, highlight it, or reject it (red with a cross: declined, failed). Never a real app, screenshot or logo.
+A generic phone or tablet outline (`kind`) with a simple screen: a `status` line, list `rows`, and a `button`. `morph` changes the button to its "then" label and colour (Claim → Claimed ✓). Rows are parts: enter one as it arrives, highlight it, or reject it (red with a cross: declined, failed). Never a real app, screenshot or logo.
 
-**When to use:** What a user or a driver sees: an incoming order, a ride request to accept, a list of notifications, the status of a payment.
+**When to use:** What a user sees: an incoming task, a request to approve, a list of notifications, the status of a payment.
 
 **When not to:** A server or service (use `node_card`); a phone as an everyday object without a screen (use `item_icon`); data fields (use `data_block`).
 
-**Part actions** (events with `params.parts`): `enter`, `exit`, `highlight`, `pulse`, `reject`
+**Part actions** (events with `params.parts`): `enter`, `exit`, `highlight`, `pulse`, `reject`, `recover`
 
 **Props:**
 
@@ -951,7 +953,7 @@ A generic phone or tablet outline (`kind`) with a simple screen: a `status` line
 | `status` | string | no | Optional status line at the top of the screen. (min length 1, max length 24) |
 | `rows` | array | no | Optional list rows, top to bottom. (min items 1, max items 5) |
 | `rows[].id` | string | yes | Part id, unique in this element; events act on it with params.parts. (max length 64) |
-| `rows[].label` | string | yes | Row text: an order, a rider, a message. (min length 1, max length 22) |
+| `rows[].label` | string | yes | Row text: a task, a contact, a message. (min length 1, max length 22) |
 | `rows[].detail` | string | no | Optional short value at the right, e.g. 3 MIN. (min length 1, max length 12) |
 | `rows[].icon` | string | no | Asset id from the asset library (an unknown id is drawn as a placeholder and reported). (max length 64) |
 | `button` | object | no |  |
@@ -990,11 +992,11 @@ A generic phone or tablet outline (`kind`) with a simple screen: a `status` line
 
 A grid of labelled slots: bins of stock, a shelf, cinema seats or documents. Each slot is a part: `lock` claims it (padlock, yellow), `highlight` picks it out, `exit` takes its item (it lifts away and leaves an empty outline), `enter` puts an item back, `reject` turns it red with a cross (sold out, conflict).
 
-**When to use:** Contention over specific items: two users grabbing the same seat, stock picked from bins, which documents a search touches. Address the slots on the words that act on them.
+**When to use:** Contention over specific items: two users grabbing the same locker, stock picked from bins, which documents a search touches. Address the slots on the words that act on them.
 
 **When not to:** Items moving in order (use `conveyor_queue`); a spatial grid over a map (use `grid_overlay`); one standalone object (use `item_icon`).
 
-**Part actions** (events with `params.parts`): `enter`, `exit`, `lock`, `highlight`, `reject`, `pulse`, `dim`
+**Part actions** (events with `params.parts`): `enter`, `exit`, `lock`, `highlight`, `reject`, `recover`, `pulse`, `dim`
 
 **Props:**
 
@@ -1003,7 +1005,7 @@ A grid of labelled slots: bins of stock, a shelf, cinema seats or documents. Eac
 | `kind` | `inventory` \| `shelf` \| `seats` \| `documents` | no | How slots look: inventory (bins), shelf (rows on planks), seats, documents. (default `"inventory"`) |
 | `slots` | array | yes | The slots, in reading order (1 to 24). (min items 1, max items 24) |
 | `slots[].id` | string | yes | Part id, unique in this element; events act on it with params.parts. (max length 64) |
-| `slots[].label` | string | yes | Short label on the slot, e.g. a seat number or an item name. (min length 1, max length 7) |
+| `slots[].label` | string | yes | Short label on the slot, e.g. a slot number or an item name. (min length 1, max length 7) |
 | `slots[].icon` | string | no | Asset id from the asset library (an unknown id is drawn as a placeholder and reported). (max length 64) |
 | `slots[].semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Slot colour: neutral, focus, ok, problem or concept. (default `"neutral"`) |
 | `cols` | integer | no | Slots per row; omit to choose from the slot count. (min 1, max 6) |
@@ -1199,7 +1201,7 @@ A brute-force search checks every item and each turns red, with a tag naming the
 
 Inputs → model → prediction. Feature rows type in, grouped by a bracket, and flow into a model; the prediction flips from "?" to a value. An optional comparison feeds a second input with a different value in and gets a different prediction.
 
-**When to use:** Any ML prediction told as data in, number out: prep time, ETA, fraud score, price. Use the comparison to show which feature changes the answer.
+**When to use:** Any ML prediction told as data in, number out: fraud score, delivery ETA, churn risk, price. Use the comparison to show which feature changes the answer.
 
 **When not to:** A single number without inputs (use `counter_transition`); a decision between candidates (use `pick_by_rule`).
 
@@ -1302,9 +1304,9 @@ Inputs → model → prediction. Feature rows type in, grouped by a bracket, and
 
 **Family:** spatial · **Actions:** `exit`, `highlight`, `dim`, `pulse`
 
-Candidates around a target, optionally inside a search ring. The obvious pick (nearest, first, cheapest) gets a tag and is crossed out; the right one is ringed, linked to the target and tagged with the rule that makes it win ("ETA 3:00 = PREP 3:00").
+Candidates around a target, optionally inside a search ring. The obvious pick (nearest, first, cheapest) gets a tag and is crossed out; the right one is ringed, linked to the target and tagged with the rule that makes it win ("FREE + 12 MS").
 
-**When to use:** Matching and scheduling decisions where the naive rule is wrong: riders to orders, servers to requests, cache nodes to keys, workers to jobs.
+**When to use:** Matching and scheduling decisions where the naive rule is wrong: couriers to parcels, servers to requests, cache nodes to keys, workers to jobs.
 
 **When not to:** A prediction from features (use `inference_card`); two designs compared (use `versus_split`).
 
@@ -1334,8 +1336,8 @@ Candidates around a target, optionally inside a search ring. The obvious pick (n
 | `radius` | string | no | Optional label of a search ring around the target, e.g. 2 KM. (min length 1, max length 16) |
 | `candidates` | array | yes | The candidates around the target, 3 to 5. (min items 3, max items 5) |
 | `candidates[].id` | string | yes | Short slug for this candidate, used by obvious and pick. (max length 64) |
-| `candidates[].title` | string | yes | Name of the candidate, e.g. RIDER 2. (min length 1, max length 24) |
-| `candidates[].detail` | string | no | Optional detail under the name, e.g. 400 M AWAY. (min length 1, max length 40) |
+| `candidates[].title` | string | yes | Name of the candidate, e.g. SERVER 2. (min length 1, max length 24) |
+| `candidates[].detail` | string | no | Optional detail under the name, e.g. 12 MS AWAY. (min length 1, max length 40) |
 | `candidates[].icon` | string | no | Asset id from the asset library (an unknown id is drawn as a placeholder and reported). (max length 64) |
 | `obvious` | object | yes | The tempting pick that is wrong. |
 | `pick` | object | yes | The pick the rule chooses, with its reason. |
@@ -1404,7 +1406,7 @@ Candidates around a target, optionally inside a search ring. The obvious pick (n
 
 Two requests race for one resource. The first arrives and locks it (padlock) and a hold timer starts; the second arrives while it is held, its arrow turns red and it is tagged with a cross.
 
-**When to use:** Contention for one thing: two users booking the same seat, two workers claiming the same job, two writers on one row. The moment the lock makes the second attempt fail.
+**When to use:** Contention for one thing: two users booking the same room, two workers claiming the same job, two writers on one row. The moment the lock makes the second attempt fail.
 
 **When not to:** Rejecting a repeat of the same request (use `reject_duplicate`); many requests overwhelming a server (use `flood_then_funnel`).
 
@@ -1431,7 +1433,7 @@ Two requests race for one resource. The first arrives and locks it (padlock) and
 
 | Name | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `resource` | object | yes | The one thing both requests want (a seat, a row, a slot). |
+| `resource` | object | yes | The one thing both requests want (a room, a row, a slot). |
 | `first` | object | yes | The request that gets there first. |
 | `second` | object | yes | The request that arrives while the lock is held. |
 | `holdSec` | integer | yes | How long the lock holds, in seconds (the hold timer starts here). (min 1, max 5999) |
@@ -1804,7 +1806,7 @@ One message leaves a source and splits into a copy per target (a packet on each 
 
 **Family:** flow · **Actions:** `exit`, `highlight`, `dim`, `pulse`
 
-A dense stream of requests hits a node directly while the rate counts up; the node shakes red and a warning shows. Then a middle layer steps in: the flood goes into it and a single, slow, steady line comes out to the node.
+A dense stream of requests hits a node directly while the rate counts up; the node shakes red and a warning shows. Then a middle layer steps in: the flood goes into it and a single, slow, steady line comes out to the node, which recovers.
 
 **When to use:** Failure before the fix for load: a rate limiter, a queue, a cache or a CDN absorbing a spike that would knock a server over.
 
@@ -1816,7 +1818,7 @@ A dense stream of requests hits a node directly while the rate counts up; the no
 
 - `flood`: The flood of requests starts and the rate counts up.
 - `overwhelm`: The target gives way: it shakes red and a warning shows.
-- `funnel`: The middle layer appears and turns the flood into one steady line.
+- `funnel`: The middle layer appears, turns the flood into one steady line, and the target recovers.
 
 **Inner elements** (target as `<instance>/<id>` with `highlight`, `pulse`, `dim`):
 
@@ -1998,7 +2000,7 @@ Two regions with a leader and a replica. The link breaks (red, then dashed) and 
 | `outage` | object | yes | The outage clock: counts up from the partition and stops on the heal. |
 | `lease` | object | no | Optional lease timer that runs out when the replica promotes itself. |
 | `writes` | object | yes | The divergent writes, one per side. |
-| `conflict` | string | yes | The conflict, stated plainly, e.g. Two owners for seat H3. (min length 1, max length 64) |
+| `conflict` | string | yes | The conflict, stated plainly, e.g. Two owners for one record. (min length 1, max length 64) |
 | `at` | object | yes | Narration anchors: the word (or beat edge) for each moment. |
 
 **Example:**

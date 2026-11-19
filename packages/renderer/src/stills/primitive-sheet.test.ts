@@ -24,6 +24,12 @@ const boards = [
   ['inset-reveal-board', insetRevealBoardJson],
 ] as const;
 
+/** A board scene as the JSON imports type it, with the optional event params. */
+type BoardScene = {
+  beatId: string;
+  events: { action: string; targets: string[]; params?: Record<string, unknown> }[];
+};
+
 describe.each(boards)('%s fixture', (_name, json) => {
   it('passes validation and the registry checks with no warnings', () => {
     const result = withRegistryChecks(validateRenderableVideoSpec(json), json);
@@ -31,20 +37,54 @@ describe.each(boards)('%s fixture', (_name, json) => {
     expect(result.warnings).toEqual([]);
   });
 
-  it('exits at least one element', () => {
-    const actions = json.scenes.flatMap((s) => s.events.map((e) => e.action));
-    expect(actions).toContain('exit');
+  const scenes = json.scenes as BoardScene[];
+
+  it('exits and recovers at least one element', () => {
+    const events = scenes.flatMap((s) => s.events);
+    expect(events.map((e) => e.action)).toContain('exit');
+    expect(events.filter((e) => !eventParts(e.params)).map((e) => e.action)).toContain('recover');
+  });
+
+  it('recovers only what it rejected before', () => {
+    for (const scene of scenes) {
+      for (const [i, event] of scene.events.entries()) {
+        if (event.action !== 'recover') continue;
+        const parts = eventParts(event.params) ?? [];
+        const same = scene.events
+          .slice(0, i)
+          .filter(
+            (e) =>
+              e.action === 'reject' &&
+              e.targets.join() === event.targets.join() &&
+              (eventParts(e.params) ?? []).join() === parts.join(),
+          );
+        expect(same, `${scene.beatId} · recover`).not.toHaveLength(0);
+      }
+    }
   });
 });
 
+/**
+ * Exercised once per board rather than on every primitive's beat: exit, and recover, whose look is
+ * shared (the held reject ends in `elementState`; components draw nothing of their own for it).
+ */
+const ONCE_PER_BOARD: ReadonlySet<string> = new Set(['exit', 'recover']);
+
 describe('primitive boards', () => {
+  it('recover at least one part across the boards', () => {
+    const partRecovers = primitiveBoardSpecs
+      .flatMap((spec) => spec.scenes.flatMap((s) => s.events))
+      .filter((e) => e.action === 'recover' && eventParts(e.params));
+    expect(partRecovers.length).toBeGreaterThan(0);
+  });
+
   const sceneFor = (id: string) =>
     primitiveBoardSpecs
       .flatMap((spec) => spec.scenes)
       .find((s) => s.elements.some((e) => e.primitive === id));
 
   it.each(listPrimitives().map((p) => [p.id, p] as const))(
-    'have a beat for %s using every action it supports (exit at least once per board)',
+    'have a beat for %s using every action it supports (exit and recover once per board)',
     (id, primitive) => {
       const scene = sceneFor(id);
       expect(scene, id).toBeDefined();
@@ -52,11 +92,11 @@ describe('primitive boards', () => {
       const mine = scene?.events.filter((e) => element && e.targets.includes(element.id)) ?? [];
       const whole = new Set(mine.filter((e) => !eventParts(e.params)).map((e) => e.action));
       for (const action of primitive.actions) {
-        if (action !== 'exit') expect(whole, `${id} · ${action}`).toContain(action);
+        if (!ONCE_PER_BOARD.has(action)) expect(whole, `${id} · ${action}`).toContain(action);
       }
       const onParts = new Set(mine.filter((e) => eventParts(e.params)).map((e) => e.action));
       for (const action of primitive.parts?.actions ?? []) {
-        expect(onParts, `${id} · part ${action}`).toContain(action);
+        if (action !== 'recover') expect(onParts, `${id} · part ${action}`).toContain(action);
       }
     },
   );
@@ -86,6 +126,7 @@ describe('planPrimitiveSheet', () => {
       '@"pulses" · pulse',
       '@"locks" · lock',
       '@"crashes" · reject',
+      '@"recovers" · recover',
       '@"dims" · dim',
     ]);
     const frames = plan?.panels.map((p) => p.frame) ?? [];

@@ -16,7 +16,7 @@ export const GridCellSchema = z.strictObject({
   id: PartIdSchema,
   row: z.number().int().min(1).max(GRID_MAX).describe('Row, counted from 1 at the top.'),
   col: z.number().int().min(1).max(GRID_MAX).describe('Column, counted from 1 at the left.'),
-  label: lineText(14, 'Optional tag shown when the cell lights up, e.g. YOUR CELL.').optional(),
+  label: lineText(14, 'Optional tag shown when the cell lights up, e.g. HOT CELL.').optional(),
   semantic: semanticProp('focus', 'Cell colour when lit'),
 });
 
@@ -68,7 +68,7 @@ export const gridOverlayPrimitive = definePrimitive({
     summary:
       'A grid of square cells dropped over a map or zones. `enter` drops it in from above. ' +
       'The `cells` are parts addressed by row and column: `highlight` one to light it with its ' +
-      'tag (e.g. YOUR CELL), `pulse` it for attention, `reject` it to turn it red.',
+      'tag (e.g. HOT CELL), `pulse` it for attention, `reject` it to turn it red.',
     whenToUse:
       'Turning space into buckets: geohash cells, a spatial index, a quadtree level, ' +
       'partitioning a city for drivers. Set `over` to the `map_base` it divides.',

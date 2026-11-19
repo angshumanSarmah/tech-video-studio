@@ -220,7 +220,7 @@ function Karaoke({ text, accent }: { text: string; accent: string }) {
 
 const TAG_SAMPLES: [(typeof SEMANTIC_COLOURS)[number], string][] = [
   ['neutral', 'LOAD BALANCER'],
-  ['focus', 'YOUR CELL'],
+  ['focus', 'HOT CELL'],
   ['ok', '200 OK'],
   ['problem', '429 · TOO MANY'],
   ['concept', 'CACHE HIT'],

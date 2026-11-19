@@ -89,6 +89,7 @@ describe('buildCatalogue', () => {
       'lock',
       'highlight',
       'reject',
+      'recover',
       'pulse',
       'dim',
     ]);
@@ -141,13 +142,14 @@ describe('catalogue files', () => {
     const md = catalogueMarkdown();
     expect(md).toContain('### tag');
     expect(md).toContain('### counter');
+    expect(md).toContain('Fail → recover: a `reject` holds');
     expect(md).toContain('| `text` | string | yes |');
     expect(md).toContain('"primitive": "counter"');
     expect(md).toContain(`**Size hint** (example, ${DEFAULT_THEME_ID}): `);
     expect(md).toMatch(/\*\*Size hint\*\* \(example, [a-z-]+\): \d+ × \d+ px/);
     expect(md).toContain('**Part actions** (events with `params.parts`): `enter`, `exit`, `lock`');
     expect(md).toContain(
-      '| `slots[].label` | string | yes | Short label on the slot, e.g. a seat number or an item name. (min length 1, max length 7) |',
+      '| `slots[].label` | string | yes | Short label on the slot, e.g. a slot number or an item name. (min length 1, max length 7) |',
     );
     expect(md).toMatch(/\| `items\[\]\.label` \| string \| yes \| .*max length 7\) \|/);
   });

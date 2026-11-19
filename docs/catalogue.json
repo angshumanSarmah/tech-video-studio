@@ -82,7 +82,7 @@
     {
       "id": "callout",
       "family": "annotation",
-      "summary": "A small card with one or two lines of text and an optional `title`, for a counterfactual or a warning: \"If prep takes 20 min: rider waits 17 min ✗\". Tinted by `semantic`: problem, focus or concept. `reject` turns it red with a cross and a shake (the assumption it states is ruled out).",
+      "summary": "A small card with one or two lines of text and an optional `title`, for a counterfactual or a warning: \"If the lease never expires: the lock is held forever ✗\". Tinted by `semantic`: problem, focus or concept. `reject` turns it red with a cross and a shake (the assumption it states is ruled out).",
       "whenToUse": "A what-if, a caveat or a consequence that sits beside the diagram: the cost of the naive choice, a warning about a failure mode, an aside that explains a term.",
       "whenNotToUse": "A one-word status (use `tag`); a big statement over the whole scene (use `statement_card`); a number with a source (use `stat_card`).",
       "actions": [
@@ -91,7 +91,8 @@
         "highlight",
         "dim",
         "pulse",
-        "reject"
+        "reject",
+        "recover"
       ],
       "props": {
         "type": "object",
@@ -189,7 +190,7 @@
       "id": "inset_panel",
       "family": "annotation",
       "summary": "A framed detail card that zooms in over the scene while everything behind it dims. It holds other elements of the beat (`children`: e.g. a `data_block`, a `counter_transition`, a `slot_grid`, a `map_base` or a `segmented_time_bar`), drawn inside it and shown only while it is. `enter` zooms it out of its `anchor`; `exit` shrinks it back in. Children keep their own events (enter, count, highlight).",
-      "whenToUse": "A closer look at one part of the diagram: what is inside a cache entry, the features a model reads for one order, the shelf behind a store pin, the time budget of one ride.",
+      "whenToUse": "A closer look at one part of the diagram: what is inside a cache entry, the features a model reads for one transaction, the bins behind a warehouse pin, the time budget of one build.",
       "whenNotToUse": "Text only (use `statement_card` or `callout`); a whole new scene (start a new beat). Show at most one overlay at a time, and never put an overlay inside it.",
       "actions": [
         "enter",
@@ -259,7 +260,7 @@
       "id": "item_icon",
       "family": "annotation",
       "summary": "A flat everyday object from the asset library (phone, car, ticket, parcel, pizza) on a soft tile, with a caption under it. `reject` turns it red with a cross and a shake.",
-      "whenToUse": "The real-world thing the system is about: the order, the ride, the seat ticket, the user's phone. Grounds an abstract flow in something the viewer has held.",
+      "whenToUse": "The real-world thing the system is about: the parcel, the payment card, the ticket, the user's phone. Grounds an abstract flow in something the viewer has held.",
       "whenNotToUse": "A system component (use `node_card`); a bare symbol without a caption (use `icon`); data about the object (use `data_block`).",
       "actions": [
         "enter",
@@ -267,7 +268,8 @@
         "highlight",
         "dim",
         "pulse",
-        "reject"
+        "reject",
+        "recover"
       ],
       "props": {
         "type": "object",
@@ -326,7 +328,8 @@
         "dim",
         "pulse",
         "lock",
-        "reject"
+        "reject",
+        "recover"
       ],
       "partActions": [
         "enter",
@@ -395,7 +398,7 @@
       "id": "statement_card",
       "family": "annotation",
       "summary": "One to three large `lines` at display size on a card that spans the stage, over the dimmed scene, each line in its own colour meaning. Long lines wrap; the text never shrinks. `enter` fades it in with a slight rise. Lines are parts: `enter` a line on its word to build the statement up, highlight or pulse the one that matters. It is an overlay: everything else on the board dims while it shows.",
-      "whenToUse": "A planted question (\"Why not just pick the nearest rider?\"), a two-line takeaway (\"Easy: find riders. Hard: pick the right one.\"), a verdict before the next chapter.",
+      "whenToUse": "A planted question (\"Why not just retry forever?\"), a two-line takeaway (\"Easy: copy the data. Hard: keep it in sync.\"), a verdict before the next chapter.",
       "whenNotToUse": "A label next to a diagram part (use `tag` or `callout`); the beat headline (that is the HUD headline); a detail view with diagram parts in it (use `inset_panel`). Show at most one overlay at a time.",
       "actions": [
         "enter",
@@ -491,7 +494,8 @@
         "highlight",
         "dim",
         "pulse",
-        "reject"
+        "reject",
+        "recover"
       ],
       "props": {
         "type": "object",
@@ -541,7 +545,8 @@
         "highlight",
         "dim",
         "pulse",
-        "reject"
+        "reject",
+        "recover"
       ],
       "props": {
         "type": "object",
@@ -583,7 +588,7 @@
       "id": "data_block",
       "family": "data",
       "summary": "A JSON-like block of key/value pairs on a card, with an optional title. On `enter` it types in one field at a time (about a third of a second each); without `enter` all fields show at once. A field can colour its value by meaning.",
-      "whenToUse": "Showing what a thing looks like as data: a ride request, a cache entry, a message on a queue, the record a real object becomes. Up to 6 short fields.",
+      "whenToUse": "Showing what a thing looks like as data: a booking, a cache entry, a message on a queue, the record a real object becomes. Up to 6 short fields.",
       "whenNotToUse": "Code or logic (this is data only); a single command (use `command_bubble`); long text, nested objects or lists; a single number (use `counter`).",
       "actions": [
         "enter",
@@ -736,7 +741,7 @@
     {
       "id": "grid_overlay",
       "family": "spatial",
-      "summary": "A grid of square cells dropped over a map or zones. `enter` drops it in from above. The `cells` are parts addressed by row and column: `highlight` one to light it with its tag (e.g. YOUR CELL), `pulse` it for attention, `reject` it to turn it red.",
+      "summary": "A grid of square cells dropped over a map or zones. `enter` drops it in from above. The `cells` are parts addressed by row and column: `highlight` one to light it with its tag (e.g. HOT CELL), `pulse` it for attention, `reject` it to turn it red.",
       "whenToUse": "Turning space into buckets: geohash cells, a spatial index, a quadtree level, partitioning a city for drivers. Set `over` to the `map_base` it divides.",
       "whenNotToUse": "Irregular areas (use `zone_polygon`); a grid of items or seats (use `slot_grid`); a table of data (use `data_block`).",
       "actions": [
@@ -749,6 +754,7 @@
         "highlight",
         "pulse",
         "reject",
+        "recover",
         "dim"
       ],
       "props": {
@@ -803,7 +809,7 @@
                   "minLength": 1,
                   "maxLength": 14,
                   "pattern": "^[^\\n\\r]*$",
-                  "description": "Optional tag shown when the cell lights up, e.g. YOUR CELL."
+                  "description": "Optional tag shown when the cell lights up, e.g. HOT CELL."
                 },
                 "semantic": {
                   "default": "focus",
@@ -892,7 +898,7 @@
       "id": "radius_ring",
       "family": "spatial",
       "summary": "A dashed search circle centred on the element `around`, with an optional `label` on its rim (the radius, or what is searched). `enter` grows it out from the centre.",
-      "whenToUse": "A search area or reach: riders within 2 km of a restaurant, servers within one network hop, the candidates a matcher considers around a target.",
+      "whenToUse": "A search area or reach: couriers within 2 km of a depot, servers within one network hop, the candidates a matcher considers around a target.",
       "whenNotToUse": "A named area with edges (use `zone_polygon`); a grid of cells (use `grid_overlay`); a countdown (use `timer_ring`).",
       "actions": [
         "enter",
@@ -962,7 +968,8 @@
       "partActions": [
         "highlight",
         "pulse",
-        "reject"
+        "reject",
+        "recover"
       ],
       "props": {
         "type": "object",
@@ -1073,7 +1080,8 @@
         "highlight",
         "dim",
         "pulse",
-        "reject"
+        "reject",
+        "recover"
       ],
       "props": {
         "type": "object",
@@ -1160,7 +1168,8 @@
         "highlight",
         "dim",
         "pulse",
-        "reject"
+        "reject",
+        "recover"
       ],
       "props": {
         "type": "object",
@@ -1247,7 +1256,8 @@
         "highlight",
         "pulse",
         "lock",
-        "reject"
+        "reject",
+        "recover"
       ],
       "props": {
         "type": "object",
@@ -1336,7 +1346,8 @@
         "highlight",
         "dim",
         "pulse",
-        "reject"
+        "reject",
+        "recover"
       ],
       "props": {
         "type": "object",
@@ -1395,7 +1406,8 @@
         "highlight",
         "dim",
         "pulse",
-        "reject"
+        "reject",
+        "recover"
       ],
       "props": {
         "type": "object",
@@ -1465,7 +1477,7 @@
       "id": "counter_transition",
       "family": "metric",
       "summary": "A big number changing to another, shown as \"10 → 9\": the old number in one colour, an arrow, the new number in another. Without a `count` event it shows the change as done. With one, the old number stands alone until the count, then the arrow and the new number come in and the old one fades back. A null `from` shows \"?\": an unknown value revealed as a prediction or a measured result (\"? → 0.82\").",
-      "whenToUse": "One discrete change the story turns on: a stock of 10 seats dropping to 9, a version going from 1 to 2, a retry count ticking up. The colour change carries the meaning (e.g. neutral to problem). With `from` null: a prediction appearing, an unknown measured for the first time.",
+      "whenToUse": "One discrete change the story turns on: 10 free lockers dropping to 9, a version going from 1 to 2, a retry count ticking up. The colour change carries the meaning (e.g. neutral to problem). With `from` null: a prediction appearing, an unknown measured for the first time.",
       "whenNotToUse": "A quantity that counts smoothly up or down (use `counter`); a countdown in time; more than one change at once.",
       "actions": [
         "enter",
@@ -1556,7 +1568,7 @@
     {
       "id": "segmented_time_bar",
       "family": "metric",
-      "summary": "A stacked bar splitting a time budget into steps (RIDE | PACK), each segment as wide as its time with its mm:ss under it, and the total at the top right. With `budgetSec`, a marker shows the budget and any time past it turns red. `enter` fills the segments left to right; segments are parts: highlight the step being discussed, reject the one that blows the budget.",
+      "summary": "A stacked bar splitting a time budget into steps (BUILD | TEST), each segment as wide as its time with its mm:ss under it, and the total at the top right. With `budgetSec`, a marker shows the budget and any time past it turns red. `enter` fills the segments left to right; segments are parts: highlight the step being discussed, reject the one that blows the budget.",
       "whenToUse": "Where time goes in a flow: a 10-minute delivery promise, the latency budget of a request, the stages of a deploy. Use it when the split matters more than one number.",
       "whenNotToUse": "A single countdown (use `timer_ring`); one number (use `counter` or `stat_card`); steps without durations (use `node_card` and `connector`).",
       "actions": [
@@ -1570,6 +1582,7 @@
         "highlight",
         "pulse",
         "reject",
+        "recover",
         "dim"
       ],
       "props": {
@@ -1593,7 +1606,7 @@
                   "minLength": 1,
                   "maxLength": 8,
                   "pattern": "^[^\\n\\r]*$",
-                  "description": "Short name of the step, e.g. RIDE or PACK."
+                  "description": "Short name of the step, e.g. BUILD or TEST."
                 },
                 "sec": {
                   "type": "integer",
@@ -1634,7 +1647,7 @@
             "minLength": 1,
             "maxLength": 24,
             "pattern": "^[^\\n\\r]*$",
-            "description": "Optional caption: what the time is for, e.g. ORDER TO DOOR."
+            "description": "Optional caption: what the time is for, e.g. COMMIT TO DEPLOY."
           }
         },
         "required": [
@@ -1733,13 +1746,14 @@
       "id": "timer_ring",
       "family": "metric",
       "summary": "A countdown ring with the time left as mm:ss in the middle. It shows `durationSec` until `count` starts the clock. Its pace is set by the narration: it reaches 00:00 exactly on the `reject` (expiry: empty ring, red flash); without `reject` it runs out at the element's `exit` or the end of the beat, and holds 00:00. It never runs slower than real time; when faster, a fast-forward tag shows the multiplier (e.g. 60×).",
-      "whenToUse": "A deadline or hold in the story: a seat held for 10 minutes, a token that expires, a lease or a timeout. Put `count` where the clock starts and `reject` on the word where the time runs out.",
+      "whenToUse": "A deadline or hold in the story: a room held for 10 minutes, a token that expires, a lease or a timeout. Put `count` where the clock starts and `reject` on the word where the time runs out.",
       "whenNotToUse": "A quantity that is not time (use `counter`); elapsed time across the whole video (that is the story clock in the HUD); a duration that never runs down.",
       "actions": [
         "enter",
         "exit",
         "count",
         "reject",
+        "recover",
         "highlight",
         "dim",
         "pulse"
@@ -1790,8 +1804,8 @@
     {
       "id": "device_frame",
       "family": "object",
-      "summary": "A generic phone or tablet outline (`kind`) with a simple screen: a `status` line, list `rows`, and a `button`. `morph` changes the button to its \"then\" label and colour (Accept → Accepted ✓). Rows are parts: enter one as it arrives, highlight it, or reject it (red with a cross: declined, failed). Never a real app, screenshot or logo.",
-      "whenToUse": "What a user or a driver sees: an incoming order, a ride request to accept, a list of notifications, the status of a payment.",
+      "summary": "A generic phone or tablet outline (`kind`) with a simple screen: a `status` line, list `rows`, and a `button`. `morph` changes the button to its \"then\" label and colour (Claim → Claimed ✓). Rows are parts: enter one as it arrives, highlight it, or reject it (red with a cross: declined, failed). Never a real app, screenshot or logo.",
+      "whenToUse": "What a user sees: an incoming task, a request to approve, a list of notifications, the status of a payment.",
       "whenNotToUse": "A server or service (use `node_card`); a phone as an everyday object without a screen (use `item_icon`); data fields (use `data_block`).",
       "actions": [
         "enter",
@@ -1806,7 +1820,8 @@
         "exit",
         "highlight",
         "pulse",
-        "reject"
+        "reject",
+        "recover"
       ],
       "props": {
         "type": "object",
@@ -1845,7 +1860,7 @@
                   "minLength": 1,
                   "maxLength": 22,
                   "pattern": "^[^\\n\\r]*$",
-                  "description": "Row text: an order, a rider, a message."
+                  "description": "Row text: a task, a contact, a message."
                 },
                 "detail": {
                   "type": "string",
@@ -1877,7 +1892,7 @@
                 "minLength": 1,
                 "maxLength": 16,
                 "pattern": "^[^\\n\\r]*$",
-                "description": "Button text, e.g. Accept."
+                "description": "Button text, e.g. Claim."
               },
               "semantic": {
                 "default": "focus",
@@ -1900,7 +1915,7 @@
                     "minLength": 1,
                     "maxLength": 16,
                     "pattern": "^[^\\n\\r]*$",
-                    "description": "Button text, e.g. Accepted ✓."
+                    "description": "Button text, e.g. Claimed ✓."
                   },
                   "semantic": {
                     "default": "ok",
@@ -1955,7 +1970,7 @@
       "id": "slot_grid",
       "family": "object",
       "summary": "A grid of labelled slots: bins of stock, a shelf, cinema seats or documents. Each slot is a part: `lock` claims it (padlock, yellow), `highlight` picks it out, `exit` takes its item (it lifts away and leaves an empty outline), `enter` puts an item back, `reject` turns it red with a cross (sold out, conflict).",
-      "whenToUse": "Contention over specific items: two users grabbing the same seat, stock picked from bins, which documents a search touches. Address the slots on the words that act on them.",
+      "whenToUse": "Contention over specific items: two users grabbing the same locker, stock picked from bins, which documents a search touches. Address the slots on the words that act on them.",
       "whenNotToUse": "Items moving in order (use `conveyor_queue`); a spatial grid over a map (use `grid_overlay`); one standalone object (use `item_icon`).",
       "actions": [
         "enter",
@@ -1969,6 +1984,7 @@
         "lock",
         "highlight",
         "reject",
+        "recover",
         "pulse",
         "dim"
       ],
@@ -2004,7 +2020,7 @@
                   "minLength": 1,
                   "maxLength": 7,
                   "pattern": "^[^\\n\\r]*$",
-                  "description": "Short label on the slot, e.g. a seat number or an item name."
+                  "description": "Short label on the slot, e.g. a slot number or an item name."
                 },
                 "icon": {
                   "type": "string",
@@ -2985,7 +3001,7 @@
       "id": "inference_card",
       "family": "data",
       "summary": "Inputs → model → prediction. Feature rows type in, grouped by a bracket, and flow into a model; the prediction flips from \"?\" to a value. An optional comparison feeds a second input with a different value in and gets a different prediction.",
-      "whenToUse": "Any ML prediction told as data in, number out: prep time, ETA, fraud score, price. Use the comparison to show which feature changes the answer.",
+      "whenToUse": "Any ML prediction told as data in, number out: fraud score, delivery ETA, churn risk, price. Use the comparison to show which feature changes the answer.",
       "whenNotToUse": "A single number without inputs (use `counter_transition`); a decision between candidates (use `pick_by_rule`).",
       "actions": [
         "exit",
@@ -3656,8 +3672,8 @@
     {
       "id": "pick_by_rule",
       "family": "spatial",
-      "summary": "Candidates around a target, optionally inside a search ring. The obvious pick (nearest, first, cheapest) gets a tag and is crossed out; the right one is ringed, linked to the target and tagged with the rule that makes it win (\"ETA 3:00 = PREP 3:00\").",
-      "whenToUse": "Matching and scheduling decisions where the naive rule is wrong: riders to orders, servers to requests, cache nodes to keys, workers to jobs.",
+      "summary": "Candidates around a target, optionally inside a search ring. The obvious pick (nearest, first, cheapest) gets a tag and is crossed out; the right one is ringed, linked to the target and tagged with the rule that makes it win (\"FREE + 12 MS\").",
+      "whenToUse": "Matching and scheduling decisions where the naive rule is wrong: couriers to parcels, servers to requests, cache nodes to keys, workers to jobs.",
       "whenNotToUse": "A prediction from features (use `inference_card`); two designs compared (use `versus_split`).",
       "actions": [
         "exit",
@@ -3766,14 +3782,14 @@
                   "minLength": 1,
                   "maxLength": 24,
                   "pattern": "^[^\\n\\r]*$",
-                  "description": "Name of the candidate, e.g. RIDER 2."
+                  "description": "Name of the candidate, e.g. SERVER 2."
                 },
                 "detail": {
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 40,
                   "pattern": "^[^\\n\\r]*$",
-                  "description": "Optional detail under the name, e.g. 400 M AWAY."
+                  "description": "Optional detail under the name, e.g. 12 MS AWAY."
                 },
                 "icon": {
                   "type": "string",
@@ -4210,7 +4226,7 @@
       "id": "atomic_lock",
       "family": "flow",
       "summary": "Two requests race for one resource. The first arrives and locks it (padlock) and a hold timer starts; the second arrives while it is held, its arrow turns red and it is tagged with a cross.",
-      "whenToUse": "Contention for one thing: two users booking the same seat, two workers claiming the same job, two writers on one row. The moment the lock makes the second attempt fail.",
+      "whenToUse": "Contention for one thing: two users booking the same room, two workers claiming the same job, two writers on one row. The moment the lock makes the second attempt fail.",
       "whenNotToUse": "Rejecting a repeat of the same request (use `reject_duplicate`); many requests overwhelming a server (use `flood_then_funnel`).",
       "actions": [
         "exit",
@@ -4296,7 +4312,7 @@
               "title"
             ],
             "additionalProperties": false,
-            "description": "The one thing both requests want (a seat, a row, a slot)."
+            "description": "The one thing both requests want (a room, a row, a slot)."
           },
           "first": {
             "type": "object",
@@ -6457,7 +6473,7 @@
     {
       "id": "flood_then_funnel",
       "family": "flow",
-      "summary": "A dense stream of requests hits a node directly while the rate counts up; the node shakes red and a warning shows. Then a middle layer steps in: the flood goes into it and a single, slow, steady line comes out to the node.",
+      "summary": "A dense stream of requests hits a node directly while the rate counts up; the node shakes red and a warning shows. Then a middle layer steps in: the flood goes into it and a single, slow, steady line comes out to the node, which recovers.",
       "whenToUse": "Failure before the fix for load: a rate limiter, a queue, a cache or a CDN absorbing a spike that would knock a server over.",
       "whenNotToUse": "Two requests for one resource (use `atomic_lock`); one message copied to many targets (use `fan_out`).",
       "actions": [
@@ -6477,7 +6493,7 @@
         },
         {
           "name": "funnel",
-          "description": "The middle layer appears and turns the flood into one steady line."
+          "description": "The middle layer appears, turns the flood into one steady line, and the target recovers."
         }
       ],
       "layoutMode": "pipeline",
@@ -6863,7 +6879,7 @@
                     "additionalProperties": false
                   }
                 ],
-                "description": "The middle layer appears and turns the flood into one steady line."
+                "description": "The middle layer appears, turns the flood into one steady line, and the target recovers."
               }
             },
             "required": [
@@ -7515,7 +7531,7 @@
                 "minLength": 1,
                 "maxLength": 24,
                 "pattern": "^[^\\n\\r]*$",
-                "description": "The write the leader accepts, e.g. SEAT H3 → ASHA."
+                "description": "The write the leader accepts, e.g. ROW 7 → v2."
               },
               "replica": {
                 "type": "string",
@@ -7537,7 +7553,7 @@
             "minLength": 1,
             "maxLength": 64,
             "pattern": "^[^\\n\\r]*$",
-            "description": "The conflict, stated plainly, e.g. Two owners for seat H3."
+            "description": "The conflict, stated plainly, e.g. Two owners for one record."
           },
           "at": {
             "type": "object",

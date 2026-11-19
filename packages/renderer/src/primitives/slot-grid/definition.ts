@@ -17,7 +17,7 @@ export type SlotKind = (typeof SLOT_KINDS)[number];
 
 export const SlotSchema = z.strictObject({
   id: PartIdSchema,
-  label: lineText(7, 'Short label on the slot, e.g. a seat number or an item name.'),
+  label: lineText(7, 'Short label on the slot, e.g. a slot number or an item name.'),
   icon: AssetIdSchema.optional(),
   semantic: semanticProp('neutral', 'Slot colour'),
 });
@@ -85,7 +85,7 @@ export const slotGridPrimitive = definePrimitive({
       'item (it lifts away and leaves an empty outline), `enter` puts an item back, `reject` ' +
       'turns it red with a cross (sold out, conflict).',
     whenToUse:
-      'Contention over specific items: two users grabbing the same seat, stock picked from bins, ' +
+      'Contention over specific items: two users grabbing the same locker, stock picked from bins, ' +
       'which documents a search touches. Address the slots on the words that act on them.',
     whenNotToUse:
       'Items moving in order (use `conveyor_queue`); a spatial grid over a map (use ' +

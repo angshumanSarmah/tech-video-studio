@@ -95,6 +95,37 @@ describe('elementState', () => {
     expect(elementState(events, 120, FPS)).toMatchObject({ highlight: 1, emphasis: 1 });
   });
 
+  it('ends a held reject at a recover, with a short settle bump (reject → recover)', () => {
+    const events = [at('reject', 0), at('recover', 60)];
+    expect(elementState(events, 30, FPS).actions.reject).toBe(1);
+    const settling = elementState(events, 66, FPS);
+    expect(settling.actions.reject).toBe(0);
+    expect(settling.emphasis).toBeGreaterThan(0.3);
+    expect(settling.highlight).toBe(0);
+    const settled = elementState(events, 120, FPS);
+    expect(settled.actions).toMatchObject({ reject: 0, recover: 1 });
+    expect(settled.emphasis).toBeCloseTo(0);
+  });
+
+  it('stays rejected through a later highlight, enter or pulse (reject → highlight)', () => {
+    const events = [at('reject', 0), at('highlight', 30), at('enter', 40), at('pulse', 50)];
+    const state = elementState(events, 120, FPS);
+    expect(state.actions.reject).toBe(1);
+    expect(state.highlight).toBe(1);
+  });
+
+  it('can be rejected again after a recover, and leaves a lock alone', () => {
+    const events = [at('lock', 0), at('reject', 20), at('recover', 40), at('reject', 80)];
+    expect(elementState(events, 60, FPS).actions).toMatchObject({ lock: 1, reject: 0 });
+    expect(elementState(events, 120, FPS).actions).toMatchObject({ lock: 1, reject: 1 });
+  });
+
+  it('ignores a recover with nothing to recover from', () => {
+    const state = elementState([at('recover', 0)], 30, FPS);
+    expect(state.actions.reject).toBeUndefined();
+    expect(state.presence).toBe(1);
+  });
+
   it('reports the held highlight apart from the pulse bump', () => {
     const events = [at('pulse', 0), at('highlight', 30)];
     expect(elementState(events, 6, FPS)).toMatchObject({ highlight: 0 });
@@ -215,6 +246,18 @@ describe('parts', () => {
     });
     expect(partState(elementState(events, 200, FPS), 'item').presence).toBe(0);
     expect(partState(elementState(events, 0, FPS), 'item').runSec.enter).toBeCloseTo(2);
+  });
+
+  it('recovers a rejected part without touching the element or other parts', () => {
+    const events = [
+      at('reject', 0),
+      forParts(at('reject', 10), 'a', 'b'),
+      forParts(at('recover', 50), 'a'),
+    ];
+    const state = elementState(events, 90, FPS);
+    expect(partState(state, 'a').actions.reject).toBe(0);
+    expect(partState(state, 'b').actions.reject).toBe(1);
+    expect(state.actions.reject).toBe(1);
   });
 
   it('reads an unnamed part as idle', () => {

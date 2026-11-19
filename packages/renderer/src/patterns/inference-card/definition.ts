@@ -70,7 +70,7 @@ export const inferenceCardPattern = definePattern({
       'model; the prediction flips from "?" to a value. An optional comparison feeds a second ' +
       'input with a different value in and gets a different prediction.',
     whenToUse:
-      'Any ML prediction told as data in, number out: prep time, ETA, fraud score, price. Use ' +
+      'Any ML prediction told as data in, number out: fraud score, delivery ETA, churn risk, price. Use ' +
       'the comparison to show which feature changes the answer.',
     whenNotToUse:
       'A single number without inputs (use `counter_transition`); a decision between candidates ' +

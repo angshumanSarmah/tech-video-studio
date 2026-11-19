@@ -39,7 +39,7 @@ export const radiusRingPrimitive = definePrimitive({
       'A dashed search circle centred on the element `around`, with an optional `label` on ' +
       'its rim (the radius, or what is searched). `enter` grows it out from the centre.',
     whenToUse:
-      'A search area or reach: riders within 2 km of a restaurant, servers within one network ' +
+      'A search area or reach: couriers within 2 km of a depot, servers within one network ' +
       'hop, the candidates a matcher considers around a target.',
     whenNotToUse:
       'A named area with edges (use `zone_polygon`); a grid of cells (use `grid_overlay`); a ' +

@@ -130,7 +130,7 @@ describe('beatWorld', () => {
     const source = items.find((i) => i.key === 'flood/source');
     const actions = (item: typeof target) =>
       item?.kind === 'primitive' ? item.events.map((e) => e.action) : [];
-    expect(actions(target)).toEqual(['enter', 'reject', 'highlight']);
+    expect(actions(target)).toEqual(['enter', 'reject', 'recover', 'highlight']);
     expect(actions(source)).toEqual(['enter']);
   });
 });
