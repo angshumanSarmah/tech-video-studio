@@ -11,9 +11,10 @@ This is a rebuild: the previous app produced monotonous videos (the same 3–4 b
 | Rebuild | The old app is discarded. New repo from scratch; prompts never reference the old code |
 | Content | System design + AI topics, for engineers |
 | Channel | One channel, two series (System Design, AI) with a series tag and accent colour; data model ready for more channels |
-| Format | YouTube Shorts / Reels, 9:16, 45–90 s (Director decides; override per run) |
-| Visual style, phase 1 | 2D "board" scenes (DevMonk Flipkart style: dark blueprint grid, glowing paths, zones, grids, tags) |
+| Format | YouTube Shorts / Reels, 9:16, 45–90 s (Director decides; override per run). Two layouts: full-screen, or card (persistent title header + 16:9 diagram window + captions) |
+| Visual style, phase 1 | 2D "board" scenes in our own drafting-paper look: an engineering drawing on warm paper, ink line work, highlighter marks for focus, IBM Plex fonts (see Originality) |
 | Visual style, phase 2+ | 3D "world" scenes (React Three Fiber) for hooks and establishing shots; low-poly characters |
+| Originality | Borrow storytelling techniques, never another creator's look, wording, art or characters. Own theme, own hook style and own ending (see Originality) |
 | Library | The in-app LLM only composes from the library (primitives, patterns, assets). It never writes drawing or animation code. Missing primitives go to a backlog you decide on |
 | Assets | SVG icons/objects drafted by the LLM in house style. Nothing enters the library without your approval. Missing assets fall back to a suggested swap or a labelled placeholder |
 | Asset seeding | Before the first video, plan the first 12–15 topics and approve their assets in one session |
@@ -33,7 +34,7 @@ This is a rebuild: the previous app produced monotonous videos (the same 3–4 b
 | Publishing | Export MP4 + SRT only; you upload manually |
 | Code on screen | No build-along code. Short command bubbles (e.g. `SET key value`) allowed as data |
 | Formula cards | Optional, at most one per video, only when it adds clarity |
-| Logos | Generic icons by default; optional per-video logo slot you fill |
+| Logos | Generic icons by default; optional per-video logo slot you fill. The app never draws brand logos or real app screenshots on its own |
 | Sources | App fetches and extracts the URLs you paste, plus file upload; no autonomous web search |
 | Preview | Per-scene still frames + fast low-res draft MP4 |
 | Custom visuals | Custom elements: when nothing in the library fits, the Generator can request a one-off animated SVG element (declarative data, never code), max 2 per video. Each one always pauses the run for your on-screen review: refine, edit, approve, reject or save to the library |
@@ -112,6 +113,33 @@ The first build produced boxes-and-arrows videos for five reasons. The new build
 | No storytelling layer: prompts covered correctness and safety only | A Director with narrative devices, hero metric, question chapters, failure-before-fix, reference videos and variety memory |
 | Animation cues fired on fractions of scene time, not on words | Word timestamps from TTS; every event is anchored to a narration word |
 | Most effort went into governance (hash-bound approvals, audits, publishing phases, ADRs) | Light process: cited research notes and UI review gates only. No publishing integration, no approval hash chains |
+
+## Originality
+
+The channel borrows storytelling techniques from reference videos, never their look, words, art or characters, so no video reads as a copy. Techniques are shared craft; a creator's colours, layouts, wording and artwork are their own.
+
+| Take from references | Never take |
+| --- | --- |
+| Structure: hooks, roadmap, one headline per beat, word-timed events, failure before fix | Their colours, fonts, glow style or HUD layout |
+| Devices: counters, timers, reject ✗, detail card over a dimmed system, inputs → model → prediction | Their on-screen wording, script lines, titles or CTA keywords |
+| Generic icons and our own primitives | Real brand logos, real app screenshots, character comic art |
+
+**Our look: drafting-paper (default theme, built in P1A)**
+
+- An engineering drawing on warm paper `#F4F1EA`: ink line work `#1F2328`, a faint ruled grid, no glow or shadows, rounded corners, 2.5 px regular strokes.
+- Fonts: IBM Plex Sans Condensed (display), IBM Plex Mono (labels), IBM Plex Sans (subtitles), Inter as glyph fallback.
+- Emphasis style "mark": `highlight` = a highlighter swipe behind the element (a frame band on elements over 360 px); `pulse` = a 1.06 scale bump plus one ink ripple. A `reject` ends a held highlight.
+- Focus: areas use the theme's focus fill; resting focus text and numbers get a highlighter underline, replaced by the swipe while highlighted.
+- Series accents are adjusted per theme to reach 4.5:1 contrast. Display sizes are scaled so each line holds the same text as in the old theme.
+- `blueprint-dark` is parked: still registered, selectable with `themeId` and tested, but new primitives are only reviewed in the default theme. It resembles a reference creator's look, so review it before any published use. The Studio web UI keeps its dark colours.
+
+**Our voice**
+
+- Hook: an engineer's problem with real numbers ("10 million requests, one Redis box. What breaks first?"), not "how does this app work?".
+- Ending: a 3-line spec card summarising the design, plus the series number ("System Design #12"), then a share or follow line in our own words.
+- Optional polish after P1A.8: the title-block HUD (P1A.8b) and elements drawn on as they enter (P1A.8c).
+
+**Reference breakdowns** in `seed/references/` keep only structure: beat types, devices, pacing and missing primitives. No on-screen text, creator names, video titles or links, because agents tend to repeat wording they are shown.
 
 ## How to use these prompts
 
@@ -378,6 +406,37 @@ Logical inputs only (ids, labels, counts, relative ordering). Positions come fro
 Acceptance: fixture boards render each primitive; stills saved to docs/primitives/.
 ```
 
+**P1A.7b Primitives batch 3: inset and reveal**
+
+```text
+Implement (logical inputs only; positions come from the layout engine):
+- inset_panel: a framed detail card that zooms in over the current scene while everything behind
+  it dims; it holds child primitives (data_block, counter_transition, slot_grid, map_base,
+  segmented_time_bar, ...). enter = zoom out of its anchor element; exit = shrink back into it.
+- bracket: a brace grouping a run of sibling elements or parts, with a short label ("FEATURES").
+- callout: a small card for a counterfactual or warning ("If prep takes 20 min: rider waits
+  17 min ✗"); semantic problem, focus or concept.
+- device_frame: a generic phone or tablet outline holding a simple UI: list rows, a status line,
+  or a button whose label and semantic change (Accept → Accepted ✓). Never a real app
+  screenshot or logo.
+- radius_ring: a dashed search circle around an element, with an optional label; enter grows it
+  from the centre.
+- route_path: add mode "jumpy" | "smooth" and an optional mover (asset id). Jumpy steps the mover
+  from point to point; a later "smooth" event draws a curve through the points and the mover
+  glides along it.
+- counter_transition: allow from = null, shown as "?", for unknown → predicted reveals.
+- statement_card: 1–3 large lines over the dimmed scene, each line with its own semantic (a
+  planted question, a two-line "easy vs hard" takeaway). enter = fade + slight rise.
+- node_card: add an optional role badge (asset id, e.g. crown) drawn like the lock badge. Moving
+  a role is the old badge exiting and the new one entering: no new action.
+- source footnote: an optional beat-level source line ("Source: <publisher> post-incident
+  report, <date>") drawn small in the stage corner with the footnote text style; required
+  whenever a beat shows a real incident or a sourced number.
+Every new primitive uses the shared emphasis and focus helpers (no own glow or fills) and supports
+enter, exit, highlight, dim and pulse, plus reject where it has a problem state.
+Acceptance: fixture board entries and docs/primitives stills for each; registry checks pass.
+```
+
 **P1A.8 Behaviour patterns**
 
 ```text
@@ -392,9 +451,46 @@ Implement behaviour patterns that expand into primitives + timed events:
 - cache_hit_miss: near store vs far store, hit and miss paths with latency tags.
 - worker_pool: queue feeding N workers producing output objects.
 - versus_split: same event played on two halves side by side.
+- inference_card (needs P1A.7b): inputs → model → prediction. Feature rows (data_block) grouped
+  by a bracket feed a model node; the prediction flips from "?" to a value (counter_transition
+  with from = null); optional comparison row with a different input and result.
+- pick_by_rule (needs P1A.7b): candidates around a target, often inside a radius_ring. The obvious
+  pick (nearest, first, cheapest) gets a tag and is crossed out; the right one is ringed with its
+  reason tag ("ETA 3:00 = PREP 3:00"). Fits riders, servers, cache nodes and workers.
+- failover: a leader node is rejected; its writers' connectors fail; the role badge exits on the
+  old leader and enters on a follower; the other followers' links and the writer's link re-route
+  to the new leader.
+- split_brain: the link between two regions breaks (connector reject, dashed, with a counting
+  timer tag); the far replica gets the role badge; the link returns with both nodes holding the
+  badge, divergent write tags on each side and a conflict callout.
 Each pattern has params, an LLM-facing description, and documents which narration moments it needs
 anchors for.
 Acceptance: fixture beats for each pattern; stills or short draft clips saved under docs/patterns/.
+```
+
+**P1A.8b HUD title block (optional polish)**
+
+```text
+Restyle the HUD top band for drafting-paper as a drawing title block: a thin-ruled strip of cells,
+e.g. "SYSTEM DESIGN · RATE LIMITER" | "SHEET 2/5" | "REV A" | channel handle.
+- The step tracker becomes the SHEET cell.
+- The hero metric pill becomes a dimension-style annotation (the value between two small end ticks).
+- The story clock shows only when spec.hud asks for it.
+HUD data and spec fields stay the same: this is a theme-level HUD style, and blueprint-dark keeps
+its current HUD. Stay inside hudBand and the safe zones.
+Acceptance: rate-limiter frame rendered in both themes; HUD tests pass; blueprint-dark stills
+byte-identical.
+```
+
+**P1A.8c Drawn-on entry (optional polish)**
+
+```text
+Add a theme-level enter style "draw" for drafting-paper: outlines, connectors and routes draw on
+along their stroke (dash offset) over the enter duration, then fills and text fade in during the
+last third. Glow themes keep their current enter. One shared helper; no primitive animates its own
+draw.
+Acceptance: fixture boards show the draw-on in Remotion Studio; enter panels in stills show the
+finished state; blueprint-dark stills byte-identical.
 ```
 
 **P1A.9 Layout engine**
@@ -407,7 +503,22 @@ cycle (ring), swimlane (vertical lanes + ordered messages), versus_split, near_f
 Respect HUD and subtitle safe areas, primitive size hints, minimum gaps, readable text sizes on a
 phone, and keep the focus element largest/central. Detect and resolve overlaps; return warnings when
 a scene has too many elements for its mode (the Curator uses these).
-Acceptance: unit tests per mode (no overlaps, inside safe area); a fixture page renders every mode.
+Requirements added during P1A.2–P1A.8:
+- The stage is a parameter, never a constant. Add meta.format: "full" | "card" (default "full") to
+  the VideoSpec schema and validation. "full" uses stageForBeat(); "card" uses a 16:9 diagram
+  window below a persistent title header (the HUD draws the header for the whole video), with
+  subtitles under the window. Every mode must work in both.
+- Avoid zones inside the stage (the bottom-right 108×460 notch from the platform buttons) are hard
+  constraints: nothing overlaps them; tall right-hand elements move or the mode re-flows.
+- Attachments: tags, badges, timers and counters can pin to a side of another element (top, bottom,
+  left, right, or a connector's midpoint) and follow it, declared through the element-ref mechanism
+  from P1A.7.
+- Overlays: grid_overlay, route_path and zone_polygon over a map_base share its frame; connectors
+  and packet_stream get real endpoints from the placed elements.
+- inset_panel lays out its children in its own frame (nested layout) over the dimmed scene.
+Acceptance: unit tests per mode and per format (no overlaps, inside the stage, nothing in an avoid
+zone, attachments stay attached when their host moves between beats); a fixture page renders every
+mode in both formats.
 ```
 
 **P1A.10 Event engine, focus and transitions**
@@ -605,6 +716,13 @@ its payoff beat, at least one rejected alternative shown before the chosen desig
 and missing_primitive_requests (what it wanted but the catalogue lacks; it must still choose an
 available fallback).
 Use the role's stronger model. Enforce variety: penalise reuse of the last 5 videos' device/layout combos.
+House voice (see Originality): the hook states an engineer's problem with real numbers ("10 million
+requests, one Redis box. What breaks first?"), not "how does this app work?". The ending is a
+3-line spec card summarising the design plus the series number ("System Design #12"), then a
+share or follow line in our own words. Choose meta.format: "card" suits short single-concept or
+real-incident videos, "full" suits multi-step builds. For a real incident, use dated facts from the
+research notes and give every such beat a source footnote. Reference videos inform structure only: never reuse their
+on-screen wording, titles or CTA keywords.
 Acceptance: schema-valid output on fixture research notes; deterministic checks for planted-question
 payoff and beat seconds summing to the target ±10%.
 ```
@@ -1082,7 +1200,7 @@ appears on the word "boss", and his head swaps to a siren at the end.
 
 ## Appendix: catalogues
 
-These seed the registries and catalogues in P1A.5–P1A.8 and P1C.4. They came from the four DevMonk reference videos (Uber, Cricbuzz, BookMyShow, Flipkart Minutes).
+These seed the registries and catalogues in P1A.5–P1A.8 and P1C.4. They came from six reference videos (Uber, Cricbuzz, BookMyShow, Flipkart Minutes, Zomato, a database failover incident) and record techniques only, never their look or wording (see Originality).
 
 **Topic classes**
 
@@ -1112,25 +1230,36 @@ These seed the registries and catalogues in P1A.5–P1A.8 and P1C.4. They came f
 | Race reveal (two clocks) | BookMyShow (payment vs hold timer) |
 | Real-world closure | BookMyShow (QR scan at the gate) |
 | Callback ending + share CTA | Cricbuzz (siren head), Uber (no driver accepted) |
+| Detail card over a dimmed system | Zomato (prep-time model, rider map and ETA cards over the dimmed architecture) |
+| Inputs → model → prediction | Zomato (feature rows → "? MIN" → "3 MIN") |
+| Obvious choice rejected, right one picked | Zomato (nearest rider ✗, ETA-matched rider ✓) |
+| Counterfactual box ("what if…") | Zomato (assigning a rider too early → 17 min wasted) |
+| Jumpy → smooth | Zomato (raw GPS points → smoothed path) |
+| Sum bar reveal | Zomato (kitchen + ride + buffer = ETA) |
+| Real incident case study (dated, sourced) | Database failover (concept first, then a real outage with a source footnote) |
+| Hard question card over the dimmed scene | Database failover (is the old leader really dead?) |
+| Two-line contrast takeaway | Database failover (promoting is easy, proving the old one is gone is hard) |
+| Persistent title header (card format) | Database failover (the paradox stays on screen for the whole video) |
 | Versus split, what-breaks simulation, semantic zoom, interview hook | Added for internals and AI topics |
 
 **Phase 1 primitives and patterns**
 
 | Family | Items |
 | --- | --- |
-| Annotation | tag, headline (HUD), node\_card, icon, item\_icon |
+| Annotation | tag, headline (HUD), node\_card (with role badge), icon, item\_icon, bracket, callout, statement\_card, source footnote |
 | Metric | counter, counter\_transition, timer\_ring, stat\_card, segmented\_time\_bar |
-| Data | data\_block, command\_bubble, formula\_card |
-| Spatial | map\_base, route\_path, zone\_polygon, grid\_overlay, slot\_grid |
+| Data | data\_block, command\_bubble, formula\_card, device\_frame |
+| Spatial | map\_base, route\_path (jumpy / smooth), zone\_polygon, grid\_overlay, slot\_grid, radius\_ring |
 | Flow | connector, packet\_stream, conveyor\_queue |
-| Patterns | atomic\_lock, reject\_duplicate, fan\_out, flood\_then\_funnel, converge\_adapter, brute\_force\_then\_index, cache\_hit\_miss, worker\_pool, versus\_split |
+| Container | inset\_panel |
+| Patterns | atomic\_lock, reject\_duplicate, fan\_out, flood\_then\_funnel, converge\_adapter, brute\_force\_then\_index, cache\_hit\_miss, worker\_pool, versus\_split, inference\_card, pick\_by\_rule, failover, split\_brain |
 
 **Colour semantics**
 
 | Colour | Meaning |
 | --- | --- |
-| White | Neutral label |
-| Yellow | Focus, decision, the thing to watch |
+| Ink (white on dark themes) | Neutral label |
+| Yellow | Focus, decision, the thing to watch. On paper it is drawn as a highlighter (fill, underline or swipe), never as yellow text |
 | Blue | Concept definition |
 | Green | OK, resolved, success |
 | Red | Problem, failure, rejected |
