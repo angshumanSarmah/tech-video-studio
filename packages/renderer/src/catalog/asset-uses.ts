@@ -1,5 +1,6 @@
 import {
   toJsonPath,
+  type AssetFamily,
   type MissingAsset,
   type SceneElement,
   type SpecError,
@@ -7,6 +8,7 @@ import {
 } from '@explainer-studio/shared';
 import type { AnyPatternDefinition } from '../patterns/types.ts';
 import { placeholderLabel, type AssetContextValue } from '../assets/library.ts';
+import { suggestAssets } from '../assets/suggest.ts';
 import { DEFAULT_REGISTRIES, type Registries } from './registries.ts';
 
 /**
@@ -24,6 +26,8 @@ export type AssetUse = {
   path: Path;
   /** Element id; `<instance>/<id>` inside a pattern. */
   element: string;
+  /** The family the prop implies, if any (`AssetRef.family`). */
+  family?: AssetFamily;
 };
 
 /** Asset uses of one loose element with valid props (bad props are errors already). */
@@ -42,6 +46,7 @@ export function elementAssetUses(
     beatId,
     path: [...path, 'props', ...ref.path],
     element: element.id,
+    ...(ref.family ? { family: ref.family } : {}),
   }));
 }
 
@@ -90,16 +95,20 @@ export function unknownAssetWarnings(
 ): SpecError[] {
   const slots = new Set((spec.logos ?? []).map((l) => l.id));
   const unknown = uses.filter((u) => !registries.assets.has(u.id) && !slots.has(u.id));
-  if (unknown.length === 0) return [];
-  const known = [...registries.assets.keys()].join(', ');
   const logos = slots.size > 0 ? ` Logo slots: ${[...slots].join(', ')}.` : '';
   return unknown.map((use) => ({
     path: toJsonPath(use.path),
     code: 'unknown_asset',
     message:
       `Unknown asset "${use.id}"${innerSuffix(use.element)} (drawn as a placeholder). ` +
-      `Use one of: ${known}.${logos}`,
+      `${closestLine(use, registries)}See the asset list in your catalogue.${logos}`,
   }));
+}
+
+/** "Closest approved ids: a, b, c. " (empty for an empty library). */
+function closestLine(use: AssetUse, registries: Registries): string {
+  const closest = suggestAssets(use.id, registries.assets, use.family);
+  return closest.length > 0 ? `Closest approved ids: ${closest.join(', ')}. ` : '';
 }
 
 /** ` on "<id>"` for an element inside a pattern (the path points only to its params). */

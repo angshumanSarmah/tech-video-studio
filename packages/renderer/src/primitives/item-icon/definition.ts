@@ -31,7 +31,7 @@ export const itemIconPrimitive = definePrimitive({
   propsSchema: ItemIconPropsSchema,
   actions: ['enter', 'exit', 'highlight', 'dim', 'pulse', 'reject'],
   sizeHints: itemIconSizeHints,
-  assetRefs: (props) => [{ path: ['asset'], id: props.asset }],
+  assetRefs: (props) => [{ path: ['asset'], id: props.asset, family: 'object' }],
   description: {
     summary:
       'A flat everyday object from the asset library (phone, car, ticket, parcel, pizza) on a ' +

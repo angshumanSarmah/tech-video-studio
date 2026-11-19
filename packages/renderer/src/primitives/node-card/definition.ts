@@ -68,7 +68,7 @@ export const nodeCardPrimitive = definePrimitive({
   outline: (props, box, theme) => cardOutline(theme, props.semantic, box),
   assetRefs: (props) => [
     ...(props.icon ? [{ path: ['icon'], id: props.icon }] : []),
-    ...(props.role ? [{ path: ['role'], id: props.role }] : []),
+    ...(props.role ? [{ path: ['role'], id: props.role, family: 'symbol' as const }] : []),
   ],
   parts: {
     actions: ['enter', 'exit', 'pulse'],

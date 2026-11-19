@@ -67,6 +67,21 @@ describe('unknown_asset with logo slots', () => {
   });
 });
 
+describe('unknown_asset suggestions', () => {
+  it('suggests the closest ids, ranking the family the prop implies first', () => {
+    const input = fixtureSpec();
+    Object.assign(input.scenes[0]?.elements?.[1] ?? {}, {
+      props: { title: 'API', role: 'leader' },
+    });
+    const [warning] = withRegistryChecks(validateVideoSpec(input), input).warnings;
+    expect(warning?.path).toBe('$.scenes[0].elements[1].props.role');
+    expect(warning?.message).toMatch(
+      /^Unknown asset "leader" \(drawn as a placeholder\)\. Closest approved ids: crown, /,
+    );
+    expect(warning?.message).toMatch(/See the asset list in your catalogue\.$/);
+  });
+});
+
 describe('missingAssets', () => {
   it('lists unknown ids and unfilled logo slots with every beat that uses them', () => {
     const spec = parse(specWithGaps());

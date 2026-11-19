@@ -91,7 +91,8 @@ export const routePathPrimitive = definePrimitive({
   propsSchema: RoutePathPropsSchema,
   actions: ['enter', 'exit', 'move', 'morph', 'highlight', 'dim', 'pulse'],
   sizeHints: routePathSizeHints,
-  assetRefs: (props) => (props.mover ? [{ path: ['mover'], id: props.mover }] : []),
+  assetRefs: (props) =>
+    props.mover ? [{ path: ['mover'], id: props.mover, family: 'transport' as const }] : [],
   eventWarnings: routePathEventWarnings,
   parts: { actions: ['highlight', 'pulse', 'reject'], ids: (props) => idsOf(props.stops) },
   description: {

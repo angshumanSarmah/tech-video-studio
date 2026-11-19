@@ -1,4 +1,4 @@
-import type { EventAction } from '@explainer-studio/shared';
+import type { AssetFamily, EventAction } from '@explainer-studio/shared';
 import type { z } from 'zod';
 import type { OutlineShape } from '../draw/outline.ts';
 import type { Rect, Theme } from '../theme/index.ts';
@@ -44,7 +44,11 @@ export type Size = { width: number; height: number };
 export type Insets = { top: number; right: number; bottom: number; left: number };
 
 /** An asset id a primitive's props reference, with its path inside `props`. */
-export type AssetRef = { path: (string | number)[]; id: string };
+/**
+ * An asset id in the props. `family` is the family the prop implies (an `item_icon` shows an
+ * object), so suggestions for an unknown id rank that family first.
+ */
+export type AssetRef = { path: (string | number)[]; id: string; family?: AssetFamily };
 
 /**
  * Another element a primitive's props point to (`connector.from`), with its path inside `props`.
