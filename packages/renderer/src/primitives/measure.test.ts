@@ -10,9 +10,9 @@ describe('approxTextWidth', () => {
     expect(approxTextWidth(theme, 'title', 'GATE')).toBe(expected);
   });
 
-  it('gives a wider display font a wider hint', () => {
+  it('gives display text about the same width in both themes (sizes scaled by advance)', () => {
     const dark = approxTextWidth(getTheme('blueprint-dark'), 'title', 'API GATEWAY');
     const paper = approxTextWidth(getTheme('drafting-paper'), 'title', 'API GATEWAY');
-    expect(paper).toBeGreaterThan(dark);
+    expect(Math.abs(paper - dark) / dark).toBeLessThan(0.03);
   });
 });

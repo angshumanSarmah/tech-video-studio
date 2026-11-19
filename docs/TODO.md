@@ -36,9 +36,10 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **Theme — Safe areas live in the theme.** Platform exclusion zones are platform facts;
       `drafting-paper` reuses `blueprintDark.safeArea`. Move platform zones out of the theme
       before a third theme or a recalibration.
-- [ ] **Theme — Type scale per font.** `drafting-paper` reuses the default type scale; Plex Sans
-      Condensed is ~30% wider than Barlow Condensed, so headlines wrap to two lines more often.
-      Tune sizes if the theme graduates from trial.
+- [ ] **Theme — Non-display type per font.** `drafting-paper` scales only its display styles
+      (headline, title, chapter, metric) by the display advance ratio. Mono and sans styles keep
+      blueprint-dark's sizes (Plex Mono matches JetBrains Mono's 0.6 em; Plex Sans is slightly
+      narrower than Inter). Scale them too if a future font differs.
 - [ ] **P1C.9 — Run state transitions.** The orchestrator takes over run state transitions. Until
       then the worker only moves a run to `failed` when one of its jobs fails (unless the handler
       sets `failsRun: false`); `queued → running`, gate pauses and `done` belong to the

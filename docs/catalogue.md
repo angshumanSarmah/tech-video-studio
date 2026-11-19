@@ -25,7 +25,7 @@ A single line-drawn symbol from the asset library (server, database, user, lock,
 | `asset` | string | yes | Asset id from the asset library (an unknown id is drawn as a placeholder and reported). (max length 64) |
 | `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Stroke colour: neutral, focus, ok, problem or concept. (default `"neutral"`) |
 
-**Size hint** (example, drafting-paper): 120 × 120 px (min 120 × 120).
+**Size hint** (example, drafting-paper): 92 × 92 px (min 92 × 92).
 
 **Example:**
 
@@ -58,7 +58,7 @@ A flat everyday object from the asset library (phone, car, ticket, parcel, pizza
 | `caption` | string | yes | What the object is in this story, shown under it. (min length 1, max length 24) |
 | `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Tile colour: neutral, focus, ok, problem or concept. (default `"neutral"`) |
 
-**Size hint** (example, drafting-paper): 302 × 230 px (min 302 × 230).
+**Size hint** (example, drafting-paper): 302 × 188 px (min 302 × 188).
 
 **Example:**
 
@@ -92,7 +92,7 @@ A titled card for one component of a system (a service, server, database, client
 | `icon` | string | no | Asset id from the asset library (an unknown id is drawn as a placeholder and reported). (max length 64) |
 | `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Border and glow colour: neutral, focus, ok, problem or concept. (default `"neutral"`) |
 
-**Size hint** (example, drafting-paper): 713 × 152 px (min 713 × 152).
+**Size hint** (example, drafting-paper): 573 × 138 px (min 573 × 138).
 
 **Example:**
 
@@ -234,7 +234,7 @@ A card with one typeset formula (LaTeX, rendered by KaTeX) and an optional capti
 | `caption` | string | no | Optional plain-words reading of the formula, shown under it. (min length 1, max length 48) |
 | `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Border and glow colour: neutral, focus, ok, problem or concept. (default `"concept"`) |
 
-**Size hint** (example, drafting-paper): 811 × 278 px (min 811 × 278).
+**Size hint** (example, drafting-paper): 642 × 236 px (min 642 × 236).
 
 **Example:**
 
@@ -558,7 +558,7 @@ A big number with an optional unit and caption. Without a `count` event it shows
 | `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Colour of the number: neutral, focus, ok, problem or concept. (default `"focus"`) |
 | `decimals` | integer | no | Digits after the decimal point. (min 0, max 2, default `0`) |
 
-**Size hint** (example, drafting-paper): 828 × 201 px (min 828 × 201).
+**Size hint** (example, drafting-paper): 711 × 171 px (min 711 × 171).
 
 **Example:**
 
@@ -597,7 +597,7 @@ A big number changing to another, shown as "10 → 9": the old number in one col
 | `toSemantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Colour of the new number: neutral, focus, ok, problem or concept. (default `"focus"`) |
 | `decimals` | integer | no | Digits after the decimal point. (min 0, max 2, default `0`) |
 
-**Size hint** (example, drafting-paper): 876 × 164 px (min 876 × 164).
+**Size hint** (example, drafting-paper): 759 × 134 px (min 759 × 134).
 
 **Example:**
 
@@ -639,7 +639,7 @@ A stacked bar splitting a time budget into steps (RIDE | PACK), each segment as 
 | `budgetSec` | integer | no | Optional time budget: a marker on the bar; time past it is drawn red. (min 1, max 5999) |
 | `label` | string | no | Optional caption: what the time is for, e.g. ORDER TO DOOR. (min length 1, max length 24) |
 
-**Size hint** (example, drafting-paper): 840 × 201 px (min 310 × 201).
+**Size hint** (example, drafting-paper): 840 × 187 px (min 310 × 187).
 
 **Example:**
 
@@ -684,7 +684,7 @@ A card with one big figure, a label under it, and a small source footnote. The f
 | `source` | string | yes | Where the figure comes from, shown as a footnote. Required. (min length 1, max length 60) |
 | `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Colour of the value: neutral, focus, ok, problem or concept. (default `"focus"`) |
 
-**Size hint** (example, drafting-paper): 1029 × 275 px (min 1029 × 275).
+**Size hint** (example, drafting-paper): 815 × 245 px (min 815 × 245).
 
 **Example:**
 
@@ -718,7 +718,7 @@ A countdown ring with the time left as mm:ss in the middle. It shows `durationSe
 | `label` | string | no | Caption under the ring: what the time is for. (min length 1, max length 24) |
 | `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Ring colour while running: neutral, focus, ok, problem or concept. (default `"focus"`) |
 
-**Size hint** (example, drafting-paper): 317 × 362 px (min 317 × 362).
+**Size hint** (example, drafting-paper): 302 × 290 px (min 302 × 290).
 
 **Example:**
 

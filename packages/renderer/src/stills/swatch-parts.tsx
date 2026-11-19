@@ -163,7 +163,7 @@ export function AccentSamples({ theme, accents }: Props & { accents: SampleAccen
   );
 }
 
-const TYPE_SAMPLES: Record<TextStyleName, string> = {
+export const TYPE_SAMPLES: Record<TextStyleName, string> = {
   headline: 'Cache = fast copy',
   title: 'The hot key',
   chapter: '— 2 · Why does it miss?',

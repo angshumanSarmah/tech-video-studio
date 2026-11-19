@@ -236,7 +236,9 @@ primitive to `docs/primitives/<id>.png`.
   styles, spacing, radius, stroke widths, safe-area margins and `numberLocale` (on-screen number
   grouping; `en-IN` gives 1,00,000). `tint.fills` overrides a semantic's soft fill (paper's
   focus: ink text on a yellow highlighter); each font role has `advanceEm` for size hints
-  (`approxTextWidth`). `src/theme` is React-free and
+  (`approxTextWidth`). drafting-paper's display sizes are blueprint-dark's scaled by the
+  display `advanceEm` ratio (`scaledText`), so a line holds the same text in both themes
+  (`display-fit.test.ts` checks it with real glyph widths). `src/theme` is React-free and
   exported as `@explainer-studio/renderer/theme`, so Node scripts, the layout engine and the
   studio can import it.
 - **Theme selection:** `VideoFromSpec`/`BeatFromSpec` take an optional `themeId` (unknown ids

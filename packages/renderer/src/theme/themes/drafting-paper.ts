@@ -1,8 +1,27 @@
-import type { ThemeInput } from '../schema.ts';
+import type { TextStyleName, ThemeInput } from '../schema.ts';
 import { blueprintDark } from './blueprint-dark.ts';
 
 const INK = '#1F2328';
 const DRAFTING_BLUE = '#1F4FD1';
+/** Plex Sans Condensed capitals are ~30% wider than Barlow's (0.57 vs 0.44 em measured). */
+const DISPLAY_ADVANCE_EM = 0.65;
+
+/**
+ * Display styles shrink by blueprint-dark's display advance over ours, so a line holds the same
+ * text in both themes. Line height and letter spacing are em multipliers: they follow the size.
+ */
+const DISPLAY_SCALE = blueprintDark.fonts.display.advanceEm / DISPLAY_ADVANCE_EM;
+const DISPLAY_STYLES: readonly TextStyleName[] = ['headline', 'title', 'chapter', 'metric'];
+
+/** blueprint-dark's text styles with the display ones scaled to whole px. */
+function scaledText(): ThemeInput['text'] {
+  const text: Record<TextStyleName, ThemeInput['text'][TextStyleName]> = { ...blueprintDark.text };
+  for (const name of DISPLAY_STYLES) {
+    text[name] = { ...text[name], size: Math.round(text[name].size * DISPLAY_SCALE) };
+  }
+  return text;
+}
+
 const MONO_FALLBACK = "ui-monospace, 'SFMono-Regular', 'Cascadia Mono', Menlo, Consolas, monospace";
 
 /**
@@ -58,8 +77,7 @@ export const draftingPaper = {
     display: {
       family: 'IBM Plex Sans Condensed',
       fallback: "'Arial Narrow', sans-serif",
-      // Plex Sans Condensed capitals are ~30% wider than Barlow's (0.57 vs 0.44 em measured).
-      advanceEm: 0.65,
+      advanceEm: DISPLAY_ADVANCE_EM,
       bundledFallbacks: ['glyphFallback'],
       files: [
         { weight: 600, path: 'fonts/ibm-plex-sans-condensed/ibm-plex-sans-condensed-600.woff2' },
@@ -90,8 +108,8 @@ export const draftingPaper = {
     // Arrows, check marks and ₹ where Plex has none.
     glyphFallback: { family: 'Inter', files: blueprintDark.fonts.sans.files },
   },
-  // Same type scale, spacing and safe areas as the default, so the trial compares look only.
-  text: blueprintDark.text,
+  // blueprint-dark's type scale, display sizes scaled to Plex's wider capitals (`scaledText`).
+  text: scaledText(),
   space: blueprintDark.space,
   radius: blueprintDark.radius,
   // Lighter than the default's 4 / 6 px: softer ink outlines on paper.
