@@ -15,7 +15,8 @@ import { anchorToTime, secToFrame } from '../timing/frames.ts';
  * still and its tests share it.
  */
 
-export type SheetPanel = { caption: string; frame: number };
+/** One sheet panel: what it shows, the frame it samples, and the next moment's frame. */
+export type SheetPanel = { caption: string; frame: number; before: number };
 
 export const SHEET_COLUMNS = 2;
 
@@ -85,7 +86,7 @@ export function planPrimitiveSheet(
     const next = events[i + 1]?.frame ?? Math.min(beatEnd, event.frame + LAST_PANEL_MAX_SEC * fps);
     const settled = Math.max(event.frame, beforeNext(next, fps));
     const frame = event.action === 'pulse' ? Math.min(settled, event.frame + pulsePeak) : settled;
-    return { caption: event.caption, frame };
+    return { caption: event.caption, frame, before: next };
   });
   return { beatId: scene.beatId, elementId: element.id, panels };
 }

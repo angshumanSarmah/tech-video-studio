@@ -85,7 +85,7 @@
     },
     {
       "beatId": "pick-by-rule",
-      "narration": "Three servers sit inside the fifty millisecond ring. The nearest one looks obvious, but it is overloaded, so that pick is crossed out. The server with spare capacity wins."
+      "narration": "Three servers sit inside the fifty millisecond ring. The nearest one looks obvious, but it is overloaded, so that pick is crossed out. The server with spare capacity wins the request."
     },
     {
       "beatId": "failover",

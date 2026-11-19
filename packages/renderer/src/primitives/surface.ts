@@ -1,6 +1,8 @@
 import type { CSSProperties } from 'react';
 import { emphasisShadow, emphasisStroke, type EmphasisState } from '../emphasis/emphasis.ts';
-import type { Theme, Tint } from '../theme/index.ts';
+import { borderOutline, type OutlineShape } from '../draw/outline.ts';
+import { semanticTint, type SemanticColour, type Theme, type Tint } from '../theme/index.ts';
+import type { Size } from './types.ts';
 
 /**
  * The card surface shared by card-like primitives: surface washed with the tint (unless `wash` is
@@ -21,6 +23,12 @@ export function cardSurfaceCss(
     background: wash ? `linear-gradient(${tint.soft}, ${tint.soft}) ${fill}` : fill,
     boxShadow: emphasisShadow(theme, tint, state.emphasis),
   };
+}
+
+/** The border `cardSurfaceCss` draws at rest, as an outline the `draw` enter style draws on. */
+export function cardOutline(theme: Theme, semantic: SemanticColour, box: Size): OutlineShape[] {
+  const colour = semanticTint(theme, semantic).border;
+  return [borderOutline(box, theme.radius.md, theme.stroke.regular, colour)];
 }
 
 /** Text that keeps its case and never wraps (data, commands). */

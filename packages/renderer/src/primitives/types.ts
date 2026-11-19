@@ -1,5 +1,6 @@
 import type { EventAction } from '@explainer-studio/shared';
 import type { z } from 'zod';
+import type { OutlineShape } from '../draw/outline.ts';
 import type { Rect, Theme } from '../theme/index.ts';
 
 /**
@@ -66,6 +67,12 @@ export type ElementRef = {
    * connector's midpoint) wherever the referenced element goes.
    */
   pin?: PinSide;
+  /**
+   * This element follows the referenced one in time: with the `draw` enter style it enters only
+   * once the referenced element has drawn (a packet stream on its connector). Pins and contained
+   * children follow their host without it.
+   */
+  follows?: boolean;
 };
 
 /** Sides an element can be pinned to; `middle` is a connector's midpoint. */
@@ -138,6 +145,12 @@ export interface PrimitiveDefinition<Id extends string = string, S extends z.Zod
    * The layout sizes the container to its children plus this. Omit for non-containers.
    */
   contentInset?(props: z.output<S>, theme: Theme): Insets;
+  /**
+   * The borders its component draws, as shapes in box px (`src/draw/outline.ts`): with the
+   * `draw` enter style they draw on along their stroke before fills and text fade in. Omit when
+   * it has no outline to draw (it fades in) or draws itself along a path (`connector`).
+   */
+  outline?(props: z.output<S>, box: Size, theme: Theme): OutlineShape[];
   /**
    * Warnings about the events that act on one element (across its `continuesPrevious` chain), in
    * order. Omit when the primitive has no such rules.

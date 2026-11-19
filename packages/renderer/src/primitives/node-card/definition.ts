@@ -1,3 +1,4 @@
+import { cardOutline } from '../surface.ts';
 import { z } from 'zod';
 import type { Theme } from '../../theme/index.ts';
 import { AssetIdSchema, lineText, semanticProp } from '../common-props.ts';
@@ -64,6 +65,7 @@ export const nodeCardPrimitive = definePrimitive({
   propsSchema: NodeCardPropsSchema,
   actions: ['enter', 'exit', 'highlight', 'dim', 'pulse', 'lock', 'reject'],
   sizeHints: nodeCardSizeHints,
+  outline: (props, box, theme) => cardOutline(theme, props.semantic, box),
   assetRefs: (props) => [
     ...(props.icon ? [{ path: ['icon'], id: props.icon }] : []),
     ...(props.role ? [{ path: ['role'], id: props.role }] : []),

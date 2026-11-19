@@ -1,6 +1,10 @@
 import { useCurrentFrame, useVideoConfig } from 'remotion';
+import { DrawOutline } from '../draw/DrawReveal.tsx';
+import { DrawRule } from '../draw/DrawRule.tsx';
+import { drawing, hudDraw } from '../draw/hud-draw.ts';
+import { borderOutline } from '../draw/outline.ts';
 import { rectCss } from '../layers/rect-css.ts';
-import { textCss, type Rect, type Theme } from '../theme/index.ts';
+import { textCss, withAlpha, type Rect, type Theme } from '../theme/index.ts';
 import { enterProgress, enterStyle } from './motion.ts';
 import { ellipsis } from './styles.ts';
 import { cellHeight } from './title-block.ts';
@@ -19,15 +23,28 @@ type Props = {
 /**
  * The card format's diagram window as a ruled viewport on the drawing sheet: a thin ink border
  * and a label cell in its top-left corner, ruled like the title block's cells. HUD layer, theme
- * tokens only. The board is laid out inside it, below the cell (`viewportBoard`).
+ * tokens only. The board is laid out inside it, below the cell (`viewportBoard`). In `draw` enter
+ * style themes the frame and cell rules draw on once from the start of the video (`hudDraw`).
  */
 export function CardViewport({ theme, rect, label, labelKey, labelFrom }: Props) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const rule = `${theme.stroke.thin}px solid ${theme.colours.ink.primary}`;
+  const ink = theme.colours.ink.primary;
+  const draw = hudDraw(theme, frame, fps);
+  const live = drawing(draw) ? draw : undefined;
+  const rule = `${theme.stroke.thin}px solid ${live ? 'transparent' : ink}`;
   const progress = enterProgress(frame, labelFrom, fps);
+  const thin = theme.stroke.thin;
   return (
     <div style={{ ...rectCss(rect), boxSizing: 'border-box', border: rule }}>
+      {live ? (
+        <DrawOutline
+          shapes={[borderOutline(rect, 0, thin, ink)]}
+          stroke={live.stroke}
+          box={{ width: rect.width, height: rect.height }}
+          border={thin}
+        />
+      ) : null}
       <div
         style={{
           position: 'absolute',
@@ -41,16 +58,23 @@ export function CardViewport({ theme, rect, label, labelKey, labelFrom }: Props)
           padding: `0 ${theme.space.sm}px`,
           borderRight: rule,
           borderBottom: rule,
-          background: theme.colours.surface,
+          background: live ? withAlpha(theme.colours.surface, live.fill) : theme.colours.surface,
         }}
       >
+        {live ? (
+          <>
+            <DrawRule edge="right" thickness={thin} colour={ink} stroke={live.stroke} />
+            <DrawRule edge="bottom" thickness={thin} colour={ink} stroke={live.stroke} />
+          </>
+        ) : null}
         <div
           key={labelKey}
           style={{
             ...textCss(theme, 'hud'),
             ...ellipsis,
             ...enterStyle(progress, theme.space.xs),
-            color: theme.colours.ink.primary,
+            ...(live ? { opacity: progress * live.fill } : {}),
+            color: ink,
           }}
         >
           {label}

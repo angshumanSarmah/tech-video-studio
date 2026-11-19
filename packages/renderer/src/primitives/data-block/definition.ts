@@ -1,3 +1,4 @@
+import { cardOutline } from '../surface.ts';
 import { z } from 'zod';
 import { SEMANTIC_COLOURS, type Theme } from '../../theme/index.ts';
 import { lineText as lineTextProp } from '../common-props.ts';
@@ -55,6 +56,7 @@ export const dataBlockPrimitive = definePrimitive({
   propsSchema: DataBlockPropsSchema,
   actions: ['enter', 'exit', 'highlight', 'dim', 'pulse'],
   sizeHints: dataBlockSizeHints,
+  outline: (_props, box, theme) => cardOutline(theme, 'neutral', box),
   description: {
     summary:
       'A JSON-like block of key/value pairs on a card, with an optional title. On `enter` it ' +

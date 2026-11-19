@@ -260,3 +260,10 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       focus dim only while it shows), leave `transitionIn` at `cut` on continuing beats, keep
       `scan` for deliberate sweeps with room before the next event (`scan_too_short`), and use
       `hold` sparingly.
+- [ ] **P1A.8c — Draw-on coverage.** With the `draw` enter style only primitives with an
+      `outline` hook draw on (cards, `tag`, `map_base`); lines draw along their path. The rest
+      fade in over the draw: `radius_ring` (its stroke is dashed, so a dash-offset draw needs a
+      mask), `timer_ring`, `bracket`, `zone_polygon`, `grid_overlay`, `device_frame`,
+      `segmented_time_bar`, `slot_grid` and `conveyor_queue` (slots and blocks are parts, which
+      keep the fade). Add outlines (circles, polylines) when they should draw. Connectors draw with
+      the enter's ease-out over a length-based duration, not a strictly constant pen.

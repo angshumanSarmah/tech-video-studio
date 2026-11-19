@@ -16,7 +16,12 @@ import {
   overlayToggles,
   type FocusTrack,
 } from '../events/focus.ts';
-import { ZOOM_PUSH_SEC } from '../events/presets.ts';
+import { outlineLength } from '../draw/outline.ts';
+import { applyDrawOrder } from '../events/draw-order.ts';
+import { drawDurationSec, ZOOM_PUSH_SEC } from '../events/presets.ts';
+import { boxOf, type PlacedItem } from '../layout/types.ts';
+import { polylineLength } from '../primitives/geometry.ts';
+import type { Theme } from '../theme/index.ts';
 import { resolveElementEvents, type AnchoredEvent } from '../events/resolve.ts';
 import { incomingTransition } from '../events/transitions.ts';
 import type { ElementEvent } from '../primitives/element-state.ts';
@@ -75,12 +80,20 @@ type Context = {
   registries: Registries;
 };
 
+/**
+ * The theme's enter style for `beatWorld`: with `draw`, enters draw on (`events/draw-order.ts`).
+ * `placedOf` gives an element's placed layout, so the pen's speed is measured in canvas px; without
+ * it (sheets) the preferred size is used.
+ */
+export type WorldDraw = { theme: Theme; placedOf?: (key: string) => PlacedItem | undefined };
+
 export function beatWorld(
   spec: RenderableVideoSpec,
   timing: EffectiveTiming,
   beatId: string,
   fps: number,
   registries: Registries,
+  draw?: WorldDraw,
 ): WorldItem[] {
   const drafts = new Map<string, Placed>();
   const events: AnchoredEvent[] = [];
@@ -106,7 +119,7 @@ export function beatWorld(
   }
   const push = zoomPushFocus(spec, timing, beatId);
   return nestContained(
-    resolveWorld([...drafts.values()], events, push ? [...beats, push] : beats, fps),
+    resolveWorld([...drafts.values()], events, push ? [...beats, push] : beats, fps, draw),
   );
 }
 
@@ -133,6 +146,7 @@ function resolveWorld(
   events: readonly AnchoredEvent[],
   beats: readonly { focus: readonly string[]; startSec: number }[],
   fps: number,
+  draw: WorldDraw | undefined,
 ): WorldItem[] {
   const drafts = placed.map((p) => p.draft);
   const keysFor = (target: string) =>
@@ -140,7 +154,7 @@ function resolveWorld(
       .filter((d) => (d.kind === 'primitive' ? d.targetIds.includes(target) : d.key === target))
       .map((d) => d.key);
   const overlays = new Set(drafts.filter(isOverlayDraft).map((d) => d.key));
-  const byKey = resolveElementEvents(events, {
+  const resolved = resolveElementEvents(events, {
     fps,
     keysFor,
     partOrder: (key) => partOrder(drafts.find((d) => d.key === key)),
@@ -150,6 +164,22 @@ function resolveWorld(
     ],
   });
   const hosts = hostMap(drafts);
+  const byKey =
+    draw?.theme.enter.style === 'draw'
+      ? applyDrawOrder(
+          resolved,
+          drafts.map((d) => d.key),
+          {
+            fps,
+            durationFor: (key) =>
+              drawDuration(
+                drafts.find((d) => d.key === key),
+                draw,
+              ),
+            hostsOf: (key) => drawHosts(drafts, hosts, key),
+          },
+        )
+      : resolved;
   const track = {
     changes: focusChanges(beats, events),
     overlays: placed
@@ -195,6 +225,37 @@ function hostMap(drafts: readonly Draft[]): Map<string, string> {
     }
   }
   return hosts;
+}
+
+/** Seconds an element's draw takes: its outline (or path) length at the pen's speed. */
+function drawDuration(draft: Draft | undefined, draw: WorldDraw): number {
+  if (draft?.kind !== 'primitive') return drawDurationSec(0);
+  const { definition, props } = draft;
+  const placed = draw.placedOf?.(draft.key);
+  const hints = definition.sizeHints(props, draw.theme);
+  const box = placed
+    ? boxOf(placed)
+    : { width: hints.preferredWidth, height: hints.preferredHeight };
+  const scale = placed?.scale ?? 1;
+  if (definition.outline) {
+    return drawDurationSec(scale * outlineLength(definition.outline(props, box, draw.theme)));
+  }
+  if (definition.layoutRole !== 'path') return drawDurationSec(0);
+  return drawDurationSec(scale * (placed?.path ? polylineLength(placed.path) : box.width));
+}
+
+/** What an element waits for before it draws: its pin host or container, and `follows` refs. */
+function drawHosts(drafts: readonly Draft[], hosts: Map<string, string>, key: string): string[] {
+  const draft = drafts.find((d) => d.key === key);
+  const follows =
+    draft?.kind === 'primitive' && draft.definition.elementRefs
+      ? draft.definition
+          .elementRefs(draft.props)
+          .filter((ref) => ref.follows)
+          .map((ref) => ref.id)
+      : [];
+  const host = hosts.get(key);
+  return [...(host !== undefined ? [host] : []), ...follows];
 }
 
 /** Scene or pattern events at their anchors' global seconds (unmatched anchors dropped). */

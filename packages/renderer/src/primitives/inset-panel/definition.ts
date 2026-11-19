@@ -1,3 +1,4 @@
+import { cardOutline } from '../surface.ts';
 import { z } from 'zod';
 import type { Theme } from '../../theme/index.ts';
 import { elementRefList, elementRefProp, lineText, semanticProp } from '../common-props.ts';
@@ -56,6 +57,7 @@ export const insetPanelPrimitive = definePrimitive({
   propsSchema: InsetPanelPropsSchema,
   actions: ['enter', 'exit', 'highlight', 'dim', 'pulse'],
   sizeHints: insetPanelSizeHints,
+  outline: (props, box, theme) => cardOutline(theme, props.semantic, box),
   layer: 'overlay',
   contentInset: (props, theme) => {
     const pad = theme.space.lg;

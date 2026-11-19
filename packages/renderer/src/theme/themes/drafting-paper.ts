@@ -60,6 +60,7 @@ export const draftingPaper = {
     fills: { focus: { colour: '#FFD84D', alpha: 0.55 } },
   },
   // A highlighter swipe and bolder ink instead of glow.
+  enter: { style: 'draw' },
   emphasis: { style: 'mark' },
   // The top band as a drawing title block; the hero metric as a dimension.
   hud: { style: 'title-block' },

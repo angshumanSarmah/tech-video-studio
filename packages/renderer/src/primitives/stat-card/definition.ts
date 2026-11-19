@@ -1,3 +1,4 @@
+import { cardOutline } from '../surface.ts';
 import { z } from 'zod';
 import type { Theme } from '../../theme/index.ts';
 import { lineText, semanticProp } from '../common-props.ts';
@@ -38,6 +39,7 @@ export const statCardPrimitive = definePrimitive({
   propsSchema: StatCardPropsSchema,
   actions: ['enter', 'exit', 'highlight', 'dim', 'pulse'],
   sizeHints: statCardSizeHints,
+  outline: (props, box, theme) => cardOutline(theme, props.semantic, box),
   description: {
     summary:
       'A card with one big figure, a label under it, and a small source footnote. The figure is ' +

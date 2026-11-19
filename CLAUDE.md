@@ -435,6 +435,23 @@ message }` for the Curator): `too_many_elements` (mode `maxUnits`), `text_too_sm
   arrowheads, `smoothstep`, `catmullRom`), `overlay.ts` (`riseView`, `zoomView`, `growView`
   entrances), `reveal.ts` (lines that draw on `enter` instead of fading in) and
   `svg-marks.tsx` (cross and pin marks). Prefer them over per-primitive copies.
+- **Enter style goes through `src/draw`, never per primitive.** The theme picks `enter.style`:
+  `fade` (blueprint-dark: the usual fade and grow-in) or `draw` (drafting-paper). With `draw`,
+  `beatWorld` (given `{ theme }`, and on boards the placed layout) runs `events/draw-order.ts`:
+  every whole-element `enter` becomes a draw (`ElementEvent.drawSec`: outline length at
+  `PEN_SPEED_PX_PER_SEC`, clamped to `DRAW_MIN_SEC`–`DRAW_MAX_SEC`), after stagger and scans; a
+  follower (pinned, contained, or a `follows` element ref such as `packet_stream.along`) enters
+  at max(its own enter, its host's draw end), or at that end when it has no enter of its own. A
+  draw enter is present at once and exposes `state.draw` (`stroke`, then `fill`). The one shared
+  layer, `DrawReveal` in `WorldItemView`, strokes the primitive's `outline(props, box, theme)`
+  shapes on (dash offset) and fades the component in with `fill`; without an outline it fades
+  in with `progress`; lines (`layoutRole: 'path'`) draw themselves via `revealState`. Outlines
+  trace the CSS border exactly (`borderOutline`: inset by half the width, radius less half;
+  cards use `cardOutline` next to `cardSurfaceCss`), and the layer is gone once the draw ends,
+  so a settled frame is identical to the fade style (`draw.test.tsx`). Parts keep the fade. The
+  title block and card viewport draw on once from frame 0 over `HUD_DRAW_SEC` (`hudDraw`,
+  `DrawOutline`, `DrawRule`). Sheets move a panel to the latest draw end before the next
+  moment (`settleDraws`).
 - **Emphasis goes through `src/emphasis`, never per primitive.** The theme picks
   `emphasis.style`: `glow` (blueprint-dark) or `mark` (drafting-paper: a highlighter swipe in the
   focus fill, outlines and lines regular → bold while highlighted, an ink ripple on pulse).
@@ -508,8 +525,9 @@ message }` for the Curator): `too_many_elements` (mode `maxUnits`), `text_too_sm
 - **Element refs.** Props that point to other elements (`connector.from/to`,
   `packet_stream.along`, `grid_overlay.over`) are declared by `elementRefs(props)`, optionally
   limited to certain primitives, to some of the target's `parts` (`bracket.parts`), marked
-  `contains` (drawn inside this element; see Containers), or a `pin` side (see Layout engine).
-  The layout engine turns them into geometry.
+  `contains` (drawn inside this element; see Containers), a `pin` side (see Layout engine), or
+  `follows` (it draws only after the target has, in the `draw` enter style). The layout engine
+  turns them into geometry.
 - **`elapsed` is measured on the global timeline**: `frame / fps` minus the event's unrounded
   resolved seconds (`ElementEvent.sec`), so a beat cut, a draft (15 fps) and the final (30 fps)
   agree, including for actions that started in an earlier beat. Effects that outlast an action's

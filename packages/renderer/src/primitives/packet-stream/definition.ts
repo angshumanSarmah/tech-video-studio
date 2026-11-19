@@ -27,7 +27,9 @@ export const packetStreamPrimitive = definePrimitive({
   actions: ['enter', 'exit', 'highlight', 'dim', 'pulse', 'reject'],
   layoutRole: 'path',
   sizeHints: packetStreamSizeHints,
-  elementRefs: (props) => [{ path: ['along'], id: props.along, primitives: ['connector'] }],
+  elementRefs: (props) => [
+    { path: ['along'], id: props.along, primitives: ['connector'], follows: true },
+  ],
   description: {
     summary:
       'A steady stream of small packets flowing along a `connector`, at `rate` packets per ' +

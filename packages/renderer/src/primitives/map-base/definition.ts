@@ -1,3 +1,4 @@
+import { borderOutline } from '../../draw/outline.ts';
 import { z } from 'zod';
 import type { Theme } from '../../theme/index.ts';
 import { definePrimitive, type Size, type SizeHints } from '../types.ts';
@@ -31,6 +32,9 @@ export const mapBasePrimitive = definePrimitive({
   actions: ['enter', 'exit', 'highlight', 'dim'],
   layoutRole: 'background',
   sizeHints: mapSizeHints,
+  outline: (_props, box, theme) => [
+    borderOutline(box, theme.radius.lg, theme.stroke.thin, theme.colours.line),
+  ],
   description: {
     summary:
       'A stylised top-down city: blocks, streets, avenues, parks and, in the riverside ' +

@@ -1,3 +1,4 @@
+import { cardOutline } from '../surface.ts';
 import { z } from 'zod';
 import { safeAreas, type Theme } from '../../theme/index.ts';
 import { idsOf, lineText, PartIdSchema, partList, semanticProp } from '../common-props.ts';
@@ -67,6 +68,7 @@ export const statementCardPrimitive = definePrimitive({
   propsSchema: StatementCardPropsSchema,
   actions: ['enter', 'exit', 'highlight', 'dim', 'pulse'],
   sizeHints: statementCardSizeHints,
+  outline: (_props, box, theme) => cardOutline(theme, 'neutral', box),
   layer: 'overlay',
   parts: { actions: ['enter', 'exit', 'highlight', 'pulse'], ids: (props) => idsOf(props.lines) },
   description: {

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { DrawReveal } from '../draw/DrawReveal.tsx';
 import { boxOf, type PlacedItem } from '../layout/types.ts';
 import { componentFor } from '../primitives/components.ts';
 import { elementState } from '../primitives/element-state.ts';
@@ -37,13 +38,28 @@ export function WorldItemView({ theme, item, frame, fps, containerPresence = 1, 
     return <ErrorMarker theme={theme} title={title} detail={detail} />;
   }
   const box = placed ? boxOf(placed) : itemBox(item, theme);
+  const { definition } = item;
+  // Lines (`connector`, `packet_stream`) draw themselves along their path on enter.
+  const drawn = (node: ReactNode) =>
+    definition.layoutRole === 'path' ? (
+      node
+    ) : (
+      <DrawReveal
+        draw={state.draw}
+        dimmed={state.dimmed}
+        shapes={definition.outline?.(item.props, box, theme)}
+        box={box}
+      >
+        {node}
+      </DrawReveal>
+    );
   const state = containedState(
     elementState(item.events, frame, fps, item.focus),
     containerPresence,
   );
   const path = placed?.path;
   if (placed?.children) {
-    return (
+    return drawn(
       <Component theme={theme} props={item.props} box={box} state={state} path={path}>
         {item.children.map((child) => {
           const at = placed.children?.find((c) => c.key === child.key);
@@ -72,11 +88,11 @@ export function WorldItemView({ theme, item, frame, fps, containerPresence = 1, 
             </div>
           );
         })}
-      </Component>
+      </Component>,
     );
   }
   const room = childRoom(theme, box, item.children.length);
-  return (
+  return drawn(
     <Component theme={theme} props={item.props} box={box} state={state} path={path}>
       {item.children.map((child) => (
         <Fit
@@ -93,7 +109,7 @@ export function WorldItemView({ theme, item, frame, fps, containerPresence = 1, 
           />
         </Fit>
       ))}
-    </Component>
+    </Component>,
   );
 }
 

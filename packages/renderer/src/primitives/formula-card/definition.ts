@@ -1,3 +1,4 @@
+import { cardOutline } from '../surface.ts';
 import { z } from 'zod';
 import type { Theme } from '../../theme/index.ts';
 import { lineText, semanticProp } from '../common-props.ts';
@@ -46,6 +47,7 @@ export const formulaCardPrimitive = definePrimitive({
   propsSchema: FormulaCardPropsSchema,
   actions: ['enter', 'exit', 'highlight', 'dim', 'pulse'],
   sizeHints: formulaCardSizeHints,
+  outline: (props, box, theme) => cardOutline(theme, props.semantic, box),
   description: {
     summary:
       'A card with one typeset formula (LaTeX, rendered by KaTeX) and an optional caption that ' +

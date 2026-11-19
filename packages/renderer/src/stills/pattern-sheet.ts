@@ -56,7 +56,8 @@ export function planPatternSheet(
   const panels = moments.map((moment, i) => {
     const next =
       moments[i + 1]?.frame ?? Math.min(beatEnd, moment.frame + LAST_PANEL_MAX_SEC * fps);
-    return { caption: moment.caption, frame: Math.max(moment.frame, beforeNext(next, fps)) };
+    const frame = Math.max(moment.frame, beforeNext(next, fps));
+    return { caption: moment.caption, frame, before: next };
   });
   return {
     beatId: scene.beatId,

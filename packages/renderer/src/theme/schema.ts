@@ -21,6 +21,13 @@ export const EMPHASIS_STYLES = ['glow', 'mark'] as const;
 export type EmphasisStyle = (typeof EMPHASIS_STYLES)[number];
 
 /**
+ * How elements enter: `fade` fades and grows them in; `draw` draws their outlines on along the
+ * stroke (a pen at constant speed), then fades fills and text in (see `src/draw`).
+ */
+export const ENTER_STYLES = ['fade', 'draw'] as const;
+export type EnterStyle = (typeof ENTER_STYLES)[number];
+
+/**
  * How the HUD top band is drawn (same HUD data and spec toggles either way): `bar` is the open
  * top bar, step tracker and hero metric pill; `title-block` draws them as an engineering drawing's
  * title block (a ruled strip of cells, SHEET n/N) with the hero metric as a dimension.
@@ -180,6 +187,8 @@ export const ThemeSchema = z
     }),
     /** How emphasis (`highlight`, `pulse`) is drawn; see `src/emphasis`. */
     emphasis: z.object({ style: z.enum(EMPHASIS_STYLES) }),
+    /** How elements (and the title block and card viewport) enter; see `src/draw`. */
+    enter: z.object({ style: z.enum(ENTER_STYLES) }),
     /** How the HUD top band is drawn; see `src/hud`. */
     hud: z.object({ style: z.enum(HUD_STYLES) }),
     glow: z.object({

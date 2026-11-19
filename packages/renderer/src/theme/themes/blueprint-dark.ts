@@ -29,6 +29,7 @@ export const blueprintDark = {
     fallbackAccent: '#4f8cff',
   },
   tint: { softAlpha: 0.14, borderAlpha: 0.7 },
+  enter: { style: 'fade' },
   emphasis: { style: 'glow' },
   hud: { style: 'bar' },
   glow: { innerBlur: 6, innerAlpha: 0.75, outerBlur: 22, outerAlpha: 0.4 },

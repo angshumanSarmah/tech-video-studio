@@ -55,7 +55,7 @@ describe('packet_stream props', () => {
   it('must run along a connector', () => {
     const props = PacketStreamPropsSchema.parse({ along: 'link' });
     expect(packetStreamPrimitive.elementRefs?.(props)).toEqual([
-      { path: ['along'], id: 'link', primitives: ['connector'] },
+      { path: ['along'], id: 'link', primitives: ['connector'], follows: true },
     ]);
     expect(PacketStreamPropsSchema.safeParse({ along: 'link', rate: 20 }).success).toBe(false);
   });

@@ -29,6 +29,7 @@ describe('elementState', () => {
       elapsed: {},
       runSec: {},
       starts: {},
+      draw: { progress: 1, stroke: 1, fill: 1 },
       parts: {},
     });
   });
@@ -376,5 +377,31 @@ describe('focus dim', () => {
     const state = elementState([at('highlight', 0)], 30, FPS, behindOverlay);
     expect(state).toMatchObject({ highlight: 1, dimmed: 1 });
     expect(elementState([at('highlight', 0)], 90, FPS, behindOverlay).dimmed).toBe(0);
+  });
+});
+
+describe('draw enters', () => {
+  const draw = (frame: number, drawSec = 0.6): ElementEvent => ({ ...at('enter', frame), drawSec });
+
+  it('are present at once and report the draw’s stroke, then fill', () => {
+    expect(elementState([draw(30)], 20, FPS).presence).toBe(0);
+    const early = elementState([draw(30)], 34, FPS);
+    expect(early.presence).toBe(1);
+    expect(early.draw.stroke).toBeGreaterThan(0);
+    expect(early.draw.fill).toBe(0);
+    expect(elementState([draw(30)], 60, FPS).draw).toEqual({ progress: 1, stroke: 1, fill: 1 });
+  });
+
+  it('time the enter progress over the draw, so lines draw at the pen’s pace', () => {
+    expect(elementState([at('enter', 0)], 14, FPS).actions.enter).toBe(1);
+    expect(elementState([draw(0, 0.8)], 14, FPS).actions.enter).toBeLessThan(1);
+    expect(elementState([draw(0, 0.8)], 24, FPS).actions.enter).toBe(1);
+  });
+
+  it('end their draw at an exit, which fades out as usual', () => {
+    const events = [draw(0), at('exit', 6)];
+    const state = elementState(events, 8, FPS);
+    expect(state.draw).toEqual({ progress: 1, stroke: 1, fill: 1 });
+    expect(state.presence).toBeLessThan(1);
   });
 });

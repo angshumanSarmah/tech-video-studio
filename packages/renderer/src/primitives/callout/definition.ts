@@ -1,3 +1,4 @@
+import { cardOutline } from '../surface.ts';
 import { z } from 'zod';
 import type { Theme } from '../../theme/index.ts';
 import { lineText, PinSchema, pinRefs } from '../common-props.ts';
@@ -46,6 +47,7 @@ export const calloutPrimitive = definePrimitive({
   propsSchema: CalloutPropsSchema,
   actions: ['enter', 'exit', 'highlight', 'dim', 'pulse', 'reject'],
   sizeHints: calloutSizeHints,
+  outline: (props, box, theme) => cardOutline(theme, props.semantic, box),
   elementRefs: (props) => pinRefs(props.pin),
   description: {
     summary:

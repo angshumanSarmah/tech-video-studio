@@ -9,6 +9,7 @@ import { getPattern } from '../patterns/registry.ts';
 import type { Size } from '../primitives/types.ts';
 import { beatWorld, type WorldItem } from '../scene/beat-world.ts';
 import { itemBox, MARKER_SIZE, WorldItemView } from '../scene/WorldItemView.tsx';
+import { settleDraws } from './sheet-draw.ts';
 import { DEFAULT_THEME_ID, getTheme, textCss, type Theme } from '../theme/index.ts';
 import {
   fitScale,
@@ -42,7 +43,7 @@ const ZONE_LABEL_WIDTH = 150;
 export function PatternSheet({ patternId, themeId }: PatternSheetProps) {
   const theme = getTheme(themeId);
   loadThemeFonts(theme);
-  const sheet = useMemo(() => buildSheet(patternId), [patternId]);
+  const sheet = useMemo(() => buildSheet(patternId, theme), [patternId, theme]);
   return (
     <AbsoluteFill>
       <Background theme={theme} />
@@ -86,20 +87,23 @@ export function PatternSheet({ patternId, themeId }: PatternSheetProps) {
   );
 }
 
-function buildSheet(patternId: string) {
+function buildSheet(patternId: string, theme: Theme) {
   for (const spec of patternBoardSpecs) {
     const plan = planPatternSheet(spec, patternId, SHEET_FPS, DEFAULT_REGISTRIES);
-    if (plan) return sheetFor(spec, plan);
+    if (plan) return sheetFor(spec, plan, theme);
   }
   return undefined;
 }
 
-function sheetFor(spec: RenderableVideoSpec, plan: PatternSheetPlan) {
-  const world = beatWorld(spec, effectiveTiming(spec), plan.beatId, SHEET_FPS, DEFAULT_REGISTRIES);
+function sheetFor(spec: RenderableVideoSpec, plan: PatternSheetPlan, theme: Theme) {
+  const world = beatWorld(spec, effectiveTiming(spec), plan.beatId, SHEET_FPS, DEFAULT_REGISTRIES, {
+    theme,
+  });
   const zoned = world.map((item) =>
     item.kind === 'primitive' ? item : { ...item, zone: undefined },
   );
-  return { plan, rows: zoneRows(zoned, plan.layoutMode) };
+  const panels = settleDraws(plan.panels, world, SHEET_FPS);
+  return { plan: { ...plan, panels }, rows: zoneRows(zoned, plan.layoutMode) };
 }
 
 function Header(props: { theme: Theme; patternId: string; layoutMode: string | undefined }) {

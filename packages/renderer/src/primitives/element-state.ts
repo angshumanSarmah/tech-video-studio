@@ -1,6 +1,12 @@
 import type { EventAction } from '@explainer-studio/shared';
 import { focusLevel, NO_FOCUS, type FocusTrack } from '../events/focus.ts';
-import { ACTION_DURATION_SEC, ACTION_EASING } from '../events/presets.ts';
+import {
+  ACTION_DURATION_SEC,
+  ACTION_EASING,
+  DRAWN,
+  drawLevels,
+  type DrawLevels,
+} from '../events/presets.ts';
 import { eventParts } from './parts.ts';
 
 /**
@@ -23,6 +29,11 @@ export type ElementEvent = {
   params?: Record<string, unknown>;
   /** A highlight's automatic clear: global seconds where it starts to fade out. */
   untilSec?: number;
+  /**
+   * An `enter` in the `draw` enter style: how long the draw takes (`events/draw-order.ts`). The
+   * element is present at once; `ElementState.draw` says how far the draw has got.
+   */
+  drawSec?: number;
 };
 
 export type ElementState = {
@@ -66,6 +77,12 @@ export type ElementState = {
    */
   starts: Partial<Record<EventAction, number>>;
   /**
+   * A `draw` enter's progress (`DrawLevels`): outlines (`stroke`), then fills and text (`fill`).
+   * All 1 when the element did not enter by drawing, or has finished. Read only by the shared draw
+   * layer (`WorldItemView`); components never animate their own draw.
+   */
+  draw: DrawLevels;
+  /**
    * State of each part named by an event's `params.parts`, from those events only (the same
    * rules as the whole element). Parts no event names are absent: read them with `partState`.
    */
@@ -85,6 +102,7 @@ export const IDLE_STATE: PartState = {
   elapsed: {},
   runSec: {},
   starts: {},
+  draw: DRAWN,
 };
 
 /** State of one part; `IDLE_STATE` when no event names it. */
@@ -166,7 +184,15 @@ function stateOf(events: readonly ElementEvent[], frame: number, fps: number): P
     elapsed: latestPerAction(events, started, elapsed),
     runSec: runPerAction(events, started),
     starts: startsPerAction(events, started),
+    draw: drawState(started, frame / fps),
   };
+}
+
+/** The latest presence toggle's draw, while it plays; `DRAWN` otherwise. */
+function drawState(started: readonly ElementEvent[], sec: number): DrawLevels {
+  const last = started.findLast((e) => PRESENCE.has(e.action));
+  if (last?.action !== 'enter' || last.drawSec === undefined) return DRAWN;
+  return drawLevels((sec - last.sec) / last.drawSec);
 }
 
 /**
@@ -199,9 +225,13 @@ function runPerAction(all: readonly ElementEvent[], started: readonly ElementEve
   return runs;
 }
 
-/** Eased 0..1 progress of one event at `frame`, with its action's duration and easing. */
+/**
+ * Eased 0..1 progress of one event at `frame`, with its action's duration and easing (a draw
+ * enter takes its own `drawSec`).
+ */
 export function actionProgress(event: ElementEvent, frame: number, fps: number): number {
-  const frames = Math.max(1, Math.round(ACTION_DURATION_SEC[event.action] * fps));
+  const sec = event.drawSec ?? ACTION_DURATION_SEC[event.action];
+  const frames = Math.max(1, Math.round(sec * fps));
   return ACTION_EASING[event.action]((frame - event.frame) / frames);
 }
 
@@ -230,7 +260,9 @@ function presence(all: readonly ElementEvent[], started: readonly ElementEvent[]
     const first = [...all].sort((a, b) => a.frame - b.frame).find((e) => PRESENCE.has(e.action));
     return first?.action === 'enter' ? 0 : 1;
   }
-  return last.action === 'enter' ? p(last) : 1 - p(last);
+  if (last.action === 'exit') return 1 - p(last);
+  // A draw enter is present at once: the draw layer reveals it (outline, then fill).
+  return last.drawSec !== undefined ? 1 : p(last);
 }
 
 /** Ramps to 1 after `on`, held until a later toggle of another action. */

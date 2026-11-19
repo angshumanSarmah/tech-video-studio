@@ -108,3 +108,39 @@ export const ZOOM_PUSH_SEC = 0.5;
  * the frame (into it, not just up to it), right before the cut.
  */
 export const ZOOM_PUSH_FILL = 2.5;
+
+/**
+ * The `draw` enter style (drafting-paper, `theme.enter.style`): outlines draw on along their stroke
+ * with a pen at constant speed, so a draw lasts its outline's length over `PEN_SPEED_PX_PER_SEC`,
+ * clamped to `DRAW_MIN_SEC`–`DRAW_MAX_SEC` (a tag about 0.5 s, a large card or map 0.8 s). The
+ * stroke draws over the first `DRAW_STROKE_SHARE`; fills and text fade in over the rest.
+ */
+export const PEN_SPEED_PX_PER_SEC = 2250;
+export const DRAW_MIN_SEC = 0.5;
+export const DRAW_MAX_SEC = 0.8;
+export const DRAW_STROKE_SHARE = 2 / 3;
+
+/** The title block and card viewport frame draw on once, from frame 0, over this long. */
+export const HUD_DRAW_SEC = 0.5;
+
+/** Seconds a draw with an outline `lengthPx` long takes (no outline: the minimum). */
+export function drawDurationSec(lengthPx: number): number {
+  return Math.min(DRAW_MAX_SEC, Math.max(DRAW_MIN_SEC, lengthPx / PEN_SPEED_PX_PER_SEC));
+}
+
+/**
+ * How far a draw has got at linear time `t` (0..1): `stroke` (the drawn fraction of outlines),
+ * `fill` (fills and text) and `progress` (the whole draw, for elements without an outline).
+ */
+export type DrawLevels = { progress: number; stroke: number; fill: number };
+
+export const DRAWN: DrawLevels = { progress: 1, stroke: 1, fill: 1 };
+
+export function drawLevels(t: number): DrawLevels {
+  if (t >= 1) return DRAWN;
+  return {
+    progress: easeInOutCubic(t),
+    stroke: easeInOutCubic(t / DRAW_STROKE_SHARE),
+    fill: easeInOutCubic((t - DRAW_STROKE_SHARE) / (1 - DRAW_STROKE_SHARE)),
+  };
+}

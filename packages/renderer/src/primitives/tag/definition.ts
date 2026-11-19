@@ -1,6 +1,7 @@
+import { borderOutline } from '../../draw/outline.ts';
 import { z } from 'zod';
 import { PinSchema, pinRefs } from '../common-props.ts';
-import { SEMANTIC_COLOURS, type Theme } from '../../theme/index.ts';
+import { SEMANTIC_COLOURS, semanticTint, type Theme } from '../../theme/index.ts';
 import { approxTextWidth, lineHeightPx } from '../measure.ts';
 import { definePrimitive, type SizeHints } from '../types.ts';
 
@@ -34,6 +35,14 @@ export const tagPrimitive = definePrimitive({
   propsSchema: TagPropsSchema,
   actions: ['enter', 'exit', 'highlight', 'dim', 'pulse', 'reject'],
   sizeHints: tagSizeHints,
+  outline: (props, box, theme) => [
+    borderOutline(
+      box,
+      theme.radius.sm,
+      theme.stroke.regular,
+      semanticTint(theme, props.semantic).border,
+    ),
+  ],
   elementRefs: (props) => pinRefs(props.pin),
   description: {
     summary:

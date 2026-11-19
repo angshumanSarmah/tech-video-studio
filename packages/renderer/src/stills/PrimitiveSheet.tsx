@@ -8,6 +8,7 @@ import { loadThemeFonts } from '../fonts/load-theme-fonts.ts';
 import { getPrimitive } from '../primitives/registry.ts';
 import { beatWorld } from '../scene/beat-world.ts';
 import { itemBox, WorldItemView } from '../scene/WorldItemView.tsx';
+import { settleDraws } from './sheet-draw.ts';
 import { DEFAULT_THEME_ID, getTheme, textCss, type Theme } from '../theme/index.ts';
 import {
   panelInner,
@@ -35,7 +36,7 @@ const SHEET_FPS = 30;
 export function PrimitiveSheet({ primitiveId, themeId }: PrimitiveSheetProps) {
   const theme = getTheme(themeId);
   loadThemeFonts(theme);
-  const sheet = useMemo(() => buildSheet(primitiveId), [primitiveId]);
+  const sheet = useMemo(() => buildSheet(primitiveId, theme), [primitiveId, theme]);
   return (
     <AbsoluteFill>
       <Background theme={theme} />
@@ -80,18 +81,22 @@ export function PrimitiveSheet({ primitiveId, themeId }: PrimitiveSheetProps) {
   );
 }
 
-function buildSheet(primitiveId: string) {
+function buildSheet(primitiveId: string, theme: Theme) {
   for (const spec of primitiveBoardSpecs) {
     const plan = planPrimitiveSheet(spec, primitiveId, SHEET_FPS);
-    if (plan) return sheetFor(spec, plan);
+    if (plan) return sheetFor(spec, plan, theme);
   }
   return undefined;
 }
 
-function sheetFor(spec: RenderableVideoSpec, plan: SheetPlan) {
-  const world = beatWorld(spec, effectiveTiming(spec), plan.beatId, SHEET_FPS, DEFAULT_REGISTRIES);
+function sheetFor(spec: RenderableVideoSpec, plan: SheetPlan, theme: Theme) {
+  const world = beatWorld(spec, effectiveTiming(spec), plan.beatId, SHEET_FPS, DEFAULT_REGISTRIES, {
+    theme,
+  });
   const item = world.find((i) => i.key === plan.elementId);
-  return item?.kind === 'primitive' ? { panels: plan.panels, item } : undefined;
+  return item?.kind === 'primitive'
+    ? { panels: settleDraws(plan.panels, world, SHEET_FPS), item }
+    : undefined;
 }
 
 type Item = NonNullable<ReturnType<typeof buildSheet>>['item'];

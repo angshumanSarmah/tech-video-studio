@@ -6,7 +6,7 @@ import { rectCss } from '../layers/rect-css.ts';
 import type { Transform } from '../layout/fit.ts';
 import { inflate, union } from '../layout/rect.ts';
 import { specLayout } from '../layout/spec-layout.ts';
-import { boxOf, type Guide, type PlacedItem } from '../layout/types.ts';
+import { boxOf, type BoardLayout, type Guide, type PlacedItem } from '../layout/types.ts';
 import { dimOpacity } from '../events/presets.ts';
 import { activeView, type ActiveTransition, type TransitionView } from '../events/transitions.ts';
 import { cameraAt } from '../layout/camera-track.ts';
@@ -41,11 +41,12 @@ type Props = {
 export function BeatScene({ theme, spec, timing, beatId, beatFrom, transitions = [] }: Props) {
   const frame = useCurrentFrame() + beatFrom;
   const { fps } = useVideoConfig();
-  const layers = useMemo(
-    () => splitLayers(beatWorld(spec, timing, beatId, fps, DEFAULT_REGISTRIES)),
-    [spec, timing, beatId, fps],
-  );
   const beat = specLayout(spec, theme).beats.get(beatId);
+  const layers = useMemo(() => {
+    const placed = beat ? placedByKey(beat.chain.board) : new Map<string, PlacedItem>();
+    const draw = { theme, placedOf: (key: string) => placed.get(key) };
+    return splitLayers(beatWorld(spec, timing, beatId, fps, DEFAULT_REGISTRIES, draw));
+  }, [spec, timing, beatId, fps, theme, beat]);
   if (!beat) return null;
   const { board, footnote } = beat.chain;
   const overlays = overlayLevel(
@@ -126,6 +127,20 @@ function TransitionFrame({ theme, clip, view, children }: TransitionFrameProps) 
       </div>
     </div>
   );
+}
+
+/** Every placed item of a board (board items, overlays and their children) by key. */
+function placedByKey(board: BoardLayout): Map<string, PlacedItem> {
+  const out = new Map<string, PlacedItem>();
+  const add = (items: readonly PlacedItem[]) => {
+    for (const item of items) {
+      out.set(item.key, item);
+      add(item.children ?? []);
+    }
+  };
+  add(board.items);
+  add(board.overlays);
+  return out;
 }
 
 type BoardProps = {
