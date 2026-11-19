@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { counterValue, countValueAt, formatCount } from './format.ts';
+import { counterValue, countValueAt, formatCount, tickProgress } from './format.ts';
 
 describe('formatCount', () => {
   it('groups in lakhs and crores for en-IN', () => {
@@ -46,5 +46,18 @@ describe('counterValue', () => {
     expect(counterValue(props, 0)).toBe(10);
     expect(counterValue(props, 0.3)).toBe(7);
     expect(counterValue(props, 1)).toBe(0);
+  });
+});
+
+describe('tickProgress', () => {
+  it('runs linearly over the count run and holds at 1', () => {
+    expect(tickProgress(undefined, 4)).toBeUndefined();
+    expect(tickProgress(1, 4)).toBe(0.25);
+    expect(tickProgress(9, 4)).toBe(1);
+  });
+
+  it('finishes at once when the count has no time to run', () => {
+    expect(tickProgress(0, 0)).toBe(1);
+    expect(tickProgress(0, undefined)).toBe(1);
   });
 });

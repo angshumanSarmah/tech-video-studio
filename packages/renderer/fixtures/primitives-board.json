@@ -119,7 +119,7 @@
     },
     {
       "beatId": "counter",
-      "narration": "A counter is one big number. It counts up as the traffic grows, glows at the peak, pulses for effect, and then dims."
+      "narration": "A counter is one big number. It counts up as the traffic grows, glows at the peak, pulses for effect, breaks red past the limit, and then dims."
     },
     {
       "beatId": "counter-transition",
@@ -468,6 +468,14 @@
             "text": "pulses"
           },
           "action": "pulse",
+          "targets": ["counter"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "breaks"
+          },
+          "action": "reject",
           "targets": ["counter"]
         },
         {

@@ -18,6 +18,13 @@ export const CounterPropsSchema = z.strictObject({
     .default('focus')
     .describe('Colour of the number: neutral, focus, ok, problem or concept.'),
   decimals: z.number().int().min(0).max(2).default(0).describe('Digits after the decimal point.'),
+  ticking: z
+    .boolean()
+    .default(false)
+    .describe(
+      'Count on narration time: the count runs from its word until the `reject` (else the exit ' +
+        'or the end of the beat), like a clock. Without it a count takes under a second.',
+    ),
 });
 export type CounterProps = z.output<typeof CounterPropsSchema>;
 
@@ -39,16 +46,18 @@ export const counterPrimitive = definePrimitive({
   id: 'counter',
   family: 'metric',
   propsSchema: CounterPropsSchema,
-  actions: ['enter', 'exit', 'count', 'highlight', 'dim', 'pulse'],
+  actions: ['enter', 'exit', 'count', 'highlight', 'dim', 'pulse', 'reject'],
   sizeHints: counterSizeHints,
   description: {
     summary:
       'A big number with an optional unit and caption. Without a `count` event it shows `value`. ' +
       'With one, it shows `from` (default 0) until the count begins, then counts up or down to ' +
-      '`value`, so the viewer watches a quantity grow or drain.',
+      '`value`, so the viewer watches a quantity grow or drain. With `ticking` the count runs on ' +
+      'narration time and lands on `value` exactly at the `reject` (an outage clock that stops ' +
+      'when the outage ends). `reject` turns the number red with a shake.',
     whenToUse:
       'One quantity that matters to the story: requests per second, tokens left, queue length, ' +
-      'latency. Use `count` when the change itself is the point.',
+      'latency, how long an outage lasted. Use `count` when the change itself is the point.',
     whenNotToUse:
       'A word or status instead of a quantity (use `tag`); a countdown in time; several numbers ' +
       'at once (one counter per number, and only the ones the story needs).',

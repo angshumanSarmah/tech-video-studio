@@ -736,11 +736,11 @@ A steady stream of small packets flowing along a `connector`, at `rate` packets 
 
 ### counter
 
-**Family:** metric · **Actions:** `enter`, `exit`, `count`, `highlight`, `dim`, `pulse`
+**Family:** metric · **Actions:** `enter`, `exit`, `count`, `highlight`, `dim`, `pulse`, `reject`
 
-A big number with an optional unit and caption. Without a `count` event it shows `value`. With one, it shows `from` (default 0) until the count begins, then counts up or down to `value`, so the viewer watches a quantity grow or drain.
+A big number with an optional unit and caption. Without a `count` event it shows `value`. With one, it shows `from` (default 0) until the count begins, then counts up or down to `value`, so the viewer watches a quantity grow or drain. With `ticking` the count runs on narration time and lands on `value` exactly at the `reject` (an outage clock that stops when the outage ends). `reject` turns the number red with a shake.
 
-**When to use:** One quantity that matters to the story: requests per second, tokens left, queue length, latency. Use `count` when the change itself is the point.
+**When to use:** One quantity that matters to the story: requests per second, tokens left, queue length, latency, how long an outage lasted. Use `count` when the change itself is the point.
 
 **When not to:** A word or status instead of a quantity (use `tag`); a countdown in time; several numbers at once (one counter per number, and only the ones the story needs).
 
@@ -754,6 +754,7 @@ A big number with an optional unit and caption. Without a `count` event it shows
 | `label` | string | no | Caption under the number. (min length 1, max length 32) |
 | `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Colour of the number: neutral, focus, ok, problem or concept. (default `"focus"`) |
 | `decimals` | integer | no | Digits after the decimal point. (min 0, max 2, default `0`) |
+| `ticking` | boolean | no | Count on narration time: the count runs from its word until the `reject` (else the exit or the end of the beat), like a clock. Without it a count takes under a second. (default `false`) |
 
 **Size hint** (example, drafting-paper): 711 × 171 px (min 711 × 171).
 
@@ -1040,6 +1041,363 @@ A grid of labelled slots: bins of stock, a shelf, cinema seats or documents. Eac
 
 A pattern is a reusable piece of choreography: it expands into primitives and timed events, anchored to the narration words in `params.at`. It stages its own entrances. Events on the instance may use only its **Actions**; events on one element inside it, targeted as `<instance>/<id>`, may use only `highlight`, `pulse`, `dim`. A beat without its own `layoutMode` uses its patterns' layout mode.
 
+### versus_split
+
+**Family:** annotation · **Actions:** `exit`, `highlight`, `dim`, `pulse`
+
+Two halves side by side get the same event at the same moment, and each shows its own outcome: the side that handles it lights up with its verdict, the side that fails turns red.
+
+**When to use:** Comparing two designs under one condition: SQL vs NoSQL under a write burst, sync vs async on a slow call, temperature 0 vs 1 on one prompt.
+
+**When not to:** A near and a far store (use `cache_hit_miss`); a slow way then a fast way in sequence (use `brute_force_then_index`).
+
+**Layout mode:** `versus_split`
+
+**Narration anchors** (`params.at`):
+
+- `show`: Both sides appear.
+- `event`: The same event reaches both sides at once.
+- `verdict`: Each side shows how it handled it.
+
+**Inner elements** (target as `<instance>/<id>` with `highlight`, `pulse`, `dim`):
+
+- `event`: The shared event tag.
+- `left`: The left side.
+- `right`: The right side.
+- `left-link`: Arrow from the event to the left side.
+- `right-link`: Arrow from the event to the right side.
+- `left-verdict`: The verdict tag on the left.
+- `right-verdict`: The verdict tag on the right.
+
+**Params:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `event` | string | yes | The one event both sides get, as a short tag, e.g. 10K WRITES. (min length 1, max length 24) |
+| `left` | object | yes | The left side. |
+| `right` | object | yes | The right side. |
+| `at` | object | yes | Narration anchors: the word (or beat edge) for each moment. |
+
+**Example:**
+
+```json
+{
+  "id": "<example-versus_split-id>",
+  "pattern": "versus_split",
+  "params": {
+    "event": "<example-event>",
+    "left": {
+      "title": "<example-left>",
+      "verdict": "<example-verdict>",
+      "outcome": "ok"
+    },
+    "right": {
+      "title": "<example-right>",
+      "verdict": "<example-verdict>",
+      "outcome": "problem"
+    },
+    "at": {
+      "show": {
+        "type": "word",
+        "index": 0
+      },
+      "event": {
+        "type": "word",
+        "index": 1
+      },
+      "verdict": {
+        "type": "word",
+        "index": 2
+      }
+    }
+  }
+}
+```
+
+### brute_force_then_index
+
+**Family:** data · **Actions:** `exit`, `highlight`, `dim`, `pulse`
+
+A brute-force search checks every item and each turns red, with a tag naming the cost. Then an index appears and jumps straight to the one item, which lights up.
+
+**When to use:** Brute force before the clever fix: a full table scan vs an index, checking every zone vs a grid cell lookup, a linear search vs a hash map.
+
+**When not to:** A fast and a slow store side by side (use `cache_hit_miss`); two whole designs compared (use `versus_split`).
+
+**Layout mode:** `centered_focus`
+
+**Narration anchors** (`params.at`):
+
+- `scan`: Every item is checked one by one and turns red.
+- `slow`: The cost of checking everything is named.
+- `index`: The index appears.
+- `found`: The index jumps straight to the right item.
+
+**Inner elements** (target as `<instance>/<id>` with `highlight`, `pulse`, `dim`):
+
+- `items`: The items, a slot grid; its slots are parts item-1, item-2, …
+- `cost`: The brute-force cost tag.
+- `index`: The index.
+- `jump`: Arrow from the index to the items.
+- `fast`: The indexed cost tag.
+
+**Params:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `items` | array | yes | The items a brute-force search checks, 4 to 12, in reading order. (min items 4, max items 12) |
+| `kind` | `inventory` \| `shelf` \| `seats` \| `documents` | no | How items look: inventory, shelf, seats or documents. (default `"documents"`) |
+| `target` | string | yes | Label of the item being looked for; one of items. (min length 1, max length 7) |
+| `cost` | string | no | Tag naming the brute-force cost. (min length 1, max length 24, default `"CHECK ALL = SLOW"`) |
+| `index` | object | yes | The index or lookup structure (a hash map, a B-tree, a grid). |
+| `fast` | string | no | Tag naming the indexed cost. (min length 1, max length 24, default `"ONE LOOKUP"`) |
+| `at` | object | yes | Narration anchors: the word (or beat edge) for each moment. |
+
+**Example:**
+
+```json
+{
+  "id": "<example-brute_force_then_index-id>",
+  "pattern": "brute_force_then_index",
+  "params": {
+    "items": [
+      "<ex-1>",
+      "<ex-2>",
+      "<ex-3>",
+      "<ex-4>"
+    ],
+    "target": "<ex-3>",
+    "index": {
+      "title": "<example-index>",
+      "icon": "key"
+    },
+    "at": {
+      "scan": {
+        "type": "word",
+        "index": 0
+      },
+      "slow": {
+        "type": "word",
+        "index": 1
+      },
+      "index": {
+        "type": "word",
+        "index": 2
+      },
+      "found": {
+        "type": "word",
+        "index": 3
+      }
+    }
+  }
+}
+```
+
+### inference_card
+
+**Family:** data · **Actions:** `exit`, `highlight`, `dim`, `pulse`
+
+Inputs → model → prediction. Feature rows type in, grouped by a bracket, and flow into a model; the prediction flips from "?" to a value. An optional comparison feeds a second input with a different value in and gets a different prediction.
+
+**When to use:** Any ML prediction told as data in, number out: prep time, ETA, fraud score, price. Use the comparison to show which feature changes the answer.
+
+**When not to:** A single number without inputs (use `counter_transition`); a decision between candidates (use `pick_by_rule`).
+
+**Layout mode:** `pipeline`
+
+**Narration anchors** (`params.at`):
+
+- `inputs`: The feature rows type in and are grouped.
+- `model`: The features flow into the model.
+- `predict`: The prediction flips from "?" to its value.
+- `compare` (optional): A second input and its different prediction (only with comparison).
+
+**Inner elements** (target as `<instance>/<id>` with `highlight`, `pulse`, `dim`):
+
+- `features`: The feature rows.
+- `group`: The bracket around the features.
+- `model`: The model.
+- `in-link`: Arrow from the features to the model.
+- `out-link`: Arrow from the model to the prediction.
+- `prediction`: The prediction ("?" until predict).
+- `compare-features`: The second input (with comparison).
+- `compare-link`: Arrow from the second input to the model.
+- `compare-prediction`: The second prediction.
+
+**Params:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `title` | string | no | Optional title of the input record, e.g. ORDER 4127. (min length 1, max length 24) |
+| `features` | array | yes | The input features as key/value rows, 1 to 5. (min items 1, max items 5) |
+| `features[].key` | string | yes | Field name, as it would appear in the data. |
+| `features[].value` | any | yes | Field value: a short string, a number, true/false or null. |
+| `features[].semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Colours the value and tints its row: neutral, focus, ok, problem or concept. |
+| `group` | string | no | Label of the bracket around the features. (min length 1, max length 16, default `"FEATURES"`) |
+| `model` | object | yes | The model that reads the features. |
+| `prediction` | object | yes | What the model predicts for these features. |
+| `comparison` | object | no | Optional second input with a different result; needs at.compare. |
+| `at` | object | yes | Narration anchors: the word (or beat edge) for each moment. |
+
+**Example:**
+
+```json
+{
+  "id": "<example-inference_card-id>",
+  "pattern": "inference_card",
+  "params": {
+    "features": [
+      {
+        "key": "example_feature",
+        "value": "<example-value>"
+      },
+      {
+        "key": "example_count",
+        "value": 3
+      }
+    ],
+    "model": {
+      "title": "<example-model>",
+      "icon": "cpu"
+    },
+    "prediction": {
+      "value": 14,
+      "unit": "<example-unit>"
+    },
+    "comparison": {
+      "features": [
+        {
+          "key": "example_feature",
+          "value": "<example-other>"
+        }
+      ],
+      "prediction": {
+        "value": 22,
+        "unit": "<example-unit>"
+      }
+    },
+    "at": {
+      "inputs": {
+        "type": "word",
+        "index": 0
+      },
+      "model": {
+        "type": "word",
+        "index": 1
+      },
+      "predict": {
+        "type": "word",
+        "index": 2
+      },
+      "compare": {
+        "type": "word",
+        "index": 3
+      }
+    }
+  }
+}
+```
+
+### pick_by_rule
+
+**Family:** spatial · **Actions:** `exit`, `highlight`, `dim`, `pulse`
+
+Candidates around a target, optionally inside a search ring. The obvious pick (nearest, first, cheapest) gets a tag and is crossed out; the right one is ringed, linked to the target and tagged with the rule that makes it win ("ETA 3:00 = PREP 3:00").
+
+**When to use:** Matching and scheduling decisions where the naive rule is wrong: riders to orders, servers to requests, cache nodes to keys, workers to jobs.
+
+**When not to:** A prediction from features (use `inference_card`); two designs compared (use `versus_split`).
+
+**Layout mode:** `hub_spoke`
+
+**Narration anchors** (`params.at`):
+
+- `show`: The target and the candidates around it appear.
+- `obvious`: The obvious pick is named (nearest, first, cheapest).
+- `cross`: The obvious pick is crossed out.
+- `pick`: The right pick is ringed with the reason it wins.
+
+**Inner elements** (target as `<instance>/<id>` with `highlight`, `pulse`, `dim`):
+
+- `target`: The target.
+- `ring`: The search ring (with radius).
+- `candidate-<id>`: The candidate with that id.
+- `obvious-tag`: The tag on the obvious pick.
+- `pick-tag`: The reason tag on the right pick.
+- `pick-link`: Arrow from the right pick to the target.
+
+**Params:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `target` | object | yes | What is being matched (an order, a request, a key). |
+| `radius` | string | no | Optional label of a search ring around the target, e.g. 2 KM. (min length 1, max length 16) |
+| `candidates` | array | yes | The candidates around the target, 3 to 5. (min items 3, max items 5) |
+| `candidates[].id` | string | yes | Short slug for this candidate, used by obvious and pick. (max length 64) |
+| `candidates[].title` | string | yes | Name of the candidate, e.g. RIDER 2. (min length 1, max length 24) |
+| `candidates[].detail` | string | no | Optional detail under the name, e.g. 400 M AWAY. (min length 1, max length 40) |
+| `candidates[].icon` | string | no | Asset id from the asset library (an unknown id is drawn as a placeholder and reported). (max length 64) |
+| `obvious` | object | yes | The tempting pick that is wrong. |
+| `pick` | object | yes | The pick the rule chooses, with its reason. |
+| `at` | object | yes | Narration anchors: the word (or beat edge) for each moment. |
+
+**Example:**
+
+```json
+{
+  "id": "<example-pick_by_rule-id>",
+  "pattern": "pick_by_rule",
+  "params": {
+    "target": {
+      "title": "<example-target>",
+      "icon": "package"
+    },
+    "radius": "<example-km>",
+    "candidates": [
+      {
+        "id": "example-a",
+        "title": "<example-a>",
+        "detail": "<example-detail>"
+      },
+      {
+        "id": "example-b",
+        "title": "<example-b>"
+      },
+      {
+        "id": "example-c",
+        "title": "<example-c>"
+      }
+    ],
+    "obvious": {
+      "candidate": "example-a",
+      "reason": "<example-nearest>"
+    },
+    "pick": {
+      "candidate": "example-b",
+      "reason": "<example-reason>"
+    },
+    "at": {
+      "show": {
+        "type": "word",
+        "index": 0
+      },
+      "obvious": {
+        "type": "word",
+        "index": 1
+      },
+      "cross": {
+        "type": "word",
+        "index": 2
+      },
+      "pick": {
+        "type": "word",
+        "index": 3
+      }
+    }
+  }
+}
+```
+
 ### atomic_lock
 
 **Family:** flow · **Actions:** `exit`, `highlight`, `dim`, `pulse`
@@ -1133,7 +1491,7 @@ A client with a near store and a far store. A hit is answered by the near store 
 
 **When to use:** Caching, CDNs and any near/far trade-off: cache vs database, edge vs origin, memory vs disk, KV cache vs recomputation.
 
-**When not to:** Comparing two whole designs side by side (a versus split); a flood of requests on one node (use `flood_then_funnel`).
+**When not to:** Comparing two whole designs side by side (use `versus_split`); a flood of requests on one node (use `flood_then_funnel`).
 
 **Layout mode:** `near_far`
 
@@ -1267,6 +1625,94 @@ Two to four inputs, each drawn in a different style, flow into a hub; one output
       "output": {
         "type": "word",
         "index": 2
+      }
+    }
+  }
+}
+```
+
+### failover
+
+**Family:** flow · **Actions:** `exit`, `highlight`, `dim`, `pulse`
+
+A writer, a leader with the role badge and its followers. The leader fails: it turns red and its links break. The badge leaves the old leader and appears on the first follower, then the writer and the other followers re-link to the new leader.
+
+**When to use:** Leader election and failover: a database primary dying, a broker partition leader moving, a lock holder replaced. The concept beat before a real incident.
+
+**When not to:** Both sides believing they lead after a network split (use `split_brain`); one request refused while a lock is held (use `atomic_lock`).
+
+**Layout mode:** `pipeline`
+
+**Narration anchors** (`params.at`):
+
+- `steady`: Writes reach the leader and replicate to the followers.
+- `fail`: The leader fails and its links break.
+- `promote`: The role moves from the old leader to the first follower.
+- `reroute`: The writer and the other followers link to the new leader.
+
+**Inner elements** (target as `<instance>/<id>` with `highlight`, `pulse`, `dim`):
+
+- `writer`: The writer.
+- `leader`: The old leader.
+- `follower-<n>`: The n-th follower (from 1); follower-1 is promoted.
+- `write`: Arrow from the writer to the old leader.
+- `repl-<n>`: Replication arrow from the old leader to the n-th follower.
+- `new-write`: Arrow from the writer to the new leader.
+- `new-repl-<n>`: Replication arrow from the new leader to the n-th follower.
+
+**Params:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `writer` | object | yes | Who writes (an app server, a client). |
+| `leader` | object | yes | The leader that fails. |
+| `followers` | array | yes | The followers, 1 to 3; the first one is promoted. (min items 1, max items 3) |
+| `followers[].title` | string | yes | Name of the component, shown in uppercase. (min length 1, max length 24) |
+| `followers[].icon` | string | no | Asset id from the asset library (an unknown id is drawn as a placeholder and reported). (max length 64) |
+| `role` | string | no | Asset id of the role badge (a crown). (max length 64, default `"crown"`) |
+| `at` | object | yes | Narration anchors: the word (or beat edge) for each moment. |
+
+**Example:**
+
+```json
+{
+  "id": "<example-failover-id>",
+  "pattern": "failover",
+  "params": {
+    "writer": {
+      "title": "<example-writer>",
+      "icon": "server"
+    },
+    "leader": {
+      "title": "<example-leader>",
+      "icon": "database"
+    },
+    "followers": [
+      {
+        "title": "<example-follower-1>",
+        "icon": "database"
+      },
+      {
+        "title": "<example-follower-2>",
+        "icon": "database"
+      }
+    ],
+    "at": {
+      "steady": {
+        "type": "word",
+        "index": 0
+      },
+      "fail": {
+        "type": "word",
+        "index": 1
+      },
+      "promote": {
+        "type": "word",
+        "index": 2
+      },
+      "reroute": {
+        "type": "word",
+        "index": 3
       }
     }
   }
@@ -1503,6 +1949,104 @@ The same request arrives twice. The first copy travels to the receiver and is ac
       "stamp": {
         "type": "word",
         "index": 2
+      }
+    }
+  }
+}
+```
+
+### split_brain
+
+**Family:** flow · **Actions:** `exit`, `highlight`, `dim`, `pulse`
+
+Two regions with a leader and a replica. The link breaks (red, then dashed) and an outage clock counts up; cut off, the replica takes the role badge too. Each side accepts a different write. When the link returns the clock stops, both nodes hold the badge and a conflict callout names the damage.
+
+**When to use:** Network partitions and split brain: two primaries after a partition, fencing and leases, why quorums exist; the real-incident beat after a `failover` concept beat.
+
+**When not to:** A clean failover where the old leader is really gone (use `failover`); a single request refused under a lock (use `atomic_lock`).
+
+**Layout mode:** `versus_split`
+
+**Narration anchors** (`params.at`):
+
+- `steady`: The leader replicates to the far replica over the link.
+- `partition`: The link between the regions breaks; the outage clock starts.
+- `promote`: The far replica, cut off, takes the role badge too.
+- `writes`: Each side accepts a different write.
+- `heal`: The link returns: the clock stops and the conflict shows.
+
+**Inner elements** (target as `<instance>/<id>` with `highlight`, `pulse`, `dim`):
+
+- `leader`: The leader.
+- `replica`: The far replica.
+- `link`: The replication link (rejected on partition).
+- `cut`: The dashed, broken link during the partition.
+- `restored`: The link after the heal.
+- `outage`: The outage clock (counts up, red when it stops).
+- `lease`: The optional lease timer.
+- `leader-write`: The leader's write.
+- `replica-write`: The replica's write.
+- `conflict`: The conflict callout.
+
+**Params:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `leader` | object | yes | The leader in the first region. |
+| `replica` | object | yes | The replica in the far region that promotes itself. |
+| `role` | string | no | Asset id of the role badge (a crown). (max length 64, default `"crown"`) |
+| `outage` | object | yes | The outage clock: counts up from the partition and stops on the heal. |
+| `lease` | object | no | Optional lease timer that runs out when the replica promotes itself. |
+| `writes` | object | yes | The divergent writes, one per side. |
+| `conflict` | string | yes | The conflict, stated plainly, e.g. Two owners for seat H3. (min length 1, max length 64) |
+| `at` | object | yes | Narration anchors: the word (or beat edge) for each moment. |
+
+**Example:**
+
+```json
+{
+  "id": "<example-split_brain-id>",
+  "pattern": "split_brain",
+  "params": {
+    "leader": {
+      "title": "<example-leader>",
+      "icon": "database"
+    },
+    "replica": {
+      "title": "<example-replica>",
+      "icon": "database"
+    },
+    "outage": {
+      "sec": 43
+    },
+    "lease": {
+      "durationSec": 10
+    },
+    "writes": {
+      "leader": "<example-write-a>",
+      "replica": "<example-write-b>"
+    },
+    "conflict": "<example-conflict>",
+    "at": {
+      "steady": {
+        "type": "word",
+        "index": 0
+      },
+      "partition": {
+        "type": "word",
+        "index": 1
+      },
+      "promote": {
+        "type": "word",
+        "index": 2
+      },
+      "writes": {
+        "type": "word",
+        "index": 3
+      },
+      "heal": {
+        "type": "word",
+        "index": 4
       }
     }
   }

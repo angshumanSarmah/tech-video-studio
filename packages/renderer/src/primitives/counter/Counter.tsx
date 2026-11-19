@@ -2,18 +2,29 @@ import { emphasisShadow, markHostCss, markLevels } from '../../emphasis/emphasis
 import { BoxMark, FocusUnderline } from '../../emphasis/Mark.tsx';
 import { semanticTint, textCss } from '../../theme/index.ts';
 import { stateStyle, type PrimitiveComponentProps } from '../component-props.ts';
+import { shakeOffset } from '../motion.ts';
 import type { CounterProps } from './definition.ts';
-import { counterValue, formatCount } from './format.ts';
+import { counterValue, formatCount, tickProgress } from './format.ts';
 
-/** Big number with unit and caption; what it shows comes from `counterValue`. */
+/**
+ * Big number with unit and caption; what it shows comes from `counterValue`. A `ticking` count
+ * follows narration time (`tickProgress`); `reject` turns the number red with a shake.
+ */
 export function Counter({ theme, props, box, state }: PrimitiveComponentProps<CounterProps>) {
-  const tint = semanticTint(theme, props.semantic);
-  const shown = counterValue(props, state.actions.count);
+  const rejected = state.actions.reject ?? 0;
+  const semantic = rejected > 0 ? 'problem' : props.semantic;
+  const tint = semanticTint(theme, semantic);
+  const progress = props.ticking
+    ? tickProgress(state.elapsed.count, state.runSec.count)
+    : state.actions.count;
+  const shown = counterValue(props, progress);
+  const base = stateStyle(state);
   return (
     <div
       style={{
         ...markHostCss(theme),
-        ...stateStyle(state),
+        ...base,
+        transform: `${base.transform} translateX(${shakeOffset(rejected, theme.space.sm)}px)`,
         width: box.width,
         height: box.height,
         display: 'flex',
@@ -33,7 +44,7 @@ export function Counter({ theme, props, box, state }: PrimitiveComponentProps<Co
             textShadow: emphasisShadow(theme, tint, state.emphasis),
           }}
         >
-          <FocusUnderline theme={theme} semantic={props.semantic} highlight={state.highlight}>
+          <FocusUnderline theme={theme} semantic={semantic} highlight={state.highlight}>
             {formatCount(shown, theme.numberLocale, props.decimals)}
           </FocusUnderline>
         </span>

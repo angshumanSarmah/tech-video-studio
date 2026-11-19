@@ -1385,8 +1385,8 @@
     {
       "id": "counter",
       "family": "metric",
-      "summary": "A big number with an optional unit and caption. Without a `count` event it shows `value`. With one, it shows `from` (default 0) until the count begins, then counts up or down to `value`, so the viewer watches a quantity grow or drain.",
-      "whenToUse": "One quantity that matters to the story: requests per second, tokens left, queue length, latency. Use `count` when the change itself is the point.",
+      "summary": "A big number with an optional unit and caption. Without a `count` event it shows `value`. With one, it shows `from` (default 0) until the count begins, then counts up or down to `value`, so the viewer watches a quantity grow or drain. With `ticking` the count runs on narration time and lands on `value` exactly at the `reject` (an outage clock that stops when the outage ends). `reject` turns the number red with a shake.",
+      "whenToUse": "One quantity that matters to the story: requests per second, tokens left, queue length, latency, how long an outage lasted. Use `count` when the change itself is the point.",
       "whenNotToUse": "A word or status instead of a quantity (use `tag`); a countdown in time; several numbers at once (one counter per number, and only the ones the story needs).",
       "actions": [
         "enter",
@@ -1394,7 +1394,8 @@
         "count",
         "highlight",
         "dim",
-        "pulse"
+        "pulse",
+        "reject"
       ],
       "props": {
         "type": "object",
@@ -1437,6 +1438,11 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 2
+          },
+          "ticking": {
+            "default": false,
+            "description": "Count on narration time: the count runs from its word until the `reject` (else the exit or the end of the beat), like a clock. Without it a count takes under a second.",
+            "type": "boolean"
           }
         },
         "required": [
@@ -2071,6 +2077,2136 @@
   ],
   "patterns": [
     {
+      "id": "versus_split",
+      "family": "annotation",
+      "summary": "Two halves side by side get the same event at the same moment, and each shows its own outcome: the side that handles it lights up with its verdict, the side that fails turns red.",
+      "whenToUse": "Comparing two designs under one condition: SQL vs NoSQL under a write burst, sync vs async on a slow call, temperature 0 vs 1 on one prompt.",
+      "whenNotToUse": "A near and a far store (use `cache_hit_miss`); a slow way then a fast way in sequence (use `brute_force_then_index`).",
+      "actions": [
+        "exit",
+        "highlight",
+        "dim",
+        "pulse"
+      ],
+      "anchors": [
+        {
+          "name": "show",
+          "description": "Both sides appear."
+        },
+        {
+          "name": "event",
+          "description": "The same event reaches both sides at once."
+        },
+        {
+          "name": "verdict",
+          "description": "Each side shows how it handled it."
+        }
+      ],
+      "layoutMode": "versus_split",
+      "targets": [
+        {
+          "id": "event",
+          "description": "The shared event tag."
+        },
+        {
+          "id": "left",
+          "description": "The left side."
+        },
+        {
+          "id": "right",
+          "description": "The right side."
+        },
+        {
+          "id": "left-link",
+          "description": "Arrow from the event to the left side."
+        },
+        {
+          "id": "right-link",
+          "description": "Arrow from the event to the right side."
+        },
+        {
+          "id": "left-verdict",
+          "description": "The verdict tag on the left."
+        },
+        {
+          "id": "right-verdict",
+          "description": "The verdict tag on the right."
+        }
+      ],
+      "innerActions": [
+        "highlight",
+        "pulse",
+        "dim"
+      ],
+      "params": {
+        "type": "object",
+        "properties": {
+          "event": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 24,
+            "pattern": "^[^\\n\\r]*$",
+            "description": "The one event both sides get, as a short tag, e.g. 10K WRITES."
+          },
+          "left": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 24,
+                "pattern": "^[^\\n\\r]*$",
+                "description": "Name of this side (a design, a system, a setting)."
+              },
+              "icon": {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+              },
+              "verdict": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 24,
+                "pattern": "^[^\\n\\r]*$",
+                "description": "What happens on this side, as a short tag, e.g. 2 MS or DATA LOST."
+              },
+              "outcome": {
+                "type": "string",
+                "enum": [
+                  "ok",
+                  "problem"
+                ],
+                "description": "ok (handles it: the side lights up) or problem (fails: the side turns red)."
+              }
+            },
+            "required": [
+              "title",
+              "verdict",
+              "outcome"
+            ],
+            "additionalProperties": false,
+            "description": "The left side."
+          },
+          "right": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 24,
+                "pattern": "^[^\\n\\r]*$",
+                "description": "Name of this side (a design, a system, a setting)."
+              },
+              "icon": {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+              },
+              "verdict": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 24,
+                "pattern": "^[^\\n\\r]*$",
+                "description": "What happens on this side, as a short tag, e.g. 2 MS or DATA LOST."
+              },
+              "outcome": {
+                "type": "string",
+                "enum": [
+                  "ok",
+                  "problem"
+                ],
+                "description": "ok (handles it: the side lights up) or problem (fails: the side turns red)."
+              }
+            },
+            "required": [
+              "title",
+              "verdict",
+              "outcome"
+            ],
+            "additionalProperties": false,
+            "description": "The right side."
+          },
+          "at": {
+            "type": "object",
+            "properties": {
+              "show": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word"
+                      },
+                      "index": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "index"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word_text"
+                      },
+                      "text": {
+                        "type": "string",
+                        "pattern": "^\\S+$"
+                      },
+                      "occurrence": {
+                        "default": 1,
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "beat"
+                      },
+                      "edge": {
+                        "type": "string",
+                        "enum": [
+                          "start",
+                          "end"
+                        ]
+                      },
+                      "offsetSec": {
+                        "default": 0,
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "edge"
+                    ],
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "Both sides appear."
+              },
+              "event": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word"
+                      },
+                      "index": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "index"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word_text"
+                      },
+                      "text": {
+                        "type": "string",
+                        "pattern": "^\\S+$"
+                      },
+                      "occurrence": {
+                        "default": 1,
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "beat"
+                      },
+                      "edge": {
+                        "type": "string",
+                        "enum": [
+                          "start",
+                          "end"
+                        ]
+                      },
+                      "offsetSec": {
+                        "default": 0,
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "edge"
+                    ],
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "The same event reaches both sides at once."
+              },
+              "verdict": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word"
+                      },
+                      "index": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "index"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word_text"
+                      },
+                      "text": {
+                        "type": "string",
+                        "pattern": "^\\S+$"
+                      },
+                      "occurrence": {
+                        "default": 1,
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "beat"
+                      },
+                      "edge": {
+                        "type": "string",
+                        "enum": [
+                          "start",
+                          "end"
+                        ]
+                      },
+                      "offsetSec": {
+                        "default": 0,
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "edge"
+                    ],
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "Each side shows how it handled it."
+              }
+            },
+            "required": [
+              "show",
+              "event",
+              "verdict"
+            ],
+            "additionalProperties": false,
+            "description": "Narration anchors: the word (or beat edge) for each moment."
+          }
+        },
+        "required": [
+          "event",
+          "left",
+          "right",
+          "at"
+        ],
+        "additionalProperties": false
+      },
+      "example": {
+        "id": "<example-versus_split-id>",
+        "pattern": "versus_split",
+        "params": {
+          "event": "<example-event>",
+          "left": {
+            "title": "<example-left>",
+            "verdict": "<example-verdict>",
+            "outcome": "ok"
+          },
+          "right": {
+            "title": "<example-right>",
+            "verdict": "<example-verdict>",
+            "outcome": "problem"
+          },
+          "at": {
+            "show": {
+              "type": "word",
+              "index": 0
+            },
+            "event": {
+              "type": "word",
+              "index": 1
+            },
+            "verdict": {
+              "type": "word",
+              "index": 2
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "brute_force_then_index",
+      "family": "data",
+      "summary": "A brute-force search checks every item and each turns red, with a tag naming the cost. Then an index appears and jumps straight to the one item, which lights up.",
+      "whenToUse": "Brute force before the clever fix: a full table scan vs an index, checking every zone vs a grid cell lookup, a linear search vs a hash map.",
+      "whenNotToUse": "A fast and a slow store side by side (use `cache_hit_miss`); two whole designs compared (use `versus_split`).",
+      "actions": [
+        "exit",
+        "highlight",
+        "dim",
+        "pulse"
+      ],
+      "anchors": [
+        {
+          "name": "scan",
+          "description": "Every item is checked one by one and turns red."
+        },
+        {
+          "name": "slow",
+          "description": "The cost of checking everything is named."
+        },
+        {
+          "name": "index",
+          "description": "The index appears."
+        },
+        {
+          "name": "found",
+          "description": "The index jumps straight to the right item."
+        }
+      ],
+      "layoutMode": "centered_focus",
+      "targets": [
+        {
+          "id": "items",
+          "description": "The items, a slot grid; its slots are parts item-1, item-2, …"
+        },
+        {
+          "id": "cost",
+          "description": "The brute-force cost tag."
+        },
+        {
+          "id": "index",
+          "description": "The index."
+        },
+        {
+          "id": "jump",
+          "description": "Arrow from the index to the items."
+        },
+        {
+          "id": "fast",
+          "description": "The indexed cost tag."
+        }
+      ],
+      "innerActions": [
+        "highlight",
+        "pulse",
+        "dim"
+      ],
+      "params": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "minItems": 4,
+            "maxItems": 12,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 7,
+              "pattern": "^[^\\n\\r]*$",
+              "description": "Short label of one item, e.g. a zone or a row id."
+            },
+            "description": "The items a brute-force search checks, 4 to 12, in reading order."
+          },
+          "kind": {
+            "default": "documents",
+            "description": "How items look: inventory, shelf, seats or documents.",
+            "type": "string",
+            "enum": [
+              "inventory",
+              "shelf",
+              "seats",
+              "documents"
+            ]
+          },
+          "target": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 7,
+            "pattern": "^[^\\n\\r]*$",
+            "description": "Label of the item being looked for; one of items."
+          },
+          "cost": {
+            "default": "CHECK ALL = SLOW",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 24,
+            "pattern": "^[^\\n\\r]*$",
+            "description": "Tag naming the brute-force cost."
+          },
+          "index": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 24,
+                "pattern": "^[^\\n\\r]*$",
+                "description": "Name of the component, shown in uppercase."
+              },
+              "icon": {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+              }
+            },
+            "required": [
+              "title"
+            ],
+            "additionalProperties": false,
+            "description": "The index or lookup structure (a hash map, a B-tree, a grid)."
+          },
+          "fast": {
+            "default": "ONE LOOKUP",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 24,
+            "pattern": "^[^\\n\\r]*$",
+            "description": "Tag naming the indexed cost."
+          },
+          "at": {
+            "type": "object",
+            "properties": {
+              "scan": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word"
+                      },
+                      "index": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "index"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word_text"
+                      },
+                      "text": {
+                        "type": "string",
+                        "pattern": "^\\S+$"
+                      },
+                      "occurrence": {
+                        "default": 1,
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "beat"
+                      },
+                      "edge": {
+                        "type": "string",
+                        "enum": [
+                          "start",
+                          "end"
+                        ]
+                      },
+                      "offsetSec": {
+                        "default": 0,
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "edge"
+                    ],
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "Every item is checked one by one and turns red."
+              },
+              "slow": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word"
+                      },
+                      "index": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "index"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word_text"
+                      },
+                      "text": {
+                        "type": "string",
+                        "pattern": "^\\S+$"
+                      },
+                      "occurrence": {
+                        "default": 1,
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "beat"
+                      },
+                      "edge": {
+                        "type": "string",
+                        "enum": [
+                          "start",
+                          "end"
+                        ]
+                      },
+                      "offsetSec": {
+                        "default": 0,
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "edge"
+                    ],
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "The cost of checking everything is named."
+              },
+              "index": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word"
+                      },
+                      "index": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "index"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word_text"
+                      },
+                      "text": {
+                        "type": "string",
+                        "pattern": "^\\S+$"
+                      },
+                      "occurrence": {
+                        "default": 1,
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "beat"
+                      },
+                      "edge": {
+                        "type": "string",
+                        "enum": [
+                          "start",
+                          "end"
+                        ]
+                      },
+                      "offsetSec": {
+                        "default": 0,
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "edge"
+                    ],
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "The index appears."
+              },
+              "found": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word"
+                      },
+                      "index": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "index"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word_text"
+                      },
+                      "text": {
+                        "type": "string",
+                        "pattern": "^\\S+$"
+                      },
+                      "occurrence": {
+                        "default": 1,
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "beat"
+                      },
+                      "edge": {
+                        "type": "string",
+                        "enum": [
+                          "start",
+                          "end"
+                        ]
+                      },
+                      "offsetSec": {
+                        "default": 0,
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "edge"
+                    ],
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "The index jumps straight to the right item."
+              }
+            },
+            "required": [
+              "scan",
+              "slow",
+              "index",
+              "found"
+            ],
+            "additionalProperties": false,
+            "description": "Narration anchors: the word (or beat edge) for each moment."
+          }
+        },
+        "required": [
+          "items",
+          "target",
+          "index",
+          "at"
+        ],
+        "additionalProperties": false
+      },
+      "example": {
+        "id": "<example-brute_force_then_index-id>",
+        "pattern": "brute_force_then_index",
+        "params": {
+          "items": [
+            "<ex-1>",
+            "<ex-2>",
+            "<ex-3>",
+            "<ex-4>"
+          ],
+          "target": "<ex-3>",
+          "index": {
+            "title": "<example-index>",
+            "icon": "key"
+          },
+          "at": {
+            "scan": {
+              "type": "word",
+              "index": 0
+            },
+            "slow": {
+              "type": "word",
+              "index": 1
+            },
+            "index": {
+              "type": "word",
+              "index": 2
+            },
+            "found": {
+              "type": "word",
+              "index": 3
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "inference_card",
+      "family": "data",
+      "summary": "Inputs → model → prediction. Feature rows type in, grouped by a bracket, and flow into a model; the prediction flips from \"?\" to a value. An optional comparison feeds a second input with a different value in and gets a different prediction.",
+      "whenToUse": "Any ML prediction told as data in, number out: prep time, ETA, fraud score, price. Use the comparison to show which feature changes the answer.",
+      "whenNotToUse": "A single number without inputs (use `counter_transition`); a decision between candidates (use `pick_by_rule`).",
+      "actions": [
+        "exit",
+        "highlight",
+        "dim",
+        "pulse"
+      ],
+      "anchors": [
+        {
+          "name": "inputs",
+          "description": "The feature rows type in and are grouped."
+        },
+        {
+          "name": "model",
+          "description": "The features flow into the model."
+        },
+        {
+          "name": "predict",
+          "description": "The prediction flips from \"?\" to its value."
+        },
+        {
+          "name": "compare",
+          "description": "A second input and its different prediction (only with comparison).",
+          "optional": true
+        }
+      ],
+      "layoutMode": "pipeline",
+      "targets": [
+        {
+          "id": "features",
+          "description": "The feature rows."
+        },
+        {
+          "id": "group",
+          "description": "The bracket around the features."
+        },
+        {
+          "id": "model",
+          "description": "The model."
+        },
+        {
+          "id": "in-link",
+          "description": "Arrow from the features to the model."
+        },
+        {
+          "id": "out-link",
+          "description": "Arrow from the model to the prediction."
+        },
+        {
+          "id": "prediction",
+          "description": "The prediction (\"?\" until predict)."
+        },
+        {
+          "id": "compare-features",
+          "description": "The second input (with comparison)."
+        },
+        {
+          "id": "compare-link",
+          "description": "Arrow from the second input to the model."
+        },
+        {
+          "id": "compare-prediction",
+          "description": "The second prediction."
+        }
+      ],
+      "innerActions": [
+        "highlight",
+        "pulse",
+        "dim"
+      ],
+      "params": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 24,
+            "pattern": "^[^\\n\\r]*$",
+            "description": "Optional title of the input record, e.g. ORDER 4127."
+          },
+          "features": {
+            "minItems": 1,
+            "maxItems": 5,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,19}$",
+                  "description": "Field name, as it would appear in the data."
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "maxLength": 28
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Field value: a short string, a number, true/false or null."
+                },
+                "semantic": {
+                  "description": "Colours the value and tints its row: neutral, focus, ok, problem or concept.",
+                  "type": "string",
+                  "enum": [
+                    "neutral",
+                    "focus",
+                    "ok",
+                    "problem",
+                    "concept"
+                  ]
+                }
+              },
+              "required": [
+                "key",
+                "value"
+              ],
+              "additionalProperties": false
+            },
+            "description": "The input features as key/value rows, 1 to 5."
+          },
+          "group": {
+            "default": "FEATURES",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 16,
+            "pattern": "^[^\\n\\r]*$",
+            "description": "Label of the bracket around the features."
+          },
+          "model": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 24,
+                "pattern": "^[^\\n\\r]*$",
+                "description": "Name of the component, shown in uppercase."
+              },
+              "icon": {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+              }
+            },
+            "required": [
+              "title"
+            ],
+            "additionalProperties": false,
+            "description": "The model that reads the features."
+          },
+          "prediction": {
+            "type": "object",
+            "properties": {
+              "value": {
+                "type": "number",
+                "description": "The predicted number."
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 16,
+                "pattern": "^[^\\n\\r]*$",
+                "description": "Optional unit after the number, e.g. MIN."
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 32,
+                "pattern": "^[^\\n\\r]*$",
+                "description": "Optional caption under the number."
+              },
+              "decimals": {
+                "default": 0,
+                "description": "Digits after the decimal point.",
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 2
+              }
+            },
+            "required": [
+              "value"
+            ],
+            "additionalProperties": false,
+            "description": "What the model predicts for these features."
+          },
+          "comparison": {
+            "description": "Optional second input with a different result; needs at.compare.",
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 24,
+                "pattern": "^[^\\n\\r]*$",
+                "description": "Optional title of the second record."
+              },
+              "features": {
+                "minItems": 1,
+                "maxItems": 5,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,19}$",
+                      "description": "Field name, as it would appear in the data."
+                    },
+                    "value": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "maxLength": 28
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "boolean"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "Field value: a short string, a number, true/false or null."
+                    },
+                    "semantic": {
+                      "description": "Colours the value and tints its row: neutral, focus, ok, problem or concept.",
+                      "type": "string",
+                      "enum": [
+                        "neutral",
+                        "focus",
+                        "ok",
+                        "problem",
+                        "concept"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "value"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "The second input, differing in what matters."
+              },
+              "prediction": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "number",
+                    "description": "The predicted number."
+                  },
+                  "unit": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 16,
+                    "pattern": "^[^\\n\\r]*$",
+                    "description": "Optional unit after the number, e.g. MIN."
+                  },
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 32,
+                    "pattern": "^[^\\n\\r]*$",
+                    "description": "Optional caption under the number."
+                  },
+                  "decimals": {
+                    "default": 0,
+                    "description": "Digits after the decimal point.",
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2
+                  }
+                },
+                "required": [
+                  "value"
+                ],
+                "additionalProperties": false,
+                "description": "Its different prediction."
+              }
+            },
+            "required": [
+              "features",
+              "prediction"
+            ],
+            "additionalProperties": false
+          },
+          "at": {
+            "type": "object",
+            "properties": {
+              "inputs": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word"
+                      },
+                      "index": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "index"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word_text"
+                      },
+                      "text": {
+                        "type": "string",
+                        "pattern": "^\\S+$"
+                      },
+                      "occurrence": {
+                        "default": 1,
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "beat"
+                      },
+                      "edge": {
+                        "type": "string",
+                        "enum": [
+                          "start",
+                          "end"
+                        ]
+                      },
+                      "offsetSec": {
+                        "default": 0,
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "edge"
+                    ],
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "The feature rows type in and are grouped."
+              },
+              "model": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word"
+                      },
+                      "index": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "index"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word_text"
+                      },
+                      "text": {
+                        "type": "string",
+                        "pattern": "^\\S+$"
+                      },
+                      "occurrence": {
+                        "default": 1,
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "beat"
+                      },
+                      "edge": {
+                        "type": "string",
+                        "enum": [
+                          "start",
+                          "end"
+                        ]
+                      },
+                      "offsetSec": {
+                        "default": 0,
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "edge"
+                    ],
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "The features flow into the model."
+              },
+              "predict": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word"
+                      },
+                      "index": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "index"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word_text"
+                      },
+                      "text": {
+                        "type": "string",
+                        "pattern": "^\\S+$"
+                      },
+                      "occurrence": {
+                        "default": 1,
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "beat"
+                      },
+                      "edge": {
+                        "type": "string",
+                        "enum": [
+                          "start",
+                          "end"
+                        ]
+                      },
+                      "offsetSec": {
+                        "default": 0,
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "edge"
+                    ],
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "The prediction flips from \"?\" to its value."
+              },
+              "compare": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word"
+                      },
+                      "index": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "index"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word_text"
+                      },
+                      "text": {
+                        "type": "string",
+                        "pattern": "^\\S+$"
+                      },
+                      "occurrence": {
+                        "default": 1,
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "beat"
+                      },
+                      "edge": {
+                        "type": "string",
+                        "enum": [
+                          "start",
+                          "end"
+                        ]
+                      },
+                      "offsetSec": {
+                        "default": 0,
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "edge"
+                    ],
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "A second input and its different prediction (only with comparison)."
+              }
+            },
+            "required": [
+              "inputs",
+              "model",
+              "predict"
+            ],
+            "additionalProperties": false,
+            "description": "Narration anchors: the word (or beat edge) for each moment."
+          }
+        },
+        "required": [
+          "features",
+          "model",
+          "prediction",
+          "at"
+        ],
+        "additionalProperties": false
+      },
+      "example": {
+        "id": "<example-inference_card-id>",
+        "pattern": "inference_card",
+        "params": {
+          "features": [
+            {
+              "key": "example_feature",
+              "value": "<example-value>"
+            },
+            {
+              "key": "example_count",
+              "value": 3
+            }
+          ],
+          "model": {
+            "title": "<example-model>",
+            "icon": "cpu"
+          },
+          "prediction": {
+            "value": 14,
+            "unit": "<example-unit>"
+          },
+          "comparison": {
+            "features": [
+              {
+                "key": "example_feature",
+                "value": "<example-other>"
+              }
+            ],
+            "prediction": {
+              "value": 22,
+              "unit": "<example-unit>"
+            }
+          },
+          "at": {
+            "inputs": {
+              "type": "word",
+              "index": 0
+            },
+            "model": {
+              "type": "word",
+              "index": 1
+            },
+            "predict": {
+              "type": "word",
+              "index": 2
+            },
+            "compare": {
+              "type": "word",
+              "index": 3
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "pick_by_rule",
+      "family": "spatial",
+      "summary": "Candidates around a target, optionally inside a search ring. The obvious pick (nearest, first, cheapest) gets a tag and is crossed out; the right one is ringed, linked to the target and tagged with the rule that makes it win (\"ETA 3:00 = PREP 3:00\").",
+      "whenToUse": "Matching and scheduling decisions where the naive rule is wrong: riders to orders, servers to requests, cache nodes to keys, workers to jobs.",
+      "whenNotToUse": "A prediction from features (use `inference_card`); two designs compared (use `versus_split`).",
+      "actions": [
+        "exit",
+        "highlight",
+        "dim",
+        "pulse"
+      ],
+      "anchors": [
+        {
+          "name": "show",
+          "description": "The target and the candidates around it appear."
+        },
+        {
+          "name": "obvious",
+          "description": "The obvious pick is named (nearest, first, cheapest)."
+        },
+        {
+          "name": "cross",
+          "description": "The obvious pick is crossed out."
+        },
+        {
+          "name": "pick",
+          "description": "The right pick is ringed with the reason it wins."
+        }
+      ],
+      "layoutMode": "hub_spoke",
+      "targets": [
+        {
+          "id": "target",
+          "description": "The target."
+        },
+        {
+          "id": "ring",
+          "description": "The search ring (with radius)."
+        },
+        {
+          "id": "candidate-<id>",
+          "description": "The candidate with that id."
+        },
+        {
+          "id": "obvious-tag",
+          "description": "The tag on the obvious pick."
+        },
+        {
+          "id": "pick-tag",
+          "description": "The reason tag on the right pick."
+        },
+        {
+          "id": "pick-link",
+          "description": "Arrow from the right pick to the target."
+        }
+      ],
+      "innerActions": [
+        "highlight",
+        "pulse",
+        "dim"
+      ],
+      "params": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 24,
+                "pattern": "^[^\\n\\r]*$",
+                "description": "Name of the component, shown in uppercase."
+              },
+              "icon": {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+              }
+            },
+            "required": [
+              "title"
+            ],
+            "additionalProperties": false,
+            "description": "What is being matched (an order, a request, a key)."
+          },
+          "radius": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 16,
+            "pattern": "^[^\\n\\r]*$",
+            "description": "Optional label of a search ring around the target, e.g. 2 KM."
+          },
+          "candidates": {
+            "minItems": 3,
+            "maxItems": 5,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                  "description": "Short slug for this candidate, used by obvious and pick."
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 24,
+                  "pattern": "^[^\\n\\r]*$",
+                  "description": "Name of the candidate, e.g. RIDER 2."
+                },
+                "detail": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 40,
+                  "pattern": "^[^\\n\\r]*$",
+                  "description": "Optional detail under the name, e.g. 400 M AWAY."
+                },
+                "icon": {
+                  "type": "string",
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                  "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+                }
+              },
+              "required": [
+                "id",
+                "title"
+              ],
+              "additionalProperties": false
+            },
+            "description": "The candidates around the target, 3 to 5."
+          },
+          "obvious": {
+            "type": "object",
+            "properties": {
+              "candidate": {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                "description": "Id of the obvious candidate."
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 24,
+                "pattern": "^[^\\n\\r]*$",
+                "description": "Tag on the obvious pick: why it looks right or wins."
+              }
+            },
+            "required": [
+              "candidate",
+              "reason"
+            ],
+            "additionalProperties": false,
+            "description": "The tempting pick that is wrong."
+          },
+          "pick": {
+            "type": "object",
+            "properties": {
+              "candidate": {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                "description": "Id of the right candidate."
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 32,
+                "pattern": "^[^\\n\\r]*$",
+                "description": "Tag on the right pick: why it looks right or wins."
+              }
+            },
+            "required": [
+              "candidate",
+              "reason"
+            ],
+            "additionalProperties": false,
+            "description": "The pick the rule chooses, with its reason."
+          },
+          "at": {
+            "type": "object",
+            "properties": {
+              "show": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word"
+                      },
+                      "index": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "index"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word_text"
+                      },
+                      "text": {
+                        "type": "string",
+                        "pattern": "^\\S+$"
+                      },
+                      "occurrence": {
+                        "default": 1,
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "beat"
+                      },
+                      "edge": {
+                        "type": "string",
+                        "enum": [
+                          "start",
+                          "end"
+                        ]
+                      },
+                      "offsetSec": {
+                        "default": 0,
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "edge"
+                    ],
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "The target and the candidates around it appear."
+              },
+              "obvious": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word"
+                      },
+                      "index": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "index"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word_text"
+                      },
+                      "text": {
+                        "type": "string",
+                        "pattern": "^\\S+$"
+                      },
+                      "occurrence": {
+                        "default": 1,
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "beat"
+                      },
+                      "edge": {
+                        "type": "string",
+                        "enum": [
+                          "start",
+                          "end"
+                        ]
+                      },
+                      "offsetSec": {
+                        "default": 0,
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "edge"
+                    ],
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "The obvious pick is named (nearest, first, cheapest)."
+              },
+              "cross": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word"
+                      },
+                      "index": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "index"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word_text"
+                      },
+                      "text": {
+                        "type": "string",
+                        "pattern": "^\\S+$"
+                      },
+                      "occurrence": {
+                        "default": 1,
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "beat"
+                      },
+                      "edge": {
+                        "type": "string",
+                        "enum": [
+                          "start",
+                          "end"
+                        ]
+                      },
+                      "offsetSec": {
+                        "default": 0,
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "edge"
+                    ],
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "The obvious pick is crossed out."
+              },
+              "pick": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word"
+                      },
+                      "index": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "index"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word_text"
+                      },
+                      "text": {
+                        "type": "string",
+                        "pattern": "^\\S+$"
+                      },
+                      "occurrence": {
+                        "default": 1,
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "beat"
+                      },
+                      "edge": {
+                        "type": "string",
+                        "enum": [
+                          "start",
+                          "end"
+                        ]
+                      },
+                      "offsetSec": {
+                        "default": 0,
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "edge"
+                    ],
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "The right pick is ringed with the reason it wins."
+              }
+            },
+            "required": [
+              "show",
+              "obvious",
+              "cross",
+              "pick"
+            ],
+            "additionalProperties": false,
+            "description": "Narration anchors: the word (or beat edge) for each moment."
+          }
+        },
+        "required": [
+          "target",
+          "candidates",
+          "obvious",
+          "pick",
+          "at"
+        ],
+        "additionalProperties": false
+      },
+      "example": {
+        "id": "<example-pick_by_rule-id>",
+        "pattern": "pick_by_rule",
+        "params": {
+          "target": {
+            "title": "<example-target>",
+            "icon": "package"
+          },
+          "radius": "<example-km>",
+          "candidates": [
+            {
+              "id": "example-a",
+              "title": "<example-a>",
+              "detail": "<example-detail>"
+            },
+            {
+              "id": "example-b",
+              "title": "<example-b>"
+            },
+            {
+              "id": "example-c",
+              "title": "<example-c>"
+            }
+          ],
+          "obvious": {
+            "candidate": "example-a",
+            "reason": "<example-nearest>"
+          },
+          "pick": {
+            "candidate": "example-b",
+            "reason": "<example-reason>"
+          },
+          "at": {
+            "show": {
+              "type": "word",
+              "index": 0
+            },
+            "obvious": {
+              "type": "word",
+              "index": 1
+            },
+            "cross": {
+              "type": "word",
+              "index": 2
+            },
+            "pick": {
+              "type": "word",
+              "index": 3
+            }
+          }
+        }
+      }
+    },
+    {
       "id": "atomic_lock",
       "family": "flow",
       "summary": "Two requests race for one resource. The first arrives and locks it (padlock) and a hold timer starts; the second arrives while it is held, its arrow turns red and it is tagged with a cross.",
@@ -2589,7 +4725,7 @@
       "family": "flow",
       "summary": "A client with a near store and a far store. A hit is answered by the near store and tagged with its small latency; a miss goes on to the far store and is tagged with its large one, so the gap in latency is the lesson.",
       "whenToUse": "Caching, CDNs and any near/far trade-off: cache vs database, edge vs origin, memory vs disk, KV cache vs recomputation.",
-      "whenNotToUse": "Comparing two whole designs side by side (a versus split); a flood of requests on one node (use `flood_then_funnel`).",
+      "whenNotToUse": "Comparing two whole designs side by side (use `versus_split`); a flood of requests on one node (use `flood_then_funnel`).",
       "actions": [
         "exit",
         "highlight",
@@ -3375,6 +5511,514 @@
             "output": {
               "type": "word",
               "index": 2
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "failover",
+      "family": "flow",
+      "summary": "A writer, a leader with the role badge and its followers. The leader fails: it turns red and its links break. The badge leaves the old leader and appears on the first follower, then the writer and the other followers re-link to the new leader.",
+      "whenToUse": "Leader election and failover: a database primary dying, a broker partition leader moving, a lock holder replaced. The concept beat before a real incident.",
+      "whenNotToUse": "Both sides believing they lead after a network split (use `split_brain`); one request refused while a lock is held (use `atomic_lock`).",
+      "actions": [
+        "exit",
+        "highlight",
+        "dim",
+        "pulse"
+      ],
+      "anchors": [
+        {
+          "name": "steady",
+          "description": "Writes reach the leader and replicate to the followers."
+        },
+        {
+          "name": "fail",
+          "description": "The leader fails and its links break."
+        },
+        {
+          "name": "promote",
+          "description": "The role moves from the old leader to the first follower."
+        },
+        {
+          "name": "reroute",
+          "description": "The writer and the other followers link to the new leader."
+        }
+      ],
+      "layoutMode": "pipeline",
+      "targets": [
+        {
+          "id": "writer",
+          "description": "The writer."
+        },
+        {
+          "id": "leader",
+          "description": "The old leader."
+        },
+        {
+          "id": "follower-<n>",
+          "description": "The n-th follower (from 1); follower-1 is promoted."
+        },
+        {
+          "id": "write",
+          "description": "Arrow from the writer to the old leader."
+        },
+        {
+          "id": "repl-<n>",
+          "description": "Replication arrow from the old leader to the n-th follower."
+        },
+        {
+          "id": "new-write",
+          "description": "Arrow from the writer to the new leader."
+        },
+        {
+          "id": "new-repl-<n>",
+          "description": "Replication arrow from the new leader to the n-th follower."
+        }
+      ],
+      "innerActions": [
+        "highlight",
+        "pulse",
+        "dim"
+      ],
+      "params": {
+        "type": "object",
+        "properties": {
+          "writer": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 24,
+                "pattern": "^[^\\n\\r]*$",
+                "description": "Name of the component, shown in uppercase."
+              },
+              "icon": {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+              }
+            },
+            "required": [
+              "title"
+            ],
+            "additionalProperties": false,
+            "description": "Who writes (an app server, a client)."
+          },
+          "leader": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 24,
+                "pattern": "^[^\\n\\r]*$",
+                "description": "Name of the component, shown in uppercase."
+              },
+              "icon": {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+              }
+            },
+            "required": [
+              "title"
+            ],
+            "additionalProperties": false,
+            "description": "The leader that fails."
+          },
+          "followers": {
+            "minItems": 1,
+            "maxItems": 3,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 24,
+                  "pattern": "^[^\\n\\r]*$",
+                  "description": "Name of the component, shown in uppercase."
+                },
+                "icon": {
+                  "type": "string",
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                  "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+                }
+              },
+              "required": [
+                "title"
+              ],
+              "additionalProperties": false,
+              "description": "One follower (replica)."
+            },
+            "description": "The followers, 1 to 3; the first one is promoted."
+          },
+          "role": {
+            "default": "crown",
+            "description": "Asset id of the role badge (a crown).",
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
+          },
+          "at": {
+            "type": "object",
+            "properties": {
+              "steady": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word"
+                      },
+                      "index": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "index"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word_text"
+                      },
+                      "text": {
+                        "type": "string",
+                        "pattern": "^\\S+$"
+                      },
+                      "occurrence": {
+                        "default": 1,
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "beat"
+                      },
+                      "edge": {
+                        "type": "string",
+                        "enum": [
+                          "start",
+                          "end"
+                        ]
+                      },
+                      "offsetSec": {
+                        "default": 0,
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "edge"
+                    ],
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "Writes reach the leader and replicate to the followers."
+              },
+              "fail": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word"
+                      },
+                      "index": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "index"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word_text"
+                      },
+                      "text": {
+                        "type": "string",
+                        "pattern": "^\\S+$"
+                      },
+                      "occurrence": {
+                        "default": 1,
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "beat"
+                      },
+                      "edge": {
+                        "type": "string",
+                        "enum": [
+                          "start",
+                          "end"
+                        ]
+                      },
+                      "offsetSec": {
+                        "default": 0,
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "edge"
+                    ],
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "The leader fails and its links break."
+              },
+              "promote": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word"
+                      },
+                      "index": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "index"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word_text"
+                      },
+                      "text": {
+                        "type": "string",
+                        "pattern": "^\\S+$"
+                      },
+                      "occurrence": {
+                        "default": 1,
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "beat"
+                      },
+                      "edge": {
+                        "type": "string",
+                        "enum": [
+                          "start",
+                          "end"
+                        ]
+                      },
+                      "offsetSec": {
+                        "default": 0,
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "edge"
+                    ],
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "The role moves from the old leader to the first follower."
+              },
+              "reroute": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word"
+                      },
+                      "index": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "index"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word_text"
+                      },
+                      "text": {
+                        "type": "string",
+                        "pattern": "^\\S+$"
+                      },
+                      "occurrence": {
+                        "default": 1,
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "beat"
+                      },
+                      "edge": {
+                        "type": "string",
+                        "enum": [
+                          "start",
+                          "end"
+                        ]
+                      },
+                      "offsetSec": {
+                        "default": 0,
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "edge"
+                    ],
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "The writer and the other followers link to the new leader."
+              }
+            },
+            "required": [
+              "steady",
+              "fail",
+              "promote",
+              "reroute"
+            ],
+            "additionalProperties": false,
+            "description": "Narration anchors: the word (or beat edge) for each moment."
+          }
+        },
+        "required": [
+          "writer",
+          "leader",
+          "followers",
+          "at"
+        ],
+        "additionalProperties": false
+      },
+      "example": {
+        "id": "<example-failover-id>",
+        "pattern": "failover",
+        "params": {
+          "writer": {
+            "title": "<example-writer>",
+            "icon": "server"
+          },
+          "leader": {
+            "title": "<example-leader>",
+            "icon": "database"
+          },
+          "followers": [
+            {
+              "title": "<example-follower-1>",
+              "icon": "database"
+            },
+            {
+              "title": "<example-follower-2>",
+              "icon": "database"
+            }
+          ],
+          "at": {
+            "steady": {
+              "type": "word",
+              "index": 0
+            },
+            "fail": {
+              "type": "word",
+              "index": 1
+            },
+            "promote": {
+              "type": "word",
+              "index": 2
+            },
+            "reroute": {
+              "type": "word",
+              "index": 3
             }
           }
         }
@@ -4664,6 +7308,670 @@
             "stamp": {
               "type": "word",
               "index": 2
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "split_brain",
+      "family": "flow",
+      "summary": "Two regions with a leader and a replica. The link breaks (red, then dashed) and an outage clock counts up; cut off, the replica takes the role badge too. Each side accepts a different write. When the link returns the clock stops, both nodes hold the badge and a conflict callout names the damage.",
+      "whenToUse": "Network partitions and split brain: two primaries after a partition, fencing and leases, why quorums exist; the real-incident beat after a `failover` concept beat.",
+      "whenNotToUse": "A clean failover where the old leader is really gone (use `failover`); a single request refused under a lock (use `atomic_lock`).",
+      "actions": [
+        "exit",
+        "highlight",
+        "dim",
+        "pulse"
+      ],
+      "anchors": [
+        {
+          "name": "steady",
+          "description": "The leader replicates to the far replica over the link."
+        },
+        {
+          "name": "partition",
+          "description": "The link between the regions breaks; the outage clock starts."
+        },
+        {
+          "name": "promote",
+          "description": "The far replica, cut off, takes the role badge too."
+        },
+        {
+          "name": "writes",
+          "description": "Each side accepts a different write."
+        },
+        {
+          "name": "heal",
+          "description": "The link returns: the clock stops and the conflict shows."
+        }
+      ],
+      "layoutMode": "versus_split",
+      "targets": [
+        {
+          "id": "leader",
+          "description": "The leader."
+        },
+        {
+          "id": "replica",
+          "description": "The far replica."
+        },
+        {
+          "id": "link",
+          "description": "The replication link (rejected on partition)."
+        },
+        {
+          "id": "cut",
+          "description": "The dashed, broken link during the partition."
+        },
+        {
+          "id": "restored",
+          "description": "The link after the heal."
+        },
+        {
+          "id": "outage",
+          "description": "The outage clock (counts up, red when it stops)."
+        },
+        {
+          "id": "lease",
+          "description": "The optional lease timer."
+        },
+        {
+          "id": "leader-write",
+          "description": "The leader's write."
+        },
+        {
+          "id": "replica-write",
+          "description": "The replica's write."
+        },
+        {
+          "id": "conflict",
+          "description": "The conflict callout."
+        }
+      ],
+      "innerActions": [
+        "highlight",
+        "pulse",
+        "dim"
+      ],
+      "params": {
+        "type": "object",
+        "properties": {
+          "leader": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 24,
+                "pattern": "^[^\\n\\r]*$",
+                "description": "Name of the component, shown in uppercase."
+              },
+              "icon": {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+              }
+            },
+            "required": [
+              "title"
+            ],
+            "additionalProperties": false,
+            "description": "The leader in the first region."
+          },
+          "replica": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 24,
+                "pattern": "^[^\\n\\r]*$",
+                "description": "Name of the component, shown in uppercase."
+              },
+              "icon": {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+              }
+            },
+            "required": [
+              "title"
+            ],
+            "additionalProperties": false,
+            "description": "The replica in the far region that promotes itself."
+          },
+          "role": {
+            "default": "crown",
+            "description": "Asset id of the role badge (a crown).",
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
+          },
+          "outage": {
+            "type": "object",
+            "properties": {
+              "sec": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991,
+                "description": "How long the partition lasted; the clock counts up to it while it lasts."
+              },
+              "unit": {
+                "default": "s",
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 16,
+                "pattern": "^[^\\n\\r]*$",
+                "description": "Unit after the number."
+              },
+              "label": {
+                "default": "PARTITION",
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 32,
+                "pattern": "^[^\\n\\r]*$",
+                "description": "Caption under the clock."
+              }
+            },
+            "required": [
+              "sec"
+            ],
+            "additionalProperties": false,
+            "description": "The outage clock: counts up from the partition and stops on the heal."
+          },
+          "lease": {
+            "description": "Optional lease timer that runs out when the replica promotes itself.",
+            "type": "object",
+            "properties": {
+              "durationSec": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 5999,
+                "description": "Lease length in seconds."
+              },
+              "label": {
+                "default": "LEASE",
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 24,
+                "pattern": "^[^\\n\\r]*$",
+                "description": "Caption under the lease timer."
+              }
+            },
+            "required": [
+              "durationSec"
+            ],
+            "additionalProperties": false
+          },
+          "writes": {
+            "type": "object",
+            "properties": {
+              "leader": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 24,
+                "pattern": "^[^\\n\\r]*$",
+                "description": "The write the leader accepts, e.g. SEAT H3 → ASHA."
+              },
+              "replica": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 24,
+                "pattern": "^[^\\n\\r]*$",
+                "description": "The conflicting write the replica accepts."
+              }
+            },
+            "required": [
+              "leader",
+              "replica"
+            ],
+            "additionalProperties": false,
+            "description": "The divergent writes, one per side."
+          },
+          "conflict": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[^\\n\\r]*$",
+            "description": "The conflict, stated plainly, e.g. Two owners for seat H3."
+          },
+          "at": {
+            "type": "object",
+            "properties": {
+              "steady": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word"
+                      },
+                      "index": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "index"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word_text"
+                      },
+                      "text": {
+                        "type": "string",
+                        "pattern": "^\\S+$"
+                      },
+                      "occurrence": {
+                        "default": 1,
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "beat"
+                      },
+                      "edge": {
+                        "type": "string",
+                        "enum": [
+                          "start",
+                          "end"
+                        ]
+                      },
+                      "offsetSec": {
+                        "default": 0,
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "edge"
+                    ],
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "The leader replicates to the far replica over the link."
+              },
+              "partition": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word"
+                      },
+                      "index": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "index"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word_text"
+                      },
+                      "text": {
+                        "type": "string",
+                        "pattern": "^\\S+$"
+                      },
+                      "occurrence": {
+                        "default": 1,
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "beat"
+                      },
+                      "edge": {
+                        "type": "string",
+                        "enum": [
+                          "start",
+                          "end"
+                        ]
+                      },
+                      "offsetSec": {
+                        "default": 0,
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "edge"
+                    ],
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "The link between the regions breaks; the outage clock starts."
+              },
+              "promote": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word"
+                      },
+                      "index": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "index"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word_text"
+                      },
+                      "text": {
+                        "type": "string",
+                        "pattern": "^\\S+$"
+                      },
+                      "occurrence": {
+                        "default": 1,
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "beat"
+                      },
+                      "edge": {
+                        "type": "string",
+                        "enum": [
+                          "start",
+                          "end"
+                        ]
+                      },
+                      "offsetSec": {
+                        "default": 0,
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "edge"
+                    ],
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "The far replica, cut off, takes the role badge too."
+              },
+              "writes": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word"
+                      },
+                      "index": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "index"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word_text"
+                      },
+                      "text": {
+                        "type": "string",
+                        "pattern": "^\\S+$"
+                      },
+                      "occurrence": {
+                        "default": 1,
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "beat"
+                      },
+                      "edge": {
+                        "type": "string",
+                        "enum": [
+                          "start",
+                          "end"
+                        ]
+                      },
+                      "offsetSec": {
+                        "default": 0,
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "edge"
+                    ],
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "Each side accepts a different write."
+              },
+              "heal": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word"
+                      },
+                      "index": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "index"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "word_text"
+                      },
+                      "text": {
+                        "type": "string",
+                        "pattern": "^\\S+$"
+                      },
+                      "occurrence": {
+                        "default": 1,
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "beat"
+                      },
+                      "edge": {
+                        "type": "string",
+                        "enum": [
+                          "start",
+                          "end"
+                        ]
+                      },
+                      "offsetSec": {
+                        "default": 0,
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "edge"
+                    ],
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "The link returns: the clock stops and the conflict shows."
+              }
+            },
+            "required": [
+              "steady",
+              "partition",
+              "promote",
+              "writes",
+              "heal"
+            ],
+            "additionalProperties": false,
+            "description": "Narration anchors: the word (or beat edge) for each moment."
+          }
+        },
+        "required": [
+          "leader",
+          "replica",
+          "outage",
+          "writes",
+          "conflict",
+          "at"
+        ],
+        "additionalProperties": false
+      },
+      "example": {
+        "id": "<example-split_brain-id>",
+        "pattern": "split_brain",
+        "params": {
+          "leader": {
+            "title": "<example-leader>",
+            "icon": "database"
+          },
+          "replica": {
+            "title": "<example-replica>",
+            "icon": "database"
+          },
+          "outage": {
+            "sec": 43
+          },
+          "lease": {
+            "durationSec": 10
+          },
+          "writes": {
+            "leader": "<example-write-a>",
+            "replica": "<example-write-b>"
+          },
+          "conflict": "<example-conflict>",
+          "at": {
+            "steady": {
+              "type": "word",
+              "index": 0
+            },
+            "partition": {
+              "type": "word",
+              "index": 1
+            },
+            "promote": {
+              "type": "word",
+              "index": 2
+            },
+            "writes": {
+              "type": "word",
+              "index": 3
+            },
+            "heal": {
+              "type": "word",
+              "index": 4
             }
           }
         }

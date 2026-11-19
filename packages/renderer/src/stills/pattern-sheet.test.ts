@@ -1,6 +1,7 @@
 import { validateRenderableVideoSpec } from '@explainer-studio/shared';
 import { describe, expect, it } from 'vitest';
 import { patternBoardSpecs, patternFlowBoardSpec } from '../../fixtures/index.ts';
+import patternDecisionBoardJson from '../../fixtures/pattern-decision-board.json';
 import patternFlowBoardJson from '../../fixtures/pattern-flow-board.json';
 import { DEFAULT_REGISTRIES } from '../catalog/registries.ts';
 import { withRegistryChecks } from '../catalog/validate.ts';
@@ -16,7 +17,10 @@ import {
 
 const FPS = 30;
 
-const boards = [['pattern-flow-board', patternFlowBoardJson]] as const;
+const boards = [
+  ['pattern-flow-board', patternFlowBoardJson],
+  ['pattern-decision-board', patternDecisionBoardJson],
+] as const;
 
 describe.each(boards)('%s fixture', (_name, json) => {
   it('passes validation and the registry checks with no warnings', () => {

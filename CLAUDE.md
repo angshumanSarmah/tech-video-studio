@@ -302,8 +302,8 @@ to `docs/patterns/<id>.png` (a panel per narration anchor, elements in one row p
   with every action and part action it supports), plus `InsetRevealBoard`
   (`fixtures/inset-reveal-board.json`). Each board is a valid Short (≤ 90 s), so a new
   batch of primitives gets a new board, listed in `primitiveBoardSpecs` (`fixtures/index.ts`).
-  Pattern boards (`PatternFlowBoard`, `patternBoardSpecs`) have one beat per pattern with every
-  anchor, and no scene `layoutMode` (each beat takes its pattern's).
+  Pattern boards (`PatternFlowBoard`, `PatternDecisionBoard`; `patternBoardSpecs`) have one beat
+  per pattern with every anchor, and no scene `layoutMode` (each beat takes its pattern's).
 - **HUD** (`src/hud`): top bar, step tracker, hero metric pill, chapter header, story clock and
   headline. Slots come from `hudLayout(theme)` (derived from `safeAreas`); what each part shows at
   a frame comes from pure functions in `hud-state.ts`. Parts are toggled per video in `spec.hud`
@@ -406,12 +406,13 @@ to `docs/patterns/<id>.png` (a panel per narration anchor, elements in one row p
   `command_bubble` ~30 chars/s capped at 1.5 s, `data_block` 0.35 s per field; a `connector`
   packet takes 0.9 s, a `packet_stream` packet 1.2 s, `route_path` draws in 1.5 s,
   `segmented_time_bar` fills 0.35 s per segment capped at 1.5 s). Only
-  `timer_ring` runs for narration time: `count` starts it, and its speed is derived, never
+  `timer_ring` (and a `ticking` `counter`, below) runs for narration time: `count` starts it, and its speed is derived, never
   authored (`durationSec / runSec.count`, at least 1), so it reaches 00:00 exactly on the
   `reject` word (expiry, red flash) or, without one, at the element's `exit` or the end of the
   beat, where it holds 00:00. A "⏩ N×" tag shows from `count` on (fading in like an `enter`) when it runs faster
-  than real time. Every
-  visible change comes from an event.
+  than real time. A `counter` with `ticking: true` runs the same way (`tickProgress`: linear over
+  `runSec.count`, landing on `value` at its `reject`), for clocks that count up (an outage).
+  Every visible change comes from an event.
 - **`runSec[action]`** (`actionRunSec`) is how long an occurrence runs, from resolved event
   times: until the element's next `reject`; without one, until its next `exit` or the end of the
   beat it is anchored in (`ElementEvent.beatEndSec`), whichever comes first.

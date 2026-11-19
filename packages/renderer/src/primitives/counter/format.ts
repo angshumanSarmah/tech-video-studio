@@ -27,3 +27,18 @@ export function countValueAt(from: number, to: number, progress: number, decimal
   const factor = 10 ** decimals;
   return Math.round((from + (to - from) * progress) * factor) / factor;
 }
+
+/**
+ * Linear progress of a `ticking` count: seconds since `count` (`ElementState.elapsed.count`) over
+ * the seconds the count runs (`ElementState.runSec.count`: until the `reject`, else the `exit` or
+ * the end of its beat), so the count reaches its value exactly then. Undefined without a `count`
+ * event; 1 for a count with no time to run.
+ */
+export function tickProgress(
+  elapsedSec: number | undefined,
+  runSec: number | undefined,
+): number | undefined {
+  if (elapsedSec === undefined) return undefined;
+  if (runSec === undefined || runSec <= 0) return 1;
+  return Math.min(1, elapsedSec / runSec);
+}

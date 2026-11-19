@@ -74,6 +74,12 @@ describe('pattern registry', () => {
       'converge_adapter',
       'cache_hit_miss',
       'worker_pool',
+      'brute_force_then_index',
+      'versus_split',
+      'inference_card',
+      'pick_by_rule',
+      'failover',
+      'split_brain',
     ]);
     expect(getPattern('fan_out')?.layoutMode).toBe('pipeline');
     expect(getPattern('node_box')).toBeUndefined();

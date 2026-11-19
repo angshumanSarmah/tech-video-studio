@@ -46,7 +46,7 @@ export const cacheHitMissPattern = definePattern({
       'Caching, CDNs and any near/far trade-off: cache vs database, edge vs origin, memory vs ' +
       'disk, KV cache vs recomputation.',
     whenNotToUse:
-      'Comparing two whole designs side by side (a versus split); a flood of requests on one ' +
+      'Comparing two whole designs side by side (use `versus_split`); a flood of requests on one ' +
       'node (use `flood_then_funnel`).',
   },
   example: {

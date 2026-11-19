@@ -1,0 +1,443 @@
+{
+  "schemaVersion": 1,
+  "meta": {
+    "id": "pattern-decision-board",
+    "series": "system-design",
+    "title": "Decision pattern board",
+    "topicClass": "concept",
+    "targetLengthSec": 79
+  },
+  "hud": {
+    "heroMetric": false,
+    "storyClock": false,
+    "headline": false
+  },
+  "story": {
+    "devices": [],
+    "ending": {
+      "kind": "summary"
+    },
+    "chapters": [
+      {
+        "id": "search",
+        "title": "Search"
+      },
+      {
+        "id": "decide",
+        "title": "Decide"
+      },
+      {
+        "id": "lead",
+        "title": "Lead"
+      }
+    ],
+    "beats": [
+      {
+        "id": "brute-force-then-index",
+        "chapterId": "search",
+        "intent": "Show the brute_force_then_index pattern with each of its anchors",
+        "targetSec": 14
+      },
+      {
+        "id": "versus-split",
+        "chapterId": "search",
+        "intent": "Show the versus_split pattern with each of its anchors",
+        "targetSec": 10
+      },
+      {
+        "id": "inference-card",
+        "chapterId": "decide",
+        "intent": "Show the inference_card pattern with each of its anchors",
+        "targetSec": 13
+      },
+      {
+        "id": "pick-by-rule",
+        "chapterId": "decide",
+        "intent": "Show the pick_by_rule pattern with each of its anchors",
+        "targetSec": 14
+      },
+      {
+        "id": "failover",
+        "chapterId": "lead",
+        "intent": "Show the failover pattern with each of its anchors",
+        "targetSec": 13
+      },
+      {
+        "id": "split-brain",
+        "chapterId": "lead",
+        "intent": "Show the split_brain pattern with each of its anchors",
+        "targetSec": 15
+      }
+    ]
+  },
+  "script": [
+    {
+      "beatId": "brute-force-then-index",
+      "narration": "To find order 512, the app checks every row one by one. Checking all of them is slow. An index on the order id points straight at the row, and it is found in one lookup."
+    },
+    {
+      "beatId": "versus-split",
+      "narration": "Here are two setups side by side. The same burst of ten thousand writes hits both. The lone database chokes, while the queued setup absorbs it."
+    },
+    {
+      "beatId": "inference-card",
+      "narration": "The model reads the order's features: three items, two kilometres, dinner hour. It weighs them, and the prep time flips from unknown to fourteen minutes. Change the hour to lunch and it predicts nine."
+    },
+    {
+      "beatId": "pick-by-rule",
+      "narration": "Three riders sit inside the two kilometre ring. The nearest one looks obvious, but would wait at the counter, so that pick is crossed out. The rider who arrives just as the food is ready wins."
+    },
+    {
+      "beatId": "failover",
+      "narration": "Writes go to the leader and copy to two followers. Then the leader dies and its links break. A follower takes the crown, and the writer and the other follower reconnect to it."
+    },
+    {
+      "beatId": "split-brain",
+      "narration": "Two regions share one leader. Then the link between them snaps, and the clock starts. The far replica, cut off, crowns itself. Each side takes a different booking for seat H3. When the link heals, two leaders hold conflicting data."
+    }
+  ],
+  "scenes": [
+    {
+      "beatId": "brute-force-then-index",
+      "kind": "board",
+      "elements": [],
+      "patterns": [
+        {
+          "id": "brute-force-then-index",
+          "pattern": "brute_force_then_index",
+          "params": {
+            "items": ["#101", "#204", "#317", "#512", "#640", "#733", "#845", "#956"],
+            "target": "#512",
+            "index": {
+              "title": "Index",
+              "icon": "key"
+            },
+            "at": {
+              "scan": {
+                "type": "word_text",
+                "text": "checks"
+              },
+              "slow": {
+                "type": "word_text",
+                "text": "slow"
+              },
+              "index": {
+                "type": "word_text",
+                "text": "index"
+              },
+              "found": {
+                "type": "word_text",
+                "text": "found"
+              }
+            }
+          }
+        }
+      ],
+      "events": [],
+      "focus": ["brute-force-then-index"]
+    },
+    {
+      "beatId": "versus-split",
+      "kind": "board",
+      "elements": [],
+      "patterns": [
+        {
+          "id": "versus-split",
+          "pattern": "versus_split",
+          "params": {
+            "event": "10K WRITES",
+            "left": {
+              "title": "Queue + DB",
+              "icon": "list",
+              "verdict": "ABSORBED",
+              "outcome": "ok"
+            },
+            "right": {
+              "title": "DB alone",
+              "icon": "database",
+              "verdict": "WRITES DROPPED",
+              "outcome": "problem"
+            },
+            "at": {
+              "show": {
+                "type": "word_text",
+                "text": "setups"
+              },
+              "event": {
+                "type": "word_text",
+                "text": "burst"
+              },
+              "verdict": {
+                "type": "word_text",
+                "text": "chokes"
+              }
+            }
+          }
+        }
+      ],
+      "events": [],
+      "focus": ["versus-split"]
+    },
+    {
+      "beatId": "inference-card",
+      "kind": "board",
+      "elements": [],
+      "patterns": [
+        {
+          "id": "inference-card",
+          "pattern": "inference_card",
+          "params": {
+            "title": "ORDER 4127",
+            "features": [
+              {
+                "key": "items",
+                "value": 3
+              },
+              {
+                "key": "distance_km",
+                "value": 2
+              },
+              {
+                "key": "hour",
+                "value": "dinner"
+              }
+            ],
+            "model": {
+              "title": "Prep model",
+              "icon": "cpu"
+            },
+            "prediction": {
+              "value": 14,
+              "unit": "MIN",
+              "label": "PREP TIME"
+            },
+            "comparison": {
+              "title": "SAME ORDER, LUNCH",
+              "features": [
+                {
+                  "key": "hour",
+                  "value": "lunch"
+                }
+              ],
+              "prediction": {
+                "value": 9,
+                "unit": "MIN"
+              }
+            },
+            "at": {
+              "inputs": {
+                "type": "word_text",
+                "text": "reads"
+              },
+              "model": {
+                "type": "word_text",
+                "text": "weighs"
+              },
+              "predict": {
+                "type": "word_text",
+                "text": "flips"
+              },
+              "compare": {
+                "type": "word_text",
+                "text": "change"
+              }
+            }
+          }
+        }
+      ],
+      "events": [],
+      "focus": ["inference-card"]
+    },
+    {
+      "beatId": "pick-by-rule",
+      "kind": "board",
+      "elements": [],
+      "patterns": [
+        {
+          "id": "pick-by-rule",
+          "pattern": "pick_by_rule",
+          "params": {
+            "target": {
+              "title": "Order 4127",
+              "icon": "package"
+            },
+            "radius": "2 KM",
+            "candidates": [
+              {
+                "id": "r1",
+                "title": "Rider 1",
+                "detail": "400 M · ETA 1:00",
+                "icon": "bike"
+              },
+              {
+                "id": "r2",
+                "title": "Rider 2",
+                "detail": "1.2 KM · ETA 3:00",
+                "icon": "bike"
+              },
+              {
+                "id": "r3",
+                "title": "Rider 3",
+                "detail": "1.8 KM · ETA 5:00",
+                "icon": "bike"
+              }
+            ],
+            "obvious": {
+              "candidate": "r1",
+              "reason": "NEAREST"
+            },
+            "pick": {
+              "candidate": "r2",
+              "reason": "ETA 3:00 = PREP 3:00"
+            },
+            "at": {
+              "show": {
+                "type": "word_text",
+                "text": "riders"
+              },
+              "obvious": {
+                "type": "word_text",
+                "text": "obvious"
+              },
+              "cross": {
+                "type": "word_text",
+                "text": "crossed"
+              },
+              "pick": {
+                "type": "word_text",
+                "text": "wins"
+              }
+            }
+          }
+        }
+      ],
+      "events": [],
+      "focus": ["pick-by-rule"]
+    },
+    {
+      "beatId": "failover",
+      "kind": "board",
+      "elements": [],
+      "patterns": [
+        {
+          "id": "failover",
+          "pattern": "failover",
+          "params": {
+            "writer": {
+              "title": "App server",
+              "icon": "server"
+            },
+            "leader": {
+              "title": "Primary",
+              "icon": "database"
+            },
+            "followers": [
+              {
+                "title": "Replica 1",
+                "icon": "database"
+              },
+              {
+                "title": "Replica 2",
+                "icon": "database"
+              }
+            ],
+            "at": {
+              "steady": {
+                "type": "word_text",
+                "text": "go"
+              },
+              "fail": {
+                "type": "word_text",
+                "text": "dies"
+              },
+              "promote": {
+                "type": "word_text",
+                "text": "crown"
+              },
+              "reroute": {
+                "type": "word_text",
+                "text": "reconnect"
+              }
+            }
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "follower"
+          },
+          "action": "highlight",
+          "targets": ["failover/follower-1"]
+        }
+      ],
+      "focus": ["failover"]
+    },
+    {
+      "beatId": "split-brain",
+      "kind": "board",
+      "elements": [],
+      "patterns": [
+        {
+          "id": "split-brain",
+          "pattern": "split_brain",
+          "params": {
+            "leader": {
+              "title": "Leader A",
+              "icon": "database"
+            },
+            "replica": {
+              "title": "Replica B",
+              "icon": "database"
+            },
+            "outage": {
+              "sec": 43
+            },
+            "lease": {
+              "durationSec": 10
+            },
+            "writes": {
+              "leader": "H3 → ASHA",
+              "replica": "H3 → RAVI"
+            },
+            "conflict": "Seat H3 sold twice: two leaders, two truths",
+            "at": {
+              "steady": {
+                "type": "word_text",
+                "text": "share"
+              },
+              "partition": {
+                "type": "word_text",
+                "text": "snaps"
+              },
+              "promote": {
+                "type": "word_text",
+                "text": "crowns"
+              },
+              "writes": {
+                "type": "word_text",
+                "text": "booking"
+              },
+              "heal": {
+                "type": "word_text",
+                "text": "heals"
+              }
+            }
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "conflicting"
+          },
+          "action": "pulse",
+          "targets": ["split-brain/conflict"]
+        }
+      ],
+      "focus": ["split-brain"]
+    }
+  ]
+}

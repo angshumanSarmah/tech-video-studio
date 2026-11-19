@@ -41,8 +41,21 @@ describe('buildCatalogue', () => {
       'device_frame',
       'slot_grid',
     ]);
-    expect(patterns.every((p) => p.family === 'flow')).toBe(true);
-    expect(patterns.map((p) => p.id)).toEqual([...patterns.map((p) => p.id)].sort());
+    expect(patterns.map((p) => [p.family, p.id])).toEqual([
+      ['annotation', 'versus_split'],
+      ['data', 'brute_force_then_index'],
+      ['data', 'inference_card'],
+      ['spatial', 'pick_by_rule'],
+      ['flow', 'atomic_lock'],
+      ['flow', 'cache_hit_miss'],
+      ['flow', 'converge_adapter'],
+      ['flow', 'failover'],
+      ['flow', 'fan_out'],
+      ['flow', 'flood_then_funnel'],
+      ['flow', 'reject_duplicate'],
+      ['flow', 'split_brain'],
+      ['flow', 'worker_pool'],
+    ]);
     const tag = primitives.find((p) => p.id === 'tag');
     expect(Object.keys(tag ?? {})).toEqual([
       'id',

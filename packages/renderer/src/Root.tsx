@@ -3,6 +3,7 @@ import {
   fixtureChannelHandle,
   fixtureSeries,
   insetRevealBoardSpec,
+  patternDecisionBoardSpec,
   patternFlowBoardSpec,
   primitivesBoardSpec,
   rateLimiterSpec,
@@ -40,6 +41,11 @@ const spatialFlowDefaults: VideoFromSpecProps = { ...videoDefaults, spec: spatia
 const insetRevealDefaults: VideoFromSpecProps = { ...videoDefaults, spec: insetRevealBoardSpec };
 
 const patternFlowDefaults: VideoFromSpecProps = { ...videoDefaults, spec: patternFlowBoardSpec };
+
+const patternDecisionDefaults: VideoFromSpecProps = {
+  ...videoDefaults,
+  spec: patternDecisionBoardSpec,
+};
 
 /** Remotion root. Duration and fps of the spec compositions come from `calculateMetadata`. */
 export function Root() {
@@ -103,6 +109,16 @@ export function Root() {
         fps={FINAL_FPS}
         durationInFrames={1}
         defaultProps={patternFlowDefaults}
+        calculateMetadata={calculateVideoMetadata}
+      />
+      <Composition
+        id="PatternDecisionBoard"
+        component={VideoFromSpec}
+        width={canvas.width}
+        height={canvas.height}
+        fps={FINAL_FPS}
+        durationInFrames={1}
+        defaultProps={patternDecisionDefaults}
         calculateMetadata={calculateVideoMetadata}
       />
       <Still

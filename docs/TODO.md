@@ -169,7 +169,8 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       dimming, fold the scrim into it (overlays as the focus set) so dimming has one source.
 - [ ] **P1A.10 — Part stagger.** An event naming several parts (`params.parts: [a, b, c]`)
       starts them together. P1A.10's group stagger should apply to parts too (in
-      `elementState`, so components stay unchanged).
+      `elementState`, so components stay unchanged). `brute_force_then_index` relies on it: its
+      scan rejects every item in one event and should read as a one-by-one sweep.
 - [ ] **P1B.1 / P1B.2 — Word contract.** Word anchors and `timing.beats[].words` count words with
       `narrationWords()` from `packages/shared`. Map TTS tokens back onto that list so the
       timed word count equals it (enforced by `validateVideoSpec`). Cases the mapping must
@@ -235,6 +236,14 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
   - `atomic_lock` (hub_spoke): the hold timer and the bounce tag sit in `aside`; they belong
     attached to the resource and the second request (attachments, P1A.9).
   - `cache_hit_miss` (near_far): the HIT and MISS tags belong attached to their links.
+  - `inference_card` (pipeline): the comparison row (`compare-features`, `compare-prediction`)
+    sits in `aside`; it is a second, parallel lane through the same model.
+  - `failover` (pipeline): the leader and followers share the `sink` tier and replicate to each
+    other inside it; the writer's arrow moves within that tier on the reroute.
+  - `brute_force_then_index` (centered_focus): the index sits `around` the grid and points into
+    one slot; a connector to a part (`jump` → `item-<n>`) needs part endpoints.
+  - `split_brain` (versus_split): `link`, `cut` and `restored` join the same two nodes and never
+    show together; they should share one path.
   - A pattern's mode is static per definition; a pattern that wants a different mode by params
     would move `layoutMode` into the expansion.
 - [ ] **P1A.10 — Recovering from `reject`.** A `reject` is held for good: no later event clears
@@ -248,5 +257,9 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **Inner targets beyond events.** `<instance>/<id>` works in `events[].targets` only.
       `focus` ids and element refs from spec elements (a connector from a spec element to an inner
       element) still take plain ids.
+- [ ] **`atomic_lock` hold timer.** Without a `reject`, a `timer_ring` runs out at the end of
+      its beat, so the 10-minute hold reaches 00:00 as the beat ends even though the story never
+      says it expired. A timer that keeps its real pace (or stops at its `exit`) needs a
+      `timer_ring` option.
 - [ ] **Catalogue — nested params.** The markdown params table shows object params (a pattern's
       `resource: { title, icon }`) as `object` without their fields; the JSON schema has them.

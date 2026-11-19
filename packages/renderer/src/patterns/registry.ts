@@ -7,11 +7,17 @@ import {
   type PatternExpansion,
 } from './types.ts';
 import { atomicLockPattern } from './atomic-lock/definition.ts';
+import { bruteForceThenIndexPattern } from './brute-force-then-index/definition.ts';
 import { cacheHitMissPattern } from './cache-hit-miss/definition.ts';
 import { convergeAdapterPattern } from './converge-adapter/definition.ts';
+import { failoverPattern } from './failover/definition.ts';
 import { fanOutPattern } from './fan-out/definition.ts';
 import { floodThenFunnelPattern } from './flood-then-funnel/definition.ts';
+import { inferenceCardPattern } from './inference-card/definition.ts';
+import { pickByRulePattern } from './pick-by-rule/definition.ts';
 import { rejectDuplicatePattern } from './reject-duplicate/definition.ts';
+import { splitBrainPattern } from './split-brain/definition.ts';
+import { versusSplitPattern } from './versus-split/definition.ts';
 import { workerPoolPattern } from './worker-pool/definition.ts';
 
 export { expansionProblems } from './expansion-checks.ts';
@@ -28,6 +34,12 @@ export const PATTERN_DEFINITIONS: readonly AnyPatternDefinition[] = [
   convergeAdapterPattern,
   cacheHitMissPattern,
   workerPoolPattern,
+  bruteForceThenIndexPattern,
+  versusSplitPattern,
+  inferenceCardPattern,
+  pickByRulePattern,
+  failoverPattern,
+  splitBrainPattern,
 ];
 
 export type PatternRegistry = ReadonlyMap<string, AnyPatternDefinition>;
