@@ -5,6 +5,7 @@ import {
   type RenderableVideoSpec,
 } from '@explainer-studio/shared';
 import { ACTION_DURATION_SEC } from '../primitives/element-state.ts';
+import { eventParts } from '../primitives/parts.ts';
 import { anchorToTime, secToFrame } from '../timing/frames.ts';
 
 /**
@@ -15,6 +16,27 @@ import { anchorToTime, secToFrame } from '../timing/frames.ts';
  */
 
 export type SheetPanel = { caption: string; frame: number };
+
+export const SHEET_COLUMNS = 2;
+
+/** Height the panel grid gets on a 1920 px sheet (padding and header taken off). */
+const GRID_HEIGHT = 1580;
+const ROW_GAP = 24;
+/** Panel chrome: a caption of up to two lines, its rule and the panel padding. */
+const PANEL_CHROME = 110;
+/** Panel width (1080 px sheet, two columns) minus padding and room for corner badges. */
+const PANEL_INNER_WIDTH = 380;
+const PANEL_INNER_MAX_HEIGHT = 400;
+
+/** Room for the element inside each panel, so every row of panels fits the sheet. */
+export function panelInner(panelCount: number): { width: number; height: number } {
+  const rows = Math.max(1, Math.ceil(panelCount / SHEET_COLUMNS));
+  const rowHeight = (GRID_HEIGHT - (rows - 1) * ROW_GAP) / rows;
+  return {
+    width: PANEL_INNER_WIDTH,
+    height: Math.min(PANEL_INNER_MAX_HEIGHT, Math.floor(rowHeight - PANEL_CHROME)),
+  };
+}
 
 export type SheetPlan = { beatId: string; elementId: string; panels: SheetPanel[] };
 
@@ -40,7 +62,7 @@ export function planPrimitiveSheet(
     .filter((e) => e.targets.includes(element.id))
     .flatMap((e) => {
       const time = anchorToTime(e.at, beat, narration, fps);
-      const caption = `${anchorCaption(e.at, words)} · ${e.action}`;
+      const caption = `${anchorCaption(e.at, words)} · ${actionCaption(e.action, e.params)}`;
       return time ? [{ frame: time.frame, action: e.action, caption }] : [];
     })
     .sort((a, b) => a.frame - b.frame);
@@ -53,6 +75,12 @@ export function planPrimitiveSheet(
     return { caption: event.caption, frame };
   });
   return { beatId: scene.beatId, elementId: element.id, panels };
+}
+
+/** The action, followed by the parts it names: `lock h3+h4`. */
+export function actionCaption(action: string, params: Record<string, unknown> | undefined): string {
+  const parts = eventParts(params);
+  return parts ? `${action} ${parts.join('+')}` : action;
 }
 
 /** `@"word"` for word anchors, `start+0.2s` / `end-0.5s` for beat edges. */

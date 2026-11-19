@@ -2,16 +2,25 @@ import type { ComponentType } from 'react';
 import type { z } from 'zod';
 import type { PrimitiveComponentProps } from './component-props.ts';
 import { CommandBubble } from './command-bubble/CommandBubble.tsx';
+import { Connector } from './connector/Connector.tsx';
+import { ConveyorQueue } from './conveyor-queue/ConveyorQueue.tsx';
 import { CounterTransition } from './counter-transition/CounterTransition.tsx';
 import { Counter } from './counter/Counter.tsx';
 import { DataBlock } from './data-block/DataBlock.tsx';
 import { FormulaCard } from './formula-card/FormulaCard.tsx';
+import { GridOverlay } from './grid-overlay/GridOverlay.tsx';
 import { Icon } from './icon/Icon.tsx';
 import { ItemIcon } from './item-icon/ItemIcon.tsx';
+import { MapBase } from './map-base/MapBase.tsx';
 import { NodeCard } from './node-card/NodeCard.tsx';
+import { PacketStream } from './packet-stream/PacketStream.tsx';
+import { RoutePath } from './route-path/RoutePath.tsx';
+import { SegmentedTimeBar } from './segmented-time-bar/SegmentedTimeBar.tsx';
+import { SlotGrid } from './slot-grid/SlotGrid.tsx';
 import { StatCard } from './stat-card/StatCard.tsx';
 import { Tag } from './tag/Tag.tsx';
 import { TimerRing } from './timer-ring/TimerRing.tsx';
+import { ZonePolygon } from './zone-polygon/ZonePolygon.tsx';
 import type { PRIMITIVE_DEFINITIONS, PrimitiveId } from './registry.ts';
 
 type Definition<K extends PrimitiveId> = Extract<(typeof PRIMITIVE_DEFINITIONS)[number], { id: K }>;
@@ -30,6 +39,15 @@ const COMPONENTS = {
   data_block: DataBlock,
   command_bubble: CommandBubble,
   formula_card: FormulaCard,
+  connector: Connector,
+  route_path: RoutePath,
+  packet_stream: PacketStream,
+  conveyor_queue: ConveyorQueue,
+  zone_polygon: ZonePolygon,
+  grid_overlay: GridOverlay,
+  slot_grid: SlotGrid,
+  segmented_time_bar: SegmentedTimeBar,
+  map_base: MapBase,
 } satisfies { [K in PrimitiveId]: ComponentType<PrimitiveComponentProps<PropsOf<K>>> };
 
 /** The component for a primitive id. Callers pass props already parsed by its schema. */

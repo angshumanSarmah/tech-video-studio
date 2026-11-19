@@ -10,18 +10,18 @@ import {
 } from '@explainer-studio/shared';
 import type { z } from 'zod';
 import { DEFAULT_REGISTRIES, type Registries } from './registries.ts';
+import { elementRefErrors, partErrors } from './relation-checks.ts';
+import { sceneScopes, type Scope, type ScopeEntry } from './scope.ts';
 
 /**
  * Registry checks for a spec's scenes: primitive and pattern ids exist, props and params match
- * their schemas, and events only use actions their targets support (errors), and asset ids exist
+ * their schemas, events only use actions their targets (or the parts they name) support, props
+ * only point to elements in the beat's scope (errors), and asset ids exist
  * (`unknown_asset` warnings: the scene layer draws a placeholder, agents repair it). Kept out of
  * `validateVideoSpec` because `packages/shared` cannot see the renderer's registries.
  */
 
 type Path = (string | number)[];
-
-/** What an id in a beat's scope refers to: a registry entry, or one we already reported. */
-type ScopeEntry = { label: string; actions: readonly string[] | undefined };
 
 /**
  * Adds registry errors and warnings to a `validateVideoSpec` / `validateRenderableVideoSpec`
@@ -54,11 +54,15 @@ export function findRegistryErrors(
 ): SpecError[] {
   const scenes = spec.scenes ?? [];
   const scopes = sceneScopes(scenes, registries);
-  return scenes.flatMap((scene, i) => [
-    ...elementErrors(scene, i, registries),
-    ...patternErrors(scene, i, registries),
-    ...actionErrors(scene, i, scopes[i] ?? new Map<string, ScopeEntry>()),
-  ]);
+  return scenes.flatMap((scene, i) => {
+    const scope: Scope = scopes[i] ?? new Map<string, ScopeEntry>();
+    return [
+      ...elementErrors(scene, i, registries),
+      ...patternErrors(scene, i, registries),
+      ...actionErrors(scene, i, scope),
+      ...elementRefErrors(scene, i, scope, registries),
+    ];
+  });
 }
 
 /** Warnings never make a spec invalid; agent output treats them as failures (repair loop). */
@@ -135,34 +139,20 @@ function unknownId(
   };
 }
 
-/** Ids each scene may target, with the actions they support; inherits through `continuesPrevious`. */
-function sceneScopes(scenes: readonly BeatScene[], registries: Registries) {
-  const scopes: Map<string, ScopeEntry>[] = [];
-  scenes.forEach((scene, i) => {
-    const inherited = scene.continuesPrevious && i > 0 ? (scopes[i - 1] ?? []) : [];
-    const scope = new Map<string, ScopeEntry>(inherited);
-    for (const e of scene.elements) {
-      const definition = registries.primitives.get(e.primitive);
-      scope.set(e.id, { label: e.primitive, actions: definition?.actions });
-    }
-    for (const p of scene.patterns) {
-      const definition = registries.patterns.get(p.pattern);
-      scope.set(p.id, { label: p.pattern, actions: definition?.actions });
-    }
-    scopes.push(scope);
-  });
-  return scopes;
-}
-
-/** Unknown targets are reported by the shape checks, unknown registry ids above; skip both here. */
-function actionErrors(scene: BeatScene, i: number, scope: Map<string, ScopeEntry>): SpecError[] {
-  return scene.events.flatMap((event, e) =>
-    event.targets.flatMap((target, t) => {
+/**
+ * Unknown targets are reported by the shape checks, unknown registry ids above; skip both here.
+ * An event that names parts is checked against its target's part actions instead.
+ */
+function actionErrors(scene: BeatScene, i: number, scope: Scope): SpecError[] {
+  return scene.events.flatMap((event, e) => {
+    const parts = partErrors(event, ['scenes', i, 'events', e], scope);
+    if (parts) return parts;
+    return event.targets.flatMap((target, t) => {
       const entry = scope.get(target);
       if (!entry?.actions || entry.actions.includes(event.action)) return [];
       return [unsupportedAction(['scenes', i, 'events', e, 'targets', t], event, target, entry)];
-    }),
-  );
+    });
+  });
 }
 
 function unsupportedAction(

@@ -197,6 +197,151 @@ describe('withRegistryChecks', () => {
   });
 });
 
+describe('parts', () => {
+  /** The valid spec with a seat grid in beat 0 and an event at `scenes[0].events[5]`. */
+  const withSeats = (event: Record<string, unknown>) => {
+    const input = registryValidSpec();
+    input.scenes[0]?.elements?.push({
+      id: 'seats',
+      primitive: 'slot_grid',
+      props: {
+        kind: 'seats',
+        slots: [
+          { id: 'h3', label: 'H3' },
+          { id: 'h4', label: 'H4' },
+        ],
+      },
+    });
+    input.scenes[0]?.events?.push({
+      at: { type: 'word', index: 0 },
+      targets: ['seats'],
+      ...event,
+    } as never);
+    return input;
+  };
+
+  it('accepts events on known parts with a part action', () => {
+    const result = check(withSeats({ action: 'lock', params: { parts: ['h3', 'h4'] } }));
+    expect(result.errors).toEqual([]);
+  });
+
+  it('checks the action against the part actions, not the element actions', () => {
+    expect(check(withSeats({ action: 'lock' })).errors).toEqual([
+      expect.objectContaining({
+        path: '$.scenes[0].events[5].targets[0]',
+        code: 'unsupported_action',
+      }),
+    ]);
+    expect(check(withSeats({ action: 'count', params: { parts: ['h3'] } })).errors).toEqual([
+      {
+        path: '$.scenes[0].events[5].action',
+        code: 'unsupported_action',
+        message:
+          'Parts of "seats" (slot_grid) do not support "count". ' +
+          'Supported: enter, exit, lock, highlight, reject, pulse, dim.',
+      },
+    ]);
+  });
+
+  it('rejects unknown part ids, listing the valid ones', () => {
+    expect(check(withSeats({ action: 'lock', params: { parts: ['h3', 'z9'] } })).errors).toEqual([
+      {
+        path: '$.scenes[0].events[5].params.parts[1]',
+        code: 'unknown_part',
+        message: '"seats" has no part "z9". Its parts: h3, h4.',
+      },
+    ]);
+  });
+
+  it('rejects parts on a target without parts, on several targets, and malformed parts', () => {
+    const onCard = withSeats({ action: 'lock', params: { parts: ['h3'] } });
+    Object.assign(onCard.scenes[0]?.events?.[5] ?? {}, { targets: ['api'] });
+    expect(check(onCard).errors).toEqual([
+      expect.objectContaining({ path: '$.scenes[0].events[5].params.parts', code: 'unknown_part' }),
+    ]);
+    const two = withSeats({ action: 'lock', params: { parts: ['h3'] } });
+    Object.assign(two.scenes[0]?.events?.[5] ?? {}, { targets: ['seats', 'api'] });
+    expect(check(two).errors.map((e) => e.code)).toEqual(['parts_need_one_target']);
+    const bad = withSeats({ action: 'lock', params: { parts: [] } });
+    expect(check(bad).errors.map((e) => [e.path, e.code])).toEqual([
+      ['$.scenes[0].events[5].params.parts', 'too_small'],
+    ]);
+  });
+
+  it('finds parts of elements inherited through continuesPrevious', () => {
+    const input = withSeats({ action: 'lock', params: { parts: ['h3'] } });
+    input.scenes[1]?.events?.push({
+      at: { type: 'word', index: 0 },
+      action: 'exit',
+      targets: ['seats'],
+      params: { parts: ['h4'] },
+    });
+    expect(check(input).errors).toEqual([]);
+  });
+});
+
+describe('label caps', () => {
+  it.each([
+    ['conveyor_queue', { items: [{ id: 'o1', label: 'ORD-4211' }] }, 'items'],
+    ['slot_grid', { slots: [{ id: 's1', label: 'SEAT-H12' }] }, 'slots'],
+  ])('rejects an 8-character %s label with a repairable error', (primitive, props, list) => {
+    const input = registryValidSpec();
+    input.scenes[0]?.elements?.push({ id: 'capped', primitive, props });
+    expect(check(input).errors).toEqual([
+      {
+        path: `$.scenes[0].elements[3].props.${list}[0].label`,
+        code: 'too_big',
+        message: 'Too big: expected string to have <=7 characters',
+      },
+    ]);
+  });
+});
+
+describe('element refs', () => {
+  const withElements = (...elements: Record<string, unknown>[]) => {
+    const input = registryValidSpec();
+    input.scenes[0]?.elements?.push(...elements);
+    return input;
+  };
+
+  it('accepts refs to elements in the beat', () => {
+    const link = { id: 'link', primitive: 'connector', props: { from: 'client', to: 'api' } };
+    const flow = { id: 'flow', primitive: 'packet_stream', props: { along: 'link' } };
+    expect(check(withElements(link, flow)).errors).toEqual([]);
+  });
+
+  it('rejects refs to missing elements, to itself, and to the wrong primitive', () => {
+    const link = { id: 'link', primitive: 'connector', props: { from: 'client', to: 'ghost' } };
+    const flow = { id: 'flow', primitive: 'packet_stream', props: { along: 'api' } };
+    const grid = {
+      id: 'grid',
+      primitive: 'grid_overlay',
+      props: { rows: 2, cols: 2, over: 'grid' },
+    };
+    const errors = check(withElements(link, flow, grid)).errors;
+    expect(errors.map((e) => [e.path, e.code])).toEqual([
+      ['$.scenes[0].elements[3].props.to', 'unknown_element'],
+      ['$.scenes[0].elements[4].props.along', 'invalid_element_ref'],
+      ['$.scenes[0].elements[5].props.over', 'invalid_element_ref'],
+    ]);
+    expect(errors[0]?.message).toBe(
+      'No element "ghost" in this beat. In scope: client, api, rps, flow, grid.',
+    );
+    expect(errors[1]?.message).toBe('"api" is a node_card; expected connector.');
+    expect(errors[2]?.message).toBe('"grid" cannot point to itself.');
+  });
+
+  it('resolves refs to elements of a beat it continues', () => {
+    const input = registryValidSpec();
+    input.scenes[1]?.elements?.push({
+      id: 'link',
+      primitive: 'connector',
+      props: { from: 'client', to: 'bucket' },
+    });
+    expect(check(input).errors).toEqual([]);
+  });
+});
+
 describe('findRegistryErrors', () => {
   it('is empty for a spec without scenes', () => {
     const input: Record<string, unknown> = registryValidSpec();

@@ -25,3 +25,38 @@ export function lineText(max: number, description: string) {
     .regex(/^[^\n\r]*$/, 'One line, without line breaks.')
     .describe(description);
 }
+
+/** Id of a named part (slot, cell, zone); events address it with `params.parts`. */
+export const PartIdSchema = SpecIdSchema.describe(
+  'Part id, unique in this element; events act on it with params.parts.',
+);
+
+/** Id of another element in the beat that this one points to (checked against the beat). */
+export function elementRefProp(description: string) {
+  return SpecIdSchema.describe(description);
+}
+
+/** A list of parts whose `id`s are unique within the element. */
+export function partList<T extends z.ZodType<{ id: string }>>(
+  item: T,
+  { min, max }: { min: number; max: number },
+  description: string,
+) {
+  return z
+    .array(item)
+    .min(min)
+    .max(max)
+    .superRefine((items, ctx) => {
+      const seen = new Set<string>();
+      items.forEach(({ id }, i) => {
+        if (seen.has(id)) {
+          ctx.addIssue({ code: 'custom', path: [i, 'id'], message: `Duplicate part id "${id}".` });
+        }
+        seen.add(id);
+      });
+    })
+    .describe(description);
+}
+
+/** The ids of a part list, for `parts.ids`. */
+export const idsOf = (items: readonly { id: string }[]): string[] => items.map((i) => i.id);

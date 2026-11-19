@@ -274,9 +274,11 @@ primitive to `docs/primitives/<id>.png`.
   is estimated at 2.6 words/sec. Event frames are always recomputed from word timings; the
   `timing.events` cache is never read.
 - Beat `<Sequence>`s tile the video with no gaps (each runs until the next beat starts).
-- Studio previews both compositions with `fixtures/rate-limiter.json` (no timing layer), and
-  `PrimitivesBoard` (`VideoFromSpec` over `fixtures/primitives-board.json`: one beat per primitive
-  with every action it supports).
+- Studio previews both compositions with `fixtures/rate-limiter.json` (no timing layer), and the
+  primitive boards `PrimitivesBoard` and `SpatialFlowBoard` (`VideoFromSpec` over
+  `fixtures/primitives-board.json` and `fixtures/spatial-flow-board.json`: one beat per primitive
+  with every action and part action it supports). Each board is a valid Short (≤ 90 s), so a new
+  batch of primitives gets a new board, listed in `primitiveBoardSpecs` (`fixtures/index.ts`).
 - **HUD** (`src/hud`): top bar, step tracker, hero metric pill, chapter header, story clock and
   headline. Slots come from `hudLayout(theme)` (derived from `safeAreas`); what each part shows at
   a frame comes from pure functions in `hud-state.ts`. Parts are toggled per video in `spec.hud`
@@ -301,29 +303,49 @@ primitive to `docs/primitives/<id>.png`.
   catalogue builders, as `@explainer-studio/renderer/catalog` for the worker and server.
 - **A primitive** is `primitives/<id>/definition.ts` (`definePrimitive`: id, family, strict Zod
   props schema, supported actions, `sizeHints(props, theme)`, LLM description with summary, when
-  to use and when not to, one example, and `assetRefs(props)` if it references assets) plus its
+  to use and when not to, one example, `assetRefs(props)` if it references assets,
+  `elementRefs(props)` if it points to other elements, and `parts` if events can address its
+  parts) plus its
   component, wired in `primitives/components.ts` (typecheck fails when a registered id has no
   component). Building the registry rejects duplicate or non-slug ids and examples that fail their
-  schema. Every primitive needs a beat in `fixtures/primitives-board.json` using each action it
-  supports (a test enforces it), and a sheet in `docs/primitives/` (`still:primitives <id>`).
-- **Shared pieces:** `common-props.ts` (semantic, asset id and one-line text schemas),
-  `surface.ts` (card surface), `badge.tsx` (corner badge), `motion.ts` (reject shake),
-  `typing.ts` (typing rates). Prefer them over per-primitive copies.
+  schema. Every primitive needs a beat on exactly one primitive board using each action and part
+  action it supports (a test enforces it), and a sheet in `docs/primitives/`
+  (`still:primitives <id>`; sheets shrink their panels to fit up to 10 events).
+- **Shared pieces:** `common-props.ts` (semantic, asset id, one-line text, part list and element
+  ref schemas), `surface.ts` (card surface), `badge.tsx` (corner badge; `SMALL_BADGE` on small
+  cards), `motion.ts` (reject shake), `typing.ts` (typing rates), `geometry.ts` (polylines,
+  arrowheads, `smoothstep`), `reveal.ts` (lines that draw on `enter` instead of fading in) and
+  `svg-marks.tsx` (cross and pin marks). Prefer them over per-primitive copies.
 - **Descriptions name only registered ids**, in backticks (a test checks that every backticked
-  word is a registered primitive, an action or a prop). Example strings use `<example-…>`
-  placeholders.
+  word is a registered primitive, an action, a part action or a prop). Example strings use
+  `<example-…>` placeholders; ids that must be slugs (part ids, element refs) use
+  `example-…`.
 - **Components receive only `{ theme, props, box, state }`**, never events or anchors. `state`
   comes from `elementState(events, frame, fps)` (`primitives/element-state.ts`): `presence`,
   `emphasis`, `dimmed`, per-action `actions[action]` progress and `elapsed[action]` seconds (both
-  0 while the element's first such event is still ahead, absent when it has none), and
-  `runSec[action]` (below). It is the
-  single place events become state; P1A.10 upgrades it (easing, focus, stagger) without touching
-  components.
+  0 while the element's first such event is still ahead, absent when it has none),
+  `runSec[action]` (below) and `parts` (below). It is the single place events become state;
+  P1A.10 upgrades it (easing, focus, stagger) without touching components. An element is present
+  from the start unless its first `enter`/`exit` is an `enter`, so it can exit and re-enter.
+- **Parts.** A primitive with `parts: { actions, ids(props) }` (slots, cells, zones, queue
+  items, route stops, time segments) lets an event act on named parts: `params.parts: [<id>…]`
+  with exactly one target. Those events drive only `state.parts[id]` (read it with
+  `partState(state, id)`, `IDLE_STATE` when no event names the part), under the same rules as the
+  whole element; the other events drive the element. Verbs map to existing actions, never new
+  ones: pick/take → `exit` on the part, put back → `enter`, claim → `lock`, turn red → `reject`.
+  The catalogue lists `partActions`.
+- **Element refs.** Props that point to other elements (`connector.from/to`,
+  `packet_stream.along`, `grid_overlay.over`) are declared by `elementRefs(props)`, optionally
+  limited to certain primitives. Until the layout engine (P1A.9) supplies geometry, relational
+  primitives draw a standalone path across their own box (`standalonePath`) and overlays draw on
+  their own; `BeatScene` does not connect or stack them yet.
 - **`elapsed` is measured on the global timeline**: `frame / fps` minus the event's unrounded
   resolved seconds (`ElementEvent.sec`), so a beat cut, a draft (15 fps) and the final (30 fps)
   agree, including for actions that started in an earlier beat. Effects that outlast an action's
   fixed duration use it at fixed, capped rates that never depend on beat length (`typing.ts`:
-  `command_bubble` ~30 chars/s capped at 1.5 s, `data_block` 0.35 s per field). Only
+  `command_bubble` ~30 chars/s capped at 1.5 s, `data_block` 0.35 s per field; a `connector`
+  packet takes 0.9 s, a `packet_stream` packet 1.2 s, `route_path` draws in 1.5 s,
+  `segmented_time_bar` fills 0.35 s per segment capped at 1.5 s). Only
   `timer_ring` runs for narration time: `count` starts it, and its speed is derived, never
   authored (`durationSec / runSec.count`, at least 1), so it reaches 00:00 exactly on the
   `reject` word (expiry, red flash) or, without one, at the element's `exit` or the end of the
@@ -346,7 +368,11 @@ primitive to `docs/primitives/<id>.png`.
   `validateRenderableVideoSpec`) adds registry errors in the same `{ path, code, message }` shape:
   `unknown_reference` for unknown primitive/pattern ids (the message lists valid ids), Zod issue
   codes for props/params with paths into them, and `unsupported_action` for an event action a
-  target (including one inherited through `continuesPrevious`) does not support. It also adds
+  target (including one inherited through `continuesPrevious`) does not support. For
+  `params.parts`: `unknown_part` (unknown id, or a target without parts), `parts_need_one_target`,
+  and `unsupported_action` at the event's `action` when the parts do not support it. For element
+  refs: `unknown_element` (not in the beat's scope) and `invalid_element_ref` (itself, or the
+  wrong primitive). It also adds
   `unknown_asset` **warnings** for asset ids (from `assetRefs`) missing from the asset registry:
   the spec stays valid and the placeholder is drawn, but agent output repairs them (warnings
   count as failures there) and Studio shows them.

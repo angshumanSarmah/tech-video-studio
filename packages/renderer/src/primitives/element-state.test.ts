@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { actionProgress, actionRunSec, elementState, type ElementEvent } from './element-state.ts';
+import {
+  actionProgress,
+  actionRunSec,
+  elementState,
+  IDLE_STATE,
+  partState,
+  type ElementEvent,
+} from './element-state.ts';
 
 const FPS = 30;
 const at = (action: ElementEvent['action'], frame: number, beatEndSec = 100): ElementEvent => ({
@@ -18,6 +25,7 @@ describe('elementState', () => {
       actions: {},
       elapsed: {},
       runSec: {},
+      parts: {},
     });
   });
 
@@ -28,6 +36,24 @@ describe('elementState', () => {
     expect(elementState(events, 35, FPS).presence).toBeLessThan(1);
     expect(elementState(events, 60, FPS).presence).toBe(1);
     expect(elementState(events, 200, FPS).presence).toBe(0);
+  });
+
+  it('re-enters after an exit: absent, in, out, and in again', () => {
+    const events = [at('enter', 30), at('exit', 90), at('enter', 150)];
+    expect(elementState(events, 0, FPS).presence).toBe(0);
+    expect(elementState(events, 80, FPS).presence).toBe(1);
+    expect(elementState(events, 140, FPS).presence).toBe(0);
+    const reentering = elementState(events, 155, FPS).presence;
+    expect(reentering).toBeGreaterThan(0);
+    expect(reentering).toBeLessThan(1);
+    expect(elementState(events, 200, FPS).presence).toBe(1);
+  });
+
+  it('starts present when its first presence event is an exit, and can re-enter', () => {
+    const events = [at('enter', 120), at('exit', 30)];
+    expect(elementState(events, 0, FPS).presence).toBe(1);
+    expect(elementState(events, 100, FPS).presence).toBe(0);
+    expect(elementState(events, 200, FPS).presence).toBe(1);
   });
 
   it('holds a highlight until a later dim, and holds a dim until a later highlight or enter', () => {
@@ -125,5 +151,50 @@ describe('counter state end to end', () => {
     expect(elementState(events, 0, FPS).actions.count).toBe(0);
     expect(elementState(events, 59, FPS).actions.count).toBe(0);
     expect(elementState(events, 90, FPS).actions.count).toBe(1);
+  });
+});
+
+describe('parts', () => {
+  const forParts = (event: ElementEvent, ...parts: string[]): ElementEvent => ({
+    ...event,
+    params: { parts },
+  });
+
+  it('routes events that name parts to those parts only', () => {
+    const events = [at('enter', 0), forParts(at('lock', 30), 'h3', 'h4'), at('highlight', 60)];
+    const state = elementState(events, 90, FPS);
+    expect(state.actions.lock).toBeUndefined();
+    expect(state.emphasis).toBe(1);
+    expect(Object.keys(state.parts)).toEqual(['h3', 'h4']);
+    expect(partState(state, 'h3').actions.lock).toBe(1);
+    expect(partState(state, 'h3').emphasis).toBe(0);
+  });
+
+  it('applies the element rules within a part (presence, held highlight, run time)', () => {
+    const events = [
+      forParts(at('enter', 30), 'item'),
+      forParts(at('highlight', 40), 'item'),
+      forParts(at('exit', 90), 'item'),
+    ];
+    expect(partState(elementState(events, 0, FPS), 'item').presence).toBe(0);
+    expect(partState(elementState(events, 80, FPS), 'item')).toMatchObject({
+      presence: 1,
+      emphasis: 1,
+    });
+    expect(partState(elementState(events, 200, FPS), 'item').presence).toBe(0);
+    expect(partState(elementState(events, 0, FPS), 'item').runSec.enter).toBeCloseTo(2);
+  });
+
+  it('reads an unnamed part as idle', () => {
+    const state = elementState([at('dim', 0)], 30, FPS);
+    expect(partState(state, 'seat-1')).toEqual(IDLE_STATE);
+    expect(partState(state, 'toString')).toEqual(IDLE_STATE);
+  });
+
+  it('treats malformed parts params as a whole-element event', () => {
+    const event = { ...at('highlight', 0), params: { parts: 'h3' } };
+    const state = elementState([event], 30, FPS);
+    expect(state.emphasis).toBe(1);
+    expect(state.parts).toEqual({});
   });
 });

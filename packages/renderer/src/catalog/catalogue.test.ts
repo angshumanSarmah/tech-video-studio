@@ -20,10 +20,19 @@ describe('buildCatalogue', () => {
       'command_bubble',
       'data_block',
       'formula_card',
+      'grid_overlay',
+      'map_base',
+      'route_path',
+      'zone_polygon',
+      'connector',
+      'conveyor_queue',
+      'packet_stream',
       'counter',
       'counter_transition',
+      'segmented_time_bar',
       'stat_card',
       'timer_ring',
+      'slot_grid',
     ]);
     expect(patterns).toEqual([]);
     const tag = primitives.find((p) => p.id === 'tag');
@@ -48,6 +57,33 @@ describe('buildCatalogue', () => {
       primitive: 'tag',
       props: { text: '<example-label>', semantic: 'problem' },
     });
+  });
+
+  it('lists part actions only for primitives with parts', () => {
+    const { primitives } = buildCatalogue();
+    const slots = primitives.find((p) => p.id === 'slot_grid');
+    expect(slots?.partActions).toEqual([
+      'enter',
+      'exit',
+      'lock',
+      'highlight',
+      'reject',
+      'pulse',
+      'dim',
+    ]);
+    expect(primitives.find((p) => p.id === 'connector')).not.toHaveProperty('partActions');
+  });
+
+  it('gives prompts the 7-character label cap of queue blocks and slots', () => {
+    const { primitives } = buildCatalogue();
+    const labelOf = (id: string, list: string) => {
+      const props = primitives.find((p) => p.id === id)?.props as {
+        properties: Record<string, { items: { properties: { label: unknown } } }>;
+      };
+      return props.properties[list]?.items.properties.label;
+    };
+    expect(labelOf('conveyor_queue', 'items')).toMatchObject({ maxLength: 7 });
+    expect(labelOf('slot_grid', 'slots')).toMatchObject({ maxLength: 7 });
   });
 
   it('includes patterns with their narration anchors', () => {
@@ -75,6 +111,11 @@ describe('catalogue files', () => {
     expect(md).toContain('"primitive": "counter"');
     expect(md).toMatch(/\*\*Size hint\*\* \(example, blueprint-dark\): \d+ × \d+ px/);
     expect(md).toContain('No patterns are registered yet.');
+    expect(md).toContain('**Part actions** (events with `params.parts`): `enter`, `exit`, `lock`');
+    expect(md).toContain(
+      '| `slots[].label` | string | yes | Short label on the slot, e.g. a seat number or an item name. (min length 1, max length 7) |',
+    );
+    expect(md).toMatch(/\| `items\[\]\.label` \| string \| yes \| .*max length 7\) \|/);
   });
 
   it('markdown documents registered patterns', () => {

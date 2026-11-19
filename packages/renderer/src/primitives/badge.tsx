@@ -5,6 +5,10 @@ import { textCss, type Theme } from '../theme/index.ts';
 export const BADGE = 52;
 export const BADGE_GLYPH = 30;
 
+/** A smaller badge for small cards (slots, queue blocks), so it never covers a neighbour. */
+export const SMALL_BADGE = 36;
+export const SMALL_BADGE_GLYPH = 20;
+
 type BadgeProps = {
   theme: Theme;
   colour: string;
@@ -12,20 +16,23 @@ type BadgeProps = {
   opacity: number;
   /** Top-left instead of top-right, so two badges never overlap. */
   left?: boolean;
+  /** Diameter in px; `BADGE` unless the card is small. */
+  size?: number;
   children: ReactNode;
 };
 
 /** A round badge pinned to a top corner of its (relatively positioned) parent. */
-export function Badge({ theme, colour, opacity, left, children }: BadgeProps) {
+export function Badge({ theme, colour, opacity, left, size = BADGE, children }: BadgeProps) {
   return (
     <div
       style={{
         ...textCss(theme, 'tag'),
         position: 'absolute',
-        top: -BADGE / 2,
-        ...(left ? { left: -BADGE / 2 } : { right: -BADGE / 2 }),
-        width: BADGE,
-        height: BADGE,
+        top: -size / 2,
+        ...(left ? { left: -size / 2 } : { right: -size / 2 }),
+        width: size,
+        height: size,
+        fontSize: theme.text.tag.size * (size / BADGE),
         borderRadius: theme.radius.pill,
         display: 'flex',
         alignItems: 'center',

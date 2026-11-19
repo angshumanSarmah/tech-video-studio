@@ -1,4 +1,5 @@
 import type { EventAction } from '@explainer-studio/shared';
+import { eventParts } from './parts.ts';
 
 /**
  * The single place where anchored events become per-frame element state. Components receive only
@@ -45,7 +46,30 @@ export type ElementState = {
    * without seeing events.
    */
   runSec: Partial<Record<EventAction, number>>;
+  /**
+   * State of each part named by an event's `params.parts`, from those events only (the same
+   * rules as the whole element). Parts no event names are absent: read them with `partState`.
+   */
+  parts: Record<string, PartState>;
 };
+
+/** A part's state: the same fields as the element's, without nesting. */
+export type PartState = Omit<ElementState, 'parts'>;
+
+/** A part (or element) no event acts on: present, idle. */
+export const IDLE_STATE: PartState = {
+  presence: 1,
+  emphasis: 0,
+  dimmed: 0,
+  actions: {},
+  elapsed: {},
+  runSec: {},
+};
+
+/** State of one part; `IDLE_STATE` when no event names it. */
+export function partState(state: ElementState, partId: string): PartState {
+  return Object.hasOwn(state.parts, partId) ? (state.parts[partId] ?? IDLE_STATE) : IDLE_STATE;
+}
 
 /** Seconds each action takes to play out; scaled by fps so drafts (15) match finals (30). */
 export const ACTION_DURATION_SEC: Record<EventAction, number> = {
@@ -66,12 +90,32 @@ const PRESENCE: ReadonlySet<EventAction> = new Set(['enter', 'exit']);
 const DIM_TOGGLES: ReadonlySet<EventAction> = new Set(['dim', 'highlight', 'enter']);
 const HIGHLIGHT_TOGGLES: ReadonlySet<EventAction> = new Set(['highlight', 'dim', 'exit']);
 
-/** State at global `frame`; elapsed times use `frame / fps` as the absolute video time. */
+/**
+ * State at global `frame`; elapsed times use `frame / fps` as the absolute video time. Events that
+ * name parts (`params.parts`) drive only those parts; the rest drive the whole element.
+ */
 export function elementState(
   events: readonly ElementEvent[],
   frame: number,
   fps: number,
 ): ElementState {
+  const whole = events.filter((e) => !eventParts(e.params));
+  return { ...stateOf(whole, frame, fps), parts: partStates(events, frame, fps) };
+}
+
+function partStates(events: readonly ElementEvent[], frame: number, fps: number) {
+  const byPart = new Map<string, ElementEvent[]>();
+  for (const event of events) {
+    for (const id of eventParts(event.params) ?? []) {
+      byPart.set(id, [...(byPart.get(id) ?? []), event]);
+    }
+  }
+  return Object.fromEntries(
+    [...byPart].map(([id, partEvents]) => [id, stateOf(partEvents, frame, fps)]),
+  );
+}
+
+function stateOf(events: readonly ElementEvent[], frame: number, fps: number): PartState {
   const started = events.filter((e) => e.frame <= frame).sort((a, b) => a.frame - b.frame);
   const progress = (e: ElementEvent) => actionProgress(e, frame, fps);
   const elapsed = (e: ElementEvent) => Math.max(0, frame / fps - e.sec);
@@ -124,10 +168,16 @@ export function easeOut(t: number): number {
 
 type Progress = (e: ElementEvent) => number;
 
-/** Present from the start unless the element has an `enter`; then from that `enter` until `exit`. */
+/**
+ * Present from the start unless the element's first `enter` / `exit` is an `enter` (so an element
+ * that exits and later re-enters starts present); then follows the latest one that has started.
+ */
 function presence(all: readonly ElementEvent[], started: readonly ElementEvent[], p: Progress) {
   const last = started.findLast((e) => PRESENCE.has(e.action));
-  if (!last) return all.some((e) => e.action === 'enter') ? 0 : 1;
+  if (!last) {
+    const first = [...all].sort((a, b) => a.frame - b.frame).find((e) => PRESENCE.has(e.action));
+    return first?.action === 'enter' ? 0 : 1;
+  }
   return last.action === 'enter' ? p(last) : 1 - p(last);
 }
 

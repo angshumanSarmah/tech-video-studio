@@ -23,9 +23,10 @@ describe.each(listPrimitives().map((p) => [p.id, p] as const))('primitive %s', (
     for (const text of [summary, whenToUse, whenNotToUse]) expect(text.length).toBeGreaterThan(20);
   });
 
-  it('only names registered primitives, its own actions or its own props in backticks', () => {
+  it('only names registered primitives, its own (part) actions or its own props in backticks', () => {
     const props = Object.keys(inputJsonSchema(primitive.propsSchema).properties as object);
-    const allowed = new Set([...ids, ...primitive.actions, ...props]);
+    const partActions = primitive.parts?.actions ?? [];
+    const allowed = new Set([...ids, ...primitive.actions, ...partActions, ...props]);
     const text = Object.values(primitive.description).join(' ');
     for (const [, name] of text.matchAll(/`([^`]+)`/g)) expect(allowed, name).toContain(name);
   });
@@ -36,6 +37,13 @@ describe.each(listPrimitives().map((p) => [p.id, p] as const))('primitive %s', (
     expect(hints.minHeight).toBeGreaterThan(0);
     expect(hints.preferredWidth).toBeGreaterThanOrEqual(hints.minWidth);
     expect(hints.preferredHeight).toBeGreaterThanOrEqual(hints.minHeight);
+  });
+
+  it('lists the parts of its example, without duplicates', () => {
+    if (!primitive.parts) return;
+    const partIds = primitive.parts.ids(primitive.propsSchema.parse(primitive.example.props));
+    expect(new Set(partIds).size).toBe(partIds.length);
+    for (const action of primitive.parts.actions) expect(EVENT_ACTIONS).toContain(action);
   });
 
   it('rejects unknown props', () => {

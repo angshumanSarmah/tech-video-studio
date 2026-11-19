@@ -4,6 +4,7 @@ import {
   fixtureSeries,
   primitivesBoardSpec,
   rateLimiterSpec,
+  spatialFlowBoardSpec,
 } from '../fixtures/index.ts';
 import { BeatFromSpec } from './compositions/BeatFromSpec.tsx';
 import { calculateBeatMetadata, calculateVideoMetadata } from './compositions/metadata.ts';
@@ -30,6 +31,8 @@ const videoDefaults: VideoFromSpecProps = {
 const beatDefaults: BeatFromSpecProps = { ...videoDefaults, beatId: 'bucket-empty' };
 
 const boardDefaults: VideoFromSpecProps = { ...videoDefaults, spec: primitivesBoardSpec };
+
+const spatialFlowDefaults: VideoFromSpecProps = { ...videoDefaults, spec: spatialFlowBoardSpec };
 
 /** Remotion root. Duration and fps of the spec compositions come from `calculateMetadata`. */
 export function Root() {
@@ -63,6 +66,16 @@ export function Root() {
         fps={FINAL_FPS}
         durationInFrames={1}
         defaultProps={boardDefaults}
+        calculateMetadata={calculateVideoMetadata}
+      />
+      <Composition
+        id="SpatialFlowBoard"
+        component={VideoFromSpec}
+        width={canvas.width}
+        height={canvas.height}
+        fps={FINAL_FPS}
+        durationInFrames={1}
+        defaultProps={spatialFlowDefaults}
         calculateMetadata={calculateVideoMetadata}
       />
       <Still

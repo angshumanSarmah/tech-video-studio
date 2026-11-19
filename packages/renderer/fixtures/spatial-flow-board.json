@@ -1,0 +1,1083 @@
+{
+  "schemaVersion": 1,
+  "meta": {
+    "id": "spatial-flow-board",
+    "series": "system-design",
+    "title": "Spatial and flow board",
+    "topicClass": "product-design",
+    "targetLengthSec": 72
+  },
+  "story": {
+    "devices": [],
+    "chapters": [
+      {
+        "id": "spatial",
+        "title": "Spatial"
+      },
+      {
+        "id": "flow",
+        "title": "Flow"
+      }
+    ],
+    "beats": [
+      {
+        "id": "map-base",
+        "chapterId": "spatial",
+        "intent": "Show map_base with each of its events",
+        "targetSec": 8
+      },
+      {
+        "id": "route-path",
+        "chapterId": "spatial",
+        "intent": "Show route_path with each of its events",
+        "targetSec": 8
+      },
+      {
+        "id": "zone-polygon",
+        "chapterId": "spatial",
+        "intent": "Show zone_polygon with each of its events",
+        "targetSec": 8
+      },
+      {
+        "id": "grid-overlay",
+        "chapterId": "spatial",
+        "intent": "Show grid_overlay with each of its events",
+        "targetSec": 8
+      },
+      {
+        "id": "slot-grid",
+        "chapterId": "spatial",
+        "intent": "Show slot_grid with each of its events",
+        "targetSec": 8
+      },
+      {
+        "id": "connector",
+        "chapterId": "flow",
+        "intent": "Show connector with each of its events",
+        "targetSec": 8
+      },
+      {
+        "id": "packet-stream",
+        "chapterId": "flow",
+        "intent": "Show packet_stream with each of its events",
+        "targetSec": 8
+      },
+      {
+        "id": "conveyor-queue",
+        "chapterId": "flow",
+        "intent": "Show conveyor_queue with each of its events",
+        "targetSec": 8
+      },
+      {
+        "id": "segmented-time-bar",
+        "chapterId": "flow",
+        "intent": "Show segmented_time_bar with each of its events",
+        "targetSec": 8
+      }
+    ],
+    "ending": {
+      "kind": "summary"
+    }
+  },
+  "hud": {
+    "heroMetric": false,
+    "storyClock": false,
+    "headline": false
+  },
+  "script": [
+    {
+      "beatId": "map-base",
+      "narration": "A map base sets the city scene with blocks, avenues and a river. It dims behind the story, then returns, and finally leaves."
+    },
+    {
+      "beatId": "route-path",
+      "narration": "A route path pins the store and the home, then draws the ride. The whole route glows and pulses. The crossing lights up, blinks, then closes. Finally it dims."
+    },
+    {
+      "beatId": "zone-polygon",
+      "narration": "Zone polygons mark delivery areas that overlap. North appears, central glows, south pulses and then overloads. North fades, central leaves, and the map glows, pulses, then dims."
+    },
+    {
+      "beatId": "grid-overlay",
+      "narration": "A grid overlay drops over the city. Your cell lights up and pulses. A busy cell turns red, then fades. The grid glows and dims."
+    },
+    {
+      "beatId": "slot-grid",
+      "narration": "A slot grid shows seats. You pick one and it glows. Your app locks it. A rival grabs it too and is refused. Another is sold, one blinks, one dims, then the sold seat is back. The hall glows, then dims."
+    },
+    {
+      "beatId": "connector",
+      "narration": "A connector draws from the client to the API. A request travels, glows, then pulses. The link breaks, and finally dims."
+    },
+    {
+      "beatId": "packet-stream",
+      "narration": "A packet stream starts flowing along the link, steady traffic. It glows, then pulses. The database refuses the flood. The stream dims, and then stops."
+    },
+    {
+      "beatId": "conveyor-queue",
+      "narration": "A conveyor queue carries orders. A new order joins at the back. The front order is claimed, then taken. The next is flagged, one blinks, one is bad. The belt glows, pulses, and dims."
+    },
+    {
+      "beatId": "segmented-time-bar",
+      "narration": "A segmented time bar fills with each step of the order. Packing glows, picking blinks, the ride blows the budget, and picking fades. The total glows, pulses, then dims."
+    }
+  ],
+  "scenes": [
+    {
+      "beatId": "map-base",
+      "kind": "board",
+      "layoutMode": "map",
+      "elements": [
+        {
+          "id": "map-base",
+          "primitive": "map_base",
+          "props": {
+            "variant": "riverside"
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "map"
+          },
+          "action": "enter",
+          "targets": ["map-base"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "dims"
+          },
+          "action": "dim",
+          "targets": ["map-base"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "returns"
+          },
+          "action": "highlight",
+          "targets": ["map-base"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "leaves"
+          },
+          "action": "exit",
+          "targets": ["map-base"]
+        }
+      ],
+      "focus": ["map-base"]
+    },
+    {
+      "beatId": "route-path",
+      "kind": "board",
+      "layoutMode": "map",
+      "elements": [
+        {
+          "id": "route-path",
+          "primitive": "route_path",
+          "props": {
+            "stops": [
+              {
+                "id": "store",
+                "label": "STORE"
+              },
+              {
+                "id": "crossing",
+                "label": "CROSSING"
+              },
+              {
+                "id": "home",
+                "label": "HOME"
+              }
+            ],
+            "distance": "4.2 KM"
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "pins"
+          },
+          "action": "enter",
+          "targets": ["route-path"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "draws"
+          },
+          "action": "move",
+          "targets": ["route-path"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "glows"
+          },
+          "action": "highlight",
+          "targets": ["route-path"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "pulses"
+          },
+          "action": "pulse",
+          "targets": ["route-path"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "lights"
+          },
+          "action": "highlight",
+          "targets": ["route-path"],
+          "params": {
+            "parts": ["crossing"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "blinks"
+          },
+          "action": "pulse",
+          "targets": ["route-path"],
+          "params": {
+            "parts": ["crossing"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "closes"
+          },
+          "action": "reject",
+          "targets": ["route-path"],
+          "params": {
+            "parts": ["crossing"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "dims"
+          },
+          "action": "dim",
+          "targets": ["route-path"]
+        }
+      ],
+      "focus": ["route-path"]
+    },
+    {
+      "beatId": "zone-polygon",
+      "kind": "board",
+      "layoutMode": "map",
+      "elements": [
+        {
+          "id": "zone-polygon",
+          "primitive": "zone_polygon",
+          "props": {
+            "zones": [
+              {
+                "id": "north",
+                "label": "NORTH"
+              },
+              {
+                "id": "central",
+                "label": "CENTRAL",
+                "semantic": "focus"
+              },
+              {
+                "id": "south",
+                "label": "SOUTH"
+              }
+            ],
+            "overlap": true
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "zone"
+          },
+          "action": "enter",
+          "targets": ["zone-polygon"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "appears"
+          },
+          "action": "enter",
+          "targets": ["zone-polygon"],
+          "params": {
+            "parts": ["north"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "glows"
+          },
+          "action": "highlight",
+          "targets": ["zone-polygon"],
+          "params": {
+            "parts": ["central"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "pulses"
+          },
+          "action": "pulse",
+          "targets": ["zone-polygon"],
+          "params": {
+            "parts": ["south"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "overloads"
+          },
+          "action": "reject",
+          "targets": ["zone-polygon"],
+          "params": {
+            "parts": ["south"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "fades"
+          },
+          "action": "dim",
+          "targets": ["zone-polygon"],
+          "params": {
+            "parts": ["north"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "leaves"
+          },
+          "action": "exit",
+          "targets": ["zone-polygon"],
+          "params": {
+            "parts": ["central"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "glows",
+            "occurrence": 2
+          },
+          "action": "highlight",
+          "targets": ["zone-polygon"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "pulses",
+            "occurrence": 2
+          },
+          "action": "pulse",
+          "targets": ["zone-polygon"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "dims"
+          },
+          "action": "dim",
+          "targets": ["zone-polygon"]
+        }
+      ],
+      "focus": ["zone-polygon"]
+    },
+    {
+      "beatId": "grid-overlay",
+      "kind": "board",
+      "layoutMode": "map",
+      "elements": [
+        {
+          "id": "grid-overlay",
+          "primitive": "grid_overlay",
+          "props": {
+            "rows": 6,
+            "cols": 6,
+            "cells": [
+              {
+                "id": "mine",
+                "row": 3,
+                "col": 4,
+                "label": "YOUR CELL"
+              },
+              {
+                "id": "busy",
+                "row": 5,
+                "col": 2,
+                "label": "FULL"
+              }
+            ]
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "drops"
+          },
+          "action": "enter",
+          "targets": ["grid-overlay"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "lights"
+          },
+          "action": "highlight",
+          "targets": ["grid-overlay"],
+          "params": {
+            "parts": ["mine"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "pulses"
+          },
+          "action": "pulse",
+          "targets": ["grid-overlay"],
+          "params": {
+            "parts": ["mine"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "red"
+          },
+          "action": "reject",
+          "targets": ["grid-overlay"],
+          "params": {
+            "parts": ["busy"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "fades"
+          },
+          "action": "dim",
+          "targets": ["grid-overlay"],
+          "params": {
+            "parts": ["busy"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "glows"
+          },
+          "action": "highlight",
+          "targets": ["grid-overlay"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "dims"
+          },
+          "action": "dim",
+          "targets": ["grid-overlay"]
+        }
+      ],
+      "focus": ["grid-overlay"]
+    },
+    {
+      "beatId": "slot-grid",
+      "kind": "board",
+      "layoutMode": "grid",
+      "elements": [
+        {
+          "id": "slot-grid",
+          "primitive": "slot_grid",
+          "props": {
+            "kind": "seats",
+            "cols": 4,
+            "slots": [
+              {
+                "id": "a1",
+                "label": "A1"
+              },
+              {
+                "id": "a2",
+                "label": "A2"
+              },
+              {
+                "id": "a3",
+                "label": "A3"
+              },
+              {
+                "id": "a4",
+                "label": "A4"
+              },
+              {
+                "id": "b1",
+                "label": "B1"
+              },
+              {
+                "id": "b2",
+                "label": "B2"
+              },
+              {
+                "id": "b3",
+                "label": "B3"
+              },
+              {
+                "id": "b4",
+                "label": "B4"
+              }
+            ],
+            "label": "SCREEN 2"
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "slot"
+          },
+          "action": "enter",
+          "targets": ["slot-grid"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "glows"
+          },
+          "action": "highlight",
+          "targets": ["slot-grid"],
+          "params": {
+            "parts": ["b2"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "locks"
+          },
+          "action": "lock",
+          "targets": ["slot-grid"],
+          "params": {
+            "parts": ["b2"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "refused"
+          },
+          "action": "reject",
+          "targets": ["slot-grid"],
+          "params": {
+            "parts": ["b2"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "sold"
+          },
+          "action": "exit",
+          "targets": ["slot-grid"],
+          "params": {
+            "parts": ["a3"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "blinks"
+          },
+          "action": "pulse",
+          "targets": ["slot-grid"],
+          "params": {
+            "parts": ["a4"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "dims"
+          },
+          "action": "dim",
+          "targets": ["slot-grid"],
+          "params": {
+            "parts": ["a1"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "back"
+          },
+          "action": "enter",
+          "targets": ["slot-grid"],
+          "params": {
+            "parts": ["a3"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "glows",
+            "occurrence": 2
+          },
+          "action": "highlight",
+          "targets": ["slot-grid"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "dims",
+            "occurrence": 2
+          },
+          "action": "dim",
+          "targets": ["slot-grid"]
+        }
+      ],
+      "focus": ["slot-grid"]
+    },
+    {
+      "beatId": "connector",
+      "kind": "board",
+      "layoutMode": "pipeline",
+      "elements": [
+        {
+          "id": "client",
+          "primitive": "node_card",
+          "props": {
+            "title": "Client"
+          }
+        },
+        {
+          "id": "connector",
+          "primitive": "connector",
+          "props": {
+            "from": "client",
+            "to": "api",
+            "label": "HTTPS"
+          }
+        },
+        {
+          "id": "api",
+          "primitive": "node_card",
+          "props": {
+            "title": "API"
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "draws"
+          },
+          "action": "enter",
+          "targets": ["connector"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "travels"
+          },
+          "action": "move",
+          "targets": ["connector"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "glows"
+          },
+          "action": "highlight",
+          "targets": ["connector"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "pulses"
+          },
+          "action": "pulse",
+          "targets": ["connector"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "breaks"
+          },
+          "action": "reject",
+          "targets": ["connector"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "dims"
+          },
+          "action": "dim",
+          "targets": ["connector"]
+        }
+      ],
+      "focus": ["connector"]
+    },
+    {
+      "beatId": "packet-stream",
+      "kind": "board",
+      "layoutMode": "pipeline",
+      "elements": [
+        {
+          "id": "users",
+          "primitive": "node_card",
+          "props": {
+            "title": "Users"
+          }
+        },
+        {
+          "id": "link",
+          "primitive": "connector",
+          "props": {
+            "from": "users",
+            "to": "db"
+          }
+        },
+        {
+          "id": "db",
+          "primitive": "node_card",
+          "props": {
+            "title": "DB"
+          }
+        },
+        {
+          "id": "packet-stream",
+          "primitive": "packet_stream",
+          "props": {
+            "along": "link",
+            "rate": 5
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "flowing"
+          },
+          "action": "enter",
+          "targets": ["packet-stream"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "glows"
+          },
+          "action": "highlight",
+          "targets": ["packet-stream"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "pulses"
+          },
+          "action": "pulse",
+          "targets": ["packet-stream"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "refuses"
+          },
+          "action": "reject",
+          "targets": ["packet-stream"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "dims"
+          },
+          "action": "dim",
+          "targets": ["packet-stream"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "stops"
+          },
+          "action": "exit",
+          "targets": ["packet-stream"]
+        }
+      ],
+      "focus": ["packet-stream"]
+    },
+    {
+      "beatId": "conveyor-queue",
+      "kind": "board",
+      "layoutMode": "pipeline",
+      "elements": [
+        {
+          "id": "conveyor-queue",
+          "primitive": "conveyor_queue",
+          "props": {
+            "items": [
+              {
+                "id": "o41",
+                "label": "#41"
+              },
+              {
+                "id": "o42",
+                "label": "#42"
+              },
+              {
+                "id": "o43",
+                "label": "#43"
+              },
+              {
+                "id": "o44",
+                "label": "#44"
+              }
+            ],
+            "label": "ORDERS"
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "conveyor"
+          },
+          "action": "enter",
+          "targets": ["conveyor-queue"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "joins"
+          },
+          "action": "enter",
+          "targets": ["conveyor-queue"],
+          "params": {
+            "parts": ["o44"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "claimed"
+          },
+          "action": "lock",
+          "targets": ["conveyor-queue"],
+          "params": {
+            "parts": ["o41"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "taken"
+          },
+          "action": "exit",
+          "targets": ["conveyor-queue"],
+          "params": {
+            "parts": ["o41"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "flagged"
+          },
+          "action": "highlight",
+          "targets": ["conveyor-queue"],
+          "params": {
+            "parts": ["o42"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "blinks"
+          },
+          "action": "pulse",
+          "targets": ["conveyor-queue"],
+          "params": {
+            "parts": ["o43"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "bad"
+          },
+          "action": "reject",
+          "targets": ["conveyor-queue"],
+          "params": {
+            "parts": ["o44"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "glows"
+          },
+          "action": "highlight",
+          "targets": ["conveyor-queue"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "pulses"
+          },
+          "action": "pulse",
+          "targets": ["conveyor-queue"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "dims"
+          },
+          "action": "dim",
+          "targets": ["conveyor-queue"]
+        }
+      ],
+      "focus": ["conveyor-queue"]
+    },
+    {
+      "beatId": "segmented-time-bar",
+      "kind": "board",
+      "layoutMode": "centered_focus",
+      "elements": [
+        {
+          "id": "segmented-time-bar",
+          "primitive": "segmented_time_bar",
+          "props": {
+            "segments": [
+              {
+                "id": "pick",
+                "label": "PICK",
+                "sec": 60
+              },
+              {
+                "id": "pack",
+                "label": "PACK",
+                "sec": 90
+              },
+              {
+                "id": "ride",
+                "label": "RIDE",
+                "sec": 330,
+                "semantic": "focus"
+              }
+            ],
+            "budgetSec": 420,
+            "label": "ORDER TO DOOR"
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "fills"
+          },
+          "action": "enter",
+          "targets": ["segmented-time-bar"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "glows"
+          },
+          "action": "highlight",
+          "targets": ["segmented-time-bar"],
+          "params": {
+            "parts": ["pack"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "blinks"
+          },
+          "action": "pulse",
+          "targets": ["segmented-time-bar"],
+          "params": {
+            "parts": ["pick"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "blows"
+          },
+          "action": "reject",
+          "targets": ["segmented-time-bar"],
+          "params": {
+            "parts": ["ride"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "fades"
+          },
+          "action": "dim",
+          "targets": ["segmented-time-bar"],
+          "params": {
+            "parts": ["pick"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "glows",
+            "occurrence": 2
+          },
+          "action": "highlight",
+          "targets": ["segmented-time-bar"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "pulses"
+          },
+          "action": "pulse",
+          "targets": ["segmented-time-bar"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "dims"
+          },
+          "action": "dim",
+          "targets": ["segmented-time-bar"]
+        }
+      ],
+      "focus": ["segmented-time-bar"]
+    }
+  ]
+}

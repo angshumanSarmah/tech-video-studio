@@ -428,6 +428,582 @@
       }
     },
     {
+      "id": "grid_overlay",
+      "family": "spatial",
+      "summary": "A grid of square cells dropped over a map or zones. `enter` drops it in from above. The `cells` are parts addressed by row and column: `highlight` one to light it with its tag (e.g. YOUR CELL), `pulse` it for attention, `reject` it to turn it red.",
+      "whenToUse": "Turning space into buckets: geohash cells, a spatial index, a quadtree level, partitioning a city for drivers. Set `over` to the `map_base` it divides.",
+      "whenNotToUse": "Irregular areas (use `zone_polygon`); a grid of items or seats (use `slot_grid`); a table of data (use `data_block`).",
+      "actions": [
+        "enter",
+        "exit",
+        "highlight",
+        "dim"
+      ],
+      "partActions": [
+        "highlight",
+        "pulse",
+        "reject",
+        "dim"
+      ],
+      "props": {
+        "type": "object",
+        "properties": {
+          "rows": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 12,
+            "description": "Number of rows (2 to 12)."
+          },
+          "cols": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 12,
+            "description": "Number of columns (2 to 12)."
+          },
+          "over": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "description": "Optional id of the map_base or zone_polygon the grid lies over."
+          },
+          "cells": {
+            "default": [],
+            "minItems": 0,
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                  "description": "Part id, unique in this element; events act on it with params.parts."
+                },
+                "row": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 12,
+                  "description": "Row, counted from 1 at the top."
+                },
+                "col": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 12,
+                  "description": "Column, counted from 1 at the left."
+                },
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 14,
+                  "pattern": "^[^\\n\\r]*$",
+                  "description": "Optional tag shown when the cell lights up, e.g. YOUR CELL."
+                },
+                "semantic": {
+                  "default": "focus",
+                  "description": "Cell colour when lit: neutral, focus, ok, problem or concept.",
+                  "type": "string",
+                  "enum": [
+                    "neutral",
+                    "focus",
+                    "ok",
+                    "problem",
+                    "concept"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "row",
+                "col"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Cells events can light up, by row and column."
+          }
+        },
+        "required": [
+          "rows",
+          "cols"
+        ],
+        "additionalProperties": false
+      },
+      "example": {
+        "id": "<example-grid_overlay-id>",
+        "primitive": "grid_overlay",
+        "props": {
+          "rows": 6,
+          "cols": 6,
+          "over": "example-map",
+          "cells": [
+            {
+              "id": "mine",
+              "row": 3,
+              "col": 4,
+              "label": "<example-tag>"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "map_base",
+      "family": "spatial",
+      "summary": "A stylised top-down city: blocks, streets, avenues, parks and, in the riverside `variant`, a river. A quiet background that map scenes draw on; it carries no labels. `dim` pushes it further back; `highlight` brings it forward again.",
+      "whenToUse": "Any scene set in a city: ride hailing, deliveries, store coverage, nearby search. Put `route_path`, `zone_polygon` and `grid_overlay` over it.",
+      "whenNotToUse": "Abstract systems with no geography (use `node_card` and `connector`); a world or region map; a background for its own sake.",
+      "actions": [
+        "enter",
+        "exit",
+        "highlight",
+        "dim"
+      ],
+      "props": {
+        "type": "object",
+        "properties": {
+          "variant": {
+            "default": "downtown",
+            "description": "City style: downtown (dense blocks), suburb (large blocks, parks) or riverside.",
+            "type": "string",
+            "enum": [
+              "downtown",
+              "suburb",
+              "riverside"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "example": {
+        "id": "<example-map_base-id>",
+        "primitive": "map_base",
+        "props": {
+          "variant": "downtown"
+        }
+      }
+    },
+    {
+      "id": "route_path",
+      "family": "spatial",
+      "summary": "A glowing route through named `stops`, with a pin at the start and at the end and an optional `distance` tag. `enter` shows the pins; `move` draws the route from the first stop to the last (the tag lands when it arrives). Stops are parts: highlight one, or reject it (a red cross: closed, unreachable).",
+      "whenToUse": "A journey on a map: a driver to a pickup, a parcel from store to door, a packet hopping between regions. Put it over a `map_base`.",
+      "whenNotToUse": "A link between two components (use `connector`); traffic over time (use `packet_stream`); areas on a map (use `zone_polygon`).",
+      "actions": [
+        "enter",
+        "exit",
+        "move",
+        "highlight",
+        "dim",
+        "pulse"
+      ],
+      "partActions": [
+        "highlight",
+        "pulse",
+        "reject"
+      ],
+      "props": {
+        "type": "object",
+        "properties": {
+          "stops": {
+            "minItems": 2,
+            "maxItems": 6,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                  "description": "Part id, unique in this element; events act on it with params.parts."
+                },
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 14,
+                  "pattern": "^[^\\n\\r]*$",
+                  "description": "Short name of the place, e.g. a pickup point."
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Named stops in travel order, first to last."
+          },
+          "distance": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 12,
+            "pattern": "^[^\\n\\r]*$",
+            "description": "Optional distance or time tag shown at the end, e.g. 4.2 km."
+          },
+          "semantic": {
+            "default": "focus",
+            "description": "Route colour: neutral, focus, ok, problem or concept.",
+            "type": "string",
+            "enum": [
+              "neutral",
+              "focus",
+              "ok",
+              "problem",
+              "concept"
+            ]
+          }
+        },
+        "required": [
+          "stops"
+        ],
+        "additionalProperties": false
+      },
+      "example": {
+        "id": "<example-route_path-id>",
+        "primitive": "route_path",
+        "props": {
+          "stops": [
+            {
+              "id": "start",
+              "label": "<example-stop>"
+            },
+            {
+              "id": "end",
+              "label": "<example-stop>"
+            }
+          ],
+          "distance": "<example-km>"
+        }
+      }
+    },
+    {
+      "id": "zone_polygon",
+      "family": "spatial",
+      "summary": "Labelled areas drawn as soft, irregular shapes that can overlap. The `zones` are parts: `highlight` one to make it glow, `reject` to turn it red (overloaded, out of service), `dim` to push it back, `enter` to reveal it on its own word.",
+      "whenToUse": "Regions on a map or coverage areas: delivery zones, cell towers, shards by region, availability zones. Put it over a `map_base`.",
+      "whenNotToUse": "A regular grid of cells (use `grid_overlay`); components with names (use `node_card`); items in slots (use `slot_grid`).",
+      "actions": [
+        "enter",
+        "exit",
+        "highlight",
+        "dim",
+        "pulse"
+      ],
+      "partActions": [
+        "enter",
+        "exit",
+        "highlight",
+        "dim",
+        "pulse",
+        "reject"
+      ],
+      "props": {
+        "type": "object",
+        "properties": {
+          "zones": {
+            "minItems": 1,
+            "maxItems": 6,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                  "description": "Part id, unique in this element; events act on it with params.parts."
+                },
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 16,
+                  "pattern": "^[^\\n\\r]*$",
+                  "description": "Name of the area, e.g. a delivery zone."
+                },
+                "semantic": {
+                  "default": "concept",
+                  "description": "Zone colour: neutral, focus, ok, problem or concept.",
+                  "type": "string",
+                  "enum": [
+                    "neutral",
+                    "focus",
+                    "ok",
+                    "problem",
+                    "concept"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "label"
+              ],
+              "additionalProperties": false
+            },
+            "description": "The areas, 1 to 6."
+          },
+          "overlap": {
+            "default": true,
+            "description": "Whether neighbouring zones overlap (shared coverage) or keep a gap.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "zones"
+        ],
+        "additionalProperties": false
+      },
+      "example": {
+        "id": "<example-zone_polygon-id>",
+        "primitive": "zone_polygon",
+        "props": {
+          "zones": [
+            {
+              "id": "zone-a",
+              "label": "<example-area>"
+            },
+            {
+              "id": "zone-b",
+              "label": "<example-area>"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "connector",
+      "family": "flow",
+      "summary": "An arrow or line from one element to another, with an optional label at its middle. `enter` draws it from `from` to `to`; each `move` sends one glowing packet along it; `reject` turns it red with a cross at the middle (the link is broken or refused).",
+      "whenToUse": "A relation or a hop between two elements already in the beat: a request from client to server, a write to a database, a replica link. Use `move` on the word where one thing travels.",
+      "whenNotToUse": "Continuous traffic (add a `packet_stream` along the connector); a journey on a map (use `route_path`); a queue of waiting items (use `conveyor_queue`).",
+      "actions": [
+        "enter",
+        "exit",
+        "move",
+        "highlight",
+        "dim",
+        "pulse",
+        "reject"
+      ],
+      "props": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "description": "Id of the element in this beat where the connector starts."
+          },
+          "to": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "description": "Id of the element in this beat it points to."
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20,
+            "pattern": "^[^\\n\\r]*$",
+            "description": "Optional label at the middle: what travels, or the relation."
+          },
+          "heads": {
+            "default": "end",
+            "description": "Arrowheads: end (one-way arrow), both (two-way) or none (plain line).",
+            "type": "string",
+            "enum": [
+              "end",
+              "both",
+              "none"
+            ]
+          },
+          "dashed": {
+            "default": false,
+            "description": "Dashed: an optional, async or planned link.",
+            "type": "boolean"
+          },
+          "semantic": {
+            "default": "neutral",
+            "description": "Line colour: neutral, focus, ok, problem or concept.",
+            "type": "string",
+            "enum": [
+              "neutral",
+              "focus",
+              "ok",
+              "problem",
+              "concept"
+            ]
+          }
+        },
+        "required": [
+          "from",
+          "to"
+        ],
+        "additionalProperties": false
+      },
+      "example": {
+        "id": "<example-connector-id>",
+        "primitive": "connector",
+        "props": {
+          "from": "example-client",
+          "to": "example-server",
+          "label": "<example-label>"
+        }
+      }
+    },
+    {
+      "id": "conveyor_queue",
+      "family": "flow",
+      "summary": "A horizontal belt carrying labelled blocks toward its right end, where they are taken. `items` are parts, listed in arrival order: `enter` slides one in from the left behind the others, `exit` takes it off the belt (it lifts away and the rest move up), `lock` marks it as claimed, `reject` turns it red. An item is on the belt from the start unless it first appears with `enter`.",
+      "whenToUse": "Work waiting its turn: orders in a queue, jobs for a worker, messages in a partition. Take items on the words where they are processed.",
+      "whenNotToUse": "Traffic that never waits (use `packet_stream`); items on a shelf or seats picked in any order (use `slot_grid`); a count of waiting work (use `counter`).",
+      "actions": [
+        "enter",
+        "exit",
+        "highlight",
+        "dim",
+        "pulse"
+      ],
+      "partActions": [
+        "enter",
+        "exit",
+        "highlight",
+        "pulse",
+        "lock",
+        "reject"
+      ],
+      "props": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "minItems": 1,
+            "maxItems": 6,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                  "description": "Part id, unique in this element; events act on it with params.parts."
+                },
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 7,
+                  "pattern": "^[^\\n\\r]*$",
+                  "description": "Short label on the block, e.g. an order number."
+                },
+                "semantic": {
+                  "default": "neutral",
+                  "description": "Block colour: neutral, focus, ok, problem or concept.",
+                  "type": "string",
+                  "enum": [
+                    "neutral",
+                    "focus",
+                    "ok",
+                    "problem",
+                    "concept"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "label"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Blocks in arrival order: the first is at the front and is taken first."
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 24,
+            "pattern": "^[^\\n\\r]*$",
+            "description": "Optional caption under the belt: what the queue is."
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "additionalProperties": false
+      },
+      "example": {
+        "id": "<example-conveyor_queue-id>",
+        "primitive": "conveyor_queue",
+        "props": {
+          "items": [
+            {
+              "id": "first",
+              "label": "<ex-1>"
+            },
+            {
+              "id": "second",
+              "label": "<ex-2>"
+            }
+          ],
+          "label": "<example-queue-name>"
+        }
+      }
+    },
+    {
+      "id": "packet_stream",
+      "family": "flow",
+      "summary": "A steady stream of small packets flowing along a `connector`, at `rate` packets per second. `enter` starts the flow from the source; `exit` stops sending (packets in flight still arrive); `reject` blocks the stream before the target: packets turn red and vanish at a barrier.",
+      "whenToUse": "Ongoing traffic between two elements: requests pouring into a server, events into a queue, replication. Raise `rate` to show load growing.",
+      "whenNotToUse": "A single request or hop (a move on the `connector` itself); items waiting in order (use `conveyor_queue`); a number of requests (use `counter`).",
+      "actions": [
+        "enter",
+        "exit",
+        "highlight",
+        "dim",
+        "pulse",
+        "reject"
+      ],
+      "props": {
+        "type": "object",
+        "properties": {
+          "along": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "description": "Id of the connector in this beat that the packets travel along."
+          },
+          "rate": {
+            "default": 3,
+            "description": "Packets per second (0.5 to 12).",
+            "type": "number",
+            "minimum": 0.5,
+            "maximum": 12
+          },
+          "semantic": {
+            "default": "concept",
+            "description": "Packet colour: neutral, focus, ok, problem or concept.",
+            "type": "string",
+            "enum": [
+              "neutral",
+              "focus",
+              "ok",
+              "problem",
+              "concept"
+            ]
+          }
+        },
+        "required": [
+          "along"
+        ],
+        "additionalProperties": false
+      },
+      "example": {
+        "id": "<example-packet_stream-id>",
+        "primitive": "packet_stream",
+        "props": {
+          "along": "example-connector",
+          "rate": 4,
+          "semantic": "concept"
+        }
+      }
+    },
+    {
       "id": "counter",
       "family": "metric",
       "summary": "A big number with an optional unit and caption. Without a `count` event it shows `value`. With one, it shows `from` (default 0) until the count begins, then counts up or down to `value`, so the viewer watches a quantity grow or drain.",
@@ -590,6 +1166,115 @@
       }
     },
     {
+      "id": "segmented_time_bar",
+      "family": "metric",
+      "summary": "A stacked bar splitting a time budget into steps (RIDE | PACK), each segment as wide as its time with its mm:ss under it, and the total at the top right. With `budgetSec`, a marker shows the budget and any time past it turns red. `enter` fills the segments left to right; segments are parts: highlight the step being discussed, reject the one that blows the budget.",
+      "whenToUse": "Where time goes in a flow: a 10-minute delivery promise, the latency budget of a request, the stages of a deploy. Use it when the split matters more than one number.",
+      "whenNotToUse": "A single countdown (use `timer_ring`); one number (use `counter` or `stat_card`); steps without durations (use `node_card` and `connector`).",
+      "actions": [
+        "enter",
+        "exit",
+        "highlight",
+        "dim",
+        "pulse"
+      ],
+      "partActions": [
+        "highlight",
+        "pulse",
+        "reject",
+        "dim"
+      ],
+      "props": {
+        "type": "object",
+        "properties": {
+          "segments": {
+            "minItems": 1,
+            "maxItems": 5,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                  "description": "Part id, unique in this element; events act on it with params.parts."
+                },
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 8,
+                  "pattern": "^[^\\n\\r]*$",
+                  "description": "Short name of the step, e.g. RIDE or PACK."
+                },
+                "sec": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 5999,
+                  "description": "How long the step takes, in seconds."
+                },
+                "semantic": {
+                  "default": "concept",
+                  "description": "Segment colour: neutral, focus, ok, problem or concept.",
+                  "type": "string",
+                  "enum": [
+                    "neutral",
+                    "focus",
+                    "ok",
+                    "problem",
+                    "concept"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "label",
+                "sec"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Steps in order, left to right (1 to 5)."
+          },
+          "budgetSec": {
+            "description": "Optional time budget: a marker on the bar; time past it is drawn red.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5999
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 24,
+            "pattern": "^[^\\n\\r]*$",
+            "description": "Optional caption: what the time is for, e.g. ORDER TO DOOR."
+          }
+        },
+        "required": [
+          "segments"
+        ],
+        "additionalProperties": false
+      },
+      "example": {
+        "id": "<example-segmented_time_bar-id>",
+        "primitive": "segmented_time_bar",
+        "props": {
+          "segments": [
+            {
+              "id": "step-a",
+              "label": "<ex-a>",
+              "sec": 90
+            },
+            {
+              "id": "step-b",
+              "label": "<ex-b>",
+              "sec": 120
+            }
+          ],
+          "budgetSec": 600
+        }
+      }
+    },
+    {
       "id": "stat_card",
       "family": "metric",
       "summary": "A card with one big figure, a label under it, and a small source footnote. The figure is text, so units and formatting stay as written (\"10k/s\", \"₹2,000 Cr\", \"99.9%\").",
@@ -711,6 +1396,129 @@
         "props": {
           "durationSec": 600,
           "label": "<example-caption>"
+        }
+      }
+    },
+    {
+      "id": "slot_grid",
+      "family": "object",
+      "summary": "A grid of labelled slots: bins of stock, a shelf, cinema seats or documents. Each slot is a part: `lock` claims it (padlock, yellow), `highlight` picks it out, `exit` takes its item (it lifts away and leaves an empty outline), `enter` puts an item back, `reject` turns it red with a cross (sold out, conflict).",
+      "whenToUse": "Contention over specific items: two users grabbing the same seat, stock picked from bins, which documents a search touches. Address the slots on the words that act on them.",
+      "whenNotToUse": "Items moving in order (use `conveyor_queue`); a spatial grid over a map (use `grid_overlay`); one standalone object (use `item_icon`).",
+      "actions": [
+        "enter",
+        "exit",
+        "highlight",
+        "dim"
+      ],
+      "partActions": [
+        "enter",
+        "exit",
+        "lock",
+        "highlight",
+        "reject",
+        "pulse",
+        "dim"
+      ],
+      "props": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "default": "inventory",
+            "description": "How slots look: inventory (bins), shelf (rows on planks), seats, documents.",
+            "type": "string",
+            "enum": [
+              "inventory",
+              "shelf",
+              "seats",
+              "documents"
+            ]
+          },
+          "slots": {
+            "minItems": 1,
+            "maxItems": 24,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                  "description": "Part id, unique in this element; events act on it with params.parts."
+                },
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 7,
+                  "pattern": "^[^\\n\\r]*$",
+                  "description": "Short label on the slot, e.g. a seat number or an item name."
+                },
+                "icon": {
+                  "type": "string",
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                  "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+                },
+                "semantic": {
+                  "default": "neutral",
+                  "description": "Slot colour: neutral, focus, ok, problem or concept.",
+                  "type": "string",
+                  "enum": [
+                    "neutral",
+                    "focus",
+                    "ok",
+                    "problem",
+                    "concept"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "label"
+              ],
+              "additionalProperties": false
+            },
+            "description": "The slots, in reading order (1 to 24)."
+          },
+          "cols": {
+            "description": "Slots per row; omit to choose from the slot count.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 24,
+            "pattern": "^[^\\n\\r]*$",
+            "description": "Optional caption under the grid."
+          }
+        },
+        "required": [
+          "slots"
+        ],
+        "additionalProperties": false
+      },
+      "example": {
+        "id": "<example-slot_grid-id>",
+        "primitive": "slot_grid",
+        "props": {
+          "kind": "seats",
+          "slots": [
+            {
+              "id": "seat-1",
+              "label": "<ex-1>"
+            },
+            {
+              "id": "seat-2",
+              "label": "<ex-2>"
+            },
+            {
+              "id": "seat-3",
+              "label": "<ex-3>"
+            }
+          ]
         }
       }
     }

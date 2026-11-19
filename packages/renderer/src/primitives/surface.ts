@@ -13,7 +13,7 @@ export const GLOW_THRESHOLD = 0.05;
 export function cardSurfaceCss(
   theme: Theme,
   tint: Tint,
-  state: ElementState,
+  state: Pick<ElementState, 'emphasis'>,
   { wash = true }: { wash?: boolean } = {},
 ): CSSProperties {
   const fill = theme.colours.surface;

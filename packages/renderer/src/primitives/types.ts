@@ -43,6 +43,24 @@ export type Size = { width: number; height: number };
 /** An asset id a primitive's props reference, with its path inside `props`. */
 export type AssetRef = { path: (string | number)[]; id: string };
 
+/**
+ * Another element a primitive's props point to (`connector.from`), with its path inside `props`.
+ * Validation checks that the id is in the beat's scope and, when `primitives` is given, that it is
+ * one of those primitives. The layout engine (P1A.9) resolves it to geometry.
+ */
+export type ElementRef = { path: (string | number)[]; id: string; primitives?: readonly string[] };
+
+/**
+ * Named parts of an element (slots, cells, zones) that an event can address on its own with
+ * `params.parts`. Part events drive `ElementState.parts`; element events still act on the whole.
+ */
+export type PartsDefinition<P> = {
+  /** Actions an event naming parts may use; any other is a spec error. */
+  actions: readonly EventAction[];
+  /** Part ids in the props, in display order. */
+  ids(props: P): string[];
+};
+
 export interface PrimitiveDefinition<Id extends string = string, S extends z.ZodType = z.ZodType> {
   id: Id;
   family: PrimitiveFamily;
@@ -54,6 +72,10 @@ export interface PrimitiveDefinition<Id extends string = string, S extends z.Zod
   sizeHints(props: z.output<S>, theme: Theme): SizeHints;
   /** Asset ids in the props, for `unknown_asset` warnings. Omit when the primitive uses none. */
   assetRefs?(props: z.output<S>): AssetRef[];
+  /** Other elements the props point to. Omit when the primitive stands alone. */
+  elementRefs?(props: z.output<S>): ElementRef[];
+  /** Parts events can address with `params.parts`. Omit when the element acts only as a whole. */
+  parts?: PartsDefinition<z.output<S>>;
   description: LlmDescription;
   /** One example usage; its props must parse (checked when the registry is built). */
   example: { props: z.input<S> };

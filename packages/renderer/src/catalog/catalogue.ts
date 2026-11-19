@@ -19,6 +19,8 @@ export type PrimitiveCatalogueEntry = {
   whenToUse: string;
   whenNotToUse: string;
   actions: string[];
+  /** Actions an event may use on named parts (`params.parts`); absent when it has no parts. */
+  partActions?: string[];
   props: JsonSchema;
   example: { id: string; primitive: string; props: unknown };
 };
@@ -64,6 +66,7 @@ function primitiveEntry(d: AnyPrimitiveDefinition): PrimitiveCatalogueEntry {
     family: d.family,
     ...d.description,
     actions: [...d.actions],
+    ...(d.parts ? { partActions: [...d.parts.actions] } : {}),
     props: inputJsonSchema(d.propsSchema),
     example: { id: `<example-${d.id}-id>`, primitive: d.id, props: d.example.props },
   };
@@ -100,6 +103,9 @@ export function catalogueMarkdown(
     '',
     'Everything the Generator may put in a beat scene. Ids are exhaustive: there are no others.',
     '',
+    'An event acts on its whole target. On primitives with **part actions**, an event with ' +
+      '`params.parts` (a list of part ids) and exactly one target acts on those parts only.',
+    '',
     '## Primitives',
     '',
     ...primitives.flatMap((entry) => primitiveSection(entry, registries, theme)),
@@ -126,6 +132,9 @@ function primitiveSection(
     `### ${entry.id}`,
     '',
     ...describedSection(entry),
+    ...(entry.partActions
+      ? [`**Part actions** (events with \`params.parts\`): ${codeList(entry.partActions)}`, '']
+      : []),
     ...propsTable('Props', entry.props),
     ...(hints
       ? [
@@ -154,7 +163,7 @@ function patternSection(entry: PatternCatalogueEntry): string[] {
 
 function describedSection(entry: PrimitiveCatalogueEntry | PatternCatalogueEntry): string[] {
   return [
-    `**Family:** ${entry.family} · **Actions:** ${entry.actions.map((a) => `\`${a}\``).join(', ')}`,
+    `**Family:** ${entry.family} · **Actions:** ${codeList(entry.actions)}`,
     '',
     entry.summary,
     '',
@@ -163,6 +172,10 @@ function describedSection(entry: PrimitiveCatalogueEntry | PatternCatalogueEntry
     `**When not to:** ${entry.whenNotToUse}`,
     '',
   ];
+}
+
+function codeList(items: readonly string[]): string {
+  return items.map((a) => `\`${a}\``).join(', ');
 }
 
 function exampleBlock(example: unknown): string[] {
@@ -178,15 +191,13 @@ type PropSchema = {
   maximum?: number;
   minLength?: number;
   maxLength?: number;
+  minItems?: number;
+  maxItems?: number;
+  items?: JsonSchema & { properties?: Record<string, unknown> };
 };
 
 function propsTable(title: string, schema: JsonSchema): string[] {
-  const properties = (schema.properties ?? {}) as Record<string, PropSchema>;
-  const required = new Set((schema.required ?? []) as string[]);
-  const rows = Object.entries(properties).map(
-    ([name, prop]) =>
-      `| \`${name}\` | ${propType(prop)} | ${required.has(name) ? 'yes' : 'no'} | ${propNotes(prop)} |`,
-  );
+  const rows = propRows(schema, '');
   return [
     `**${title}:**`,
     '',
@@ -195,6 +206,18 @@ function propsTable(title: string, schema: JsonSchema): string[] {
     ...rows,
     '',
   ];
+}
+
+/** One row per prop; the fields of an array of objects follow it as `name[].field` rows. */
+function propRows(schema: JsonSchema, prefix: string): string[] {
+  const properties = (schema.properties ?? {}) as Record<string, PropSchema>;
+  const required = new Set((schema.required ?? []) as string[]);
+  return Object.entries(properties).flatMap(([name, prop]) => {
+    const path = `${prefix}${name}`;
+    const row = `| \`${path}\` | ${propType(prop)} | ${required.has(name) ? 'yes' : 'no'} | ${propNotes(prop)} |`;
+    const item = prop.items;
+    return item?.properties ? [row, ...propRows(item, `${path}[].`)] : [row];
+  });
 }
 
 function propType(prop: PropSchema): string {
@@ -206,6 +229,8 @@ function propNotes(prop: PropSchema): string {
   const limits = [
     prop.minLength !== undefined ? `min length ${prop.minLength}` : '',
     prop.maxLength !== undefined ? `max length ${prop.maxLength}` : '',
+    prop.minItems !== undefined ? `min items ${prop.minItems}` : '',
+    prop.maxItems !== undefined ? `max items ${prop.maxItems}` : '',
     prop.minimum !== undefined ? `min ${prop.minimum}` : '',
     prop.maximum !== undefined ? `max ${prop.maximum}` : '',
     prop.default !== undefined ? `default \`${JSON.stringify(prop.default)}\`` : '',

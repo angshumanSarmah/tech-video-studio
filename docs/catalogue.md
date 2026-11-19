@@ -4,6 +4,8 @@
 
 Everything the Generator may put in a beat scene. Ids are exhaustive: there are no others.
 
+An event acts on its whole target. On primitives with **part actions**, an event with `params.parts` (a list of part ids) and exactly one target acts on those parts only.
+
 ## Primitives
 
 ### icon
@@ -184,7 +186,10 @@ A JSON-like block of key/value pairs on a card, with an optional title. On `ente
 | Name | Type | Required | Notes |
 | --- | --- | --- | --- |
 | `title` | string | no | Optional name above the block, e.g. the record type. (min length 1, max length 24) |
-| `fields` | array | yes | The key/value pairs, in display order. |
+| `fields` | array | yes | The key/value pairs, in display order. (min items 1, max items 6) |
+| `fields[].key` | string | yes | Field name, as it would appear in the data. |
+| `fields[].value` | any | yes | Field value: a short string, a number, true/false or null. |
+| `fields[].semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Colours the value and tints its row: neutral, focus, ok, problem or concept. |
 
 **Size hint** (example, blueprint-dark): 736 × 261 px (min 736 × 261).
 
@@ -240,6 +245,294 @@ A card with one typeset formula (LaTeX, rendered by KaTeX) and an optional capti
   "props": {
     "latex": "\\text{<example-term>} = \\frac{a}{a + b}",
     "caption": "<example-reading>"
+  }
+}
+```
+
+### grid_overlay
+
+**Family:** spatial · **Actions:** `enter`, `exit`, `highlight`, `dim`
+
+A grid of square cells dropped over a map or zones. `enter` drops it in from above. The `cells` are parts addressed by row and column: `highlight` one to light it with its tag (e.g. YOUR CELL), `pulse` it for attention, `reject` it to turn it red.
+
+**When to use:** Turning space into buckets: geohash cells, a spatial index, a quadtree level, partitioning a city for drivers. Set `over` to the `map_base` it divides.
+
+**When not to:** Irregular areas (use `zone_polygon`); a grid of items or seats (use `slot_grid`); a table of data (use `data_block`).
+
+**Part actions** (events with `params.parts`): `highlight`, `pulse`, `reject`, `dim`
+
+**Props:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `rows` | integer | yes | Number of rows (2 to 12). (min 2, max 12) |
+| `cols` | integer | yes | Number of columns (2 to 12). (min 2, max 12) |
+| `over` | string | no | Optional id of the map_base or zone_polygon the grid lies over. (max length 64) |
+| `cells` | array | no | Cells events can light up, by row and column. (min items 0, max items 8, default `[]`) |
+| `cells[].id` | string | yes | Part id, unique in this element; events act on it with params.parts. (max length 64) |
+| `cells[].row` | integer | yes | Row, counted from 1 at the top. (min 1, max 12) |
+| `cells[].col` | integer | yes | Column, counted from 1 at the left. (min 1, max 12) |
+| `cells[].label` | string | no | Optional tag shown when the cell lights up, e.g. YOUR CELL. (min length 1, max length 14) |
+| `cells[].semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Cell colour when lit: neutral, focus, ok, problem or concept. (default `"focus"`) |
+
+**Size hint** (example, blueprint-dark): 880 × 880 px (min 600 × 600).
+
+**Example:**
+
+```json
+{
+  "id": "<example-grid_overlay-id>",
+  "primitive": "grid_overlay",
+  "props": {
+    "rows": 6,
+    "cols": 6,
+    "over": "example-map",
+    "cells": [
+      {
+        "id": "mine",
+        "row": 3,
+        "col": 4,
+        "label": "<example-tag>"
+      }
+    ]
+  }
+}
+```
+
+### map_base
+
+**Family:** spatial · **Actions:** `enter`, `exit`, `highlight`, `dim`
+
+A stylised top-down city: blocks, streets, avenues, parks and, in the riverside `variant`, a river. A quiet background that map scenes draw on; it carries no labels. `dim` pushes it further back; `highlight` brings it forward again.
+
+**When to use:** Any scene set in a city: ride hailing, deliveries, store coverage, nearby search. Put `route_path`, `zone_polygon` and `grid_overlay` over it.
+
+**When not to:** Abstract systems with no geography (use `node_card` and `connector`); a world or region map; a background for its own sake.
+
+**Props:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `variant` | `downtown` \| `suburb` \| `riverside` | no | City style: downtown (dense blocks), suburb (large blocks, parks) or riverside. (default `"downtown"`) |
+
+**Size hint** (example, blueprint-dark): 880 × 880 px (min 600 × 600).
+
+**Example:**
+
+```json
+{
+  "id": "<example-map_base-id>",
+  "primitive": "map_base",
+  "props": {
+    "variant": "downtown"
+  }
+}
+```
+
+### route_path
+
+**Family:** spatial · **Actions:** `enter`, `exit`, `move`, `highlight`, `dim`, `pulse`
+
+A glowing route through named `stops`, with a pin at the start and at the end and an optional `distance` tag. `enter` shows the pins; `move` draws the route from the first stop to the last (the tag lands when it arrives). Stops are parts: highlight one, or reject it (a red cross: closed, unreachable).
+
+**When to use:** A journey on a map: a driver to a pickup, a parcel from store to door, a packet hopping between regions. Put it over a `map_base`.
+
+**When not to:** A link between two components (use `connector`); traffic over time (use `packet_stream`); areas on a map (use `zone_polygon`).
+
+**Part actions** (events with `params.parts`): `highlight`, `pulse`, `reject`
+
+**Props:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `stops` | array | yes | Named stops in travel order, first to last. (min items 2, max items 6) |
+| `stops[].id` | string | yes | Part id, unique in this element; events act on it with params.parts. (max length 64) |
+| `stops[].label` | string | no | Short name of the place, e.g. a pickup point. (min length 1, max length 14) |
+| `distance` | string | no | Optional distance or time tag shown at the end, e.g. 4.2 km. (min length 1, max length 12) |
+| `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Route colour: neutral, focus, ok, problem or concept. (default `"focus"`) |
+
+**Size hint** (example, blueprint-dark): 840 × 620 px (min 658 × 606).
+
+**Example:**
+
+```json
+{
+  "id": "<example-route_path-id>",
+  "primitive": "route_path",
+  "props": {
+    "stops": [
+      {
+        "id": "start",
+        "label": "<example-stop>"
+      },
+      {
+        "id": "end",
+        "label": "<example-stop>"
+      }
+    ],
+    "distance": "<example-km>"
+  }
+}
+```
+
+### zone_polygon
+
+**Family:** spatial · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`
+
+Labelled areas drawn as soft, irregular shapes that can overlap. The `zones` are parts: `highlight` one to make it glow, `reject` to turn it red (overloaded, out of service), `dim` to push it back, `enter` to reveal it on its own word.
+
+**When to use:** Regions on a map or coverage areas: delivery zones, cell towers, shards by region, availability zones. Put it over a `map_base`.
+
+**When not to:** A regular grid of cells (use `grid_overlay`); components with names (use `node_card`); items in slots (use `slot_grid`).
+
+**Part actions** (events with `params.parts`): `enter`, `exit`, `highlight`, `dim`, `pulse`, `reject`
+
+**Props:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `zones` | array | yes | The areas, 1 to 6. (min items 1, max items 6) |
+| `zones[].id` | string | yes | Part id, unique in this element; events act on it with params.parts. (max length 64) |
+| `zones[].label` | string | yes | Name of the area, e.g. a delivery zone. (min length 1, max length 16) |
+| `zones[].semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Zone colour: neutral, focus, ok, problem or concept. (default `"concept"`) |
+| `overlap` | boolean | no | Whether neighbouring zones overlap (shared coverage) or keep a gap. (default `true`) |
+
+**Size hint** (example, blueprint-dark): 840 × 720 px (min 600 × 520).
+
+**Example:**
+
+```json
+{
+  "id": "<example-zone_polygon-id>",
+  "primitive": "zone_polygon",
+  "props": {
+    "zones": [
+      {
+        "id": "zone-a",
+        "label": "<example-area>"
+      },
+      {
+        "id": "zone-b",
+        "label": "<example-area>"
+      }
+    ]
+  }
+}
+```
+
+### connector
+
+**Family:** flow · **Actions:** `enter`, `exit`, `move`, `highlight`, `dim`, `pulse`, `reject`
+
+An arrow or line from one element to another, with an optional label at its middle. `enter` draws it from `from` to `to`; each `move` sends one glowing packet along it; `reject` turns it red with a cross at the middle (the link is broken or refused).
+
+**When to use:** A relation or a hop between two elements already in the beat: a request from client to server, a write to a database, a replica link. Use `move` on the word where one thing travels.
+
+**When not to:** Continuous traffic (add a `packet_stream` along the connector); a journey on a map (use `route_path`); a queue of waiting items (use `conveyor_queue`).
+
+**Props:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `from` | string | yes | Id of the element in this beat where the connector starts. (max length 64) |
+| `to` | string | yes | Id of the element in this beat it points to. (max length 64) |
+| `label` | string | no | Optional label at the middle: what travels, or the relation. (min length 1, max length 20) |
+| `heads` | `end` \| `both` \| `none` | no | Arrowheads: end (one-way arrow), both (two-way) or none (plain line). (default `"end"`) |
+| `dashed` | boolean | no | Dashed: an optional, async or planned link. (default `false`) |
+| `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Line colour: neutral, focus, ok, problem or concept. (default `"neutral"`) |
+
+**Size hint** (example, blueprint-dark): 347 × 86 px (min 347 × 86).
+
+**Example:**
+
+```json
+{
+  "id": "<example-connector-id>",
+  "primitive": "connector",
+  "props": {
+    "from": "example-client",
+    "to": "example-server",
+    "label": "<example-label>"
+  }
+}
+```
+
+### conveyor_queue
+
+**Family:** flow · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`
+
+A horizontal belt carrying labelled blocks toward its right end, where they are taken. `items` are parts, listed in arrival order: `enter` slides one in from the left behind the others, `exit` takes it off the belt (it lifts away and the rest move up), `lock` marks it as claimed, `reject` turns it red. An item is on the belt from the start unless it first appears with `enter`.
+
+**When to use:** Work waiting its turn: orders in a queue, jobs for a worker, messages in a partition. Take items on the words where they are processed.
+
+**When not to:** Traffic that never waits (use `packet_stream`); items on a shelf or seats picked in any order (use `slot_grid`); a count of waiting work (use `counter`).
+
+**Part actions** (events with `params.parts`): `enter`, `exit`, `highlight`, `pulse`, `lock`, `reject`
+
+**Props:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `items` | array | yes | Blocks in arrival order: the first is at the front and is taken first. (min items 1, max items 6) |
+| `items[].id` | string | yes | Part id, unique in this element; events act on it with params.parts. (max length 64) |
+| `items[].label` | string | yes | Short label on the block, e.g. an order number. (min length 1, max length 7) |
+| `items[].semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Block colour: neutral, focus, ok, problem or concept. (default `"neutral"`) |
+| `label` | string | no | Optional caption under the belt: what the queue is. (min length 1, max length 24) |
+
+**Size hint** (example, blueprint-dark): 332 × 237 px (min 332 × 237).
+
+**Example:**
+
+```json
+{
+  "id": "<example-conveyor_queue-id>",
+  "primitive": "conveyor_queue",
+  "props": {
+    "items": [
+      {
+        "id": "first",
+        "label": "<ex-1>"
+      },
+      {
+        "id": "second",
+        "label": "<ex-2>"
+      }
+    ],
+    "label": "<example-queue-name>"
+  }
+}
+```
+
+### packet_stream
+
+**Family:** flow · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`, `reject`
+
+A steady stream of small packets flowing along a `connector`, at `rate` packets per second. `enter` starts the flow from the source; `exit` stops sending (packets in flight still arrive); `reject` blocks the stream before the target: packets turn red and vanish at a barrier.
+
+**When to use:** Ongoing traffic between two elements: requests pouring into a server, events into a queue, replication. Raise `rate` to show load growing.
+
+**When not to:** A single request or hop (a move on the `connector` itself); items waiting in order (use `conveyor_queue`); a number of requests (use `counter`).
+
+**Props:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `along` | string | yes | Id of the connector in this beat that the packets travel along. (max length 64) |
+| `rate` | number | no | Packets per second (0.5 to 12). (min 0.5, max 12, default `3`) |
+| `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Packet colour: neutral, focus, ok, problem or concept. (default `"concept"`) |
+
+**Size hint** (example, blueprint-dark): 392 × 80 px (min 392 × 80).
+
+**Example:**
+
+```json
+{
+  "id": "<example-packet_stream-id>",
+  "primitive": "packet_stream",
+  "props": {
+    "along": "example-connector",
+    "rate": 4,
+    "semantic": "concept"
   }
 }
 ```
@@ -322,6 +615,56 @@ A big number changing to another, shown as "10 → 9": the old number in one col
 }
 ```
 
+### segmented_time_bar
+
+**Family:** metric · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`
+
+A stacked bar splitting a time budget into steps (RIDE | PACK), each segment as wide as its time with its mm:ss under it, and the total at the top right. With `budgetSec`, a marker shows the budget and any time past it turns red. `enter` fills the segments left to right; segments are parts: highlight the step being discussed, reject the one that blows the budget.
+
+**When to use:** Where time goes in a flow: a 10-minute delivery promise, the latency budget of a request, the stages of a deploy. Use it when the split matters more than one number.
+
+**When not to:** A single countdown (use `timer_ring`); one number (use `counter` or `stat_card`); steps without durations (use `node_card` and `connector`).
+
+**Part actions** (events with `params.parts`): `highlight`, `pulse`, `reject`, `dim`
+
+**Props:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `segments` | array | yes | Steps in order, left to right (1 to 5). (min items 1, max items 5) |
+| `segments[].id` | string | yes | Part id, unique in this element; events act on it with params.parts. (max length 64) |
+| `segments[].label` | string | yes | Short name of the step, e.g. RIDE or PACK. (min length 1, max length 8) |
+| `segments[].sec` | integer | yes | How long the step takes, in seconds. (min 1, max 5999) |
+| `segments[].semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Segment colour: neutral, focus, ok, problem or concept. (default `"concept"`) |
+| `budgetSec` | integer | no | Optional time budget: a marker on the bar; time past it is drawn red. (min 1, max 5999) |
+| `label` | string | no | Optional caption: what the time is for, e.g. ORDER TO DOOR. (min length 1, max length 24) |
+
+**Size hint** (example, blueprint-dark): 840 × 201 px (min 310 × 201).
+
+**Example:**
+
+```json
+{
+  "id": "<example-segmented_time_bar-id>",
+  "primitive": "segmented_time_bar",
+  "props": {
+    "segments": [
+      {
+        "id": "step-a",
+        "label": "<ex-a>",
+        "sec": 90
+      },
+      {
+        "id": "step-b",
+        "label": "<ex-b>",
+        "sec": 120
+      }
+    ],
+    "budgetSec": 600
+  }
+}
+```
+
 ### stat_card
 
 **Family:** metric · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`
@@ -386,6 +729,59 @@ A countdown ring with the time left as mm:ss in the middle. It shows `durationSe
   "props": {
     "durationSec": 600,
     "label": "<example-caption>"
+  }
+}
+```
+
+### slot_grid
+
+**Family:** object · **Actions:** `enter`, `exit`, `highlight`, `dim`
+
+A grid of labelled slots: bins of stock, a shelf, cinema seats or documents. Each slot is a part: `lock` claims it (padlock, yellow), `highlight` picks it out, `exit` takes its item (it lifts away and leaves an empty outline), `enter` puts an item back, `reject` turns it red with a cross (sold out, conflict).
+
+**When to use:** Contention over specific items: two users grabbing the same seat, stock picked from bins, which documents a search touches. Address the slots on the words that act on them.
+
+**When not to:** Items moving in order (use `conveyor_queue`); a spatial grid over a map (use `grid_overlay`); one standalone object (use `item_icon`).
+
+**Part actions** (events with `params.parts`): `enter`, `exit`, `lock`, `highlight`, `reject`, `pulse`, `dim`
+
+**Props:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `kind` | `inventory` \| `shelf` \| `seats` \| `documents` | no | How slots look: inventory (bins), shelf (rows on planks), seats, documents. (default `"inventory"`) |
+| `slots` | array | yes | The slots, in reading order (1 to 24). (min items 1, max items 24) |
+| `slots[].id` | string | yes | Part id, unique in this element; events act on it with params.parts. (max length 64) |
+| `slots[].label` | string | yes | Short label on the slot, e.g. a seat number or an item name. (min length 1, max length 7) |
+| `slots[].icon` | string | no | Asset id from the asset library (an unknown id is drawn as a placeholder and reported). (max length 64) |
+| `slots[].semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Slot colour: neutral, focus, ok, problem or concept. (default `"neutral"`) |
+| `cols` | integer | no | Slots per row; omit to choose from the slot count. (min 1, max 6) |
+| `label` | string | no | Optional caption under the grid. (min length 1, max length 24) |
+
+**Size hint** (example, blueprint-dark): 414 × 111.6 px (min 414 × 111.6).
+
+**Example:**
+
+```json
+{
+  "id": "<example-slot_grid-id>",
+  "primitive": "slot_grid",
+  "props": {
+    "kind": "seats",
+    "slots": [
+      {
+        "id": "seat-1",
+        "label": "<ex-1>"
+      },
+      {
+        "id": "seat-2",
+        "label": "<ex-2>"
+      },
+      {
+        "id": "seat-3",
+        "label": "<ex-3>"
+      }
+    ]
   }
 }
 ```

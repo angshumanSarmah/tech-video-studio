@@ -106,15 +106,26 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       `suggestedPatternIds`, `story.devices`, `story.beats[].device`, `story.metaphorWorld`,
       `story.ending.kind`, `story.missingPrimitiveRequests[].fallbackUsed`. Validate each against
       its registry or catalogue (structured errors with JSON paths, like `validateVideoSpec`).
-- [ ] **P1A.8 — Targeting parts of an element.** A `data_block` can only be highlighted as a
-      whole; pointing at one field ("this `status` flips") needs an event that targets a field.
-      Decide this together with pattern parts below (same target-syntax question), then pass the
-      targeted part through `ElementState` rather than giving components events.
-- [ ] **P1A.8 — Targeting pattern internals.** Events and focus may target a pattern instance id,
-      but not the elements a pattern expands into. Decide whether patterns expose named parts
-      (e.g. `<instance>.<part>`) and extend the target check in `spec/integrity/scenes.ts`.
-      Internally the scene layer already keys parts as `<instance>/<part>` (`beat-world.ts`);
-      `SpecIdSchema` allows neither `.` nor `/`, so exposing parts needs a target syntax.
+- [ ] **P1A.8 — Parts on more primitives and on patterns.** P1A.7 settled the target syntax:
+      an event names parts with `params.parts` (one target), validated against the target's
+      `parts` (see CLAUDE.md, "Parts"). Still open:
+  - `data_block` fields as parts, so "this `status` flips" highlights one field.
+  - Patterns exposing named parts the same way (a pattern definition declares `parts`; its
+    scope entry gets them in `catalog/scope.ts`), instead of a `<instance>.<part>` target syntax.
+  - Events a pattern expands into may carry `params.parts`; registry building does not check
+    them against the expanded elements' parts yet.
+- [ ] **P1A.9 — Geometry for relational primitives and overlays.** `connector` (between
+      `from`/`to`), `packet_stream` (along its connector's path) and `route_path` draw a
+      standalone path across their own box (`standalonePath`, `routeLayout`); `grid_overlay`
+      (`over`), `route_path` and `zone_polygon` on a map draw on their own. The layout engine
+      must give relational primitives their path in box coordinates (components already draw
+      from a `Point[]`; add it to the component props as layout output, never authored), stack
+      overlays on their `over` / `map_base` at the same box and a higher z, and may snap route
+      stops and zones to places on the map. `BeatScene`'s wrap shows boards with these elements
+      side by side until then.
+- [ ] **P1A.10 — Part stagger.** An event naming several parts (`params.parts: [a, b, c]`)
+      starts them together. P1A.10's group stagger should apply to parts too (in
+      `elementState`, so components stay unchanged).
 - [ ] **P1B.1 / P1B.2 — Word contract.** Word anchors and `timing.beats[].words` count words with
       `narrationWords()` from `packages/shared`. Map TTS tokens back onto that list so the
       timed word count equals it (enforced by `validateVideoSpec`). Cases the mapping must
