@@ -595,7 +595,10 @@ message }` for the Curator): `too_many_elements` (mode `maxUnits`), `text_too_sm
   child's event before its container enters), `recover_without_reject` /
   `release_without_lock` (an ending with no reject / lock held on that element or part),
   `scan_too_short` (a scan's resolved step below `SCAN_MIN_STEP_SEC`, squeezed by the beat's
-  next event: `catalog/scan-checks.ts`) and
+  next event: `catalog/scan-checks.ts`), `draw_cut_short` (an enter whose draw or fade would
+  not finish before its scene leaves the screen, unless the next beat continues the chain with
+  it still present; measured on the world as `BeatScene` renders it, `renderedWorld`, in the
+  default video theme: `catalog/draw-checks.ts`) and
   each primitive's own `eventWarnings(props,
 events)` (`route_moves_exceed_stops`: a jumpy `route_path` with more `move`s than hops;
   `morph_without_change`: a `device_frame` morph without `button.then`).

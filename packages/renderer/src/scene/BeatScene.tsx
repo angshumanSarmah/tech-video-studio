@@ -6,13 +6,14 @@ import { rectCss } from '../layers/rect-css.ts';
 import type { Transform } from '../layout/fit.ts';
 import { inflate, union } from '../layout/rect.ts';
 import { specLayout } from '../layout/spec-layout.ts';
-import { boxOf, type BoardLayout, type Guide, type PlacedItem } from '../layout/types.ts';
+import { boxOf, type Guide, type PlacedItem } from '../layout/types.ts';
 import { dimOpacity } from '../events/presets.ts';
 import { activeView, type ActiveTransition, type TransitionView } from '../events/transitions.ts';
 import { cameraAt } from '../layout/camera-track.ts';
 import { elementState } from '../primitives/element-state.ts';
 import { textCss, type Rect, type Theme } from '../theme/index.ts';
-import { beatWorld, type WorldItem } from './beat-world.ts';
+import type { WorldItem } from './beat-world.ts';
+import { renderedWorld } from './rendered-world.ts';
 import { overlayLevel, splitLayers } from './scene-layers.ts';
 import { footnoteOpacity, footnoteText } from './source-footnote.ts';
 import { WorldItemView } from './WorldItemView.tsx';
@@ -42,11 +43,10 @@ export function BeatScene({ theme, spec, timing, beatId, beatFrom, transitions =
   const frame = useCurrentFrame() + beatFrom;
   const { fps } = useVideoConfig();
   const beat = specLayout(spec, theme).beats.get(beatId);
-  const layers = useMemo(() => {
-    const placed = beat ? placedByKey(beat.chain.board) : new Map<string, PlacedItem>();
-    const draw = { theme, placedOf: (key: string) => placed.get(key) };
-    return splitLayers(beatWorld(spec, timing, beatId, fps, DEFAULT_REGISTRIES, draw));
-  }, [spec, timing, beatId, fps, theme, beat]);
+  const layers = useMemo(
+    () => splitLayers(renderedWorld(spec, timing, beatId, fps, DEFAULT_REGISTRIES, theme)),
+    [spec, timing, beatId, fps, theme],
+  );
   if (!beat) return null;
   const { board, footnote } = beat.chain;
   const overlays = overlayLevel(
@@ -127,20 +127,6 @@ function TransitionFrame({ theme, clip, view, children }: TransitionFrameProps) 
       </div>
     </div>
   );
-}
-
-/** Every placed item of a board (board items, overlays and their children) by key. */
-function placedByKey(board: BoardLayout): Map<string, PlacedItem> {
-  const out = new Map<string, PlacedItem>();
-  const add = (items: readonly PlacedItem[]) => {
-    for (const item of items) {
-      out.set(item.key, item);
-      add(item.children ?? []);
-    }
-  };
-  add(board.items);
-  add(board.overlays);
-  return out;
 }
 
 type BoardProps = {
