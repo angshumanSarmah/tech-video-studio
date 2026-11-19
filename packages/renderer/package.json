@@ -12,7 +12,7 @@
   },
   "scripts": {
     "studio": "remotion studio src/entry.ts",
-    "still:theme": "remotion still src/entry.ts ThemeSwatchBoard ../../docs/themes/blueprint-dark.png",
+    "still:theme": "tsx scripts/render-theme-compare.ts --only swatch",
     "still:safe-area": "remotion still src/entry.ts SafeAreaCalibration ../../docs/safe-area/zones.png",
     "still:primitives": "tsx scripts/render-primitive-stills.ts",
     "still:compare": "tsx scripts/render-theme-compare.ts",

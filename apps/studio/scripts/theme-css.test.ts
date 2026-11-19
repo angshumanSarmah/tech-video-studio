@@ -1,12 +1,23 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { getTheme } from '@explainer-studio/renderer/theme';
+import { DEFAULT_THEME_ID, getTheme } from '@explainer-studio/renderer/theme';
 import { describe, expect, it } from 'vitest';
-import { buildThemeCss, expectedThemeCss, GENERATED_CSS_PATH } from './theme-css.ts';
+import {
+  buildThemeCss,
+  expectedThemeCss,
+  GENERATED_CSS_PATH,
+  STUDIO_THEME_ID,
+} from './theme-css.ts';
 
 describe('studio theme CSS', () => {
   it('is up to date with the renderer theme (run `pnpm --filter @explainer-studio/studio gen:theme`)', () => {
     expect(readFileSync(GENERATED_CSS_PATH, 'utf8')).toBe(expectedThemeCss());
+  });
+
+  it('stays on the dark studio theme, independent of the default video theme', () => {
+    expect(STUDIO_THEME_ID).toBe('blueprint-dark');
+    expect(DEFAULT_THEME_ID).not.toBe(STUDIO_THEME_ID);
+    expect(expectedThemeCss()).toContain('Generated from the renderer theme "blueprint-dark"');
   });
 
   it('points every @font-face at a bundled font file', () => {

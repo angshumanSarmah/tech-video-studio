@@ -3,7 +3,6 @@ import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   bundledFont,
-  DEFAULT_THEME_ID,
   fontStack,
   getTheme,
   withAlpha,
@@ -86,10 +85,16 @@ export function buildThemeCss(theme: Theme, fontHref: (path: string) => string):
   ].join('\n');
 }
 
-/** The expected contents of `GENERATED_CSS_PATH` for the default theme. */
+/**
+ * The Studio UI keeps the dark look whatever the default video theme is, so its tokens are pinned
+ * to this theme rather than following `DEFAULT_THEME_ID`.
+ */
+export const STUDIO_THEME_ID = 'blueprint-dark';
+
+/** The expected contents of `GENERATED_CSS_PATH` for the studio theme. */
 export function expectedThemeCss(): string {
   const publicDir = rendererPublicDir();
   const cssDir = dirname(GENERATED_CSS_PATH);
   const fontHref = (path: string) => relative(cssDir, join(publicDir, path)).split('\\').join('/');
-  return buildThemeCss(getTheme(DEFAULT_THEME_ID), fontHref);
+  return buildThemeCss(getTheme(STUDIO_THEME_ID), fontHref);
 }

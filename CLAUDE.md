@@ -210,8 +210,8 @@ src/web/
   that call the API modules. Per-page UI state stays in the component. Folding events into view
   state belongs in pure `lib/` functions (e.g. `summarizeJob`), not in templates.
 - **Tailwind v4 tokens live in `@theme`** (no `tailwind.config`). Colour tokens and the mono font
-  are generated from the renderer theme into `theme.generated.css` by the studio's `gen:theme`
-  script; never edit it by hand (a test fails when it is stale). `styles.css` imports it and adds
+  are generated from the renderer's `blueprint-dark` theme (`STUDIO_THEME_ID`, not the default
+  video theme) into `theme.generated.css` by the studio's `gen:theme` script; never edit it by hand (a test fails when it is stale). `styles.css` imports it and adds
   the rest. Tokens: `canvas`/`panel` backgrounds, `line` borders, `ink`/`ink-muted`/`ink-faint`
   text, semantic `focus`/`ok`/`problem`/`concept`, plus the `bg-blueprint` and `label-mono`
   utilities. Use tokens, never raw hex, in components. Series accents are data (`series.accentColour`), not tokens. Class names must
@@ -225,12 +225,12 @@ src/web/
 
 `packages/renderer`: a Remotion project (`src/entry.ts`, `src/Root.tsx`). From the repo root:
 `pnpm --filter @explainer-studio/renderer studio` opens Remotion Studio; `… still:theme` renders
-the theme swatch board to `docs/themes/blueprint-dark.png`; `… still:safe-area` renders the
+each theme's swatch board to `docs/themes/<theme>.png`; `… still:safe-area` renders the
 safe-area overlay to `docs/safe-area/zones.png`; `… still:primitives [ids…]` renders one sheet per
 primitive to `docs/primitives/<id>.png`.
 
 - **Themes** live in `src/theme` and are registered by id (`getTheme`, `listThemes`;
-  default `blueprint-dark`; `drafting-paper` is a light trial theme). Each is validated against
+  default `drafting-paper`, a light engineering-drawing look). Each is validated against
   `ThemeSchema`. A theme holds colours
   (semantic `neutral`/`focus`/`ok`/`problem`/`concept`), tint and glow rules, grid, fonts, text
   styles, spacing, radius, stroke widths, safe-area margins and `numberLocale` (on-screen number
@@ -243,6 +243,11 @@ primitive to `docs/primitives/<id>.png`.
   fail in `calculateMetadata`); `PrimitiveSheet` and `ThemeSwatchBoard` take `themeId`.
   `still:compare [themeIds…] [--only swatch,rate-limiter,<primitive>…]` renders `docs/themes/<theme>.png` and, in `docs/themes/compare/`,
   every primitive sheet plus a mid-video rate-limiter frame per theme.
+- **`blueprint-dark` is parked.** It stays registered, selectable via `themeId`, and must keep
+  passing typecheck and tests (the per-theme contrast and font-coverage tests run for every
+  theme). New primitives are visually reviewed only in the default theme (`still:primitives`);
+  check `blueprint-dark` on demand with `still:compare blueprint-dark --only <ids>`. The Studio UI
+  tokens are pinned to it (`STUDIO_THEME_ID`), independent of the default video theme.
 - **Use the helpers, not raw values:** `tintFor`/`semanticTint` (soft fill, border, glow),
   `textCss`, `safeAreas`.
 - **Safe areas** come from per-platform exclusion zones (`topBar`, `actions`, `bottomInfo`: rects

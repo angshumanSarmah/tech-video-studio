@@ -6,7 +6,7 @@ const DRAFTING_BLUE = '#1F4FD1';
 const MONO_FALLBACK = "ui-monospace, 'SFMono-Regular', 'Cascadia Mono', Menlo, Consolas, monospace";
 
 /**
- * Trial theme: an engineering drawing on paper. Light, flat, ink line work; no glow, no vignette,
+ * Default theme: an engineering drawing on paper. Light, flat, ink line work; no glow, no vignette,
  * no drift. Focus keeps its text and strokes in ink and fills behind them with a yellow
  * highlighter (`tint.fills.focus`).
  */

@@ -17,8 +17,9 @@ describe('theme registry', () => {
     expect(getTheme().id).toBe(DEFAULT_THEME_ID);
   });
 
-  it('keeps blueprint-dark as the default with drafting-paper as a selectable trial', () => {
-    expect(DEFAULT_THEME_ID).toBe('blueprint-dark');
+  it('defaults to drafting-paper and keeps blueprint-dark registered and selectable', () => {
+    expect(DEFAULT_THEME_ID).toBe('drafting-paper');
+    expect(getTheme('blueprint-dark').id).toBe('blueprint-dark');
     expect(listThemes().map((t) => t.id)).toEqual(['blueprint-dark', 'drafting-paper']);
     expect(isThemeId('drafting-paper')).toBe(true);
   });

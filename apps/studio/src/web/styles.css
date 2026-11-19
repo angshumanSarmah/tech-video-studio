@@ -1,5 +1,6 @@
 /*
- * Studio theme: the video's "blueprint-dark" look (deep navy, blueprint grid, monospace labels).
+ * Studio theme: the "blueprint-dark" look (deep navy, blueprint grid, monospace labels), pinned by
+ * `STUDIO_THEME_ID` in scripts/theme-css.ts; it does not follow the default video theme.
  * Tailwind v4: tokens live in `@theme` and become utilities (`bg-canvas`, `text-ok`, `font-mono`).
  * Colour tokens and the mono font are generated from the renderer theme into theme.generated.css
  * (`pnpm --filter @explainer-studio/studio gen:theme`); a test fails if it is out of date.

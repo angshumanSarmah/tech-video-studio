@@ -25,7 +25,7 @@ A single line-drawn symbol from the asset library (server, database, user, lock,
 | `asset` | string | yes | Asset id from the asset library (an unknown id is drawn as a placeholder and reported). (max length 64) |
 | `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Stroke colour: neutral, focus, ok, problem or concept. (default `"neutral"`) |
 
-**Size hint** (example, blueprint-dark): 120 × 120 px (min 120 × 120).
+**Size hint** (example, drafting-paper): 120 × 120 px (min 120 × 120).
 
 **Example:**
 
@@ -58,7 +58,7 @@ A flat everyday object from the asset library (phone, car, ticket, parcel, pizza
 | `caption` | string | yes | What the object is in this story, shown under it. (min length 1, max length 24) |
 | `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Tile colour: neutral, focus, ok, problem or concept. (default `"neutral"`) |
 
-**Size hint** (example, blueprint-dark): 302 × 230 px (min 302 × 230).
+**Size hint** (example, drafting-paper): 302 × 230 px (min 302 × 230).
 
 **Example:**
 
@@ -92,7 +92,7 @@ A titled card for one component of a system (a service, server, database, client
 | `icon` | string | no | Asset id from the asset library (an unknown id is drawn as a placeholder and reported). (max length 64) |
 | `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Border and glow colour: neutral, focus, ok, problem or concept. (default `"neutral"`) |
 
-**Size hint** (example, blueprint-dark): 598 × 155 px (min 598 × 155).
+**Size hint** (example, drafting-paper): 713 × 152 px (min 713 × 152).
 
 **Example:**
 
@@ -125,7 +125,7 @@ A boxed monospace label in a semantic colour, like a sticker on the board. It na
 | `text` | string | yes | Short label, shown in uppercase monospace. (min length 1, max length 32) |
 | `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Colour meaning: neutral label, focus, ok, problem or concept. (default `"neutral"`) |
 
-**Size hint** (example, blueprint-dark): 380 × 70 px (min 380 × 70).
+**Size hint** (example, drafting-paper): 377 × 67 px (min 377 × 67).
 
 **Example:**
 
@@ -157,7 +157,7 @@ A speech bubble holding one line of monospace command, with the verb coloured, s
 | `text` | string | yes | The command exactly as typed, on one line. (min length 1, max length 48) |
 | `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Colour of the bubble and the command verb: neutral, focus, ok, problem or concept. (default `"concept"`) |
 
-**Size hint** (example, blueprint-dark): 738 × 98 px (min 738 × 98).
+**Size hint** (example, drafting-paper): 735 × 95 px (min 735 × 95).
 
 **Example:**
 
@@ -191,7 +191,7 @@ A JSON-like block of key/value pairs on a card, with an optional title. On `ente
 | `fields[].value` | any | yes | Field value: a short string, a number, true/false or null. |
 | `fields[].semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Colours the value and tints its row: neutral, focus, ok, problem or concept. |
 
-**Size hint** (example, blueprint-dark): 736 × 261 px (min 736 × 261).
+**Size hint** (example, drafting-paper): 733 × 258 px (min 733 × 258).
 
 **Example:**
 
@@ -234,7 +234,7 @@ A card with one typeset formula (LaTeX, rendered by KaTeX) and an optional capti
 | `caption` | string | no | Optional plain-words reading of the formula, shown under it. (min length 1, max length 48) |
 | `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Border and glow colour: neutral, focus, ok, problem or concept. (default `"concept"`) |
 
-**Size hint** (example, blueprint-dark): 814 × 281 px (min 814 × 281).
+**Size hint** (example, drafting-paper): 811 × 278 px (min 811 × 278).
 
 **Example:**
 
@@ -275,7 +275,7 @@ A grid of square cells dropped over a map or zones. `enter` drops it in from abo
 | `cells[].label` | string | no | Optional tag shown when the cell lights up, e.g. YOUR CELL. (min length 1, max length 14) |
 | `cells[].semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Cell colour when lit: neutral, focus, ok, problem or concept. (default `"focus"`) |
 
-**Size hint** (example, blueprint-dark): 880 × 880 px (min 600 × 600).
+**Size hint** (example, drafting-paper): 880 × 880 px (min 600 × 600).
 
 **Example:**
 
@@ -315,7 +315,7 @@ A stylised top-down city: blocks, streets, avenues, parks and, in the riverside 
 | --- | --- | --- | --- |
 | `variant` | `downtown` \| `suburb` \| `riverside` | no | City style: downtown (dense blocks), suburb (large blocks, parks) or riverside. (default `"downtown"`) |
 
-**Size hint** (example, blueprint-dark): 880 × 880 px (min 600 × 600).
+**Size hint** (example, drafting-paper): 880 × 880 px (min 600 × 600).
 
 **Example:**
 
@@ -351,7 +351,7 @@ A glowing route through named `stops`, with a pin at the start and at the end an
 | `distance` | string | no | Optional distance or time tag shown at the end, e.g. 4.2 km. (min length 1, max length 12) |
 | `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Route colour: neutral, focus, ok, problem or concept. (default `"focus"`) |
 
-**Size hint** (example, blueprint-dark): 840 × 620 px (min 658 × 606).
+**Size hint** (example, drafting-paper): 840 × 620 px (min 658 × 606).
 
 **Example:**
 
@@ -397,7 +397,7 @@ Labelled areas drawn as soft, irregular shapes that can overlap. The `zones` are
 | `zones[].semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Zone colour: neutral, focus, ok, problem or concept. (default `"concept"`) |
 | `overlap` | boolean | no | Whether neighbouring zones overlap (shared coverage) or keep a gap. (default `true`) |
 
-**Size hint** (example, blueprint-dark): 840 × 720 px (min 600 × 520).
+**Size hint** (example, drafting-paper): 840 × 720 px (min 600 × 520).
 
 **Example:**
 
@@ -441,7 +441,7 @@ An arrow or line from one element to another, with an optional label at its midd
 | `dashed` | boolean | no | Dashed: an optional, async or planned link. (default `false`) |
 | `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Line colour: neutral, focus, ok, problem or concept. (default `"neutral"`) |
 
-**Size hint** (example, blueprint-dark): 347 × 86 px (min 347 × 86).
+**Size hint** (example, drafting-paper): 347 × 84 px (min 347 × 84).
 
 **Example:**
 
@@ -479,7 +479,7 @@ A horizontal belt carrying labelled blocks toward its right end, where they are 
 | `items[].semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Block colour: neutral, focus, ok, problem or concept. (default `"neutral"`) |
 | `label` | string | no | Optional caption under the belt: what the queue is. (min length 1, max length 24) |
 
-**Size hint** (example, blueprint-dark): 332 × 237 px (min 332 × 237).
+**Size hint** (example, drafting-paper): 332 × 237 px (min 332 × 237).
 
 **Example:**
 
@@ -521,7 +521,7 @@ A steady stream of small packets flowing along a `connector`, at `rate` packets 
 | `rate` | number | no | Packets per second (0.5 to 12). (min 0.5, max 12, default `3`) |
 | `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Packet colour: neutral, focus, ok, problem or concept. (default `"concept"`) |
 
-**Size hint** (example, blueprint-dark): 392 × 80 px (min 392 × 80).
+**Size hint** (example, drafting-paper): 392 × 80 px (min 392 × 80).
 
 **Example:**
 
@@ -558,7 +558,7 @@ A big number with an optional unit and caption. Without a `count` event it shows
 | `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Colour of the number: neutral, focus, ok, problem or concept. (default `"focus"`) |
 | `decimals` | integer | no | Digits after the decimal point. (min 0, max 2, default `0`) |
 
-**Size hint** (example, blueprint-dark): 709 × 201 px (min 709 × 201).
+**Size hint** (example, drafting-paper): 828 × 201 px (min 828 × 201).
 
 **Example:**
 
@@ -597,7 +597,7 @@ A big number changing to another, shown as "10 → 9": the old number in one col
 | `toSemantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Colour of the new number: neutral, focus, ok, problem or concept. (default `"focus"`) |
 | `decimals` | integer | no | Digits after the decimal point. (min 0, max 2, default `0`) |
 
-**Size hint** (example, blueprint-dark): 757 × 164 px (min 757 × 164).
+**Size hint** (example, drafting-paper): 876 × 164 px (min 876 × 164).
 
 **Example:**
 
@@ -639,7 +639,7 @@ A stacked bar splitting a time budget into steps (RIDE | PACK), each segment as 
 | `budgetSec` | integer | no | Optional time budget: a marker on the bar; time past it is drawn red. (min 1, max 5999) |
 | `label` | string | no | Optional caption: what the time is for, e.g. ORDER TO DOOR. (min length 1, max length 24) |
 
-**Size hint** (example, blueprint-dark): 840 × 201 px (min 310 × 201).
+**Size hint** (example, drafting-paper): 840 × 201 px (min 310 × 201).
 
 **Example:**
 
@@ -684,7 +684,7 @@ A card with one big figure, a label under it, and a small source footnote. The f
 | `source` | string | yes | Where the figure comes from, shown as a footnote. Required. (min length 1, max length 60) |
 | `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Colour of the value: neutral, focus, ok, problem or concept. (default `"focus"`) |
 
-**Size hint** (example, blueprint-dark): 814 × 278 px (min 814 × 278).
+**Size hint** (example, drafting-paper): 1029 × 275 px (min 1029 × 275).
 
 **Example:**
 
@@ -718,7 +718,7 @@ A countdown ring with the time left as mm:ss in the middle. It shows `durationSe
 | `label` | string | no | Caption under the ring: what the time is for. (min length 1, max length 24) |
 | `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Ring colour while running: neutral, focus, ok, problem or concept. (default `"focus"`) |
 
-**Size hint** (example, blueprint-dark): 317 × 362 px (min 317 × 362).
+**Size hint** (example, drafting-paper): 317 × 362 px (min 317 × 362).
 
 **Example:**
 
@@ -758,7 +758,7 @@ A grid of labelled slots: bins of stock, a shelf, cinema seats or documents. Eac
 | `cols` | integer | no | Slots per row; omit to choose from the slot count. (min 1, max 6) |
 | `label` | string | no | Optional caption under the grid. (min length 1, max length 24) |
 
-**Size hint** (example, blueprint-dark): 414 × 111.6 px (min 414 × 111.6).
+**Size hint** (example, drafting-paper): 414 × 111.6 px (min 414 × 111.6).
 
 **Example:**
 

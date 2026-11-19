@@ -124,8 +124,8 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       from `src/web` means updating the web import-boundary message in `eslint.config.js`.
 - [ ] **P3.4 — Theme per channel/series.** Themes are registered by id in the renderer
       (`getTheme`, `listThemes`). When a channel or series stores a theme id, validate it against
-      the registry (or move the id list into `packages/shared`), and have the studio token
-      generator follow the selected theme instead of `DEFAULT_THEME_ID`.
+      the registry (or move the id list into `packages/shared`). The studio tokens stay pinned to
+      `STUDIO_THEME_ID` (`blueprint-dark`) unless the UI should follow the video theme.
 - [ ] **P1A.9 / P1C.4 — Catalogue ids.** Primitive and pattern ids, props and params are checked
       by `withRegistryChecks` (P1A.5). The VideoSpec schema still only checks these are slugs:
       `scenes[].layoutMode`, `story.beats[].layoutMode` and

@@ -3,6 +3,7 @@ import { buildPatternRegistry } from '../patterns/registry.ts';
 import { bouncePattern } from '../patterns/test-pattern.ts';
 import { buildCatalogue, catalogueJson, catalogueMarkdown } from './catalogue.ts';
 import { DEFAULT_REGISTRIES, type Registries } from './registries.ts';
+import { DEFAULT_THEME_ID } from '../theme/index.ts';
 
 const withPatterns: Registries = {
   ...DEFAULT_REGISTRIES,
@@ -109,7 +110,8 @@ describe('catalogue files', () => {
     expect(md).toContain('### counter');
     expect(md).toContain('| `text` | string | yes |');
     expect(md).toContain('"primitive": "counter"');
-    expect(md).toMatch(/\*\*Size hint\*\* \(example, blueprint-dark\): \d+ × \d+ px/);
+    expect(md).toContain(`**Size hint** (example, ${DEFAULT_THEME_ID}): `);
+    expect(md).toMatch(/\*\*Size hint\*\* \(example, [a-z-]+\): \d+ × \d+ px/);
     expect(md).toContain('No patterns are registered yet.');
     expect(md).toContain('**Part actions** (events with `params.parts`): `enter`, `exit`, `lock`');
     expect(md).toContain(

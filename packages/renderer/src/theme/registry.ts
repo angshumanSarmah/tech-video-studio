@@ -6,7 +6,11 @@ import { draftingPaper } from './themes/drafting-paper.ts';
 /** Every theme the renderer knows. Add a theme by adding its module here. */
 const THEME_MODULES: readonly ThemeInput[] = [blueprintDark, draftingPaper];
 
-export const DEFAULT_THEME_ID = 'blueprint-dark';
+/**
+ * Default video theme. `blueprint-dark` stays registered (selectable via `themeId`) but is parked:
+ * new primitives are reviewed visually only in the default; `still:compare` checks the others.
+ */
+export const DEFAULT_THEME_ID = 'drafting-paper';
 
 /** Validates each theme and indexes it by id; throws on an invalid theme or a duplicate id. */
 export function buildThemeRegistry(inputs: readonly ThemeInput[]): ReadonlyMap<string, Theme> {

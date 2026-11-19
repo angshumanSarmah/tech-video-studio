@@ -2,7 +2,10 @@ import type { ThemeInput } from '../schema.ts';
 
 const MONO_FALLBACK = "ui-monospace, 'SFMono-Regular', 'Cascadia Mono', Menlo, Consolas, monospace";
 
-/** Default theme: deep navy blueprint board with a drifting grid and glowing semantic colours. */
+/**
+ * Parked theme: deep navy blueprint board with a drifting grid and glowing semantic colours.
+ * Selectable via `themeId` (the default is `drafting-paper`); the Studio UI tokens are pinned to it.
+ */
 export const blueprintDark = {
   id: 'blueprint-dark',
   name: 'Blueprint Dark',
