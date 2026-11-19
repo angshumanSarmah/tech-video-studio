@@ -36,6 +36,22 @@ describe('videoMetadata', () => {
   it('rejects a non-integer fps', () => {
     expect(() => videoMetadata({ ...props, fps: 29.97 })).toThrow(/fps/);
   });
+
+  it('sizes the canvas from the default theme, or from themeId', () => {
+    expect(videoMetadata(props)).toMatchObject({ width: 1080, height: 1920 });
+    const paper = videoMetadata({ ...props, themeId: 'drafting-paper' });
+    expect(paper).toMatchObject({ width: 1080, height: 1920 });
+    expect(paper.props.themeId).toBe('drafting-paper');
+  });
+
+  it('rejects an unknown themeId and lists the known ones', () => {
+    expect(() => videoMetadata({ ...props, themeId: 'neon-pink' })).toThrow(
+      /Unknown theme "neon-pink".*drafting-paper/,
+    );
+    expect(() => beatMetadata({ ...props, themeId: 'neon-pink', beatId: 'hook' })).toThrow(
+      /Unknown theme/,
+    );
+  });
 });
 
 describe('beatMetadata', () => {

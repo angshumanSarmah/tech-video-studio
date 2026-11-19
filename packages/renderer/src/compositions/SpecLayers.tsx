@@ -20,8 +20,8 @@ type Props = Omit<VideoFromSpecProps, 'fps'> & {
  * Every layer of a spec on the global timeline (frame 0 = start of the narration track):
  * background, one scene per beat in a `<Sequence>`, HUD, subtitles, audio.
  */
-export function SpecLayers({ spec, series, audioSrc, channelHandle, onlyBeatId }: Props) {
-  const theme = getTheme(DEFAULT_THEME_ID);
+export function SpecLayers({ spec, series, audioSrc, channelHandle, themeId, onlyBeatId }: Props) {
+  const theme = getTheme(themeId ?? DEFAULT_THEME_ID);
   loadThemeFonts(theme);
   const { fps } = useVideoConfig();
   const timing = useMemo(() => effectiveTiming(spec), [spec]);

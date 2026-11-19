@@ -1,6 +1,6 @@
 import { loadFont } from '@remotion/fonts';
 import { staticFile } from 'remotion';
-import { FONT_ROLES, type Theme } from '../theme/index.ts';
+import { bundledFonts, type Theme } from '../theme/index.ts';
 
 const loaded = new Set<string>();
 
@@ -11,8 +11,7 @@ const loaded = new Set<string>();
 export function loadThemeFonts(theme: Theme): void {
   if (loaded.has(theme.id)) return;
   loaded.add(theme.id);
-  for (const role of FONT_ROLES) {
-    const { family, files } = theme.fonts[role];
+  for (const { family, files } of bundledFonts(theme)) {
     for (const file of files) {
       void loadFont({ family, url: staticFile(file.path), weight: String(file.weight) });
     }

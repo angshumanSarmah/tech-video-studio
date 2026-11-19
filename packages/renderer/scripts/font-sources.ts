@@ -13,9 +13,15 @@ export type FontSource = {
   axes?: Record<string, number>;
 };
 
-/** google/fonts at a fixed commit (Barlow Condensed static TTFs, Inter variable TTF). */
+/** google/fonts at a fixed commit (Barlow Condensed and IBM Plex TTFs, Inter variable TTF). */
 const GOOGLE_FONTS =
   'https://raw.githubusercontent.com/google/fonts/5bd87dfc525c8a0d1d8529d3684716e00c3fc59a';
+
+/** IBM Plex static TTFs (Sans Condensed, Mono) and the Plex Sans variable TTF, same commit. */
+const PLEX = `${GOOGLE_FONTS}/ofl`;
+
+/** Plex Sans' normal width (its variable font also has a `wdth` axis). */
+const PLEX_SANS_WDTH = 100;
 
 /** Upstream JetBrains Mono v2.304: unlike the google/fonts build, it includes ✓ and ✗. */
 const JETBRAINS_MONO = 'https://raw.githubusercontent.com/JetBrains/JetBrainsMono/v2.304/fonts/ttf';
@@ -53,5 +59,31 @@ export const FONT_SOURCES: readonly FontSource[] = [
     out: `fonts/inter/inter-${wght}.woff2`,
     ...INTER_VF,
     axes: { wght, opsz: INTER_OPSZ },
+  })),
+  {
+    out: 'fonts/ibm-plex-sans-condensed/ibm-plex-sans-condensed-600.woff2',
+    url: `${PLEX}/ibmplexsanscondensed/IBMPlexSansCondensed-SemiBold.ttf`,
+    sha256: 'a081ca60548aea14100757a2d6fe71ca60fd90ebce779c9a8ae5a0c8fb4526d4',
+  },
+  {
+    out: 'fonts/ibm-plex-sans-condensed/ibm-plex-sans-condensed-700.woff2',
+    url: `${PLEX}/ibmplexsanscondensed/IBMPlexSansCondensed-Bold.ttf`,
+    sha256: 'b65492d86cdd5cd9d43d2671b55d5d36fec36859fc8b08bc6aba78e441d6c849',
+  },
+  {
+    out: 'fonts/ibm-plex-mono/ibm-plex-mono-500.woff2',
+    url: `${PLEX}/ibmplexmono/IBMPlexMono-Medium.ttf`,
+    sha256: 'a9b4c49bb299e05b5f6c481e7fb5e78943d2793249a0c8874ab574a2d1ea6755',
+  },
+  {
+    out: 'fonts/ibm-plex-mono/ibm-plex-mono-700.woff2',
+    url: `${PLEX}/ibmplexmono/IBMPlexMono-Bold.ttf`,
+    sha256: 'ac27abd6450a64dd94467580a02fe6235156d5b92f2926ebbc8e7489df64e0be',
+  },
+  ...[400, 600, 700].map((wght) => ({
+    out: `fonts/ibm-plex-sans/ibm-plex-sans-${wght}.woff2`,
+    url: `${PLEX}/ibmplexsans/IBMPlexSans%5Bwdth,wght%5D.ttf`,
+    sha256: '3b031aa4216174205bd8471f88a49b91f093169e9e87bd5262242bc5967fe2e3',
+    axes: { wght, wdth: PLEX_SANS_WDTH },
   })),
 ];

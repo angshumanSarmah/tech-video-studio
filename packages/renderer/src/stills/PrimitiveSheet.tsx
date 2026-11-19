@@ -18,9 +18,12 @@ import {
   type SheetPlan,
 } from './primitive-sheet.ts';
 
-export type PrimitiveSheetProps = { primitiveId: string };
+export type PrimitiveSheetProps = { primitiveId: string; themeId: string };
 
-export const primitiveSheetDefaults: PrimitiveSheetProps = { primitiveId: 'node_card' };
+export const primitiveSheetDefaults: PrimitiveSheetProps = {
+  primitiveId: 'node_card',
+  themeId: DEFAULT_THEME_ID,
+};
 
 /** Sampled at the final preset's rate; a still has no timeline of its own. */
 const SHEET_FPS = 30;
@@ -30,8 +33,8 @@ const SHEET_FPS = 30;
  * panel per event, each drawn by the registered component at the state just before the next
  * event. Rendered to `docs/primitives/<id>.png` by `still:primitives`.
  */
-export function PrimitiveSheet({ primitiveId }: PrimitiveSheetProps) {
-  const theme = getTheme(DEFAULT_THEME_ID);
+export function PrimitiveSheet({ primitiveId, themeId }: PrimitiveSheetProps) {
+  const theme = getTheme(themeId);
   loadThemeFonts(theme);
   const sheet = useMemo(() => buildSheet(primitiveId), [primitiveId]);
   return (

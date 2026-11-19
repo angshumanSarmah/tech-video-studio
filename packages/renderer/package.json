@@ -15,6 +15,7 @@
     "still:theme": "remotion still src/entry.ts ThemeSwatchBoard ../../docs/themes/blueprint-dark.png",
     "still:safe-area": "remotion still src/entry.ts SafeAreaCalibration ../../docs/safe-area/zones.png",
     "still:primitives": "tsx scripts/render-primitive-stills.ts",
+    "still:compare": "tsx scripts/render-theme-compare.ts",
     "calibrate:safe-area": "tsx scripts/calibrate-safe-area.ts",
     "gen:catalogue": "tsx scripts/generate-catalogue.ts",
     "typecheck": "tsc --build",

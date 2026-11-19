@@ -4,6 +4,7 @@ import {
   type RenderableVideoSpec,
 } from '@explainer-studio/shared';
 import type { CalculateMetadataFunction } from 'remotion';
+import { getTheme } from '../theme/index.ts';
 import { beatFrameSpans, totalFrames, type BeatFrameSpan } from '../timing/frames.ts';
 import type { BeatFromSpecProps, VideoFromSpecProps } from './props.ts';
 
@@ -34,11 +35,18 @@ export function findBeatSpan(
   throw new Error(`Unknown beat "${beatId}". Beats in this spec: ${known}.`);
 }
 
+/** Canvas size of the props' theme; throws on an unknown theme id (listing the known ones). */
+function themeCanvas(props: VideoFromSpecProps): { width: number; height: number } {
+  const { width, height } = getTheme(props.themeId).canvas;
+  return { width, height };
+}
+
 /** Whole video: duration from `spec.timing`, or estimated from word counts before TTS. */
 export function videoMetadata(props: VideoFromSpecProps) {
   assertFps(props.fps);
   const spec = parseRenderableSpec(props.spec);
   return {
+    ...themeCanvas(props),
     fps: props.fps,
     durationInFrames: totalFrames(effectiveTiming(spec), props.fps),
     props: { ...props, spec },
@@ -51,6 +59,7 @@ export function beatMetadata(props: BeatFromSpecProps) {
   const spec = parseRenderableSpec(props.spec);
   const span = findBeatSpan(spec, props.beatId, props.fps);
   return {
+    ...themeCanvas(props),
     fps: props.fps,
     durationInFrames: span.durationInFrames,
     props: { ...props, spec },

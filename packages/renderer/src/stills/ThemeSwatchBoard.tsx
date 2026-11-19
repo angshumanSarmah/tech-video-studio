@@ -1,7 +1,14 @@
 import { AbsoluteFill } from 'remotion';
 import { Background } from '../background/Background.tsx';
 import { loadThemeFonts } from '../fonts/load-theme-fonts.ts';
-import { DEFAULT_THEME_ID, getTheme, resolveAccent, textCss, type Theme } from '../theme/index.ts';
+import {
+  bundledFonts,
+  DEFAULT_THEME_ID,
+  getTheme,
+  resolveAccent,
+  textCss,
+  type Theme,
+} from '../theme/index.ts';
 import {
   AccentSamples,
   SafeAreaDiagram,
@@ -84,7 +91,7 @@ export function ThemeSwatchBoard({ themeId, accents }: ThemeSwatchBoardProps) {
 }
 
 function fontFamilies(theme: Theme): string {
-  return [...new Set(Object.values(theme.fonts).map((f) => f.family))].join(' / ');
+  return [...new Set(bundledFonts(theme).map((f) => f.family))].join(' / ');
 }
 
 function Header({ theme }: { theme: Theme }) {

@@ -230,12 +230,19 @@ safe-area overlay to `docs/safe-area/zones.png`; `… still:primitives [ids…]`
 primitive to `docs/primitives/<id>.png`.
 
 - **Themes** live in `src/theme` and are registered by id (`getTheme`, `listThemes`;
-  default `blueprint-dark`). Each is validated against `ThemeSchema`. A theme holds colours
+  default `blueprint-dark`; `drafting-paper` is a light trial theme). Each is validated against
+  `ThemeSchema`. A theme holds colours
   (semantic `neutral`/`focus`/`ok`/`problem`/`concept`), tint and glow rules, grid, fonts, text
   styles, spacing, radius, stroke widths, safe-area margins and `numberLocale` (on-screen number
-  grouping; `en-IN` gives 1,00,000). `src/theme` is React-free and
+  grouping; `en-IN` gives 1,00,000). `tint.fills` overrides a semantic's soft fill (paper's
+  focus: ink text on a yellow highlighter); each font role has `advanceEm` for size hints
+  (`approxTextWidth`). `src/theme` is React-free and
   exported as `@explainer-studio/renderer/theme`, so Node scripts, the layout engine and the
   studio can import it.
+- **Theme selection:** `VideoFromSpec`/`BeatFromSpec` take an optional `themeId` (unknown ids
+  fail in `calculateMetadata`); `PrimitiveSheet` and `ThemeSwatchBoard` take `themeId`.
+  `still:compare [themeIds…]` renders `docs/themes/<theme>.png` and, in `docs/themes/compare/`,
+  every primitive sheet plus a mid-video rate-limiter frame per theme.
 - **Use the helpers, not raw values:** `tintFor`/`semanticTint` (soft fill, border, glow),
   `textCss`, `safeAreas`.
 - **Safe areas** come from per-platform exclusion zones (`topBar`, `actions`, `bottomInfo`: rects
@@ -251,7 +258,8 @@ primitive to `docs/primitives/<id>.png`.
   `loadThemeFonts(theme)` (`@remotion/fonts` + `staticFile`). Never load fonts from the network.
   They are subsets of pinned, checksummed sources (`scripts/font-sources.ts`), rebuilt with
   `fonts:subset`. A role's `bundledFallbacks` (Inter) supply glyphs its font lacks (arrows, ✓ ✗,
-  ₹); `src/fonts/font-coverage.test.ts` reads each file's character map and fails when a role's
+  ₹); they name other roles or `glyphFallback`, a bundled face that is not a role (Inter in
+  `drafting-paper`). Iterate faces with `bundledFonts(theme)`, not `FONT_ROLES`; `src/fonts/font-coverage.test.ts` reads each file's character map and fails when a role's
   stack misses any glyph in `REQUIRED_CODE_POINTS` (`src/fonts/glyphs.ts`).
   **Exception: KaTeX.** `formula_card` imports `katex/dist/katex.min.css`, so Remotion's webpack
   bundles KaTeX's own font files from the pinned `katex` package (still never the network);

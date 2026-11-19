@@ -1,9 +1,10 @@
 import { ThemeSchema, type Theme, type ThemeInput } from './schema.ts';
 import { safeAreas } from './safe-area.ts';
 import { blueprintDark } from './themes/blueprint-dark.ts';
+import { draftingPaper } from './themes/drafting-paper.ts';
 
 /** Every theme the renderer knows. Add a theme by adding its module here. */
-const THEME_MODULES: readonly ThemeInput[] = [blueprintDark];
+const THEME_MODULES: readonly ThemeInput[] = [blueprintDark, draftingPaper];
 
 export const DEFAULT_THEME_ID = 'blueprint-dark';
 

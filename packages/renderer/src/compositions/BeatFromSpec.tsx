@@ -9,7 +9,7 @@ import { SpecLayers } from './SpecLayers.tsx';
  * so every frame (scene, HUD, subtitles, audio) matches the same frame of `VideoFromSpec`.
  */
 export function BeatFromSpec(props: BeatFromSpecProps) {
-  const { spec, series, audioSrc, channelHandle, beatId } = props;
+  const { spec, series, audioSrc, channelHandle, themeId, beatId } = props;
   const { fps } = useVideoConfig();
   const span = useMemo(() => findBeatSpan(spec, beatId, fps), [spec, beatId, fps]);
   return (
@@ -19,6 +19,7 @@ export function BeatFromSpec(props: BeatFromSpecProps) {
         series={series}
         audioSrc={audioSrc}
         channelHandle={channelHandle}
+        themeId={themeId}
         onlyBeatId={beatId}
       />
     </Sequence>

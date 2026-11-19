@@ -36,3 +36,15 @@ export function contrastRatio(a: string, b: string): number {
   ];
   return (hi + 0.05) / (lo + 0.05);
 }
+
+function toHex({ r, g, b }: Rgb): string {
+  return `#${[r, g, b].map((c) => Math.round(c).toString(16).padStart(2, '0')).join('')}`;
+}
+
+/** The opaque colour of `hex` at `alpha` painted over `under` (for contrast checks on fills). */
+export function blendOver(hex: string, alpha: number, under: string): string {
+  const top = parseHex(hex);
+  const bottom = parseHex(under);
+  const mix = (t: number, u: number) => u + alpha * (t - u);
+  return toHex({ r: mix(top.r, bottom.r), g: mix(top.g, bottom.g), b: mix(top.b, bottom.b) });
+}

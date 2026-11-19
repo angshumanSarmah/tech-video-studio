@@ -2,7 +2,15 @@ import { fileURLToPath } from 'node:url';
 import * as fontkit from 'fontkit';
 import { describe, expect, it } from 'vitest';
 import { FONT_SOURCES } from '../../scripts/font-sources.ts';
-import { FONT_ROLES, listThemes, type FontRole, type Theme } from '../theme/index.ts';
+import {
+  bundledFont,
+  bundledFonts,
+  FONT_ROLES,
+  listThemes,
+  type BundledFontKey,
+  type FontRole,
+  type Theme,
+} from '../theme/index.ts';
 import { describeCodePoint, REQUIRED_CODE_POINTS } from './glyphs.ts';
 
 /**
@@ -19,15 +27,15 @@ function characterSet(path: string): Set<number> {
   return new Set(font.characterSet);
 }
 
-/** Code points every file of `role` has: the browser may pick any of its weights. */
-function roleCoverage(theme: Theme, role: FontRole): Set<number> {
-  const sets = theme.fonts[role].files.map((f) => characterSet(f.path));
+/** Code points every file of a face has: the browser may pick any of its weights. */
+function faceCoverage(theme: Theme, key: BundledFontKey): Set<number> {
+  const sets = (bundledFont(theme, key)?.files ?? []).map((f) => characterSet(f.path));
   return new Set([...(sets[0] ?? [])].filter((cp) => sets.every((s) => s.has(cp))));
 }
 
 function stackCoverage(theme: Theme, role: FontRole): Set<number> {
-  const roles = [role, ...theme.fonts[role].bundledFallbacks];
-  return new Set(roles.flatMap((r) => [...roleCoverage(theme, r)]));
+  const keys = [role, ...theme.fonts[role].bundledFallbacks];
+  return new Set(keys.flatMap((k) => [...faceCoverage(theme, k)]));
 }
 
 describe.each(listThemes().map((t) => [t.id, t] as const))('fonts of %s', (_id, theme) => {
@@ -38,7 +46,7 @@ describe.each(listThemes().map((t) => [t.id, t] as const))('fonts of %s', (_id, 
   });
 
   it('builds every font file from a pinned source', () => {
-    const themed = FONT_ROLES.flatMap((role) => theme.fonts[role].files.map((f) => f.path));
+    const themed = bundledFonts(theme).flatMap((face) => face.files.map((f) => f.path));
     const sourced = FONT_SOURCES.map((s) => s.out);
     expect(themed.filter((p) => !sourced.includes(p))).toEqual([]);
   });
@@ -46,13 +54,13 @@ describe.each(listThemes().map((t) => [t.id, t] as const))('fonts of %s', (_id, 
 
 it('has no font source that no theme uses', () => {
   const used = new Set(
-    listThemes().flatMap((t) => FONT_ROLES.flatMap((r) => t.fonts[r].files.map((f) => f.path))),
+    listThemes().flatMap((t) => bundledFonts(t).flatMap((face) => face.files.map((f) => f.path))),
   );
   expect(FONT_SOURCES.map((s) => s.out).filter((p) => !used.has(p))).toEqual([]);
 });
 
 function stackFamilies(theme: Theme, role: FontRole): string {
   return [role, ...theme.fonts[role].bundledFallbacks]
-    .map((r) => theme.fonts[r].family)
+    .map((k) => bundledFont(theme, k)?.family ?? k)
     .join(' + ');
 }

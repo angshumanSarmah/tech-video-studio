@@ -20,6 +20,13 @@ export type SemanticColour = (typeof SEMANTIC_COLOURS)[number];
 export const FONT_ROLES = ['display', 'mono', 'sans'] as const;
 export type FontRole = (typeof FONT_ROLES)[number];
 
+/**
+ * Every bundled face a theme may have: the roles, plus an optional `glyphFallback` face that is
+ * never a role itself and only supplies glyphs the role fonts lack (e.g. Inter for ✓ ✗ and ₹).
+ */
+export const BUNDLED_FONTS = [...FONT_ROLES, 'glyphFallback'] as const;
+export type BundledFontKey = (typeof BUNDLED_FONTS)[number];
+
 export const TEXT_STYLES = [
   'headline',
   'metric',
@@ -49,17 +56,30 @@ const FontFileSchema = z.object({
   path: z.string().regex(/^fonts\/[\w.-]+\/[\w.-]+\.woff2$/),
 });
 
-const FontSchema = z.object({
+/** A bundled font family and its files. */
+const FontFaceSchema = z.object({
   family: z.string().min(1),
+  files: z.array(FontFileSchema).min(1),
+});
+
+const FontSchema = FontFaceSchema.extend({
   /** CSS fallback stack appended after `family`. */
   fallback: z.string().min(1),
-  files: z.array(FontFileSchema).min(1),
   /**
-   * Other roles' bundled fonts to try before `fallback`, for glyphs this font lacks (e.g. arrows).
-   * `font-coverage.test.ts` checks each role's stack covers `REQUIRED_CODE_POINTS`.
+   * Average advance per character in em, with headroom over measured capitals, for size hints
+   * (`approxTextWidth`). Rough by design; the layout engine may measure real glyphs later.
    */
-  bundledFallbacks: z.array(z.enum(FONT_ROLES)).default([]),
+  advanceEm: z.number().positive(),
+  /**
+   * Other bundled fonts (roles or `glyphFallback`) to try before `fallback`, for glyphs this font
+   * lacks (e.g. arrows). `font-coverage.test.ts` checks each role's stack covers
+   * `REQUIRED_CODE_POINTS`.
+   */
+  bundledFallbacks: z.array(z.enum(BUNDLED_FONTS)).default([]),
 });
+
+/** A fill drawn instead of the semantic colour's own soft tint, e.g. a highlighter behind ink. */
+const FillSchema = z.object({ colour: HexColourSchema, alpha: AlphaSchema });
 
 const TextStyleSchema = z.object({
   font: z.enum(FONT_ROLES),
@@ -126,7 +146,23 @@ export const ThemeSchema = z
       fallbackAccent: HexColourSchema,
     }),
     /** How any colour (semantic or series accent) is applied as fills and glows. */
-    tint: z.object({ softAlpha: AlphaSchema, borderAlpha: AlphaSchema }),
+    tint: z.object({
+      softAlpha: AlphaSchema,
+      borderAlpha: AlphaSchema,
+      /**
+       * Per-semantic override of the soft fill. Without one, a semantic fills with its own colour
+       * at `softAlpha`. Lets a light theme keep a semantic's text and strokes dark (its colour) while
+       * filling behind them with something else (focus as a yellow highlighter).
+       */
+      fills: z
+        .object(
+          Object.fromEntries(SEMANTIC_COLOURS.map((k) => [k, FillSchema.optional()])) as Record<
+            SemanticColour,
+            z.ZodOptional<typeof FillSchema>
+          >,
+        )
+        .default({}),
+    }),
     glow: z.object({
       innerBlur: PxSchema,
       innerAlpha: AlphaSchema,
@@ -148,7 +184,12 @@ export const ThemeSchema = z
       /** Background drift in px per second; keep it subtle. */
       drift: z.object({ x: z.number(), y: z.number() }),
     }),
-    fonts: z.object({ display: FontSchema, mono: FontSchema, sans: FontSchema }),
+    fonts: z.object({
+      display: FontSchema,
+      mono: FontSchema,
+      sans: FontSchema,
+      glyphFallback: FontFaceSchema.optional(),
+    }),
     text: z.object(
       Object.fromEntries(TEXT_STYLES.map((k) => [k, TextStyleSchema])) as Record<
         TextStyleName,
@@ -182,11 +223,19 @@ export const ThemeSchema = z
   })
   .superRefine((theme, ctx) => {
     for (const role of FONT_ROLES) {
-      if (theme.fonts[role].bundledFallbacks.includes(role)) {
+      const { bundledFallbacks } = theme.fonts[role];
+      if (bundledFallbacks.includes(role)) {
         ctx.addIssue({
           code: 'custom',
           path: ['fonts', role, 'bundledFallbacks'],
           message: `a font cannot fall back to its own role "${role}"`,
+        });
+      }
+      if (bundledFallbacks.includes('glyphFallback') && !theme.fonts.glyphFallback) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['fonts', role, 'bundledFallbacks'],
+          message: 'falls back to "glyphFallback", but the theme has no fonts.glyphFallback',
         });
       }
     }

@@ -40,6 +40,7 @@ export const blueprintDark = {
     display: {
       family: 'Barlow Condensed',
       fallback: "'Arial Narrow', sans-serif",
+      advanceEm: 0.5,
       // Arrows, check marks and ₹ come from Inter (Barlow has none).
       bundledFallbacks: ['sans'],
       files: [
@@ -50,6 +51,7 @@ export const blueprintDark = {
     mono: {
       family: 'JetBrains Mono',
       fallback: MONO_FALLBACK,
+      advanceEm: 0.6,
       // ₹ comes from Inter.
       bundledFallbacks: ['sans'],
       files: [
@@ -60,6 +62,7 @@ export const blueprintDark = {
     sans: {
       family: 'Inter',
       fallback: "system-ui, -apple-system, 'Segoe UI', sans-serif",
+      advanceEm: 0.55,
       files: [
         { weight: 400, path: 'fonts/inter/inter-400.woff2' },
         { weight: 600, path: 'fonts/inter/inter-600.woff2' },

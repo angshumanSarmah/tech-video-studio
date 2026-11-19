@@ -4,6 +4,32 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 
 ## Open
 
+- [ ] **Theme — Fills built from `tint.base`.** `zone_polygon`, `segmented_time_bar`,
+      `grid_overlay`, `map_base` (park) and `packet_stream` (track) fill with
+      `withAlpha(tint.base, <own alpha>)` instead of `tint.soft`, so they bypass `tint.fills`:
+      on `drafting-paper` a focus zone, segment or cell is a grey ink wash, not the highlighter.
+      Move them to `tint.soft` (or a per-primitive strength on top of it).
+- [ ] **Theme — Emphasis is glow only.** `highlight` and `pulse` on cards, tags, rings, routes and
+      HUD steps only add `glowShadow`/`glowFilter`. With glow off (`drafting-paper`) they are
+      invisible. Add an emphasis token (e.g. highlighter fill, outline offset or stroke weight)
+      that `elementState.emphasis` drives when the theme has no glow.
+- [ ] **Theme — Focus as text colour.** `counter`, `stat_card`, `timer_ring`, the hero metric
+      value and the story clock colour text with `semantic.focus` and no fill behind it. On paper
+      focus is ink, so these lose their "this is the number" signal. They need the focus fill
+      (highlighter behind the text) rather than a text colour.
+- [ ] **Theme — Series accents are per series, not per theme.** `#4F8CFF` (System Design) reads
+      2.9:1 on paper. A light theme needs a per-theme accent or a contrast-adjusted accent;
+      `checkAccentContrast` already flags it. `still:compare` renders the rate-limiter frame
+      with each theme's fallback accent for now.
+- [ ] **Theme — `colours.background` as on-solid colour.** Badges, check/cross marks, chips and
+      route stop holes use `colours.background` for content on a solid tint. It works on both
+      themes today; a mid-tone theme would need an `onSolid` token.
+- [ ] **Theme — Safe areas live in the theme.** Platform exclusion zones are platform facts;
+      `drafting-paper` reuses `blueprintDark.safeArea`. Move platform zones out of the theme
+      before a third theme or a recalibration.
+- [ ] **Theme — Type scale per font.** `drafting-paper` reuses the default type scale; Plex Sans
+      Condensed is ~30% wider than Barlow Condensed, so headlines wrap to two lines more often.
+      Tune sizes if the theme graduates from trial.
 - [ ] **P1C.9 — Run state transitions.** The orchestrator takes over run state transitions. Until
       then the worker only moves a run to `failed` when one of its jobs fails (unless the handler
       sets `failsRun: false`); `queued → running`, gate pauses and `done` belong to the

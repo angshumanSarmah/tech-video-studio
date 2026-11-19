@@ -2,11 +2,12 @@ import { createRequire } from 'node:module';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  bundledFont,
   DEFAULT_THEME_ID,
   fontStack,
   getTheme,
   withAlpha,
-  type FontRole,
+  type BundledFontKey,
   type Theme,
 } from '@explainer-studio/renderer/theme';
 
@@ -42,12 +43,18 @@ function rendererPublicDir(): string {
 
 /** Faces for the mono font and its bundled fallbacks, so `--font-mono` resolves like the video. */
 function fontFaces(theme: Theme, fontHref: (path: string) => string): string[] {
-  const roles = [...new Set(['mono' as const, ...theme.fonts.mono.bundledFallbacks])];
-  return roles.flatMap((role) => roleFontFaces(theme, role, fontHref));
+  const keys = [...new Set(['mono' as const, ...theme.fonts.mono.bundledFallbacks])];
+  return keys.flatMap((key) => faceFontFaces(theme, key, fontHref));
 }
 
-function roleFontFaces(theme: Theme, role: FontRole, fontHref: (path: string) => string): string[] {
-  const { family, files } = theme.fonts[role];
+function faceFontFaces(
+  theme: Theme,
+  key: BundledFontKey,
+  fontHref: (path: string) => string,
+): string[] {
+  const face = bundledFont(theme, key);
+  if (!face) return [];
+  const { family, files } = face;
   return files.map((file) =>
     [
       '@font-face {',

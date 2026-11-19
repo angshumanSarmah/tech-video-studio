@@ -23,6 +23,8 @@ export type VideoFromSpecProps = {
   channelHandle: string | null;
   /** Frame rate of the preset: 30 final, 15 draft. */
   fps: number;
+  /** Theme registry id; omitted renders the default theme. Unknown ids fail in `calculateMetadata`. */
+  themeId?: string;
 };
 
 export type BeatFromSpecProps = VideoFromSpecProps & { beatId: string };

@@ -26,8 +26,11 @@ export function tintFor(theme: Theme, hex: string): Tint {
   };
 }
 
+/** A semantic's tint; its soft fill comes from `tint.fills` when the theme overrides it. */
 export function semanticTint(theme: Theme, semantic: SemanticColour): Tint {
-  return tintFor(theme, theme.colours.semantic[semantic]);
+  const tint = tintFor(theme, theme.colours.semantic[semantic]);
+  const fill = theme.tint.fills[semantic];
+  return fill ? { ...tint, soft: withAlpha(fill.colour, fill.alpha) } : tint;
 }
 
 /**

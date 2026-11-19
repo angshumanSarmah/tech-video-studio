@@ -17,6 +17,12 @@ describe('theme registry', () => {
     expect(getTheme().id).toBe(DEFAULT_THEME_ID);
   });
 
+  it('keeps blueprint-dark as the default with drafting-paper as a selectable trial', () => {
+    expect(DEFAULT_THEME_ID).toBe('blueprint-dark');
+    expect(listThemes().map((t) => t.id)).toEqual(['blueprint-dark', 'drafting-paper']);
+    expect(isThemeId('drafting-paper')).toBe(true);
+  });
+
   it('throws on an unknown id and lists the known ones', () => {
     expect(isThemeId('neon-pink')).toBe(false);
     expect(() => getTheme('neon-pink')).toThrow(/Unknown theme "neon-pink".*blueprint-dark/);
