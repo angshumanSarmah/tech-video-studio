@@ -13,6 +13,9 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       (`emphasis.style: mark`), but a `semantic: focus` element at rest still only colours its
       text: `counter`, `stat_card`, `timer_ring`, the hero metric value and the story clock show
       plain ink on paper. Decide whether focus-at-rest should draw a (lighter) mark too.
+- [ ] **Emphasis — Clipped frames.** `map_base` clips its content (`overflow: hidden`), so its
+      frame mark shows only the inner half of the band. Move the clip to an inner wrapper if the
+      full band should show (check blueprint-dark stays byte-identical).
 - [ ] **Emphasis — Opaque faces cover the swipe.** `BoxMark` paints over its host's background
       and under its content. Where the face is a child (the `timer_ring` SVG face), only the
       8 px overhang shows, as a yellow halo. Draw the face as the host's background, or let the

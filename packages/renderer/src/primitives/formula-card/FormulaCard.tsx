@@ -35,7 +35,7 @@ export function FormulaCard({
         padding: `0 ${theme.space.lg}px`,
       }}
     >
-      <BoxMark theme={theme} levels={markLevels(state)} radius={theme.radius.md} />
+      <BoxMark theme={theme} levels={markLevels(state)} radius={theme.radius.md} size={box} />
       <div
         // KaTeX's inline mode may break lines after relations; a formula stays on one line.
         style={{

@@ -335,7 +335,10 @@ primitive to `docs/primitives/<id>.png`.
   Components use `emphasisShadow`/`emphasisFilter` (glow), `emphasisStroke`/`emphasisLineWidth`
   (outline and line widths), and draw `BoxMark` (first child of an element styled with
   `markHostCss`), `LineMark` (under an SVG line) or `PointMark` (behind an SVG marker) with
-  `markLevels(state)`. All of them are no-ops in glow themes, so blueprint-dark output stays
+  `markLevels(state)`. Cards and spatial containers pass `size` to `BoxMark`: above
+  `MARK_FRAME_MIN` (360 px on either side) a highlight draws a frame band along the border
+  instead of a full swipe; text-like elements (counter, tag, icon) always get the swipe. A
+  `reject` ends a held highlight on that element or part (`elementState`), in every theme. All of them are no-ops in glow themes, so blueprint-dark output stays
   byte-identical. `EMPHASIS_THRESHOLD` decides "is emphasised" for label colours and z-order.
   Glows that are not emphasis (packets, the route line, tags) stay plain `tint.glow*`.
 - **Descriptions name only registered ids**, in backticks (a test checks that every backticked

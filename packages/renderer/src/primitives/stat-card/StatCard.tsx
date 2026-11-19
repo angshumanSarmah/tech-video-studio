@@ -24,7 +24,7 @@ export function StatCard({ theme, props, box, state }: PrimitiveComponentProps<S
         whiteSpace: 'nowrap',
       }}
     >
-      <BoxMark theme={theme} levels={markLevels(state)} radius={theme.radius.md} />
+      <BoxMark theme={theme} levels={markLevels(state)} radius={theme.radius.md} size={box} />
       <div
         style={{
           ...textCss(theme, 'metric'),

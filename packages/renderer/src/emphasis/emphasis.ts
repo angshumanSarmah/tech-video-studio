@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 import type { PartState } from '../primitives/element-state.ts';
+import type { Size } from '../primitives/types.ts';
 import { semanticTint, type Theme, type Tint } from '../theme/index.ts';
 
 /**
@@ -22,6 +23,12 @@ export const MARK_ANGLE_DEG = -1;
 
 /** Corner radius of a swipe's ends, in px: slightly rounded, like a chisel tip. */
 export const MARK_RADIUS = 10;
+
+/** Above this width or height (px) a box gets a frame mark along its border, not a full swipe. */
+export const MARK_FRAME_MIN = 360;
+
+/** Width of a frame mark's highlighter band, in px, centred on the element's border. */
+export const MARK_FRAME_BAND = 14;
 
 /** How far the pulse ripple travels past the swipe edge, in px. */
 export const RIPPLE_SPREAD = 28;
@@ -113,4 +120,13 @@ export function markFill(theme: Theme): string {
  */
 export function markHostCss(theme: Theme): CSSProperties {
   return isMarkTheme(theme) ? { position: 'relative', isolation: 'isolate' } : {};
+}
+
+/** A box mark's shape: a full swipe, or a frame along the border for large elements. */
+export type MarkShape = 'swipe' | 'frame';
+
+/** `frame` when either side of `size` exceeds `MARK_FRAME_MIN`; `swipe` otherwise or unsized. */
+export function markShape(size: Size | undefined): MarkShape {
+  if (!size) return 'swipe';
+  return size.width > MARK_FRAME_MIN || size.height > MARK_FRAME_MIN ? 'frame' : 'swipe';
 }

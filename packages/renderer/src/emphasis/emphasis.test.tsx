@@ -9,7 +9,10 @@ import {
   emphasisShadow,
   emphasisStroke,
   markHostCss,
+  MARK_FRAME_BAND,
+  MARK_FRAME_MIN,
   markLevels,
+  markShape,
   markView,
   RIPPLE_SPREAD,
 } from './emphasis.ts';
@@ -98,5 +101,33 @@ describe('emphasis in a mark theme (drafting-paper)', () => {
 
   it('isolates the host so the swipe sits over its background, under its content', () => {
     expect(markHostCss(paper)).toEqual({ position: 'relative', isolation: 'isolate' });
+  });
+});
+
+describe('markShape', () => {
+  it('frames elements with either side above the threshold, swipes the rest', () => {
+    expect(markShape(undefined)).toBe('swipe');
+    expect(markShape({ width: MARK_FRAME_MIN, height: MARK_FRAME_MIN })).toBe('swipe');
+    expect(markShape({ width: MARK_FRAME_MIN + 1, height: 100 })).toBe('frame');
+    expect(markShape({ width: 100, height: MARK_FRAME_MIN + 1 })).toBe('frame');
+  });
+
+  it('draws a frame as a border band with an untouched inside', () => {
+    const levels = markLevels(highlighted);
+    const frame = html(
+      <BoxMark theme={paper} levels={levels} size={{ width: 840, height: 600 }} />,
+    );
+    expect(frame).toContain(`border:${MARK_FRAME_BAND}px solid rgb(255 216 77 / 0.55)`);
+    expect(frame).not.toContain('background');
+    expect(frame).toContain('rotate(-1deg)');
+    const swipe = html(
+      <BoxMark theme={paper} levels={levels} size={{ width: 300, height: 100 }} />,
+    );
+    expect(swipe).toContain('background:rgb(255 216 77 / 0.55)');
+  });
+
+  it('draws nothing in glow themes, whatever the size', () => {
+    const big = { width: 840, height: 600 };
+    expect(html(<BoxMark theme={dark} levels={markLevels(highlighted)} size={big} />)).toBe('');
   });
 });

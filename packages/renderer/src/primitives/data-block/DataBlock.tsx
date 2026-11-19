@@ -30,7 +30,7 @@ export function DataBlock({ theme, props, box, state }: PrimitiveComponentProps<
         padding: `0 ${theme.space.lg}px`,
       }}
     >
-      <BoxMark theme={theme} levels={markLevels(state)} radius={theme.radius.md} />
+      <BoxMark theme={theme} levels={markLevels(state)} radius={theme.radius.md} size={box} />
       {props.title ? (
         <div
           style={{

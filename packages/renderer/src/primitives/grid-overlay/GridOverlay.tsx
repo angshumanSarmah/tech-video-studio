@@ -35,7 +35,7 @@ export function GridOverlay({
         transform: `scale(${scale})`,
       }}
     >
-      <BoxMark theme={theme} levels={markLevels(state)} radius={0} />
+      <BoxMark theme={theme} levels={markLevels(state)} radius={0} size={box} />
       <svg
         width={box.width}
         height={box.height}

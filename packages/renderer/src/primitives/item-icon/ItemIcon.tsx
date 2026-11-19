@@ -41,7 +41,12 @@ export function ItemIcon({ theme, props, box, state }: PrimitiveComponentProps<I
           justifyContent: 'center',
         }}
       >
-        <BoxMark theme={theme} levels={markLevels(state)} radius={theme.radius.lg} />
+        <BoxMark
+          theme={theme}
+          levels={markLevels(state)}
+          radius={theme.radius.lg}
+          size={{ width: tile, height: tile }}
+        />
         <AssetGlyph
           theme={theme}
           assetId={props.asset}

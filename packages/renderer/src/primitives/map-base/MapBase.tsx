@@ -32,7 +32,7 @@ export function MapBase({ theme, props, box, state }: PrimitiveComponentProps<Ma
         opacity: state.presence * (1 - 0.6 * state.dimmed),
       }}
     >
-      <BoxMark theme={theme} levels={markLevels(state)} radius={theme.radius.lg} />
+      <BoxMark theme={theme} levels={markLevels(state)} radius={theme.radius.lg} size={box} />
       <svg width={box.width} height={box.height}>
         {city.streets
           .filter((s) => s.avenue)

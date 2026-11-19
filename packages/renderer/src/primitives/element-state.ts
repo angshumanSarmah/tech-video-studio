@@ -91,7 +91,8 @@ export const ACTION_DURATION_SEC: Record<EventAction, number> = {
 
 const PRESENCE: ReadonlySet<EventAction> = new Set(['enter', 'exit']);
 const DIM_TOGGLES: ReadonlySet<EventAction> = new Set(['dim', 'highlight', 'enter']);
-const HIGHLIGHT_TOGGLES: ReadonlySet<EventAction> = new Set(['highlight', 'dim', 'exit']);
+/** A held highlight ends at a later dim, exit or reject (a new highlight after it starts again). */
+const HIGHLIGHT_TOGGLES: ReadonlySet<EventAction> = new Set(['highlight', 'dim', 'exit', 'reject']);
 
 /**
  * State at global `frame`; elapsed times use `frame / fps` as the absolute video time. Events that

@@ -39,7 +39,7 @@ export function SlotGrid({ theme, props, box, state }: PrimitiveComponentProps<S
         filter: emphasisFilter(theme, semanticTint(theme, 'neutral'), state.emphasis),
       }}
     >
-      <BoxMark theme={theme} levels={markLevels(state)} radius={theme.radius.md} />
+      <BoxMark theme={theme} levels={markLevels(state)} radius={theme.radius.md} size={box} />
       {slotRows(props.slots, cols).map((row, r) => (
         <div key={r} style={{ display: 'flex', gap: m.gap, ...shelfPlank(theme, props.kind) }}>
           {row.map((slot) => (
@@ -120,7 +120,7 @@ function SlotView({ theme, kind, slot, m, part }: SlotViewProps) {
           transform: `translate(${shakeOffset(rejected, theme.space.xs)}px, ${-lift}px) scale(${1 + 0.08 * part.emphasis})`,
         }}
       >
-        <BoxMark theme={theme} levels={markLevels(part)} radius={theme.radius.sm} />
+        <BoxMark theme={theme} levels={markLevels(part)} radius={theme.radius.sm} size={m.card} />
         {slot.icon ? (
           <AssetGlyph theme={theme} assetId={slot.icon} size={SLOT_ICON} colour={tint.base} />
         ) : null}

@@ -71,6 +71,21 @@ describe('elementState', () => {
     expect(elementState(events, 18, FPS).emphasis).toBeCloseTo(0);
   });
 
+  it('ends a held highlight at a reject (highlight → reject)', () => {
+    const events = [at('highlight', 0), at('lock', 20), at('reject', 40)];
+    expect(elementState(events, 30, FPS)).toMatchObject({ highlight: 1, emphasis: 1 });
+    const after = elementState(events, 80, FPS);
+    expect(after).toMatchObject({ highlight: 0, emphasis: 0 });
+    // Lock is state, not emphasis: it stays.
+    expect(after.actions).toMatchObject({ lock: 1, reject: 1 });
+  });
+
+  it('holds a highlight that comes after the reject (highlight → reject → highlight)', () => {
+    const events = [at('highlight', 0), at('reject', 40), at('highlight', 80)];
+    expect(elementState(events, 60, FPS)).toMatchObject({ highlight: 0 });
+    expect(elementState(events, 120, FPS)).toMatchObject({ highlight: 1, emphasis: 1 });
+  });
+
   it('reports the held highlight apart from the pulse bump', () => {
     const events = [at('pulse', 0), at('highlight', 30)];
     expect(elementState(events, 6, FPS)).toMatchObject({ highlight: 0 });
@@ -197,6 +212,20 @@ describe('parts', () => {
     const state = elementState([at('dim', 0)], 30, FPS);
     expect(partState(state, 'seat-1')).toEqual(IDLE_STATE);
     expect(partState(state, 'toString')).toEqual(IDLE_STATE);
+  });
+
+  it("ends a part's highlight at that part's reject, keeping its lock and other parts", () => {
+    const events = [
+      forParts(at('highlight', 0), 'b2', 'b3'),
+      forParts(at('lock', 10), 'b2'),
+      forParts(at('reject', 40), 'b2'),
+      forParts(at('highlight', 100), 'b2'),
+    ];
+    const rejected = elementState(events, 80, FPS);
+    expect(partState(rejected, 'b2')).toMatchObject({ highlight: 0, emphasis: 0 });
+    expect(partState(rejected, 'b2').actions.lock).toBe(1);
+    expect(partState(rejected, 'b3')).toMatchObject({ highlight: 1 });
+    expect(partState(elementState(events, 140, FPS), 'b2')).toMatchObject({ highlight: 1 });
   });
 
   it('treats malformed parts params as a whole-element event', () => {

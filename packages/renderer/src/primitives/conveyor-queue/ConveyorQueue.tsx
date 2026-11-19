@@ -34,7 +34,7 @@ export function ConveyorQueue({
         opacity: state.presence * (1 - 0.7 * state.dimmed),
       }}
     >
-      <BoxMark theme={theme} levels={markLevels(state)} radius={theme.radius.md} />
+      <BoxMark theme={theme} levels={markLevels(state)} radius={theme.radius.md} size={box} />
       <Belt
         theme={theme}
         width={box.width}
@@ -171,7 +171,7 @@ function Block({ theme, item, part, m, x, lift, opacity }: BlockProps) {
         transform: `scale(${1 + 0.08 * part.emphasis})`,
       }}
     >
-      <BoxMark theme={theme} levels={markLevels(part)} radius={theme.radius.sm} />
+      <BoxMark theme={theme} levels={markLevels(part)} radius={theme.radius.sm} size={m.block} />
       {item.label}
       {locked > 0 ? (
         <Badge

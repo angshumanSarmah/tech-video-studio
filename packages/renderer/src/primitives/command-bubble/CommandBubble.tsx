@@ -47,7 +47,7 @@ export function CommandBubble({
           overflow: 'visible',
         }}
       >
-        <BoxMark theme={theme} levels={markLevels(state)} radius={theme.radius.lg} />
+        <BoxMark theme={theme} levels={markLevels(state)} radius={theme.radius.lg} size={box} />
         <span style={{ color: tint.base, fontWeight: 700 }}>{shown.verb}</span>
         <span>{shown.rest}</span>
         {chars < props.text.length ? (

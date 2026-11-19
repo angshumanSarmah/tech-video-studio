@@ -39,7 +39,7 @@ export function ZonePolygon({
         filter: emphasisFilter(theme, semanticTint(theme, 'neutral'), state.emphasis),
       }}
     >
-      <BoxMark theme={theme} levels={markLevels(state)} />
+      <BoxMark theme={theme} levels={markLevels(state)} size={box} />
       <svg
         width={box.width}
         height={box.height}

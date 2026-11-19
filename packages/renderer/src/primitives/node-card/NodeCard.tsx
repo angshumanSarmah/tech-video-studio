@@ -31,7 +31,7 @@ export function NodeCard({ theme, props, box, state }: PrimitiveComponentProps<N
         padding: `0 ${theme.space.lg}px`,
       }}
     >
-      <BoxMark theme={theme} levels={markLevels(state)} radius={theme.radius.md} />
+      <BoxMark theme={theme} levels={markLevels(state)} radius={theme.radius.md} size={box} />
       {props.icon ? (
         <AssetGlyph
           theme={theme}
