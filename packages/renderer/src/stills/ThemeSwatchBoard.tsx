@@ -5,7 +5,7 @@ import {
   bundledFonts,
   DEFAULT_THEME_ID,
   getTheme,
-  resolveAccent,
+  seriesAccent,
   textCss,
   type Theme,
 } from '../theme/index.ts';
@@ -39,7 +39,7 @@ export const themeSwatchBoardDefaults: ThemeSwatchBoardProps = {
 export function ThemeSwatchBoard({ themeId, accents }: ThemeSwatchBoardProps) {
   const theme = getTheme(themeId);
   loadThemeFonts(theme);
-  const accent = resolveAccent(theme, accents[0]?.colour);
+  const accent = seriesAccent(theme, accents[0]?.colour);
   return (
     <AbsoluteFill>
       <Background theme={theme} />

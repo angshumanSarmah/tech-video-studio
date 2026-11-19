@@ -259,8 +259,12 @@ primitive to `docs/primitives/<id>.png`.
   a headline: such a beat's board gets `stageWithHeadline` (`stageForBeat(areas, spec, beatId)`). Calibrate zones with `calibrate:safe-area <shorts|reels>` against a
   screenshot in `public/calibration/` (gitignored, as are the `docs/safe-area/*-check.png`
   outputs: they show other creators' videos).
-- **Series accents are data**, passed in as props. Apply them with
-  `tintFor(theme, resolveAccent(theme, accent))`. `checkAccentContrast` reports low contrast.
+- **Series accents are data**, passed in as props, and adapt to the theme: draw them as
+  `seriesAccent(theme, stored)` (`theme/accent.ts`: `resolveAccent`, then `accentFor`, which
+  moves OKLCH lightness toward the ink until the accent meets `minimumContrast.text` on the
+  background; a passing accent comes back unchanged). `SpecLayers` resolves it once, so the top
+  bar, step tracker, chapter number and subtitles all get the adapted colour.
+  `checkAccentContrast` reports contrast; the swatch board shows stored vs adapted.
 - **Fonts** are committed `.woff2` files with their OFL licences in `public/fonts/`, loaded with
   `loadThemeFonts(theme)` (`@remotion/fonts` + `staticFile`). Never load fonts from the network.
   They are subsets of pinned, checksummed sources (`scripts/font-sources.ts`), rebuilt with

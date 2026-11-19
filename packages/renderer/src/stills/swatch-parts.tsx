@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
 import {
+  accentFor,
   checkAccentContrast,
   resolveAccent,
   safeAreas,
@@ -115,8 +116,10 @@ export function AccentSamples({ theme, accents }: Props & { accents: SampleAccen
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space.sm }}>
       {all.map(({ label, colour }) => {
-        const tint = tintFor(theme, resolveAccent(theme, colour));
+        const stored = resolveAccent(theme, colour);
+        const tint = tintFor(theme, accentFor(theme, stored));
         const contrast = checkAccentContrast(theme, tint.base);
+        const adjusted = tint.base !== stored;
         return (
           <div key={label} style={{ ...row(theme.space.sm), alignItems: 'center' }}>
             <div
@@ -135,10 +138,23 @@ export function AccentSamples({ theme, accents }: Props & { accents: SampleAccen
               {label}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <Caption theme={theme}>{tint.base}</Caption>
-              <Caption theme={theme}>
-                {contrast.ratio.toFixed(1)}:1 {contrast.ok ? '✓' : '✗ low contrast'}
-              </Caption>
+              {adjusted ? (
+                <>
+                  <Caption theme={theme}>
+                    {tint.base} {contrast.ratio.toFixed(1)}:1 {contrast.ok ? '✓' : '✗'}
+                  </Caption>
+                  <Caption theme={theme}>
+                    ← {stored} {checkAccentContrast(theme, stored).ratio.toFixed(1)}:1
+                  </Caption>
+                </>
+              ) : (
+                <>
+                  <Caption theme={theme}>{tint.base}</Caption>
+                  <Caption theme={theme}>
+                    {contrast.ratio.toFixed(1)}:1 {contrast.ok ? '✓' : '✗ low contrast'}
+                  </Caption>
+                </>
+              )}
             </div>
           </div>
         );

@@ -26,10 +26,10 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       make them theme tokens if a second mark theme needs different values.
 - [ ] **Emphasis — HUD.** In mark themes the step tracker marks the current "STEP n/N" as its
       chapter starts; the hero metric, chapter header and headline have no emphasis yet.
-- [ ] **Theme — Series accents are per series, not per theme.** `#4F8CFF` (System Design) reads
-      2.9:1 on paper. A light theme needs a per-theme accent or a contrast-adjusted accent;
-      `checkAccentContrast` already flags it. `still:compare` renders the rate-limiter frame
-      with each theme's fallback accent for now.
+- [ ] **Theme — Adapted accents drift from the stored colour.** `seriesAccent` darkens
+      (lightens) an accent's OKLCH lightness until it passes on the theme; a strongly adapted
+      accent can look unlike the series colour the user picked (e.g. a pale yellow becomes
+      olive). If that matters, let a series store a per-theme accent override.
 - [ ] **Theme — `colours.background` as on-solid colour.** Badges, check/cross marks, chips and
       route stop holes use `colours.background` for content on a solid tint. It works on both
       themes today; a mid-tone theme would need an `onSolid` token.
@@ -128,8 +128,10 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       the stage per beat with `stageForBeat(areas, spec, beatId)`: `stageWithHeadline` (940 px
       tall in `blueprint-dark`) when the beat shows a headline and `hud.headline` is on, else the
       full `stage` (1080 px).
-- [ ] **P1D.8 — Accent contrast warning.** Settings should warn when a series accent fails
-      `checkAccentContrast` (from `@explainer-studio/renderer/theme`, React-free). Importing it
+- [ ] **P1D.8 — Accent contrast warning.** Renders adapt low-contrast accents (`accentFor`), so
+      Settings should show the adapted value next to the stored one per theme (as the swatch board
+      does) and warn when they differ, using `accentFor`/`checkAccentContrast` (from
+      `@explainer-studio/renderer/theme`, React-free). Importing it
       from `src/web` means updating the web import-boundary message in `eslint.config.js`.
 - [ ] **P3.4 — Theme per channel/series.** Themes are registered by id in the renderer
       (`getTheme`, `listThemes`). When a channel or series stores a theme id, validate it against

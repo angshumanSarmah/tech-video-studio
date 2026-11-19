@@ -14,8 +14,7 @@ import { listThemes } from '../src/theme/index.ts';
  *   docs/themes/<theme>.png                          swatch board
  *   docs/themes/compare/<primitive>-<theme>.png      one primitive sheet per primitive
  *   docs/themes/compare/rate-limiter-<theme>.png     middle frame of the rate-limiter fixture
- * The rate-limiter frame uses each theme's fallback accent (no series accent), so the series
- * label shows in the theme's own accent.
+ * The rate-limiter frame uses the fixture series accent, adapted to each theme (`seriesAccent`).
  */
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -74,9 +73,9 @@ async function renderTheme(serve: Serve, themeId: string, targets: Set<string>):
     await still(serve, 'PrimitiveSheet', { primitiveId, themeId }, output);
   }
   if (targets.has(RATE_LIMITER)) {
-    const series = { ...fixtureSeries, accentColour: null };
     const output = resolve(compareDir, `${RATE_LIMITER}-${themeId}.png`);
-    await still(serve, 'VideoFromSpec', { themeId, series }, output, (d) => Math.floor(d / 2));
+    const props = { themeId, series: fixtureSeries };
+    await still(serve, 'VideoFromSpec', props, output, (d) => Math.floor(d / 2));
   }
 }
 

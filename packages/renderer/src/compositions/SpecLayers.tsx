@@ -7,7 +7,7 @@ import { loadThemeFonts } from '../fonts/load-theme-fonts.ts';
 import { Hud } from '../hud/Hud.tsx';
 import { NarrationAudio } from '../layers/NarrationAudio.tsx';
 import { BeatScene } from '../scene/BeatScene.tsx';
-import { DEFAULT_THEME_ID, getTheme, resolveAccent } from '../theme/index.ts';
+import { DEFAULT_THEME_ID, getTheme, seriesAccent } from '../theme/index.ts';
 import { beatFrameSpans } from '../timing/frames.ts';
 import type { VideoFromSpecProps } from './props.ts';
 
@@ -26,7 +26,8 @@ export function SpecLayers({ spec, series, audioSrc, channelHandle, themeId, onl
   const { fps } = useVideoConfig();
   const timing = useMemo(() => effectiveTiming(spec), [spec]);
   const spans = useMemo(() => beatFrameSpans(timing, fps), [timing, fps]);
-  const accent = resolveAccent(theme, series.accentColour);
+  // Every accent use (top bar, step tracker, chapter number, subtitles) gets the adapted colour.
+  const accent = seriesAccent(theme, series.accentColour);
   const shown = onlyBeatId ? spans.filter((s) => s.beatId === onlyBeatId) : spans;
   return (
     <AbsoluteFill>
