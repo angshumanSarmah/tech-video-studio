@@ -241,7 +241,7 @@ primitive to `docs/primitives/<id>.png`.
   studio can import it.
 - **Theme selection:** `VideoFromSpec`/`BeatFromSpec` take an optional `themeId` (unknown ids
   fail in `calculateMetadata`); `PrimitiveSheet` and `ThemeSwatchBoard` take `themeId`.
-  `still:compare [themeIds…]` renders `docs/themes/<theme>.png` and, in `docs/themes/compare/`,
+  `still:compare [themeIds…] [--only swatch,rate-limiter,<primitive>…]` renders `docs/themes/<theme>.png` and, in `docs/themes/compare/`,
   every primitive sheet plus a mid-video rate-limiter frame per theme.
 - **Use the helpers, not raw values:** `tintFor`/`semanticTint` (soft fill, border, glow),
   `textCss`, `safeAreas`.

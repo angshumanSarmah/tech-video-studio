@@ -91,7 +91,8 @@ export const draftingPaper = {
   // Same type scale, spacing and safe areas as the default, so the trial compares look only.
   text: blueprintDark.text,
   space: blueprintDark.space,
-  radius: { sm: 4, md: 4, lg: 4, pill: 999 },
-  stroke: { hairline: 1.5, thin: 2, regular: 3, bold: 5 },
+  radius: blueprintDark.radius,
+  // Lighter than the default's 4 / 6 px: softer ink outlines on paper.
+  stroke: { hairline: 1.5, thin: 2, regular: 2.5, bold: 4 },
   safeArea: blueprintDark.safeArea,
 } satisfies ThemeInput;
