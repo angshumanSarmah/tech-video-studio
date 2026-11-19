@@ -28,7 +28,8 @@ describe('llmJsonSchema', () => {
       required: string[];
     };
     expect(scene.additionalProperties).toBe(false);
-    expect(scene.required).toEqual(expect.arrayContaining(['beatId', 'kind', 'layoutMode']));
+    expect(scene.required).toEqual(expect.arrayContaining(['beatId', 'kind']));
+    expect(scene.required).not.toContain('layoutMode');
     expect(scene.required).not.toContain('events');
   });
 

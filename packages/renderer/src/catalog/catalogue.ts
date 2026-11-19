@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import type { AnyPatternDefinition } from '../patterns/types.ts';
+import { LAYOUT_MODE_DEFINITIONS } from '../layout/modes.ts';
+import { INNER_TARGET_ACTIONS, type AnyPatternDefinition } from '../patterns/types.ts';
 import { PRIMITIVE_FAMILIES, type AnyPrimitiveDefinition } from '../primitives/types.ts';
 import { getTheme, type Theme } from '../theme/index.ts';
 import { DEFAULT_REGISTRIES, type Registries } from './registries.ts';
@@ -32,14 +33,22 @@ export type PatternCatalogueEntry = {
   whenToUse: string;
   whenNotToUse: string;
   actions: string[];
-  anchors: { name: string; description: string }[];
+  anchors: { name: string; description: string; optional?: boolean }[];
+  /** The beat's layout mode unless the scene sets one. */
+  layoutMode: string;
+  /** Elements spec events may target as `<instance>/<id>`, with `innerActions` only. */
+  targets: { id: string; description: string }[];
+  innerActions: string[];
   params: JsonSchema;
   example: { id: string; pattern: string; params: unknown };
 };
 
+export type LayoutModeCatalogueEntry = { id: string; zones: string[]; description: string };
+
 export type Catalogue = {
   primitives: PrimitiveCatalogueEntry[];
   patterns: PatternCatalogueEntry[];
+  layoutModes: LayoutModeCatalogueEntry[];
 };
 
 /** Input-side JSON Schema (fields with defaults are optional), without the `$schema` header. */
@@ -57,6 +66,7 @@ export function buildCatalogue(registries: Registries = DEFAULT_REGISTRIES): Cat
   return {
     primitives: [...registries.primitives.values()].map(primitiveEntry).sort(byFamilyThenId),
     patterns: [...registries.patterns.values()].map(patternEntry).sort(byFamilyThenId),
+    layoutModes: LAYOUT_MODE_DEFINITIONS.map((m) => ({ ...m, zones: [...m.zones] })),
   };
 }
 
@@ -79,6 +89,9 @@ function patternEntry(d: AnyPatternDefinition): PatternCatalogueEntry {
     ...d.description,
     actions: [...d.actions],
     anchors: d.anchors.map((a) => ({ ...a })),
+    layoutMode: d.layoutMode,
+    targets: d.targets.map((t) => ({ ...t })),
+    innerActions: [...INNER_TARGET_ACTIONS],
     params: inputJsonSchema(d.paramsSchema),
     example: { id: `<example-${d.id}-id>`, pattern: d.id, params: d.example.params },
   };
@@ -95,7 +108,7 @@ export function catalogueMarkdown(
   registries: Registries = DEFAULT_REGISTRIES,
   theme: Theme = getTheme(),
 ): string {
-  const { primitives, patterns } = buildCatalogue(registries);
+  const { primitives, patterns, layoutModes } = buildCatalogue(registries);
   const lines = [
     GENERATED_NOTE,
     '',
@@ -111,9 +124,24 @@ export function catalogueMarkdown(
     ...primitives.flatMap((entry) => primitiveSection(entry, registries, theme)),
     '## Patterns',
     '',
+    'A pattern is a reusable piece of choreography: it expands into primitives and timed events, ' +
+      'anchored to the narration words in `params.at`. It stages its own entrances. Events on the ' +
+      `instance may use only its **Actions**; events on one element inside it, targeted as ` +
+      '`<instance>/<id>`, may use only ' +
+      `${codeList(INNER_TARGET_ACTIONS)}. A beat without its own \`layoutMode\` uses its ` +
+      "patterns' layout mode.",
+    '',
     ...(patterns.length > 0
       ? patterns.flatMap(patternSection)
       : ['No patterns are registered yet.', '']),
+    '## Layout modes',
+    '',
+    'Ids are exhaustive. Elements may name a zone of their beat’s layout mode.',
+    '',
+    '| Mode | Zones | Description |',
+    '| --- | --- | --- |',
+    ...layoutModes.map((m) => `| \`${m.id}\` | ${codeList(m.zones)} | ${m.description} |`),
+    '',
   ];
   return `${lines.join('\n').trimEnd()}\n`;
 }
@@ -152,9 +180,17 @@ function patternSection(entry: PatternCatalogueEntry): string[] {
     `### ${entry.id}`,
     '',
     ...describedSection(entry),
-    '**Narration anchors:**',
+    `**Layout mode:** \`${entry.layoutMode}\``,
     '',
-    ...entry.anchors.map((a) => `- \`${a.name}\`: ${a.description}`),
+    '**Narration anchors** (`params.at`):',
+    '',
+    ...entry.anchors.map(
+      (a) => `- \`${a.name}\`${a.optional ? ' (optional)' : ''}: ${a.description}`,
+    ),
+    '',
+    `**Inner elements** (target as \`<instance>/<id>\` with ${codeList(entry.innerActions)}):`,
+    '',
+    ...entry.targets.map((t) => `- \`${t.id}\`: ${t.description}`),
     '',
     ...propsTable('Params', entry.params),
     ...exampleBlock(entry.example),

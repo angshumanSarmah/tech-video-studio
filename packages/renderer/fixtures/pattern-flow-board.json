@@ -1,0 +1,435 @@
+{
+  "schemaVersion": 1,
+  "meta": {
+    "id": "pattern-flow-board",
+    "series": "system-design",
+    "title": "Flow pattern board",
+    "topicClass": "concept",
+    "targetLengthSec": 66
+  },
+  "hud": {
+    "heroMetric": false,
+    "storyClock": false,
+    "headline": false
+  },
+  "story": {
+    "devices": [],
+    "ending": {
+      "kind": "summary"
+    },
+    "chapters": [
+      {
+        "id": "contention",
+        "title": "Contention"
+      },
+      {
+        "id": "spread",
+        "title": "Spread"
+      },
+      {
+        "id": "shape",
+        "title": "Shape"
+      }
+    ],
+    "beats": [
+      {
+        "id": "atomic-lock",
+        "chapterId": "contention",
+        "intent": "Show the atomic_lock pattern with each of its anchors",
+        "targetSec": 10
+      },
+      {
+        "id": "reject-duplicate",
+        "chapterId": "contention",
+        "intent": "Show the reject_duplicate pattern with each of its anchors",
+        "targetSec": 10
+      },
+      {
+        "id": "fan-out",
+        "chapterId": "spread",
+        "intent": "Show the fan_out pattern with each of its anchors",
+        "targetSec": 8
+      },
+      {
+        "id": "flood-then-funnel",
+        "chapterId": "spread",
+        "intent": "Show the flood_then_funnel pattern with each of its anchors",
+        "targetSec": 10
+      },
+      {
+        "id": "converge-adapter",
+        "chapterId": "shape",
+        "intent": "Show the converge_adapter pattern with each of its anchors",
+        "targetSec": 8
+      },
+      {
+        "id": "cache-hit-miss",
+        "chapterId": "shape",
+        "intent": "Show the cache_hit_miss pattern with each of its anchors",
+        "targetSec": 11
+      },
+      {
+        "id": "worker-pool",
+        "chapterId": "shape",
+        "intent": "Show the worker_pool pattern with each of its anchors",
+        "targetSec": 9
+      }
+    ]
+  },
+  "script": [
+    {
+      "beatId": "atomic-lock",
+      "narration": "Two fans tap seat H3 at once. Asha arrives first and the seat locks for ten minutes. Ravi taps a moment later and bounces off."
+    },
+    {
+      "beatId": "reject-duplicate",
+      "narration": "The app sends payment 7781 to the server. The network hiccups, so it retries with the same id. The server sees it again and stamps it duplicate."
+    },
+    {
+      "beatId": "fan-out",
+      "narration": "A creator posts once. The broker copies the post to three regions, and each region delivers it to a million followers."
+    },
+    {
+      "beatId": "flood-then-funnel",
+      "narration": "Ten thousand clients hammer the database at once. It buckles under the load. Put a queue in front, and one steady line of writes gets through."
+    },
+    {
+      "beatId": "converge-adapter",
+      "narration": "Card, UPI and wallet payments each speak their own format. The gateway translates every one, and out comes a single payment event."
+    },
+    {
+      "beatId": "cache-hit-miss",
+      "narration": "The app asks the cache first. A hit comes back in two milliseconds. A miss goes all the way to the database and takes a hundred and twenty."
+    },
+    {
+      "beatId": "worker-pool",
+      "narration": "Uploads wait in a queue. Three workers each grab the next video, and a few seconds later each one hands back a thumbnail."
+    }
+  ],
+  "scenes": [
+    {
+      "beatId": "atomic-lock",
+      "kind": "board",
+      "elements": [],
+      "patterns": [
+        {
+          "id": "atomic-lock",
+          "pattern": "atomic_lock",
+          "params": {
+            "resource": {
+              "title": "Seat H3",
+              "icon": "ticket"
+            },
+            "first": {
+              "title": "Asha",
+              "icon": "user"
+            },
+            "second": {
+              "title": "Ravi",
+              "icon": "user"
+            },
+            "holdSec": 600,
+            "holdLabel": "HOLD",
+            "bounce": "SEAT HELD",
+            "at": {
+              "arrive": {
+                "type": "word_text",
+                "text": "arrives"
+              },
+              "lock": {
+                "type": "word_text",
+                "text": "locks"
+              },
+              "second": {
+                "type": "word_text",
+                "text": "later"
+              },
+              "bounce": {
+                "type": "word_text",
+                "text": "bounces"
+              }
+            }
+          }
+        }
+      ],
+      "events": [],
+      "focus": ["atomic-lock"]
+    },
+    {
+      "beatId": "reject-duplicate",
+      "kind": "board",
+      "elements": [],
+      "patterns": [
+        {
+          "id": "reject-duplicate",
+          "pattern": "reject_duplicate",
+          "params": {
+            "sender": {
+              "title": "App",
+              "icon": "smartphone"
+            },
+            "receiver": {
+              "title": "Payments",
+              "icon": "server"
+            },
+            "key": "PAY_ID 7781",
+            "at": {
+              "first": {
+                "type": "word_text",
+                "text": "sends"
+              },
+              "second": {
+                "type": "word_text",
+                "text": "retries"
+              },
+              "stamp": {
+                "type": "word_text",
+                "text": "stamps"
+              }
+            }
+          }
+        }
+      ],
+      "events": [],
+      "focus": ["reject-duplicate"]
+    },
+    {
+      "beatId": "fan-out",
+      "kind": "board",
+      "elements": [],
+      "patterns": [
+        {
+          "id": "fan-out",
+          "pattern": "fan_out",
+          "params": {
+            "source": {
+              "title": "Broker",
+              "icon": "mail"
+            },
+            "message": "NEW POST",
+            "targets": [
+              {
+                "title": "Region A",
+                "icon": "server"
+              },
+              {
+                "title": "Region B",
+                "icon": "server"
+              },
+              {
+                "title": "Region C",
+                "icon": "server"
+              }
+            ],
+            "crowd": {
+              "value": 1000000,
+              "label": "FOLLOWERS"
+            },
+            "at": {
+              "send": {
+                "type": "word_text",
+                "text": "posts"
+              },
+              "split": {
+                "type": "word_text",
+                "text": "copies"
+              },
+              "crowd": {
+                "type": "word_text",
+                "text": "delivers"
+              }
+            }
+          }
+        }
+      ],
+      "events": [],
+      "focus": ["fan-out"]
+    },
+    {
+      "beatId": "flood-then-funnel",
+      "kind": "board",
+      "elements": [],
+      "patterns": [
+        {
+          "id": "flood-then-funnel",
+          "pattern": "flood_then_funnel",
+          "params": {
+            "source": {
+              "title": "Clients",
+              "icon": "users"
+            },
+            "target": {
+              "title": "Database",
+              "icon": "database"
+            },
+            "layer": {
+              "title": "Queue",
+              "icon": "list"
+            },
+            "rate": {
+              "value": 10000,
+              "unit": "req/s"
+            },
+            "at": {
+              "flood": {
+                "type": "word_text",
+                "text": "hammer"
+              },
+              "overwhelm": {
+                "type": "word_text",
+                "text": "buckles"
+              },
+              "funnel": {
+                "type": "word_text",
+                "text": "front"
+              }
+            }
+          }
+        }
+      ],
+      "events": [],
+      "focus": ["flood-then-funnel"]
+    },
+    {
+      "beatId": "converge-adapter",
+      "kind": "board",
+      "elements": [],
+      "patterns": [
+        {
+          "id": "converge-adapter",
+          "pattern": "converge_adapter",
+          "params": {
+            "inputs": ["CARD · XML", "UPI · JSON", "WALLET · CSV"],
+            "hub": {
+              "title": "Gateway",
+              "icon": "layers"
+            },
+            "output": "PAYMENT EVENT",
+            "at": {
+              "inputs": {
+                "type": "word_text",
+                "text": "speak"
+              },
+              "convert": {
+                "type": "word_text",
+                "text": "translates"
+              },
+              "output": {
+                "type": "word_text",
+                "text": "out"
+              }
+            }
+          }
+        }
+      ],
+      "events": [],
+      "focus": ["converge-adapter"]
+    },
+    {
+      "beatId": "cache-hit-miss",
+      "kind": "board",
+      "elements": [],
+      "patterns": [
+        {
+          "id": "cache-hit-miss",
+          "pattern": "cache_hit_miss",
+          "params": {
+            "client": {
+              "title": "App",
+              "icon": "smartphone"
+            },
+            "near": {
+              "title": "Cache",
+              "icon": "zap"
+            },
+            "far": {
+              "title": "Database",
+              "icon": "database"
+            },
+            "hitLatency": "2 ms",
+            "missLatency": "120 ms",
+            "at": {
+              "show": {
+                "type": "word_text",
+                "text": "asks"
+              },
+              "hit": {
+                "type": "word_text",
+                "text": "hit"
+              },
+              "miss": {
+                "type": "word_text",
+                "text": "miss"
+              }
+            }
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "cache"
+          },
+          "action": "highlight",
+          "targets": ["cache-hit-miss/near"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "database"
+          },
+          "action": "pulse",
+          "targets": ["cache-hit-miss/miss"]
+        }
+      ],
+      "focus": ["cache-hit-miss"]
+    },
+    {
+      "beatId": "worker-pool",
+      "kind": "board",
+      "elements": [],
+      "patterns": [
+        {
+          "id": "worker-pool",
+          "pattern": "worker_pool",
+          "params": {
+            "queue": "UPLOADS",
+            "jobs": ["VID-1", "VID-2", "VID-3", "VID-4", "VID-5"],
+            "workers": [
+              {
+                "title": "Worker 1",
+                "icon": "cpu"
+              },
+              {
+                "title": "Worker 2",
+                "icon": "cpu"
+              },
+              {
+                "title": "Worker 3",
+                "icon": "cpu"
+              }
+            ],
+            "output": "THUMBNAIL",
+            "at": {
+              "queue": {
+                "type": "word_text",
+                "text": "wait"
+              },
+              "assign": {
+                "type": "word_text",
+                "text": "grab"
+              },
+              "done": {
+                "type": "word_text",
+                "text": "hands"
+              }
+            }
+          }
+        }
+      ],
+      "events": [],
+      "focus": ["worker-pool"]
+    }
+  ]
+}

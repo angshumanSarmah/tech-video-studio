@@ -10,13 +10,20 @@ import {
 } from '@explainer-studio/shared';
 import type { z } from 'zod';
 import { DEFAULT_REGISTRIES, type Registries } from './registries.ts';
+import {
+  innerTargetErrors,
+  patternErrors,
+  patternWarnings,
+  wordsByBeat,
+} from './pattern-checks.ts';
 import { elementRefErrors, partErrors } from './relation-checks.ts';
 import { sceneScopes, type Scope, type ScopeEntry } from './scope.ts';
 import { findTimelineWarnings } from './timeline-checks.ts';
 
 /**
  * Registry checks for a spec's scenes: primitive and pattern ids exist, props and params match
- * their schemas, events only use actions their targets (or the parts they name) support, props
+ * their schemas (pattern instances: `pattern-checks.ts`), events only use actions their targets
+ * (or the parts they name, or `<instance>/<id>` inside a pattern) support, props
  * only point to elements in the beat's scope (errors), and asset ids exist
  * (`unknown_asset` warnings: the scene layer draws a placeholder, agents repair it). Timeline
  * warnings (`timeline-checks.ts`): overlays shown at once, children acting before their
@@ -57,11 +64,12 @@ export function findRegistryErrors(
 ): SpecError[] {
   const scenes = spec.scenes ?? [];
   const scopes = sceneScopes(scenes, registries);
+  const words = wordsByBeat(spec);
   return scenes.flatMap((scene, i) => {
     const scope: Scope = scopes[i] ?? new Map<string, ScopeEntry>();
     return [
       ...elementErrors(scene, i, registries),
-      ...patternErrors(scene, i, registries),
+      ...patternErrors(scene, i, words.get(scene.beatId), registries),
       ...actionErrors(scene, i, scope),
       ...elementRefErrors(scene, i, scope, registries),
     ];
@@ -78,7 +86,11 @@ export function findRegistryWarnings(
       assetWarnings(element, ['scenes', i, 'elements', j, 'props'], registries),
     ),
   );
-  return [...assets, ...findTimelineWarnings(spec, registries)];
+  return [
+    ...assets,
+    ...patternWarnings(spec, registries),
+    ...findTimelineWarnings(spec, registries),
+  ];
 }
 
 /** Asset ids in valid props that are not in the asset registry (bad props are errors already). */
@@ -109,15 +121,6 @@ function elementErrors(scene: BeatScene, i: number, { primitives }: Registries):
   });
 }
 
-function patternErrors(scene: BeatScene, i: number, { patterns }: Registries): SpecError[] {
-  return scene.patterns.flatMap((pattern, j) => {
-    const path = ['scenes', i, 'patterns', j];
-    const definition = patterns.get(pattern.pattern);
-    if (!definition) return [unknownId([...path, 'pattern'], 'pattern', pattern.pattern, patterns)];
-    return schemaErrors(definition.paramsSchema, pattern.params, [...path, 'params']);
-  });
-}
-
 function schemaErrors(schema: z.ZodType, value: unknown, path: Path): SpecError[] {
   const parsed = schema.safeParse(value);
   if (parsed.success) return [];
@@ -130,7 +133,7 @@ function schemaErrors(schema: z.ZodType, value: unknown, path: Path): SpecError[
 
 function unknownId(
   path: Path,
-  what: 'primitive' | 'pattern',
+  what: 'primitive',
   id: string,
   registry: ReadonlyMap<string, unknown>,
 ): SpecError {
@@ -149,6 +152,8 @@ function unknownId(
  */
 function actionErrors(scene: BeatScene, i: number, scope: Scope): SpecError[] {
   return scene.events.flatMap((event, e) => {
+    const inner = innerTargetErrors(event, ['scenes', i, 'events', e], scope);
+    if (inner.length > 0) return inner;
     const parts = partErrors(event, ['scenes', i, 'events', e], scope);
     if (parts) return parts;
     return event.targets.flatMap((target, t) => {

@@ -21,7 +21,7 @@ type Props = {
   containerPresence?: number;
 };
 
-const MARKER_SIZE: Size = { width: 420, height: 120 };
+export const MARKER_SIZE: Size = { width: 420, height: 120 };
 
 export function WorldItemView({ theme, item, frame, fps, containerPresence = 1 }: Props) {
   const Component = item.kind === 'primitive' ? componentFor(item.definition.id) : undefined;

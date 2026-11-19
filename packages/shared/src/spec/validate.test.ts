@@ -67,6 +67,23 @@ describe('validateVideoSpec: valid specs', () => {
     expect(result.ok && result.spec.hud).toMatchObject({ storyClock: false, headline: true });
   });
 
+  it('accepts a scene without a layout mode (its patterns or the default decide)', () => {
+    const errors = errorsAfter((spec) => delete at(spec.scenes, 0).layoutMode);
+    expect(errors).toEqual([]);
+  });
+
+  it('accepts an event target inside a pattern instance; the renderer checks the inner id', () => {
+    const errors = errorsAfter((spec) => (at(at(spec.scenes, 0).events, 0).targets = ['flood/x']));
+    expect(errors).toEqual([]);
+  });
+
+  it('rejects a target nested deeper than one pattern level', () => {
+    const errors = errorsAfter((spec) => (at(at(spec.scenes, 0).events, 0).targets = ['a/b/c']));
+    expect(errors).toContainEqual(
+      expect.objectContaining({ path: '$.scenes[0].events[0].targets[0]', code: 'invalid_format' }),
+    );
+  });
+
   it('accepts a story-only spec (Gate 2)', () => {
     const { schemaVersion, meta, story } = validSpec();
     expect(validateVideoSpec({ schemaVersion, meta, story }).ok).toBe(true);
@@ -249,6 +266,11 @@ describe('validateVideoSpec: cross-references', () => {
       'an event target outside the beat',
       (spec) => (at(at(spec.scenes, 2).events, 0).targets = ['api']),
       { path: '$.scenes[2].events[0].targets[0]', code: 'unknown_reference' },
+    ],
+    [
+      'an inner target whose instance is an element, not a pattern',
+      (spec) => (at(at(spec.scenes, 0).events, 0).targets = ['client/resource']),
+      { path: '$.scenes[0].events[0].targets[0]', code: 'unknown_reference' },
     ],
     [
       'a focus id outside the beat',

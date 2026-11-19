@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { OpenParamsSchema, SpecIdSchema } from './ids.ts';
+import { EventTargetSchema, OpenParamsSchema, SpecIdSchema } from './ids.ts';
 
 /**
  * Scene layer, written by the Generator: one entry per story beat, in story order. Logical
@@ -86,8 +86,11 @@ export type ScenePattern = z.infer<typeof ScenePatternSchema>;
 export const SceneEventSchema = z.strictObject({
   at: EventAnchorSchema,
   action: EventActionSchema,
-  /** Element or pattern instance ids in this beat (or, with `continuesPrevious`, earlier beats). */
-  targets: z.array(SpecIdSchema).min(1),
+  /**
+   * Element or pattern instance ids in this beat (or, with `continuesPrevious`, earlier beats), or
+   * `<instance>/<id>` for one element inside a pattern instance.
+   */
+  targets: z.array(EventTargetSchema).min(1),
   params: OpenParamsSchema.optional(),
 });
 export type SceneEvent = z.infer<typeof SceneEventSchema>;
@@ -95,8 +98,11 @@ export type SceneEvent = z.infer<typeof SceneEventSchema>;
 export const BeatSceneSchema = z.strictObject({
   beatId: SpecIdSchema,
   kind: z.literal('board'),
-  /** Layout mode id (validated by the layout engine, P1A.9). */
-  layoutMode: SpecIdSchema,
+  /**
+   * Layout mode id (validated by the layout engine, P1A.9). Optional: without it the beat uses
+   * its patterns' layout mode, else the default. An explicit mode always wins.
+   */
+  layoutMode: SpecIdSchema.optional(),
   elements: z.array(SceneElementSchema).default([]),
   patterns: z.array(ScenePatternSchema).default([]),
   events: z.array(SceneEventSchema).default([]),

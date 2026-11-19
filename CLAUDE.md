@@ -227,7 +227,8 @@ src/web/
 `pnpm --filter @explainer-studio/renderer studio` opens Remotion Studio; `… still:theme` renders
 each theme's swatch board to `docs/themes/<theme>.png`; `… still:safe-area` renders the
 safe-area overlay to `docs/safe-area/zones.png`; `… still:primitives [ids…]` renders one sheet per
-primitive to `docs/primitives/<id>.png`.
+primitive to `docs/primitives/<id>.png`; `… still:patterns [ids…]` renders one sheet per pattern
+to `docs/patterns/<id>.png` (a panel per narration anchor, elements in one row per zone).
 
 - **Themes** live in `src/theme` and are registered by id (`getTheme`, `listThemes`;
   default `drafting-paper`, a light engineering-drawing look). Each is validated against
@@ -301,6 +302,8 @@ primitive to `docs/primitives/<id>.png`.
   with every action and part action it supports), plus `InsetRevealBoard`
   (`fixtures/inset-reveal-board.json`). Each board is a valid Short (≤ 90 s), so a new
   batch of primitives gets a new board, listed in `primitiveBoardSpecs` (`fixtures/index.ts`).
+  Pattern boards (`PatternFlowBoard`, `patternBoardSpecs`) have one beat per pattern with every
+  anchor, and no scene `layoutMode` (each beat takes its pattern's).
 - **HUD** (`src/hud`): top bar, step tracker, hero metric pill, chapter header, story clock and
   headline. Slots come from `hudLayout(theme)` (derived from `safeAreas`); what each part shows at
   a frame comes from pure functions in `hud-state.ts`. Parts are toggled per video in `spec.hud`
@@ -332,7 +335,7 @@ primitive to `docs/primitives/<id>.png`.
 ### Primitives and patterns
 
 - **Registries:** `src/primitives/registry.ts` (`PRIMITIVE_DEFINITIONS`) and
-  `src/patterns/registry.ts` (`PATTERN_DEFINITIONS`, empty until P1A.8). Catalogues, prompts and
+  `src/patterns/registry.ts` (`PATTERN_DEFINITIONS`). Catalogues, prompts and
   validation read only from them. They are React-free and exported, with validation and the
   catalogue builders, as `@explainer-studio/renderer/catalog` for the worker and server.
 - **A primitive** is `primitives/<id>/definition.ts` (`definePrimitive`: id, family, strict Zod
@@ -416,11 +419,30 @@ primitive to `docs/primitives/<id>.png`.
   (ISC), split into `icon` and `item` kinds; `AssetGlyph` draws one, or a neutral dashed
   placeholder for an unknown id. Asset ids in props are slugs, not enums, so unknown ids are
   warnings, never schema errors.
-- **A pattern** (`definePattern`) has the same shape minus component and size hints, plus
-  `anchors` (the narration moments it needs; `params` takes an `EventAnchor` for each) and
-  `expand(params) → { elements, events }`. Building the registry expands each example and rejects
-  unknown primitives, bad props, duplicate part ids and dangling targets. The scene layer namespaces
-  parts as `<instance>/<part>`; spec events on the instance act on every part.
+- **A pattern** is `patterns/<id>/definition.ts` (`definePattern`): the primitive shape minus
+  component and size hints, plus `anchors` (the narration moments it needs, some `optional`),
+  `layoutMode`, `targets` (its inner elements, documented for the catalogue; `worker-<n>` for list
+  params, counted from 1) and `expand(params) → { elements, events }`. Shared builders are in
+  `patterns/build.ts`.
+  - `params.at` holds one `EventAnchor` per anchor (`anchorsSchema(ANCHORS)`), and every event
+    the expansion makes is anchored to one of them. Param text limits match the primitive the text
+    lands in, so valid params always expand into valid props.
+  - The pattern stages its own entrances. Spec events on the instance may use only its `actions`
+    (from `PATTERN_INSTANCE_ACTIONS`: exit, highlight, dim, pulse; they act on every element).
+    Spec events may target one inner element as `<instance>/<id>` with `INNER_TARGET_ACTIONS`
+    only (highlight, pulse, dim). The pattern keeps enter, reject and lock.
+  - **Layout:** `layoutMode` comes from `src/layout/modes.ts` (`LAYOUT_MODE_DEFINITIONS`: the
+    P1A.9 modes, each with its allowed zones). Every expanded element sits in a zone of that mode,
+    except relational ones (with element refs), which follow what they point to. A beat without
+    its own `layoutMode` takes its first pattern's (`beatLayoutMode`); an explicit scene mode wins.
+    Do not add modes for a pattern: pick the closest and note it in docs/TODO.md for P1A.9.
+  - Building the registry expands each example and rejects (`expansionProblems`): unknown
+    primitives, bad props, duplicate ids, zones outside the mode, element refs that leave the
+    expansion, unsupported actions or bad parts on events, events not anchored to `params.at`, and
+    inner elements missing from `targets`. Instance actions outside `PATTERN_INSTANCE_ACTIONS`
+    are rejected too.
+  - The scene layer namespaces expanded elements as `<instance>/<id>`, element refs in their
+    props included, and keeps each element's `zone` on its world item.
 - **Validation:** `withRegistryChecks(validateVideoSpec(input), input)` (or with
   `validateRenderableVideoSpec`) adds registry errors in the same `{ path, code, message }` shape:
   `unknown_reference` for unknown primitive/pattern ids (the message lists valid ids), Zod issue
@@ -438,6 +460,11 @@ primitive to `docs/primitives/<id>.png`.
   child's event before its container enters) and each primitive's own `eventWarnings(props,
 events)` (`route_moves_exceed_stops`: a jumpy `route_path` with more `move`s than hops;
   `morph_without_change`: a `device_frame` morph without `button.then`).
+  Pattern instances (`catalog/pattern-checks.ts`): params against the schema,
+  `invalid_pattern_expansion` (a safety net), `anchor_out_of_range` for `params.at`,
+  `unknown_reference` for an `<instance>/<id>` that is not in the expansion, and warnings
+  `unknown_asset` (assets inside the expansion) and `pattern_layout_conflict` (two patterns in a
+  beat with different modes while the scene sets none).
 - **LaTeX** (`formula_card`) is validated by rendering it with KaTeX in the props schema
   (`latexProblem`: parse errors, refused commands such as `\href`, `maxSize`, `maxExpand`, at
   most 80 characters), so a formula that passes validation always renders.

@@ -113,7 +113,7 @@ function refError(owner: string, ref: ElementRef, path: Path, scope: Scope): Spe
   }
   const entry = scope.get(ref.id);
   if (!entry) {
-    const known = [...scope.keys()].filter((id) => id !== owner).join(', ');
+    const known = [...scope.keys()].filter((id) => id !== owner && !id.includes('/')).join(', ');
     return error(
       path,
       'unknown_element',

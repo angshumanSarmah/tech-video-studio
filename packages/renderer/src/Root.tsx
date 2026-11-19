@@ -3,6 +3,7 @@ import {
   fixtureChannelHandle,
   fixtureSeries,
   insetRevealBoardSpec,
+  patternFlowBoardSpec,
   primitivesBoardSpec,
   rateLimiterSpec,
   spatialFlowBoardSpec,
@@ -12,6 +13,7 @@ import { calculateBeatMetadata, calculateVideoMetadata } from './compositions/me
 import type { BeatFromSpecProps, VideoFromSpecProps } from './compositions/props.ts';
 import { VideoFromSpec } from './compositions/VideoFromSpec.tsx';
 import { getTheme } from './theme/index.ts';
+import { PatternSheet, patternSheetDefaults } from './stills/PatternSheet.tsx';
 import { PrimitiveSheet, primitiveSheetDefaults } from './stills/PrimitiveSheet.tsx';
 import { SafeAreaCalibration, safeAreaCalibrationDefaults } from './stills/SafeAreaCalibration.tsx';
 import { ThemeSwatchBoard, themeSwatchBoardDefaults } from './stills/ThemeSwatchBoard.tsx';
@@ -36,6 +38,8 @@ const boardDefaults: VideoFromSpecProps = { ...videoDefaults, spec: primitivesBo
 const spatialFlowDefaults: VideoFromSpecProps = { ...videoDefaults, spec: spatialFlowBoardSpec };
 
 const insetRevealDefaults: VideoFromSpecProps = { ...videoDefaults, spec: insetRevealBoardSpec };
+
+const patternFlowDefaults: VideoFromSpecProps = { ...videoDefaults, spec: patternFlowBoardSpec };
 
 /** Remotion root. Duration and fps of the spec compositions come from `calculateMetadata`. */
 export function Root() {
@@ -90,6 +94,23 @@ export function Root() {
         durationInFrames={1}
         defaultProps={insetRevealDefaults}
         calculateMetadata={calculateVideoMetadata}
+      />
+      <Composition
+        id="PatternFlowBoard"
+        component={VideoFromSpec}
+        width={canvas.width}
+        height={canvas.height}
+        fps={FINAL_FPS}
+        durationInFrames={1}
+        defaultProps={patternFlowDefaults}
+        calculateMetadata={calculateVideoMetadata}
+      />
+      <Still
+        id="PatternSheet"
+        component={PatternSheet}
+        width={canvas.width}
+        height={canvas.height}
+        defaultProps={patternSheetDefaults}
       />
       <Still
         id="PrimitiveSheet"

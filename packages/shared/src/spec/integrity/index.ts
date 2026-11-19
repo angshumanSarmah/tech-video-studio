@@ -7,6 +7,7 @@ import { checkStory } from './story.ts';
 import { checkTiming } from './timing.ts';
 
 export * from './issue.ts';
+export { anchorProblem } from './scenes.ts';
 export { findSpecWarnings, TARGET_LENGTH_TOLERANCE } from './warnings.ts';
 
 /**

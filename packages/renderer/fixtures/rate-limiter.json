@@ -90,7 +90,7 @@
     },
     {
       "beatId": "payoff",
-      "narration": "Now one noisy client cannot take down everyone else. The flood hits its own empty bucket, not your servers.",
+      "narration": "Without a limiter, the flood knocks your API over. Put one in front, and the flood hits an empty bucket while a steady trickle reaches your servers.",
       "headline": { "text": "The flood stops at the bucket", "semantic": "resolution" }
     }
   ],
@@ -104,13 +104,12 @@
         { "id": "api", "primitive": "node_card", "props": { "title": "API" }, "role": "focus" },
         { "id": "rps", "primitive": "counter", "props": { "value": 10000, "unit": "req/s" } }
       ],
-      "patterns": [{ "id": "flood", "pattern": "flood_then_funnel", "params": { "count": 20 } }],
       "events": [
         { "at": { "type": "word", "index": 0 }, "action": "enter", "targets": ["client"] },
         {
           "at": { "type": "word_text", "text": "requests" },
           "action": "enter",
-          "targets": ["rps", "flood"]
+          "targets": ["rps"]
         },
         { "at": { "type": "word_text", "text": "api" }, "action": "enter", "targets": ["api"] },
         { "at": { "type": "word_text", "text": "falls" }, "action": "reject", "targets": ["api"] },
@@ -173,26 +172,40 @@
     {
       "beatId": "payoff",
       "kind": "board",
-      "layoutMode": "centered_focus",
       "transitionIn": "zoom-out",
       "elements": [
-        { "id": "servers", "primitive": "node_card", "props": { "title": "Servers" } },
-        { "id": "guard", "primitive": "tag", "props": { "text": "rate limited" } }
+        { "id": "guard", "primitive": "tag", "props": { "text": "rate limited" }, "zone": "aside" }
+      ],
+      "patterns": [
+        {
+          "id": "flood",
+          "pattern": "flood_then_funnel",
+          "params": {
+            "source": { "title": "Client", "icon": "user" },
+            "target": { "title": "API", "icon": "server" },
+            "layer": { "title": "Rate limiter", "icon": "shield" },
+            "rate": { "value": 10000, "unit": "req/s" },
+            "at": {
+              "flood": { "type": "word_text", "text": "flood" },
+              "overwhelm": { "type": "word_text", "text": "knocks" },
+              "funnel": { "type": "word_text", "text": "front" }
+            }
+          }
+        }
       ],
       "events": [
         {
-          "at": { "type": "beat", "edge": "start", "offsetSec": 0.2 },
+          "at": { "type": "word_text", "text": "bucket" },
           "action": "enter",
-          "targets": ["servers"]
+          "targets": ["guard"]
         },
-        { "at": { "type": "word_text", "text": "flood" }, "action": "enter", "targets": ["guard"] },
         {
           "at": { "type": "word_text", "text": "servers" },
           "action": "highlight",
-          "targets": ["servers"]
+          "targets": ["flood/target"]
         }
       ],
-      "focus": ["servers"]
+      "focus": ["flood"]
     }
   ]
 }

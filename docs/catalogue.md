@@ -1038,4 +1038,568 @@ A grid of labelled slots: bins of stock, a shelf, cinema seats or documents. Eac
 
 ## Patterns
 
-No patterns are registered yet.
+A pattern is a reusable piece of choreography: it expands into primitives and timed events, anchored to the narration words in `params.at`. It stages its own entrances. Events on the instance may use only its **Actions**; events on one element inside it, targeted as `<instance>/<id>`, may use only `highlight`, `pulse`, `dim`. A beat without its own `layoutMode` uses its patterns' layout mode.
+
+### atomic_lock
+
+**Family:** flow · **Actions:** `exit`, `highlight`, `dim`, `pulse`
+
+Two requests race for one resource. The first arrives and locks it (padlock) and a hold timer starts; the second arrives while it is held, its arrow turns red and it is tagged with a cross.
+
+**When to use:** Contention for one thing: two users booking the same seat, two workers claiming the same job, two writers on one row. The moment the lock makes the second attempt fail.
+
+**When not to:** Rejecting a repeat of the same request (use `reject_duplicate`); many requests overwhelming a server (use `flood_then_funnel`).
+
+**Layout mode:** `hub_spoke`
+
+**Narration anchors** (`params.at`):
+
+- `arrive`: The first request reaches the resource.
+- `lock`: The resource is locked and the hold timer starts.
+- `second`: A second request arrives for the same resource.
+- `bounce`: The second request is turned away.
+
+**Inner elements** (target as `<instance>/<id>` with `highlight`, `pulse`, `dim`):
+
+- `resource`: The locked resource.
+- `first`: The request that holds the lock.
+- `second`: The request that bounces.
+- `first-link`: Arrow from the first request to the resource.
+- `second-link`: Arrow from the second request (rejected on bounce).
+- `hold`: The hold timer.
+- `bounced`: The tag on the turned-away request.
+
+**Params:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `resource` | object | yes | The one thing both requests want (a seat, a row, a slot). |
+| `first` | object | yes | The request that gets there first. |
+| `second` | object | yes | The request that arrives while the lock is held. |
+| `holdSec` | integer | yes | How long the lock holds, in seconds (the hold timer starts here). (min 1, max 5999) |
+| `holdLabel` | string | no | Optional caption under the hold timer. (min length 1, max length 24) |
+| `bounce` | string | no | Tag on the turned-away request, e.g. ALREADY HELD. (min length 1, max length 24, default `"LOCKED"`) |
+| `at` | object | yes | Narration anchors: the word (or beat edge) for each moment. |
+
+**Example:**
+
+```json
+{
+  "id": "<example-atomic_lock-id>",
+  "pattern": "atomic_lock",
+  "params": {
+    "resource": {
+      "title": "<example-resource>",
+      "icon": "lock"
+    },
+    "first": {
+      "title": "<example-first>",
+      "icon": "user"
+    },
+    "second": {
+      "title": "<example-second>",
+      "icon": "user"
+    },
+    "holdSec": 600,
+    "holdLabel": "<example-hold>",
+    "bounce": "<example-bounce>",
+    "at": {
+      "arrive": {
+        "type": "word",
+        "index": 0
+      },
+      "lock": {
+        "type": "word",
+        "index": 1
+      },
+      "second": {
+        "type": "word",
+        "index": 2
+      },
+      "bounce": {
+        "type": "word",
+        "index": 3
+      }
+    }
+  }
+}
+```
+
+### cache_hit_miss
+
+**Family:** flow · **Actions:** `exit`, `highlight`, `dim`, `pulse`
+
+A client with a near store and a far store. A hit is answered by the near store and tagged with its small latency; a miss goes on to the far store and is tagged with its large one, so the gap in latency is the lesson.
+
+**When to use:** Caching, CDNs and any near/far trade-off: cache vs database, edge vs origin, memory vs disk, KV cache vs recomputation.
+
+**When not to:** Comparing two whole designs side by side (a versus split); a flood of requests on one node (use `flood_then_funnel`).
+
+**Layout mode:** `near_far`
+
+**Narration anchors** (`params.at`):
+
+- `show`: The client, the near store and the far store appear.
+- `hit`: A request is answered by the near store (fast).
+- `miss`: A request misses the near store and goes on to the far one (slow).
+
+**Inner elements** (target as `<instance>/<id>` with `highlight`, `pulse`, `dim`):
+
+- `client`: The client.
+- `near`: The near store.
+- `far`: The far store.
+- `near-link`: Arrow from the client to the near store.
+- `far-link`: Arrow from the near store to the far store (the miss path).
+- `hit`: The HIT tag with its latency.
+- `miss`: The MISS tag with its latency.
+
+**Params:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `client` | object | yes | Who asks (a user, an app server). |
+| `near` | object | yes | The near, fast store (a cache, an edge server). |
+| `far` | object | yes | The far, slow store (a database, the origin). |
+| `hitLatency` | string | yes | Latency of a hit, e.g. 2 ms. (min length 1, max length 12) |
+| `missLatency` | string | yes | Latency of a miss, e.g. 2 ms. (min length 1, max length 12) |
+| `at` | object | yes | Narration anchors: the word (or beat edge) for each moment. |
+
+**Example:**
+
+```json
+{
+  "id": "<example-cache_hit_miss-id>",
+  "pattern": "cache_hit_miss",
+  "params": {
+    "client": {
+      "title": "<example-client>",
+      "icon": "user"
+    },
+    "near": {
+      "title": "<example-near>",
+      "icon": "zap"
+    },
+    "far": {
+      "title": "<example-far>",
+      "icon": "database"
+    },
+    "hitLatency": "<example-ms>",
+    "missLatency": "<example-ms>",
+    "at": {
+      "show": {
+        "type": "word",
+        "index": 0
+      },
+      "hit": {
+        "type": "word",
+        "index": 1
+      },
+      "miss": {
+        "type": "word",
+        "index": 2
+      }
+    }
+  }
+}
+```
+
+### converge_adapter
+
+**Family:** flow · **Actions:** `exit`, `highlight`, `dim`, `pulse`
+
+Two to four inputs, each drawn in a different style, flow into a hub; one output in a single, uniform style comes out. The visual point is many shapes in, one shape out.
+
+**When to use:** Adapters and normalisation: payment providers behind one gateway, log formats into one schema, model providers behind one client.
+
+**When not to:** One message copied out to many (use `fan_out`); a flood of identical requests (use `flood_then_funnel`).
+
+**Layout mode:** `pipeline`
+
+**Narration anchors** (`params.at`):
+
+- `inputs`: The differently shaped inputs appear.
+- `convert`: The hub appears and each input flows into it.
+- `output`: One uniform output leaves the hub.
+
+**Inner elements** (target as `<instance>/<id>` with `highlight`, `pulse`, `dim`):
+
+- `input-<n>`: The n-th input (from 1).
+- `link-<n>`: Arrow from the n-th input into the hub.
+- `hub`: The adapter hub.
+- `out-link`: Arrow from the hub to the output.
+- `output`: The uniform output.
+
+**Params:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `inputs` | array | yes | The inputs, 2 to 4; each is drawn in a different style. (min items 2, max items 4) |
+| `hub` | object | yes | The adapter or gateway that normalises them. |
+| `output` | string | yes | The one uniform output, e.g. ORDER EVENT. (min length 1, max length 24) |
+| `at` | object | yes | Narration anchors: the word (or beat edge) for each moment. |
+
+**Example:**
+
+```json
+{
+  "id": "<example-converge_adapter-id>",
+  "pattern": "converge_adapter",
+  "params": {
+    "inputs": [
+      "<example-input-1>",
+      "<example-input-2>",
+      "<example-input-3>"
+    ],
+    "hub": {
+      "title": "<example-hub>",
+      "icon": "layers"
+    },
+    "output": "<example-output>",
+    "at": {
+      "inputs": {
+        "type": "word",
+        "index": 0
+      },
+      "convert": {
+        "type": "word",
+        "index": 1
+      },
+      "output": {
+        "type": "word",
+        "index": 2
+      }
+    }
+  }
+}
+```
+
+### fan_out
+
+**Family:** flow · **Actions:** `exit`, `highlight`, `dim`, `pulse`
+
+One message leaves a source and splits into a copy per target (a packet on each arrow), then the targets pass it on to a crowd whose count climbs.
+
+**When to use:** Fan-out and pub/sub: one post reaching every follower, one event delivered to several services, a broadcast through regional servers.
+
+**When not to:** Many inputs merging into one (use `converge_adapter`); work shared out from a queue (use `worker_pool`).
+
+**Layout mode:** `pipeline`
+
+**Narration anchors** (`params.at`):
+
+- `send`: The source sends the one message.
+- `split`: The message is copied to every target.
+- `crowd`: The copies reach the crowd behind the targets.
+
+**Inner elements** (target as `<instance>/<id>` with `highlight`, `pulse`, `dim`):
+
+- `source`: The source.
+- `message`: The message tag at the source.
+- `target-<n>`: The n-th target (from 1).
+- `link-<n>`: Arrow from the source to the n-th target.
+- `reach-<n>`: Arrow from the n-th target to the crowd.
+- `crowd`: The crowd counter.
+
+**Params:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `source` | object | yes | Where the message starts (a publisher, a post, a broker). |
+| `message` | string | yes | The message, as a short tag, e.g. NEW POST. (min length 1, max length 24) |
+| `targets` | array | yes | The targets the message splits to, 2 to 4. (min items 2, max items 4) |
+| `targets[].title` | string | yes | Name of the component, shown in uppercase. (min length 1, max length 24) |
+| `targets[].icon` | string | no | Asset id from the asset library (an unknown id is drawn as a placeholder and reported). (max length 64) |
+| `crowd` | object | yes | The crowd the targets deliver to, counted up as copies reach it. |
+| `at` | object | yes | Narration anchors: the word (or beat edge) for each moment. |
+
+**Example:**
+
+```json
+{
+  "id": "<example-fan_out-id>",
+  "pattern": "fan_out",
+  "params": {
+    "source": {
+      "title": "<example-source>",
+      "icon": "mail"
+    },
+    "message": "<example-message>",
+    "targets": [
+      {
+        "title": "<example-target-1>"
+      },
+      {
+        "title": "<example-target-2>"
+      }
+    ],
+    "crowd": {
+      "value": 100000,
+      "label": "<example-crowd>"
+    },
+    "at": {
+      "send": {
+        "type": "word",
+        "index": 0
+      },
+      "split": {
+        "type": "word",
+        "index": 1
+      },
+      "crowd": {
+        "type": "word",
+        "index": 2
+      }
+    }
+  }
+}
+```
+
+### flood_then_funnel
+
+**Family:** flow · **Actions:** `exit`, `highlight`, `dim`, `pulse`
+
+A dense stream of requests hits a node directly while the rate counts up; the node shakes red and a warning shows. Then a middle layer steps in: the flood goes into it and a single, slow, steady line comes out to the node.
+
+**When to use:** Failure before the fix for load: a rate limiter, a queue, a cache or a CDN absorbing a spike that would knock a server over.
+
+**When not to:** Two requests for one resource (use `atomic_lock`); one message copied to many targets (use `fan_out`).
+
+**Layout mode:** `pipeline`
+
+**Narration anchors** (`params.at`):
+
+- `flood`: The flood of requests starts and the rate counts up.
+- `overwhelm`: The target gives way: it shakes red and a warning shows.
+- `funnel`: The middle layer appears and turns the flood into one steady line.
+
+**Inner elements** (target as `<instance>/<id>` with `highlight`, `pulse`, `dim`):
+
+- `source`: Where the flood comes from.
+- `target`: The overwhelmed node.
+- `layer`: The middle layer (enters on the funnel).
+- `direct`: The direct arrow from source to target (exits on the funnel).
+- `flood`: The dense packet stream on the direct arrow.
+- `rate`: The flood rate counter.
+- `warning`: The warning tag on the target.
+- `in`: Arrow from the source into the layer.
+- `in-flow`: The dense stream into the layer.
+- `out`: Arrow from the layer to the target.
+- `out-flow`: The single steady stream out of the layer.
+
+**Params:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `source` | object | yes | Where the flood comes from (clients, users, producers). |
+| `target` | object | yes | The node that is overwhelmed (an API, a database). |
+| `layer` | object | yes | The middle layer that absorbs the flood (a queue, a rate limiter, a CDN). |
+| `rate` | object | yes | The flood rate, counted up from 0 as the flood starts. |
+| `warning` | string | no | Tag shown when the target gives way. (min length 1, max length 24, default `"OVERLOADED"`) |
+| `at` | object | yes | Narration anchors: the word (or beat edge) for each moment. |
+
+**Example:**
+
+```json
+{
+  "id": "<example-flood_then_funnel-id>",
+  "pattern": "flood_then_funnel",
+  "params": {
+    "source": {
+      "title": "<example-source>",
+      "icon": "users"
+    },
+    "target": {
+      "title": "<example-target>",
+      "icon": "server"
+    },
+    "layer": {
+      "title": "<example-layer>",
+      "icon": "layers"
+    },
+    "rate": {
+      "value": 10000,
+      "unit": "<example-unit>"
+    },
+    "at": {
+      "flood": {
+        "type": "word",
+        "index": 0
+      },
+      "overwhelm": {
+        "type": "word",
+        "index": 1
+      },
+      "funnel": {
+        "type": "word",
+        "index": 2
+      }
+    }
+  }
+}
+```
+
+### reject_duplicate
+
+**Family:** flow · **Actions:** `exit`, `highlight`, `dim`, `pulse`
+
+The same request arrives twice. The first copy travels to the receiver and is accepted; the second, carrying the same id, is turned red and stamped DUPLICATE, so the work happens once.
+
+**When to use:** Idempotency and deduplication: a payment retried after a timeout, a message delivered twice, a double-clicked submit.
+
+**When not to:** Two different requests competing for one resource (use `atomic_lock`); a request that fails for another reason (use a `tag` or `callout`).
+
+**Layout mode:** `pipeline`
+
+**Narration anchors** (`params.at`):
+
+- `first`: The request arrives the first time and is processed.
+- `second`: The same request (same id) arrives again.
+- `stamp`: The repeat is recognised and stamped as a duplicate.
+
+**Inner elements** (target as `<instance>/<id>` with `highlight`, `pulse`, `dim`):
+
+- `sender`: The sender.
+- `receiver`: The receiver that dedupes.
+- `link`: Arrow from sender to receiver; a packet travels on each arrival.
+- `first`: The first copy of the id (accepted).
+- `second`: The second copy (rejected).
+- `duplicate`: The stamp on the second copy.
+
+**Params:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `sender` | object | yes | Who sends the request (a client retrying, a producer). |
+| `receiver` | object | yes | Who checks the id and processes the request once. |
+| `key` | string | yes | The id both copies carry, as shown, e.g. order_id 7781. (min length 1, max length 24) |
+| `stamp` | string | no | Stamp on the repeat. (min length 1, max length 16, default `"DUPLICATE"`) |
+| `at` | object | yes | Narration anchors: the word (or beat edge) for each moment. |
+
+**Example:**
+
+```json
+{
+  "id": "<example-reject_duplicate-id>",
+  "pattern": "reject_duplicate",
+  "params": {
+    "sender": {
+      "title": "<example-sender>",
+      "icon": "smartphone"
+    },
+    "receiver": {
+      "title": "<example-receiver>",
+      "icon": "server"
+    },
+    "key": "<example-key>",
+    "at": {
+      "first": {
+        "type": "word",
+        "index": 0
+      },
+      "second": {
+        "type": "word",
+        "index": 1
+      },
+      "stamp": {
+        "type": "word",
+        "index": 2
+      }
+    }
+  }
+}
+```
+
+### worker_pool
+
+**Family:** flow · **Actions:** `exit`, `highlight`, `dim`, `pulse`
+
+A queue of waiting jobs feeds a pool of workers: on the assign word each worker takes the job at the front (the jobs lift off the belt) and works on it, then each produces an output.
+
+**When to use:** Background jobs, consumers on a queue, thread pools, parallel inference: work waiting its turn and shared out across several workers.
+
+**When not to:** One message copied to every target (use `fan_out`); a single queue with no workers (use a `conveyor_queue`).
+
+**Layout mode:** `pipeline`
+
+**Narration anchors** (`params.at`):
+
+- `queue`: The queue of waiting jobs and the idle workers appear.
+- `assign`: Each worker takes the job at the front of the queue.
+- `done`: Each worker produces its output.
+
+**Inner elements** (target as `<instance>/<id>` with `highlight`, `pulse`, `dim`):
+
+- `queue`: The job queue; its jobs are parts job-1, job-2, …
+- `worker-<n>`: The n-th worker (from 1).
+- `link-<n>`: Arrow from the queue to the n-th worker.
+- `output-<n>`: The output of the n-th worker.
+
+**Params:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `queue` | string | no | Optional caption under the queue, e.g. JOB QUEUE. (min length 1, max length 24) |
+| `jobs` | array | yes | Waiting jobs in arrival order, 2 to 6; the first is at the front. (min items 2, max items 6) |
+| `workers` | array | yes | The workers, 2 to 4 (at most one per job). (min items 2, max items 4) |
+| `workers[].title` | string | yes | Name of the component, shown in uppercase. (min length 1, max length 24) |
+| `workers[].icon` | string | no | Asset id from the asset library (an unknown id is drawn as a placeholder and reported). (max length 64) |
+| `output` | string | yes | What each worker produces, e.g. THUMBNAIL. (min length 1, max length 24) |
+| `at` | object | yes | Narration anchors: the word (or beat edge) for each moment. |
+
+**Example:**
+
+```json
+{
+  "id": "<example-worker_pool-id>",
+  "pattern": "worker_pool",
+  "params": {
+    "queue": "<example-queue>",
+    "jobs": [
+      "<ex-1>",
+      "<ex-2>",
+      "<ex-3>"
+    ],
+    "workers": [
+      {
+        "title": "<example-worker-1>"
+      },
+      {
+        "title": "<example-worker-2>"
+      }
+    ],
+    "output": "<example-output>",
+    "at": {
+      "queue": {
+        "type": "word",
+        "index": 0
+      },
+      "assign": {
+        "type": "word",
+        "index": 1
+      },
+      "done": {
+        "type": "word",
+        "index": 2
+      }
+    }
+  }
+}
+```
+
+## Layout modes
+
+Ids are exhaustive. Elements may name a zone of their beat’s layout mode.
+
+| Mode | Zones | Description |
+| --- | --- | --- |
+| `map` | `base`, `overlay`, `marker`, `aside` | A map base filling the stage, overlays sharing its frame, markers on top. |
+| `two_column` | `left`, `right`, `aside` | Two columns of elements, read left then right. |
+| `grid` | `cell`, `aside` | Equal elements in a grid of cells. |
+| `stacked_list` | `row`, `aside` | Elements stacked top to bottom as rows. |
+| `centered_focus` | `center`, `around`, `aside` | One focus element in the middle, the rest smaller around it. |
+| `pipeline` | `source`, `stage`, `sink`, `aside` | Stages in flow order (top-down or left-right): sources, middle stages, sinks. |
+| `cycle` | `ring`, `center`, `aside` | Steps on a ring that loops back to the start, an optional element in the middle. |
+| `swimlane` | `lane-1`, `lane-2`, `lane-3`, `lane-4`, `message`, `aside` | Vertical lanes, one per actor, with ordered messages between them. |
+| `versus_split` | `left`, `right`, `shared` | Two halves side by side for the same situation; shared elements span both. |
+| `near_far` | `origin`, `near`, `far`, `aside` | An origin with a near and a far destination, the distance drawn to scale. |
+| `hub_spoke` | `hub`, `spoke`, `aside` | One hub in the middle with spokes around it. |

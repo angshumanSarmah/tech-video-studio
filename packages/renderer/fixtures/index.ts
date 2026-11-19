@@ -1,6 +1,7 @@
 import { parseRenderableSpec } from '../src/compositions/metadata.ts';
 import type { SeriesProps } from '../src/compositions/props.ts';
 import insetRevealBoardJson from './inset-reveal-board.json';
+import patternFlowBoardJson from './pattern-flow-board.json';
 import primitivesBoardJson from './primitives-board.json';
 import rateLimiterJson from './rate-limiter.json';
 import spatialFlowBoardJson from './spatial-flow-board.json';
@@ -37,6 +38,17 @@ export const primitiveBoardSpecs = [
   spatialFlowBoardSpec,
   insetRevealBoardSpec,
 ];
+
+/**
+ * Pattern boards: one beat per registered pattern (beat and instance id: the pattern id with `-`
+ * for `_`), with every narration anchor in its params. Scenes set no `layoutMode`, so each beat
+ * takes its pattern's. Each board is a valid Short. Studio previews them as `PatternFlowBoard`;
+ * `PatternSheet` stills sample them for `docs/patterns/`.
+ */
+export const patternFlowBoardSpec = parseRenderableSpec(patternFlowBoardJson);
+
+/** Every pattern board, in registry order. */
+export const patternBoardSpecs = [patternFlowBoardSpec];
 
 /** Example series data; real values come from the DB `series` row at render time. */
 export const fixtureSeries: SeriesProps = { label: 'System Design', accentColour: '#4F8CFF' };

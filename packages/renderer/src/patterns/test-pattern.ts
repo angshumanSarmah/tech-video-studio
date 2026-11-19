@@ -3,8 +3,8 @@ import { z } from 'zod';
 import { definePattern } from './types.ts';
 
 /**
- * Test-only pattern that proves the pattern shape until P1A.8 registers real ones: a second
- * request bounces off a held label. Not registered; tests pass it to `buildPatternRegistry`.
+ * Test-only pattern with a small, stable shape: a second request bounces off a held label. Not
+ * registered; tests pass it to `buildPatternRegistry`.
  */
 export const bouncePattern = definePattern({
   id: 'test_bounce',
@@ -13,8 +13,13 @@ export const bouncePattern = definePattern({
     label: z.string().min(1).max(24).describe('What the first request holds.'),
     at: z.strictObject({ bounce: EventAnchorSchema }),
   }),
-  actions: ['enter', 'exit', 'dim'],
+  layoutMode: 'two_column',
+  actions: ['exit', 'dim'],
   anchors: [{ name: 'bounce', description: 'The word where the second request is turned away.' }],
+  targets: [
+    { id: 'held', description: 'The held label.' },
+    { id: 'second', description: 'The request that bounces.' },
+  ],
   description: {
     summary: 'A held label; a second request arrives and is rejected.',
     whenToUse: 'Tests only: proves that patterns expand into primitives and events.',
@@ -23,8 +28,13 @@ export const bouncePattern = definePattern({
   example: { params: { label: '<example-label>', at: { bounce: { type: 'word', index: 0 } } } },
   expand: (params) => ({
     elements: [
-      { id: 'held', primitive: 'tag', props: { text: params.label, semantic: 'focus' } },
-      { id: 'second', primitive: 'tag', props: { text: params.label } },
+      {
+        id: 'held',
+        primitive: 'tag',
+        props: { text: params.label, semantic: 'focus' },
+        zone: 'left',
+      },
+      { id: 'second', primitive: 'tag', props: { text: params.label }, zone: 'right' },
     ],
     events: [
       { at: params.at.bounce, action: 'enter', targets: ['second'] },

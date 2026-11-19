@@ -13,7 +13,9 @@ const TRACK_ALPHA = 0.25;
 
 /**
  * Packets flowing along a connector. Until the layout engine (P1A.9) hands it the connector's
- * path, it flows straight across its own box over a faint track.
+ * path, it flows straight across its own box over a faint track. The track follows presence (it
+ * is not drawn before `enter` or after `exit`); packets keep their own timing, so the ones in
+ * flight at `exit` still finish.
  */
 export function PacketStream({
   theme,
@@ -44,6 +46,7 @@ export function PacketStream({
         d={pathD(points)}
         stroke={semanticFill(theme, semantic, TRACK_ALPHA)}
         strokeWidth={theme.stroke.thin}
+        strokeOpacity={state.presence}
         fill="none"
       />
       <g fill={tint.base} style={{ filter: emphasisFilter(theme, tint, state.emphasis) }}>

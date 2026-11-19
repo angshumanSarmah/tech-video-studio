@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parseRenderableSpec } from '../compositions/metadata.ts';
-import { registryValidSpec } from '../catalog/test-specs.ts';
+import { fixtureSpec } from '../catalog/test-specs.ts';
 import { getTheme, safeAreas } from '../theme/index.ts';
 import {
   FADE_SEC,
@@ -12,7 +12,7 @@ import {
 
 describe('footnoteText', () => {
   it('prefixes the beat source, and is absent without one', () => {
-    const input = registryValidSpec();
+    const input = fixtureSpec();
     Object.assign((input.script as object[])[0] ?? {}, { source: '<example-publisher> report' });
     const spec = parseRenderableSpec(input);
     expect(footnoteText(spec, 'hook')).toBe('Source: <example-publisher> report');

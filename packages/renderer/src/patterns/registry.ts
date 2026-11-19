@@ -1,18 +1,41 @@
 import { SpecIdSchema } from '@explainer-studio/shared';
 import { PRIMITIVES, type PrimitiveRegistry } from '../primitives/registry.ts';
-import type { AnyPatternDefinition, PatternExpansion } from './types.ts';
+import { expansionProblems, undocumentedTargets } from './expansion-checks.ts';
+import {
+  PATTERN_INSTANCE_ACTIONS,
+  type AnyPatternDefinition,
+  type PatternExpansion,
+} from './types.ts';
+import { atomicLockPattern } from './atomic-lock/definition.ts';
+import { cacheHitMissPattern } from './cache-hit-miss/definition.ts';
+import { convergeAdapterPattern } from './converge-adapter/definition.ts';
+import { fanOutPattern } from './fan-out/definition.ts';
+import { floodThenFunnelPattern } from './flood-then-funnel/definition.ts';
+import { rejectDuplicatePattern } from './reject-duplicate/definition.ts';
+import { workerPoolPattern } from './worker-pool/definition.ts';
+
+export { expansionProblems } from './expansion-checks.ts';
 
 /**
- * Every behaviour pattern the renderer knows. Empty until P1A.8; add a pattern by adding its
- * definition here. Catalogues, prompts and validation all read from this list.
+ * Every behaviour pattern the renderer knows; add a pattern by adding its definition here.
+ * Catalogues, prompts and validation all read from this list.
  */
-export const PATTERN_DEFINITIONS: readonly AnyPatternDefinition[] = [];
+export const PATTERN_DEFINITIONS: readonly AnyPatternDefinition[] = [
+  atomicLockPattern,
+  rejectDuplicatePattern,
+  fanOutPattern,
+  floodThenFunnelPattern,
+  convergeAdapterPattern,
+  cacheHitMissPattern,
+  workerPoolPattern,
+];
 
 export type PatternRegistry = ReadonlyMap<string, AnyPatternDefinition>;
 
 /**
- * Indexes definitions by id. Throws on a bad or duplicate id, an anchor the params don't name, or
- * an example whose params fail the schema or expand into invalid elements.
+ * Indexes definitions by id. Throws on a bad or duplicate id, instance actions outside
+ * `PATTERN_INSTANCE_ACTIONS`, or an example whose params fail the schema or expand badly
+ * (`expansionProblems`, events not anchored to `params.at`, undocumented inner targets).
  */
 export function buildPatternRegistry(
   definitions: readonly AnyPatternDefinition[],
@@ -23,11 +46,24 @@ export function buildPatternRegistry(
     const { id } = definition;
     if (!SpecIdSchema.safeParse(id).success) throw new Error(`Invalid pattern id "${id}"`);
     if (registry.has(id)) throw new Error(`Duplicate pattern id "${id}"`);
+    const badActions = definition.actions.filter(
+      (a) => !(PATTERN_INSTANCE_ACTIONS as readonly string[]).includes(a),
+    );
+    if (badActions.length > 0) {
+      throw new Error(
+        `Pattern "${id}" offers instance actions it must keep: ${badActions.join(', ')}`,
+      );
+    }
     const params = definition.paramsSchema.safeParse(definition.example.params);
     if (!params.success) {
       throw new Error(`Example params of pattern "${id}" are invalid: ${params.error.message}`);
     }
-    const problems = expansionProblems(definition.expand(params.data), primitives);
+    const expansion = definition.expand(params.data);
+    const problems = [
+      ...expansionProblems(expansion, definition.layoutMode, primitives),
+      ...unanchoredEvents(expansion, params.data),
+      ...undocumentedTargets(expansion, definition.targets).map((t) => `"${t}" is not in targets`),
+    ];
     if (problems.length > 0) {
       throw new Error(`Example of pattern "${id}" expands badly: ${problems.join('; ')}`);
     }
@@ -36,25 +72,13 @@ export function buildPatternRegistry(
   return registry;
 }
 
-/** Why an expansion is invalid: unknown primitives, bad props, duplicate ids, dangling targets. */
-export function expansionProblems(
-  expansion: PatternExpansion,
-  primitives: PrimitiveRegistry,
-): string[] {
-  const ids = expansion.elements.map((e) => e.id);
-  const known = new Set(ids);
-  return [
-    ...ids.filter((id, i) => ids.indexOf(id) !== i).map((id) => `duplicate element id "${id}"`),
-    ...expansion.elements.flatMap((element) => {
-      const primitive = primitives.get(element.primitive);
-      if (!primitive) return [`unknown primitive "${element.primitive}"`];
-      const props = primitive.propsSchema.safeParse(element.props);
-      return props.success ? [] : [`invalid props on "${element.id}": ${props.error.message}`];
-    }),
-    ...expansion.events.flatMap((event) =>
-      event.targets.filter((t) => !known.has(t)).map((t) => `event targets unknown "${t}"`),
-    ),
-  ];
+/** Events whose anchor is not one of `params.at`: every pattern event follows the narration. */
+function unanchoredEvents(expansion: PatternExpansion, params: unknown): string[] {
+  const at = (params as { at?: Record<string, unknown> }).at ?? {};
+  const anchors = new Set(Object.values(at).map((a) => JSON.stringify(a)));
+  return expansion.events
+    .filter((e) => !anchors.has(JSON.stringify(e.at)))
+    .map((e) => `"${e.action}" on ${e.targets.join(', ')} is not anchored to params.at`);
 }
 
 export const PATTERNS: PatternRegistry = buildPatternRegistry(PATTERN_DEFINITIONS);

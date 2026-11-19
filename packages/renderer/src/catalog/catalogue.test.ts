@@ -41,7 +41,8 @@ describe('buildCatalogue', () => {
       'device_frame',
       'slot_grid',
     ]);
-    expect(patterns).toEqual([]);
+    expect(patterns.every((p) => p.family === 'flow')).toBe(true);
+    expect(patterns.map((p) => p.id)).toEqual([...patterns.map((p) => p.id)].sort());
     const tag = primitives.find((p) => p.id === 'tag');
     expect(Object.keys(tag ?? {})).toEqual([
       'id',
@@ -93,13 +94,26 @@ describe('buildCatalogue', () => {
     expect(labelOf('slot_grid', 'slots')).toMatchObject({ maxLength: 7 });
   });
 
-  it('includes patterns with their narration anchors', () => {
+  it('includes patterns with their anchors, layout mode and inner elements', () => {
     const [bounce] = buildCatalogue(withPatterns).patterns;
     expect(bounce).toMatchObject({
       id: 'test_bounce',
       anchors: [{ name: 'bounce', description: bouncePattern.anchors[0]?.description }],
+      layoutMode: 'two_column',
+      targets: [{ id: 'held' }, { id: 'second' }],
+      innerActions: ['highlight', 'pulse', 'dim'],
       example: { id: '<example-test_bounce-id>', pattern: 'test_bounce' },
     });
+  });
+
+  it('lists every layout mode with its zones', () => {
+    const { layoutModes } = buildCatalogue();
+    expect(layoutModes.map((m) => m.id)).toContain('hub_spoke');
+    expect(layoutModes.find((m) => m.id === 'versus_split')?.zones).toEqual([
+      'left',
+      'right',
+      'shared',
+    ]);
   });
 });
 
@@ -110,7 +124,7 @@ describe('catalogue files', () => {
     expect(json).not.toMatch(/preferredWidth|minWidth/);
   });
 
-  it('markdown documents each primitive, its props and example, and says when no patterns exist', () => {
+  it('markdown documents each primitive, its props and example', () => {
     const md = catalogueMarkdown();
     expect(md).toContain('### tag');
     expect(md).toContain('### counter');
@@ -118,7 +132,6 @@ describe('catalogue files', () => {
     expect(md).toContain('"primitive": "counter"');
     expect(md).toContain(`**Size hint** (example, ${DEFAULT_THEME_ID}): `);
     expect(md).toMatch(/\*\*Size hint\*\* \(example, [a-z-]+\): \d+ × \d+ px/);
-    expect(md).toContain('No patterns are registered yet.');
     expect(md).toContain('**Part actions** (events with `params.parts`): `enter`, `exit`, `lock`');
     expect(md).toContain(
       '| `slots[].label` | string | yes | Short label on the slot, e.g. a seat number or an item name. (min length 1, max length 7) |',
@@ -130,5 +143,9 @@ describe('catalogue files', () => {
     const md = catalogueMarkdown(withPatterns);
     expect(md).toContain('### test_bounce');
     expect(md).toContain('- `bounce`: ');
+    expect(md).toContain('**Layout mode:** `two_column`');
+    expect(md).toContain('**Inner elements** (target as `<instance>/<id>` with `highlight`');
+    expect(md).toContain('- `held`: The held label.');
+    expect(md).toContain('| `hub_spoke` | `hub`, `spoke`, `aside` |');
   });
 });

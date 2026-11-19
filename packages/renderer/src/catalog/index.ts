@@ -3,6 +3,7 @@ export * from '../primitives/types.ts';
 export * from '../primitives/registry.ts';
 export * from '../patterns/types.ts';
 export * from '../patterns/registry.ts';
+export * from '../layout/modes.ts';
 export * from '../assets/builtin.ts';
 export * from './registries.ts';
 export * from './validate.ts';

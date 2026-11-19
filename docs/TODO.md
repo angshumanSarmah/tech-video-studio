@@ -95,13 +95,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       the structured errors to the run, so a marker can never reach an exported MP4.
   - It must also refuse a spec with any `unknown_asset` warning (a warning everywhere else), so
     an asset placeholder never reaches an export.
-- [ ] **P1A.8 — Rate-limiter fixture pattern.** `fixtures/rate-limiter.json` uses
-      `flood_then_funnel`, drawn as an error marker until it exists. `validate.test.ts` pins it as
-      the fixture's only registry error; once the pattern is registered, assert the fixture passes
-      `withRegistryChecks` with no errors.
-- [ ] **P1A.8 — Pattern anchors.** Word anchors inside pattern `params` are not checked against
-      the beat's narration (`anchor_out_of_range` covers only `events[].at`). Check them with
-      `anchorProblem` in `withRegistryChecks`, using each pattern's declared `anchors`.
 - [ ] **P1A.9 — Size hints.** `sizeHints` estimate text width from per-font average advances
       (`src/primitives/measure.ts`). If the layout engine needs exact widths, measure glyphs
       (`@remotion/layout-utils` or the font files) instead. `BeatScene`'s centred wrap is
@@ -142,16 +135,11 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       by `withRegistryChecks` (P1A.5). The VideoSpec schema still only checks these are slugs:
       `scenes[].layoutMode`, `story.beats[].layoutMode` and
       `suggestedPatternIds`, `story.devices`, `story.beats[].device`, `story.metaphorWorld`,
+      (`src/layout/modes.ts` now lists the layout mode ids; P1A.8 only checks patterns' modes),
       `story.ending.kind`, `story.missingPrimitiveRequests[].fallbackUsed`. Validate each against
       its registry or catalogue (structured errors with JSON paths, like `validateVideoSpec`).
-- [ ] **P1A.8 — Parts on more primitives and on patterns.** P1A.7 settled the target syntax:
-      an event names parts with `params.parts` (one target), validated against the target's
-      `parts` (see CLAUDE.md, "Parts"). Still open:
-  - `data_block` fields as parts, so "this `status` flips" highlights one field.
-  - Patterns exposing named parts the same way (a pattern definition declares `parts`; its
-    scope entry gets them in `catalog/scope.ts`), instead of a `<instance>.<part>` target syntax.
-  - Events a pattern expands into may carry `params.parts`; registry building does not check
-    them against the expanded elements' parts yet.
+- [ ] **Parts on `data_block`.** P1A.7 settled the target syntax (`params.parts`, one target).
+      Still open: `data_block` fields as parts, so "this `status` flips" highlights one field.
 - [ ] **P1A.9 — Geometry for relational primitives and overlays.** `connector` (between
       `from`/`to`), `packet_stream` (along its connector's path) and `route_path` draw a
       standalone path across their own box (`standalonePath`, `routeLayout`); `grid_overlay`
@@ -206,8 +194,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       on-disk library, keeping ids slugs and unknown ids as placeholder + `unknown_asset` warning.
   - Prompts need the closed list of asset ids (rule: closed lists for every id). Add assets to
     `buildCatalogue()` (ids, kind, label) when the library lands.
-  - `unknown_asset` is checked only for scene elements. Check elements that patterns expand into
-    once a pattern references assets (P1A.8).
   - Record the run's missing assets (the placeholder path) for P1C.12 and the gate 3 panel.
 - [ ] **P1C.12 — Asset drafts.** Reuse the `assets` table (status `draft | approved | rejected`)
       for drafts; do not add a separate `asset_drafts` table. Variant SVGs live in files, listed
@@ -240,3 +226,27 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       heroMetric, storyClock, headline) is user-set and not in the LLM JSON schemas. Expose the
       toggles at the scene gate (form view), and show "estimated timing" in the preview UI (the
       temporary in-frame badge went away with `DevHud`).
+- [ ] **P1A.9 — Pattern layout inputs.** Patterns declare a layout mode and zones
+      (`src/layout/modes.ts`); P1A.9 adds the placement. Where a pattern fits its mode loosely:
+  - `reject_duplicate` (pipeline): the two id tags sit in `stage` between sender and receiver;
+    they travel the link rather than being a stage.
+  - `worker_pool` (pipeline): each `output-<n>` belongs next to `worker-<n>`, but zones carry no
+    pairing. Pipeline needs per-row pairing (or attachments) for parallel lanes.
+  - `atomic_lock` (hub_spoke): the hold timer and the bounce tag sit in `aside`; they belong
+    attached to the resource and the second request (attachments, P1A.9).
+  - `cache_hit_miss` (near_far): the HIT and MISS tags belong attached to their links.
+  - A pattern's mode is static per definition; a pattern that wants a different mode by params
+    would move `layoutMode` into the expansion.
+- [ ] **P1A.10 — Recovering from `reject`.** A `reject` is held for good: no later event clears
+      it. `flood_then_funnel`'s target stays red after the funnel fixes the load. Decide in
+      `elementState` how a rejected element recovers (e.g. a later `highlight` or `enter` clears
+      it), so components stay unchanged.
+- [ ] **Timeline warnings for pattern elements.** `findTimelineWarnings` reads only
+      `scenes[].elements`, so expanded elements (and spec events on `<instance>/<id>`) get no
+      `overlay_overlap`, `child_before_container` or primitive `eventWarnings`. Pattern code is
+      tested, but spec events on inner elements could still trip them.
+- [ ] **Inner targets beyond events.** `<instance>/<id>` works in `events[].targets` only.
+      `focus` ids and element refs from spec elements (a connector from a spec element to an inner
+      element) still take plain ids.
+- [ ] **Catalogue — nested params.** The markdown params table shows object params (a pattern's
+      `resource: { title, icon }`) as `object` without their fields; the JSON schema has them.

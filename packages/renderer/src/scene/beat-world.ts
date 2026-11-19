@@ -32,6 +32,8 @@ export type WorldItem =
       props: unknown;
       events: ElementEvent[];
       layer: PrimitiveLayer;
+      /** Zone of the beat's layout mode the element asked for (input to the layout engine). */
+      zone?: string;
       /** Contained elements, drawn inside this one. */
       children: WorldItem[];
     }
@@ -43,6 +45,7 @@ type Draft =
       key: string;
       definition: AnyPrimitiveDefinition;
       props: unknown;
+      zone?: string;
       targetIds: string[];
     }
   | { kind: 'error'; key: string; title: string; detail: string };
@@ -142,13 +145,15 @@ function elementDraft(element: SceneElement, targetIds: string[], registries: Re
     key: targetIds[0] ?? element.id,
     definition,
     props: props.data,
+    ...(element.zone ? { zone: element.zone } : {}),
     targetIds,
   };
 }
 
 /**
- * A registered pattern's parts, namespaced `<instance>/<part>` so they never collide with spec ids.
- * Spec events that target the instance act on every part.
+ * A registered pattern's elements, namespaced `<instance>/<id>` so they never collide with spec
+ * ids (element refs in their props too, so a connector inside the pattern points to its sibling).
+ * Spec events that target the instance act on every element; `<instance>/<id>` targets one.
  */
 function patternDrafts(
   pattern: ScenePattern,
@@ -169,7 +174,7 @@ function patternDrafts(
   const part = (id: string) => `${pattern.id}/${id}`;
   return {
     drafts: expansion.elements.map((e) =>
-      elementDraft(e, [part(e.id), pattern.id], ctx.registries),
+      namespaceRefs(elementDraft(e, [part(e.id), pattern.id], ctx.registries), part),
     ),
     events: expansion.events.flatMap((event) => {
       const time = ctx.beat ? anchorToTime(event.at, ctx.beat, ctx.narration, ctx.fps) : undefined;
@@ -185,6 +190,23 @@ function patternDrafts(
       ];
     }),
   };
+}
+
+/** Rewrites the element refs in a draft's parsed props through `rename`. */
+function namespaceRefs(draft: Draft, rename: (id: string) => string): Draft {
+  if (draft.kind === 'error' || !draft.definition.elementRefs) return draft;
+  const refs = draft.definition.elementRefs(draft.props);
+  if (refs.length === 0) return draft;
+  const props: unknown = structuredClone(draft.props);
+  for (const ref of refs) setAtPath(props, ref.path, rename(ref.id));
+  return { ...draft, props };
+}
+
+function setAtPath(target: unknown, path: readonly (string | number)[], value: string): void {
+  const last = path.at(-1);
+  let node = target;
+  for (const key of path.slice(0, -1)) node = (node as Record<string | number, unknown>)[key];
+  if (last !== undefined) (node as Record<string | number, unknown>)[last] = value;
 }
 
 function withEvents(draft: Draft, events: readonly FramedEvent[]): WorldItem {

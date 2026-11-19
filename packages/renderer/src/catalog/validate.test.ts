@@ -2,9 +2,10 @@ import { validateRenderableVideoSpec, validateVideoSpec } from '@explainer-studi
 import { describe, expect, it } from 'vitest';
 import { buildPatternRegistry } from '../patterns/registry.ts';
 import { bouncePattern } from '../patterns/test-pattern.ts';
+import { listPatterns } from '../patterns/registry.ts';
 import { listPrimitives } from '../primitives/registry.ts';
 import { DEFAULT_REGISTRIES, type Registries } from './registries.ts';
-import { fixtureSpec, registryValidSpec } from './test-specs.ts';
+import { fixtureSpec } from './test-specs.ts';
 import { findRegistryErrors, withRegistryChecks } from './validate.ts';
 
 const check = (input: unknown, registries: Registries = DEFAULT_REGISTRIES) =>
@@ -17,7 +18,7 @@ const withPatterns: Registries = {
 
 describe('withRegistryChecks', () => {
   it('accepts a spec that only uses registered primitives with valid props and actions', () => {
-    const input = registryValidSpec();
+    const input = fixtureSpec();
     expect(validateVideoSpec(input).ok).toBe(true);
     expect(check(input)).toMatchObject({ ok: true, errors: [] });
     expect(withRegistryChecks(validateRenderableVideoSpec(input), input).ok).toBe(true);
@@ -36,23 +37,24 @@ describe('withRegistryChecks', () => {
         .map((p) => p.id)
         .join(', ')}.`,
     });
-    expect(result.errors).toContainEqual({
-      path: '$.scenes[0].patterns[0].pattern',
+    Object.assign(input.scenes[3]?.patterns?.[0] ?? {}, { pattern: 'flood_and_funnel' });
+    expect(check(input).errors).toContainEqual({
+      path: '$.scenes[3].patterns[0].pattern',
       code: 'unknown_reference',
-      message: 'Unknown pattern "flood_then_funnel". No patterns exist yet.',
+      message: `Unknown pattern "flood_and_funnel". Use one of: ${listPatterns()
+        .map((p) => p.id)
+        .join(', ')}.`,
     });
   });
 
-  it('passes the rate-limiter fixture except for its pattern, which waits for P1A.8', () => {
+  it('passes the rate-limiter fixture, pattern included, with no errors or warnings', () => {
     const result = check(fixtureSpec());
-    expect(result.errors).toEqual([
-      expect.objectContaining({ path: '$.scenes[0].patterns[0].pattern' }),
-    ]);
+    expect(result.errors).toEqual([]);
     expect(result.warnings).toEqual([]);
   });
 
   it('warns about asset ids that are not in the asset registry, without failing the spec', () => {
-    const input = registryValidSpec();
+    const input = fixtureSpec();
     Object.assign(input.scenes[0]?.elements?.[0] ?? {}, {
       props: { title: 'Client', icon: 'rocket_ship' },
     });
@@ -69,7 +71,7 @@ describe('withRegistryChecks', () => {
   });
 
   it('accepts asset ids from the built-in set', () => {
-    const input = registryValidSpec();
+    const input = fixtureSpec();
     Object.assign(input.scenes[0]?.elements?.[0] ?? {}, {
       props: { title: 'Client', icon: 'smartphone' },
     });
@@ -77,7 +79,7 @@ describe('withRegistryChecks', () => {
   });
 
   it('reports asset warnings alongside errors when the spec is invalid', () => {
-    const input = registryValidSpec();
+    const input = fixtureSpec();
     Object.assign(input.scenes[0]?.elements?.[0] ?? {}, {
       props: { title: 'Client', icon: 'nope' },
     });
@@ -88,7 +90,7 @@ describe('withRegistryChecks', () => {
   });
 
   it('rejects bad props with a JSON path into the props', () => {
-    const input = registryValidSpec();
+    const input = fixtureSpec();
     const reply = input.scenes[2]?.elements?.[1];
     Object.assign(reply ?? {}, { props: { text: 'x'.repeat(40), colour: 'red' } });
     const errors = check(input).errors;
@@ -102,7 +104,7 @@ describe('withRegistryChecks', () => {
   });
 
   it('rejects a missing required prop and a wrong type', () => {
-    const input = registryValidSpec();
+    const input = fixtureSpec();
     const [counter] = input.scenes[2]?.elements ?? [];
     Object.assign(counter ?? {}, { props: { unit: 7 } });
     const paths = check(input).errors.map((e) => e.path);
@@ -113,7 +115,7 @@ describe('withRegistryChecks', () => {
   });
 
   it('rejects actions a target does not support, including targets inherited from the previous beat', () => {
-    const input = registryValidSpec();
+    const input = fixtureSpec();
     input.scenes[2]?.events?.push({
       at: { type: 'word', index: 0 },
       action: 'count',
@@ -140,7 +142,7 @@ describe('withRegistryChecks', () => {
   });
 
   it('flags `lock` on a tag', () => {
-    const input = registryValidSpec();
+    const input = fixtureSpec();
     Object.assign(input.scenes[2]?.events?.[3] ?? {}, { action: 'lock' });
     expect(check(input).errors).toContainEqual(
       expect.objectContaining({
@@ -151,18 +153,18 @@ describe('withRegistryChecks', () => {
   });
 
   it('checks pattern params and pattern actions against a registered pattern', () => {
-    const input = registryValidSpec();
-    input.scenes[0]?.patterns?.push({
-      id: 'bounce',
-      pattern: 'test_bounce',
-      params: { label: '' },
+    const input = fixtureSpec();
+    Object.assign(input.scenes[0] ?? {}, {
+      patterns: [{ id: 'bounce', pattern: 'test_bounce', params: { label: '' } }],
     });
     input.scenes[0]?.events?.push({
       at: { type: 'word', index: 0 },
       action: 'pulse',
       targets: ['bounce'],
     });
-    const errors = check(input, withPatterns).errors;
+    const errors = check(input, withPatterns).errors.filter((e) =>
+      e.path.startsWith('$.scenes[0]'),
+    );
     expect(errors.map((e) => [e.path, e.code])).toEqual([
       ['$.scenes[0].patterns[0].params.label', 'too_small'],
       ['$.scenes[0].patterns[0].params.at', 'invalid_type'],
@@ -177,6 +179,7 @@ describe('withRegistryChecks', () => {
       action: 'enter',
       targets: ['ghost'],
     });
+    Object.assign(input.scenes[0]?.elements?.[2] ?? {}, { props: { value: 'lots' } });
     const base = validateVideoSpec(input);
     expect(base.ok).toBe(false);
     const result = withRegistryChecks(base, input);
@@ -200,7 +203,7 @@ describe('withRegistryChecks', () => {
 describe('parts', () => {
   /** The valid spec with a seat grid in beat 0 and an event at `scenes[0].events[5]`. */
   const withSeats = (event: Record<string, unknown>) => {
-    const input = registryValidSpec();
+    const input = fixtureSpec();
     input.scenes[0]?.elements?.push({
       id: 'seats',
       primitive: 'slot_grid',
@@ -285,7 +288,7 @@ describe('label caps', () => {
     ['conveyor_queue', { items: [{ id: 'o1', label: 'ORD-4211' }] }, 'items'],
     ['slot_grid', { slots: [{ id: 's1', label: 'SEAT-H12' }] }, 'slots'],
   ])('rejects an 8-character %s label with a repairable error', (primitive, props, list) => {
-    const input = registryValidSpec();
+    const input = fixtureSpec();
     input.scenes[0]?.elements?.push({ id: 'capped', primitive, props });
     expect(check(input).errors).toEqual([
       {
@@ -299,7 +302,7 @@ describe('label caps', () => {
 
 describe('element refs', () => {
   const withElements = (...elements: Record<string, unknown>[]) => {
-    const input = registryValidSpec();
+    const input = fixtureSpec();
     input.scenes[0]?.elements?.push(...elements);
     return input;
   };
@@ -332,7 +335,7 @@ describe('element refs', () => {
   });
 
   it('resolves refs to elements of a beat it continues', () => {
-    const input = registryValidSpec();
+    const input = fixtureSpec();
     input.scenes[1]?.elements?.push({
       id: 'link',
       primitive: 'connector',
@@ -353,7 +356,7 @@ describe('containers, overlays and timeline warnings', () => {
   });
   /** The rate-limiter fixture with extra elements and events on its first beat ("hook"). */
   const hook = (elements: Json[], events: Json[]) => {
-    const input = registryValidSpec();
+    const input = fixtureSpec();
     const scene = input.scenes[0];
     scene?.elements?.push(...elements);
     scene?.events?.push(...(events as never[]));
@@ -467,9 +470,151 @@ describe('containers, overlays and timeline warnings', () => {
 
 describe('findRegistryErrors', () => {
   it('is empty for a spec without scenes', () => {
-    const input: Record<string, unknown> = registryValidSpec();
+    const input: Record<string, unknown> = fixtureSpec();
     delete input.scenes;
     const result = validateVideoSpec(input);
     expect(result.ok && findRegistryErrors(result.spec)).toEqual([]);
+  });
+});
+
+describe('pattern instances', () => {
+  type Mutable = Record<string, unknown>;
+  const payoff = (input: ReturnType<typeof fixtureSpec>) =>
+    input.scenes[3] as unknown as Mutable & {
+      patterns: { params: Mutable & { at: Mutable; source: Mutable } }[];
+      events: Mutable[];
+    };
+  const word = { type: 'word', index: 0 };
+
+  it('lets spec events use only highlight, pulse and dim on an inner element', () => {
+    const input = fixtureSpec();
+    payoff(input).events.push(
+      { at: word, action: 'pulse', targets: ['flood/rate'] },
+      { at: word, action: 'reject', targets: ['flood/target'] },
+    );
+    const errors = check(input).errors;
+    expect(errors).toEqual([
+      {
+        path: '$.scenes[3].events[3].targets[0]',
+        code: 'unsupported_action',
+        message:
+          '"flood/target" (node_card) does not support "reject". Supported: highlight, dim, pulse.',
+      },
+    ]);
+  });
+
+  it('rejects an inner id that is not in the expansion, listing the ones that are', () => {
+    const input = fixtureSpec();
+    payoff(input).events.push({ at: word, action: 'pulse', targets: ['flood/queue'] });
+    const [error] = check(input).errors;
+    expect(error).toMatchObject({
+      path: '$.scenes[3].events[2].targets[0]',
+      code: 'unknown_reference',
+    });
+    expect(error?.message).toMatch(
+      /^"flood" \(flood_then_funnel\) has no element "queue"\. Its elements: source, layer, target,/,
+    );
+  });
+
+  it('keeps enter for the pattern itself: an instance event may not use it', () => {
+    const input = fixtureSpec();
+    payoff(input).events.push({ at: word, action: 'enter', targets: ['flood'] });
+    expect(check(input).errors).toEqual([
+      expect.objectContaining({
+        path: '$.scenes[3].events[2].targets[0]',
+        code: 'unsupported_action',
+      }),
+    ]);
+  });
+
+  it('checks the anchors in params.at against the beat narration', () => {
+    const input = fixtureSpec();
+    payoff(input).patterns[0]!.params.at.funnel = { type: 'word_text', text: 'bucketful' };
+    expect(check(input).errors).toEqual([
+      {
+        path: '$.scenes[3].patterns[0].params.at.funnel',
+        code: 'anchor_out_of_range',
+        message: 'Occurrence 1 of "bucketful" is not in this beat\'s narration.',
+      },
+    ]);
+  });
+
+  it('reports params that expand into invalid elements', () => {
+    const broken = {
+      ...bouncePattern,
+      expand: () => ({
+        elements: [{ id: 'x', primitive: 'tag', props: { text: '' }, zone: 'left' }],
+        events: [],
+      }),
+    };
+    const registries = { ...DEFAULT_REGISTRIES, patterns: new Map([['test_bounce', broken]]) };
+    const input = fixtureSpec();
+    Object.assign(input.scenes[3] ?? {}, {
+      patterns: [
+        {
+          id: 'flood',
+          pattern: 'test_bounce',
+          params: { label: 'held', at: { bounce: { type: 'word_text', text: 'front' } } },
+        },
+      ],
+      events: [],
+    });
+    const errors = check(input, registries).errors;
+    expect(errors).toEqual([
+      expect.objectContaining({
+        path: '$.scenes[3].patterns[0].params',
+        code: 'invalid_pattern_expansion',
+      }),
+    ]);
+    expect(errors[0]?.message).toMatch(
+      /^test_bounce: these params expand badly: invalid props on "x"/,
+    );
+  });
+
+  it('warns about unknown asset ids inside an expansion', () => {
+    const input = fixtureSpec();
+    payoff(input).patterns[0]!.params.source = { title: 'Client', icon: 'rocket_ship' };
+    const result = check(input);
+    expect(result.ok).toBe(true);
+    expect(result.warnings).toEqual([
+      expect.objectContaining({ path: '$.scenes[3].patterns[0].params', code: 'unknown_asset' }),
+    ]);
+    expect(result.warnings[0]?.message).toMatch(/^Unknown asset "rocket_ship" on "source"/);
+  });
+
+  function withCachePattern() {
+    const input = fixtureSpec();
+    payoff(input).patterns.push({
+      id: 'cache',
+      pattern: 'cache_hit_miss',
+      params: {
+        client: { title: 'Client' },
+        near: { title: 'Cache' },
+        far: { title: 'Database' },
+        hitLatency: '2 ms',
+        missLatency: '120 ms',
+        at: {
+          show: { type: 'word_text', text: 'limiter' },
+          hit: { type: 'word_text', text: 'steady' },
+          miss: { type: 'word_text', text: 'trickle' },
+        },
+      },
+    } as never);
+    return input;
+  }
+
+  it('warns when two patterns in a beat want different layout modes', () => {
+    const result = check(withCachePattern());
+    expect(result.ok).toBe(true);
+    expect(result.warnings).toEqual([
+      expect.objectContaining({ path: '$.scenes[3].layoutMode', code: 'pattern_layout_conflict' }),
+    ]);
+    expect(result.warnings[0]?.message).toMatch(/\(pipeline, near_far\); the first one is used/);
+  });
+
+  it('lets an explicit scene layout mode settle the conflict', () => {
+    const input = withCachePattern();
+    payoff(input).layoutMode = 'two_column';
+    expect(check(input).warnings).toEqual([]);
   });
 });
