@@ -329,13 +329,22 @@ primitive to `docs/primitives/<id>.png`.
   cards), `motion.ts` (reject shake), `typing.ts` (typing rates), `geometry.ts` (polylines,
   arrowheads, `smoothstep`), `reveal.ts` (lines that draw on `enter` instead of fading in) and
   `svg-marks.tsx` (cross and pin marks). Prefer them over per-primitive copies.
+- **Emphasis goes through `src/emphasis`, never per primitive.** The theme picks
+  `emphasis.style`: `glow` (blueprint-dark) or `mark` (drafting-paper: a highlighter swipe in the
+  focus fill, outlines and lines regular → bold while highlighted, an ink ripple on pulse).
+  Components use `emphasisShadow`/`emphasisFilter` (glow), `emphasisStroke`/`emphasisLineWidth`
+  (outline and line widths), and draw `BoxMark` (first child of an element styled with
+  `markHostCss`), `LineMark` (under an SVG line) or `PointMark` (behind an SVG marker) with
+  `markLevels(state)`. All of them are no-ops in glow themes, so blueprint-dark output stays
+  byte-identical. `EMPHASIS_THRESHOLD` decides "is emphasised" for label colours and z-order.
+  Glows that are not emphasis (packets, the route line, tags) stay plain `tint.glow*`.
 - **Descriptions name only registered ids**, in backticks (a test checks that every backticked
   word is a registered primitive, an action, a part action or a prop). Example strings use
   `<example-…>` placeholders; ids that must be slugs (part ids, element refs) use
   `example-…`.
 - **Components receive only `{ theme, props, box, state }`**, never events or anchors. `state`
   comes from `elementState(events, frame, fps)` (`primitives/element-state.ts`): `presence`,
-  `emphasis`, `dimmed`, per-action `actions[action]` progress and `elapsed[action]` seconds (both
+  `emphasis` (held highlight or pulse bump), `highlight` (the held highlight alone), `dimmed`, per-action `actions[action]` progress and `elapsed[action]` seconds (both
   0 while the element's first such event is still ahead, absent when it has none),
   `runSec[action]` (below) and `parts` (below). It is the single place events become state;
   P1A.10 upgrades it (easing, focus, stagger) without touching components. An element is present

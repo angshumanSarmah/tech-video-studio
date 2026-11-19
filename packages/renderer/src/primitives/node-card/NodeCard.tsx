@@ -1,9 +1,11 @@
 import { AssetGlyph } from '../../assets/AssetGlyph.tsx';
+import { emphasisFilter, markHostCss, markLevels } from '../../emphasis/emphasis.ts';
+import { BoxMark } from '../../emphasis/Mark.tsx';
 import { semanticTint, textCss } from '../../theme/index.ts';
 import { Badge, BADGE_GLYPH } from '../badge.tsx';
 import { stateStyle, type PrimitiveComponentProps } from '../component-props.ts';
 import { shakeOffset } from '../motion.ts';
-import { cardSurfaceCss, GLOW_THRESHOLD } from '../surface.ts';
+import { cardSurfaceCss } from '../surface.ts';
 import { nodeCardIconSize, type NodeCardProps } from './definition.ts';
 
 /** Component card. `lock` shows a padlock badge; `reject` turns it red, shakes and shows ✗. */
@@ -15,6 +17,7 @@ export function NodeCard({ theme, props, box, state }: PrimitiveComponentProps<N
   return (
     <div
       style={{
+        ...markHostCss(theme),
         ...base,
         ...cardSurfaceCss(theme, tint, state),
         transform: `${base.transform} translateX(${shakeOffset(rejected, theme.space.sm)}px)`,
@@ -28,13 +31,14 @@ export function NodeCard({ theme, props, box, state }: PrimitiveComponentProps<N
         padding: `0 ${theme.space.lg}px`,
       }}
     >
+      <BoxMark theme={theme} levels={markLevels(state)} radius={theme.radius.md} />
       {props.icon ? (
         <AssetGlyph
           theme={theme}
           assetId={props.icon}
           size={nodeCardIconSize(theme)}
           colour={tint.base}
-          filter={state.emphasis > GLOW_THRESHOLD ? tint.glowFilter : undefined}
+          filter={emphasisFilter(theme, tint, state.emphasis)}
         />
       ) : null}
       <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space.xs, minWidth: 0 }}>

@@ -4,7 +4,9 @@ import { Badge, SMALL_BADGE, SMALL_BADGE_GLYPH } from '../badge.tsx';
 import type { PrimitiveComponentProps } from '../component-props.ts';
 import { IDLE_STATE, partState, type PartState } from '../element-state.ts';
 import { shakeOffset } from '../motion.ts';
-import { cardSurfaceCss, GLOW_THRESHOLD } from '../surface.ts';
+import { cardSurfaceCss } from '../surface.ts';
+import { emphasisFilter, markHostCss, markLevels } from '../../emphasis/emphasis.ts';
+import { BoxMark } from '../../emphasis/Mark.tsx';
 import { conveyorMetrics, type ConveyorMetrics, type ConveyorQueueProps } from './definition.ts';
 import { queuePlaces, treadShift, type QueueGeometry } from './queue.ts';
 
@@ -25,12 +27,14 @@ export function ConveyorQueue({
   return (
     <div
       style={{
+        ...markHostCss(theme),
         position: 'relative',
         width: box.width,
         height: box.height,
         opacity: state.presence * (1 - 0.7 * state.dimmed),
       }}
     >
+      <BoxMark theme={theme} levels={markLevels(state)} radius={theme.radius.md} />
       <Belt
         theme={theme}
         width={box.width}
@@ -105,7 +109,7 @@ function Belt({ theme, width, m, shift, emphasis }: BeltProps) {
         left: 0,
         top,
         overflow: 'visible',
-        filter: emphasis > GLOW_THRESHOLD ? tint.glowFilter : undefined,
+        filter: emphasisFilter(theme, tint, emphasis),
       }}
     >
       <rect
@@ -150,6 +154,7 @@ function Block({ theme, item, part, m, x, lift, opacity }: BlockProps) {
   return (
     <div
       style={{
+        ...markHostCss(theme),
         ...cardSurfaceCss(theme, tint, part),
         ...textCss(theme, 'hud'),
         position: 'absolute',
@@ -166,6 +171,7 @@ function Block({ theme, item, part, m, x, lift, opacity }: BlockProps) {
         transform: `scale(${1 + 0.08 * part.emphasis})`,
       }}
     >
+      <BoxMark theme={theme} levels={markLevels(part)} radius={theme.radius.sm} />
       {item.label}
       {locked > 0 ? (
         <Badge

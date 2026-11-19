@@ -40,6 +40,8 @@ export const draftingPaper = {
     borderAlpha: 1,
     fills: { focus: { colour: '#FFD84D', alpha: 0.55 } },
   },
+  // A highlighter swipe and bolder ink instead of glow.
+  emphasis: { style: 'mark' },
   // Off: a flat drawing has no glow and no drop shadow.
   glow: { innerBlur: 0, innerAlpha: 0, outerBlur: 0, outerAlpha: 0 },
   minimumContrast: { text: 4.5, graphic: 3 },

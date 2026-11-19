@@ -1,3 +1,5 @@
+import { markHostCss, markLevels } from '../../emphasis/emphasis.ts';
+import { BoxMark } from '../../emphasis/Mark.tsx';
 import { semanticTint, textCss } from '../../theme/index.ts';
 import { stateStyle, type PrimitiveComponentProps } from '../component-props.ts';
 import { cardSurfaceCss, NO_WRAP } from '../surface.ts';
@@ -30,6 +32,7 @@ export function CommandBubble({
     >
       <div
         style={{
+          ...markHostCss(theme),
           ...cardSurfaceCss(theme, tint, state),
           ...textCss(theme, 'data'),
           ...NO_WRAP,
@@ -44,6 +47,7 @@ export function CommandBubble({
           overflow: 'visible',
         }}
       >
+        <BoxMark theme={theme} levels={markLevels(state)} radius={theme.radius.lg} />
         <span style={{ color: tint.base, fontWeight: 700 }}>{shown.verb}</span>
         <span>{shown.rest}</span>
         {chars < props.text.length ? (

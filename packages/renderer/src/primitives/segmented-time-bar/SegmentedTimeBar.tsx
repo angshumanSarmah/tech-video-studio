@@ -1,7 +1,14 @@
 import { semanticTint, textCss, withAlpha, type Theme } from '../../theme/index.ts';
 import type { PrimitiveComponentProps } from '../component-props.ts';
 import { partState, type PartState } from '../element-state.ts';
-import { GLOW_THRESHOLD } from '../surface.ts';
+import {
+  emphasisShadow,
+  emphasisStroke,
+  EMPHASIS_THRESHOLD,
+  markHostCss,
+  markLevels,
+} from '../../emphasis/emphasis.ts';
+import { BoxMark } from '../../emphasis/Mark.tsx';
 import { formatClock } from '../timer-ring/timer.ts';
 import { timeBarMetrics, type SegmentedTimeBarProps, type TimeBarMetrics } from './definition.ts';
 import { segmentFills, segmentStarts, segmentWidths, timeToX } from './segments.ts';
@@ -32,6 +39,7 @@ export function SegmentedTimeBar({
   return (
     <div
       style={{
+        ...markHostCss(theme),
         width: box.width,
         height: box.height,
         opacity: state.presence * (1 - 0.7 * state.dimmed),
@@ -39,6 +47,7 @@ export function SegmentedTimeBar({
         flexDirection: 'column',
       }}
     >
+      <BoxMark theme={theme} levels={markLevels(state)} />
       <Header
         theme={theme}
         m={m}
@@ -141,7 +150,7 @@ function Header({ theme, m, caption, total, budget, over, emphasis }: HeaderProp
             ...textCss(theme, 'title'),
             fontVariantNumeric: 'tabular-nums',
             color: over ? tint.base : theme.colours.ink.primary,
-            textShadow: emphasis > GLOW_THRESHOLD ? tint.glowShadow : undefined,
+            textShadow: emphasisShadow(theme, tint, emphasis),
           }}
         >
           {formatClock(total)}
@@ -172,6 +181,7 @@ function SegmentView({ theme, segment, part, left, width, fill }: SegmentProps) 
   return (
     <div
       style={{
+        ...markHostCss(theme),
         ...textCss(theme, 'label'),
         position: 'absolute',
         top: 0,
@@ -185,13 +195,14 @@ function SegmentView({ theme, segment, part, left, width, fill }: SegmentProps) 
         justifyContent: 'center',
         whiteSpace: 'nowrap',
         background: withAlpha(tint.base, WASH + (WASH_STRONG - WASH) * strength),
-        border: `${theme.stroke.regular}px solid ${tint.border}`,
+        border: `${emphasisStroke(theme, theme.stroke.regular, part)}px solid ${tint.border}`,
         color: theme.colours.ink.primary,
         opacity: 1 - 0.7 * part.dimmed,
-        boxShadow: part.emphasis > GLOW_THRESHOLD ? tint.glowShadow : 'none',
-        zIndex: part.emphasis > GLOW_THRESHOLD ? 1 : 0,
+        boxShadow: emphasisShadow(theme, tint, part.emphasis),
+        zIndex: part.emphasis > EMPHASIS_THRESHOLD ? 1 : 0,
       }}
     >
+      <BoxMark theme={theme} levels={markLevels(part)} radius={0} />
       {segment.label}
     </div>
   );

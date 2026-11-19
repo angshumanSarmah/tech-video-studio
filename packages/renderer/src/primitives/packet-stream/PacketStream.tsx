@@ -1,8 +1,9 @@
+import { emphasisFilter, markLevels } from '../../emphasis/emphasis.ts';
+import { LineMark } from '../../emphasis/Mark.tsx';
 import { semanticTint, withAlpha } from '../../theme/index.ts';
 import type { PrimitiveComponentProps } from '../component-props.ts';
 import { connectorInset } from '../connector/definition.ts';
 import { pathD, pointAlong, standalonePath } from '../geometry.ts';
-import { GLOW_THRESHOLD } from '../surface.ts';
 import { CrossMark } from '../svg-marks.tsx';
 import type { PacketStreamProps } from './definition.ts';
 import { BLOCK_AT, streamPackets } from './stream.ts';
@@ -37,16 +38,14 @@ export function PacketStream({
       height={box.height}
       style={{ overflow: 'visible', opacity: 1 - 0.7 * state.dimmed }}
     >
+      <LineMark theme={theme} levels={markLevels(state)} d={pathD(points)} width={size * 2} />
       <path
         d={pathD(points)}
         stroke={withAlpha(tint.base, TRACK_ALPHA)}
         strokeWidth={theme.stroke.thin}
         fill="none"
       />
-      <g
-        fill={tint.base}
-        style={{ filter: state.emphasis > GLOW_THRESHOLD ? tint.glowFilter : undefined }}
-      >
+      <g fill={tint.base} style={{ filter: emphasisFilter(theme, tint, state.emphasis) }}>
         {packets.map(({ t, opacity }, i) => {
           const { point, angle } = pointAlong(points, t);
           return (

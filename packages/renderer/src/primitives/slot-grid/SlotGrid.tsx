@@ -1,11 +1,13 @@
 import type { CSSProperties } from 'react';
 import { AssetGlyph } from '../../assets/AssetGlyph.tsx';
+import { emphasisFilter, markHostCss, markLevels } from '../../emphasis/emphasis.ts';
+import { BoxMark } from '../../emphasis/Mark.tsx';
 import { semanticTint, textCss, type Theme } from '../../theme/index.ts';
 import { Badge, SMALL_BADGE, SMALL_BADGE_GLYPH } from '../badge.tsx';
 import type { PrimitiveComponentProps } from '../component-props.ts';
 import { partState, type PartState } from '../element-state.ts';
 import { shakeOffset } from '../motion.ts';
-import { cardSurfaceCss, GLOW_THRESHOLD } from '../surface.ts';
+import { cardSurfaceCss } from '../surface.ts';
 import {
   SLOT_ICON,
   slotMetrics,
@@ -24,6 +26,7 @@ export function SlotGrid({ theme, props, box, state }: PrimitiveComponentProps<S
   return (
     <div
       style={{
+        ...markHostCss(theme),
         width: box.width,
         height: box.height,
         boxSizing: 'border-box',
@@ -33,10 +36,10 @@ export function SlotGrid({ theme, props, box, state }: PrimitiveComponentProps<S
         alignItems: 'center',
         gap: m.gap,
         opacity: state.presence * (1 - 0.7 * state.dimmed),
-        filter:
-          state.emphasis > GLOW_THRESHOLD ? semanticTint(theme, 'neutral').glowFilter : undefined,
+        filter: emphasisFilter(theme, semanticTint(theme, 'neutral'), state.emphasis),
       }}
     >
+      <BoxMark theme={theme} levels={markLevels(state)} radius={theme.radius.md} />
       {slotRows(props.slots, cols).map((row, r) => (
         <div key={r} style={{ display: 'flex', gap: m.gap, ...shelfPlank(theme, props.kind) }}>
           {row.map((slot) => (
@@ -99,6 +102,7 @@ function SlotView({ theme, kind, slot, m, part }: SlotViewProps) {
       />
       <div
         style={{
+          ...markHostCss(theme),
           ...cardSurfaceCss(theme, tint, part),
           ...textCss(theme, 'hud'),
           position: 'absolute',
@@ -116,6 +120,7 @@ function SlotView({ theme, kind, slot, m, part }: SlotViewProps) {
           transform: `translate(${shakeOffset(rejected, theme.space.xs)}px, ${-lift}px) scale(${1 + 0.08 * part.emphasis})`,
         }}
       >
+        <BoxMark theme={theme} levels={markLevels(part)} radius={theme.radius.sm} />
         {slot.icon ? (
           <AssetGlyph theme={theme} assetId={slot.icon} size={SLOT_ICON} colour={tint.base} />
         ) : null}

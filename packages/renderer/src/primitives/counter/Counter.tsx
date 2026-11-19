@@ -1,3 +1,5 @@
+import { emphasisShadow, markHostCss, markLevels } from '../../emphasis/emphasis.ts';
+import { BoxMark } from '../../emphasis/Mark.tsx';
 import { semanticTint, textCss } from '../../theme/index.ts';
 import { stateStyle, type PrimitiveComponentProps } from '../component-props.ts';
 import type { CounterProps } from './definition.ts';
@@ -10,6 +12,7 @@ export function Counter({ theme, props, box, state }: PrimitiveComponentProps<Co
   return (
     <div
       style={{
+        ...markHostCss(theme),
         ...stateStyle(state),
         width: box.width,
         height: box.height,
@@ -20,13 +23,14 @@ export function Counter({ theme, props, box, state }: PrimitiveComponentProps<Co
         gap: theme.space.xs,
       }}
     >
+      <BoxMark theme={theme} levels={markLevels(state)} />
       <div style={{ display: 'flex', alignItems: 'baseline', gap: theme.space.sm }}>
         <span
           style={{
             ...textCss(theme, 'metric'),
             color: tint.base,
             fontVariantNumeric: 'tabular-nums',
-            textShadow: state.emphasis > 0.05 ? tint.glowShadow : 'none',
+            textShadow: emphasisShadow(theme, tint, state.emphasis),
           }}
         >
           {formatCount(shown, theme.numberLocale, props.decimals)}

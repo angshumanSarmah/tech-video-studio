@@ -1,8 +1,14 @@
+import {
+  emphasisFilter,
+  emphasisLineWidth,
+  EMPHASIS_THRESHOLD,
+  markLevels,
+} from '../../emphasis/emphasis.ts';
+import { LineMark, PointMark } from '../../emphasis/Mark.tsx';
 import { semanticTint, textCss, type Theme, type Tint } from '../../theme/index.ts';
 import type { PrimitiveComponentProps } from '../component-props.ts';
 import { partState, type PartState } from '../element-state.ts';
 import { clamp01, partialPolyline, pathD, type Point } from '../geometry.ts';
-import { GLOW_THRESHOLD } from '../surface.ts';
 import { CrossMark, PinMark } from '../svg-marks.tsx';
 import { routeInset, type RoutePathProps } from './definition.ts';
 import { routeDraw, routeLayout } from './route.ts';
@@ -18,7 +24,11 @@ export function RoutePath({ theme, props, box, state }: PrimitiveComponentProps<
   const layout = routeLayout(props.stops.length, box, routeInset(theme));
   const tint = semanticTint(theme, props.semantic);
   const draw = routeDraw(state.elapsed.move);
-  const width = theme.stroke.bold * (1.4 + 0.5 * state.emphasis);
+  const width = emphasisLineWidth(theme, state, {
+    rest: theme.stroke.bold * 1.4,
+    glow: theme.stroke.bold * (1.4 + 0.5 * state.emphasis),
+  });
+  const routeD = pathD(partialPolyline(layout.path, draw));
   const end = layout.stops.at(-1);
   return (
     <div
@@ -35,8 +45,11 @@ export function RoutePath({ theme, props, box, state }: PrimitiveComponentProps<
         style={{ position: 'absolute', overflow: 'visible' }}
       >
         {draw > 0 ? (
+          <LineMark theme={theme} levels={markLevels(state)} d={routeD} width={width} />
+        ) : null}
+        {draw > 0 ? (
           <path
-            d={pathD(partialPolyline(layout.path, draw))}
+            d={routeD}
             fill="none"
             stroke={tint.base}
             strokeWidth={width}
@@ -94,12 +107,15 @@ type StopProps = {
 function Stop({ theme, tint, at, kind, reached, part }: StopProps) {
   const rejected = part.actions.reject ?? 0;
   const colour = rejected > 0 ? semanticTint(theme, 'problem') : tint;
-  const glow = part.emphasis > GLOW_THRESHOLD ? colour.glowFilter : undefined;
+  const glow = emphasisFilter(theme, colour, part.emphasis);
   const grow = 1 + 0.35 * part.emphasis;
   const cross = { x: at.x + 26, y: at.y - 26 };
+  const r = (kind === 'start' ? 14 : kind === 'end' ? PIN / 3 : 10) * grow;
+  const mark = <PointMark theme={theme} levels={markLevels(part)} at={at} r={r} />;
   if (kind === 'end') {
     return (
       <g>
+        {mark}
         <PinMark
           at={at}
           size={PIN * grow}
@@ -111,9 +127,9 @@ function Stop({ theme, tint, at, kind, reached, part }: StopProps) {
       </g>
     );
   }
-  const r = (kind === 'start' ? 14 : 10) * grow;
   return (
     <g style={{ filter: glow }}>
+      {mark}
       <circle
         cx={at.x}
         cy={at.y}
@@ -132,7 +148,7 @@ function Stop({ theme, tint, at, kind, reached, part }: StopProps) {
 
 function stopColour(theme: Theme, tint: Tint, part: PartState): string {
   if ((part.actions.reject ?? 0) > 0) return theme.colours.semantic.problem;
-  return part.emphasis > GLOW_THRESHOLD ? tint.base : theme.colours.ink.muted;
+  return part.emphasis > EMPHASIS_THRESHOLD ? tint.base : theme.colours.ink.muted;
 }
 
 type StopLabelProps = {

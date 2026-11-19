@@ -2,7 +2,8 @@ import { useMemo } from 'react';
 import { semanticTint, withAlpha } from '../../theme/index.ts';
 import type { PrimitiveComponentProps } from '../component-props.ts';
 import { pathD } from '../geometry.ts';
-import { GLOW_THRESHOLD } from '../surface.ts';
+import { emphasisShadow, markHostCss, markLevels } from '../../emphasis/emphasis.ts';
+import { BoxMark } from '../../emphasis/Mark.tsx';
 import { AVENUE, cityMap, RIVER_WIDTH, STREET } from './city.ts';
 import type { MapBaseProps } from './definition.ts';
 
@@ -15,10 +16,11 @@ export function MapBase({ theme, props, box, state }: PrimitiveComponentProps<Ma
   const city = useMemo(() => cityMap(props.variant, box), [props.variant, box]);
   const park = semanticTint(theme, 'ok');
   const water = semanticTint(theme, 'concept');
-  const glow = state.emphasis > GLOW_THRESHOLD ? semanticTint(theme, 'concept').glowShadow : 'none';
+  const glow = emphasisShadow(theme, semanticTint(theme, 'concept'), state.emphasis);
   return (
     <div
       style={{
+        ...markHostCss(theme),
         width: box.width,
         height: box.height,
         borderRadius: theme.radius.lg,
@@ -30,6 +32,7 @@ export function MapBase({ theme, props, box, state }: PrimitiveComponentProps<Ma
         opacity: state.presence * (1 - 0.6 * state.dimmed),
       }}
     >
+      <BoxMark theme={theme} levels={markLevels(state)} radius={theme.radius.lg} />
       <svg width={box.width} height={box.height}>
         {city.streets
           .filter((s) => s.avenue)

@@ -1,6 +1,13 @@
+import {
+  emphasisFilter,
+  emphasisStroke,
+  EMPHASIS_THRESHOLD,
+  markHostCss,
+  markLevels,
+} from '../../emphasis/emphasis.ts';
+import { BoxMark } from '../../emphasis/Mark.tsx';
 import { semanticTint, textCss, type Theme } from '../../theme/index.ts';
 import { stateStyle, type PrimitiveComponentProps } from '../component-props.ts';
-import { GLOW_THRESHOLD } from '../surface.ts';
 import { timerDigitsSize, timerRingDiameter, type TimerRingProps } from './definition.ts';
 import { formatClock, speedLabel, timerView } from './timer.ts';
 
@@ -51,8 +58,8 @@ export function TimerRing({ theme, props, box, state }: PrimitiveComponentProps<
   });
   const tint = semanticTint(theme, view.expired ? 'problem' : props.semantic);
   const diameter = timerRingDiameter(theme);
-  const stroke = theme.stroke.bold * 2;
-  const r = (diameter - stroke) / 2;
+  const stroke = emphasisStroke(theme, theme.stroke.bold * 2, state);
+  const r = (diameter - theme.stroke.bold * 2) / 2;
   const c = diameter / 2;
   const circumference = 2 * Math.PI * r;
   return (
@@ -68,13 +75,16 @@ export function TimerRing({ theme, props, box, state }: PrimitiveComponentProps<
         gap: theme.space.sm,
       }}
     >
-      <div style={{ position: 'relative', width: diameter, height: diameter }}>
+      <div
+        style={{ ...markHostCss(theme), position: 'relative', width: diameter, height: diameter }}
+      >
+        <BoxMark theme={theme} levels={markLevels(state)} radius="round" />
         <svg
           width={diameter}
           height={diameter}
           style={{ position: 'absolute', inset: 0, overflow: 'visible' }}
         >
-          <g style={{ filter: view.flash > GLOW_THRESHOLD ? tint.glowFilter : undefined }}>
+          <g style={{ filter: view.flash > EMPHASIS_THRESHOLD ? tint.glowFilter : undefined }}>
             <circle
               cx={c}
               cy={c}
@@ -98,7 +108,7 @@ export function TimerRing({ theme, props, box, state }: PrimitiveComponentProps<
               strokeLinecap="round"
               strokeDasharray={`${circumference * view.fraction} ${circumference}`}
               transform={`rotate(-90 ${c} ${c})`}
-              style={{ filter: state.emphasis > GLOW_THRESHOLD ? tint.glowFilter : undefined }}
+              style={{ filter: emphasisFilter(theme, tint, state.emphasis) }}
             />
           ) : null}
         </svg>

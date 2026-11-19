@@ -1,6 +1,8 @@
+import { emphasisShadow, markHostCss, markLevels } from '../../emphasis/emphasis.ts';
+import { BoxMark } from '../../emphasis/Mark.tsx';
 import { semanticTint, textCss } from '../../theme/index.ts';
 import { stateStyle, type PrimitiveComponentProps } from '../component-props.ts';
-import { cardSurfaceCss, GLOW_THRESHOLD } from '../surface.ts';
+import { cardSurfaceCss } from '../surface.ts';
 import { SOURCE_PREFIX, type StatCardProps } from './definition.ts';
 
 /** Big cited figure, its label, and the source as a footnote. */
@@ -9,6 +11,7 @@ export function StatCard({ theme, props, box, state }: PrimitiveComponentProps<S
   return (
     <div
       style={{
+        ...markHostCss(theme),
         ...stateStyle(state),
         ...cardSurfaceCss(theme, tint, state, { wash: false }),
         width: box.width,
@@ -21,11 +24,12 @@ export function StatCard({ theme, props, box, state }: PrimitiveComponentProps<S
         whiteSpace: 'nowrap',
       }}
     >
+      <BoxMark theme={theme} levels={markLevels(state)} radius={theme.radius.md} />
       <div
         style={{
           ...textCss(theme, 'metric'),
           color: tint.base,
-          textShadow: state.emphasis > GLOW_THRESHOLD ? tint.glowShadow : 'none',
+          textShadow: emphasisShadow(theme, tint, state.emphasis),
         }}
       >
         {props.value}

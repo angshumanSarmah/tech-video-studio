@@ -1,28 +1,25 @@
 import type { CSSProperties } from 'react';
+import { emphasisShadow, emphasisStroke, type EmphasisState } from '../emphasis/emphasis.ts';
 import type { Theme, Tint } from '../theme/index.ts';
-import type { ElementState } from './element-state.ts';
-
-/** Above this emphasis an element glows (a held `highlight` or a `pulse`). */
-export const GLOW_THRESHOLD = 0.05;
 
 /**
  * The card surface shared by card-like primitives: surface washed with the tint (unless `wash` is
- * false, for cards whose content carries the colour), tinted border, and the tint's glow while
- * emphasised.
+ * false, for cards whose content carries the colour), tinted border, and the theme's emphasis
+ * (glow, or a bolder outline in mark themes; the swipe itself is a `BoxMark`).
  */
 export function cardSurfaceCss(
   theme: Theme,
   tint: Tint,
-  state: Pick<ElementState, 'emphasis'>,
+  state: EmphasisState,
   { wash = true }: { wash?: boolean } = {},
 ): CSSProperties {
   const fill = theme.colours.surface;
   return {
     boxSizing: 'border-box',
-    border: `${theme.stroke.regular}px solid ${tint.border}`,
+    border: `${emphasisStroke(theme, theme.stroke.regular, state)}px solid ${tint.border}`,
     borderRadius: theme.radius.md,
     background: wash ? `linear-gradient(${tint.soft}, ${tint.soft}) ${fill}` : fill,
-    boxShadow: state.emphasis > GLOW_THRESHOLD ? tint.glowShadow : 'none',
+    boxShadow: emphasisShadow(theme, tint, state.emphasis),
   };
 }
 

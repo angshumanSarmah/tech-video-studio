@@ -1,3 +1,5 @@
+import { emphasisFilter, emphasisLineWidth, markLevels } from '../../emphasis/emphasis.ts';
+import { LineMark } from '../../emphasis/Mark.tsx';
 import { semanticTint, textCss, type Theme, type Tint } from '../../theme/index.ts';
 import type { PrimitiveComponentProps } from '../component-props.ts';
 import {
@@ -10,7 +12,6 @@ import {
   type Point,
 } from '../geometry.ts';
 import { revealState } from '../reveal.ts';
-import { GLOW_THRESHOLD } from '../surface.ts';
 import { CrossMark } from '../svg-marks.tsx';
 import { packetProgress } from './packet.ts';
 import { connectorInset, type ConnectorProps } from './definition.ts';
@@ -24,8 +25,11 @@ export function Connector({ theme, props, box, state }: PrimitiveComponentProps<
   const { draw, opacity } = revealState(state);
   const rejected = state.actions.reject ?? 0;
   const tint = semanticTint(theme, rejected > 0 ? 'problem' : props.semantic);
-  const glow = state.emphasis > GLOW_THRESHOLD ? tint.glowFilter : undefined;
-  const width = theme.stroke.regular + theme.stroke.thin * state.emphasis;
+  const glow = emphasisFilter(theme, tint, state.emphasis);
+  const width = emphasisLineWidth(theme, state, {
+    rest: theme.stroke.regular,
+    glow: theme.stroke.regular + theme.stroke.thin * state.emphasis,
+  });
   const drawn = partialPolyline(points, draw);
   const tip = pointAlong(points, draw);
   const middle = pointAlong(points, 0.5).point;
@@ -37,6 +41,9 @@ export function Connector({ theme, props, box, state }: PrimitiveComponentProps<
         height={box.height}
         style={{ position: 'absolute', inset: 0, overflow: 'visible' }}
       >
+        {draw > 0 ? (
+          <LineMark theme={theme} levels={markLevels(state)} d={pathD(drawn)} width={width} />
+        ) : null}
         <Ports theme={theme} points={points} draw={draw} />
         <g style={{ filter: glow }} fill={tint.base}>
           {draw > 0 ? (

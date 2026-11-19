@@ -9,14 +9,21 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       `withAlpha(tint.base, <own alpha>)` instead of `tint.soft`, so they bypass `tint.fills`:
       on `drafting-paper` a focus zone, segment or cell is a grey ink wash, not the highlighter.
       Move them to `tint.soft` (or a per-primitive strength on top of it).
-- [ ] **Theme — Emphasis is glow only.** `highlight` and `pulse` on cards, tags, rings, routes and
-      HUD steps only add `glowShadow`/`glowFilter`. With glow off (`drafting-paper`) they are
-      invisible. Add an emphasis token (e.g. highlighter fill, outline offset or stroke weight)
-      that `elementState.emphasis` drives when the theme has no glow.
-- [ ] **Theme — Focus as text colour.** `counter`, `stat_card`, `timer_ring`, the hero metric
-      value and the story clock colour text with `semantic.focus` and no fill behind it. On paper
-      focus is ink, so these lose their "this is the number" signal. They need the focus fill
-      (highlighter behind the text) rather than a text colour.
+- [ ] **Theme — Focus as text colour.** `highlight`/`pulse` now draw a highlighter mark on paper
+      (`emphasis.style: mark`), but a `semantic: focus` element at rest still only colours its
+      text: `counter`, `stat_card`, `timer_ring`, the hero metric value and the story clock show
+      plain ink on paper. Decide whether focus-at-rest should draw a (lighter) mark too.
+- [ ] **Emphasis — Opaque faces cover the swipe.** `BoxMark` paints over its host's background
+      and under its content. Where the face is a child (the `timer_ring` SVG face), only the
+      8 px overhang shows, as a yellow halo. Draw the face as the host's background, or let the
+      mark go over the face, if the ring should read as fully highlighted.
+- [ ] **Emphasis — Part bumps and mark geometry.** Part scale bumps (`slot_grid`,
+      `conveyor_queue` blocks ×1.08, route stops ×1.35, `zone_polygon` ×1.03) and packet growth
+      are still per primitive; they apply in both styles, like the shared `stateStyle` pulse. Mark
+      geometry (8 px overhang, −1°, ripple spread) is constants in `src/emphasis/emphasis.ts`;
+      make them theme tokens if a second mark theme needs different values.
+- [ ] **Emphasis — HUD.** In mark themes the step tracker marks the current "STEP n/N" as its
+      chapter starts; the hero metric, chapter header and headline have no emphasis yet.
 - [ ] **Theme — Series accents are per series, not per theme.** `#4F8CFF` (System Design) reads
       2.9:1 on paper. A light theme needs a per-theme accent or a contrast-adjusted accent;
       `checkAccentContrast` already flags it. `still:compare` renders the rate-limiter frame

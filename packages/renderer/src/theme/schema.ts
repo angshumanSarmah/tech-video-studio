@@ -13,6 +13,13 @@ export type HexColour = z.infer<typeof HexColourSchema>;
 const PxSchema = z.number().nonnegative();
 const AlphaSchema = z.number().min(0).max(1);
 
+/**
+ * How `highlight` and `pulse` show: `glow` adds the theme's glow; `mark` draws a highlighter
+ * swipe behind the element (focus fill), bolder outlines, and an ink ripple on pulse.
+ */
+export const EMPHASIS_STYLES = ['glow', 'mark'] as const;
+export type EmphasisStyle = (typeof EMPHASIS_STYLES)[number];
+
 /** Semantic colours used by tags, headlines and primitive states. */
 export const SEMANTIC_COLOURS = ['neutral', 'focus', 'ok', 'problem', 'concept'] as const;
 export type SemanticColour = (typeof SEMANTIC_COLOURS)[number];
@@ -163,6 +170,8 @@ export const ThemeSchema = z
         )
         .default({}),
     }),
+    /** How emphasis (`highlight`, `pulse`) is drawn; see `src/emphasis`. */
+    emphasis: z.object({ style: z.enum(EMPHASIS_STYLES) }),
     glow: z.object({
       innerBlur: PxSchema,
       innerAlpha: AlphaSchema,

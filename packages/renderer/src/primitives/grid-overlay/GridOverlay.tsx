@@ -1,7 +1,8 @@
 import { semanticTint, textCss, withAlpha, type Theme } from '../../theme/index.ts';
 import type { PrimitiveComponentProps } from '../component-props.ts';
 import { partState, type PartState } from '../element-state.ts';
-import { GLOW_THRESHOLD } from '../surface.ts';
+import { emphasisFilter, markHostCss, markLevels } from '../../emphasis/emphasis.ts';
+import { BoxMark } from '../../emphasis/Mark.tsx';
 import type { GridOverlayProps } from './definition.ts';
 import { cellRect, gridGeometry, type GridGeometry } from './grid.ts';
 
@@ -26,6 +27,7 @@ export function GridOverlay({
   return (
     <div
       style={{
+        ...markHostCss(theme),
         position: 'relative',
         width: box.width,
         height: box.height,
@@ -33,13 +35,14 @@ export function GridOverlay({
         transform: `scale(${scale})`,
       }}
     >
+      <BoxMark theme={theme} levels={markLevels(state)} radius={0} />
       <svg
         width={box.width}
         height={box.height}
         style={{
           position: 'absolute',
           overflow: 'visible',
-          filter: state.emphasis > GLOW_THRESHOLD ? lineTint.glowFilter : undefined,
+          filter: emphasisFilter(theme, lineTint, state.emphasis),
         }}
       >
         <GridLines
@@ -128,7 +131,7 @@ function CellFill({ theme, g, cell, part }: CellProps) {
       stroke={tint.base}
       strokeWidth={theme.stroke.bold}
       strokeOpacity={light}
-      style={{ filter: light > GLOW_THRESHOLD ? tint.glowFilter : undefined }}
+      style={{ filter: emphasisFilter(theme, tint, light) }}
     />
   );
 }

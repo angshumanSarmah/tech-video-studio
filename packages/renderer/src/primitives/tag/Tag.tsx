@@ -1,3 +1,10 @@
+import {
+  emphasisShadow,
+  emphasisStroke,
+  markHostCss,
+  markLevels,
+} from '../../emphasis/emphasis.ts';
+import { BoxMark } from '../../emphasis/Mark.tsx';
 import { semanticTint, textCss } from '../../theme/index.ts';
 import { stateStyle, type PrimitiveComponentProps } from '../component-props.ts';
 import type { TagProps } from './definition.ts';
@@ -9,6 +16,7 @@ export function Tag({ theme, props, box, state }: PrimitiveComponentProps<TagPro
   return (
     <div
       style={{
+        ...markHostCss(theme),
         ...textCss(theme, 'tag'),
         ...stateStyle(state),
         width: box.width,
@@ -20,12 +28,13 @@ export function Tag({ theme, props, box, state }: PrimitiveComponentProps<TagPro
         gap: theme.space.xs,
         whiteSpace: 'nowrap',
         color: theme.colours.ink.primary,
-        border: `${theme.stroke.regular}px solid ${tint.border}`,
+        border: `${emphasisStroke(theme, theme.stroke.regular, state)}px solid ${tint.border}`,
         borderRadius: theme.radius.sm,
         background: tint.soft,
-        boxShadow: state.emphasis > 0.05 ? tint.glowShadow : 'none',
+        boxShadow: emphasisShadow(theme, tint, state.emphasis),
       }}
     >
+      <BoxMark theme={theme} levels={markLevels(state)} radius={theme.radius.sm} />
       {rejected > 0 ? <span style={{ color: tint.base, opacity: rejected }}>✗</span> : null}
       {props.text}
     </div>

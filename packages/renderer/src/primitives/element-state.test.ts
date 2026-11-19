@@ -21,6 +21,7 @@ describe('elementState', () => {
     expect(elementState([], 0, FPS)).toEqual({
       presence: 1,
       emphasis: 0,
+      highlight: 0,
       dimmed: 0,
       actions: {},
       elapsed: {},
@@ -68,6 +69,13 @@ describe('elementState', () => {
     expect(elementState(events, 0, FPS).emphasis).toBe(0);
     expect(elementState(events, 6, FPS).emphasis).toBeGreaterThan(0.5);
     expect(elementState(events, 18, FPS).emphasis).toBeCloseTo(0);
+  });
+
+  it('reports the held highlight apart from the pulse bump', () => {
+    const events = [at('pulse', 0), at('highlight', 30)];
+    expect(elementState(events, 6, FPS)).toMatchObject({ highlight: 0 });
+    expect(elementState(events, 6, FPS).emphasis).toBeGreaterThan(0.5);
+    expect(elementState(events, 60, FPS)).toMatchObject({ emphasis: 1, highlight: 1 });
   });
 
   it('reports progress of the latest started occurrence: 0 before the first, absent if never', () => {

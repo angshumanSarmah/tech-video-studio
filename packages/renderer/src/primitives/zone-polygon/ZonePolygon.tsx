@@ -2,7 +2,14 @@ import { semanticTint, textCss, withAlpha, type Theme } from '../../theme/index.
 import type { PrimitiveComponentProps } from '../component-props.ts';
 import { partState, type PartState } from '../element-state.ts';
 import { svgPoints } from '../geometry.ts';
-import { GLOW_THRESHOLD } from '../surface.ts';
+import {
+  emphasisFilter,
+  emphasisStroke,
+  EMPHASIS_THRESHOLD,
+  markHostCss,
+  markLevels,
+} from '../../emphasis/emphasis.ts';
+import { BoxMark } from '../../emphasis/Mark.tsx';
 import type { ZonePolygonProps } from './definition.ts';
 import { zoneShapes, type ZoneShape } from './zones.ts';
 
@@ -24,14 +31,15 @@ export function ZonePolygon({
   return (
     <div
       style={{
+        ...markHostCss(theme),
         position: 'relative',
         width: box.width,
         height: box.height,
         opacity: state.presence * (1 - 0.7 * state.dimmed),
-        filter:
-          state.emphasis > GLOW_THRESHOLD ? semanticTint(theme, 'neutral').glowFilter : undefined,
+        filter: emphasisFilter(theme, semanticTint(theme, 'neutral'), state.emphasis),
       }}
     >
+      <BoxMark theme={theme} levels={markLevels(state)} />
       <svg
         width={box.width}
         height={box.height}
@@ -73,18 +81,18 @@ function ZoneShapeView({ theme, zone, shape, part }: ZoneViewProps) {
       points={svgPoints(shape.points)}
       fill={withAlpha(tint.base, alpha)}
       stroke={tint.border}
-      strokeWidth={theme.stroke.regular}
+      strokeWidth={emphasisStroke(theme, theme.stroke.regular, part)}
       strokeLinejoin="round"
       opacity={part.presence * (1 - 0.7 * part.dimmed)}
       transform={`translate(${x} ${y}) scale(${scale}) translate(${-x} ${-y})`}
-      style={{ filter: part.emphasis > GLOW_THRESHOLD ? tint.glowFilter : undefined }}
+      style={{ filter: emphasisFilter(theme, tint, part.emphasis) }}
     />
   );
 }
 
 function ZoneLabel({ theme, zone, shape, part }: ZoneViewProps) {
   const tint = zoneTint(theme, zone, part);
-  const strong = part.emphasis > GLOW_THRESHOLD || (part.actions.reject ?? 0) > 0;
+  const strong = part.emphasis > EMPHASIS_THRESHOLD || (part.actions.reject ?? 0) > 0;
   return (
     <div
       style={{

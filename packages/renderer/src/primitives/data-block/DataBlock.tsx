@@ -1,3 +1,5 @@
+import { markHostCss, markLevels } from '../../emphasis/emphasis.ts';
+import { BoxMark } from '../../emphasis/Mark.tsx';
 import { semanticTint, textCss, type Theme } from '../../theme/index.ts';
 import { stateStyle, type PrimitiveComponentProps } from '../component-props.ts';
 import { cardSurfaceCss, NO_WRAP } from '../surface.ts';
@@ -17,6 +19,7 @@ export function DataBlock({ theme, props, box, state }: PrimitiveComponentProps<
   return (
     <div
       style={{
+        ...markHostCss(theme),
         ...stateStyle(state),
         ...cardSurfaceCss(theme, semanticTint(theme, 'neutral'), state),
         width: box.width,
@@ -27,6 +30,7 @@ export function DataBlock({ theme, props, box, state }: PrimitiveComponentProps<
         padding: `0 ${theme.space.lg}px`,
       }}
     >
+      <BoxMark theme={theme} levels={markLevels(state)} radius={theme.radius.md} />
       {props.title ? (
         <div
           style={{

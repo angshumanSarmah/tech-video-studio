@@ -22,8 +22,10 @@ export type ElementEvent = {
 export type ElementState = {
   /** 0 = absent, 1 = fully present (enter / exit). */
   presence: number;
-  /** 0..1: a held `highlight`, or the bump of a `pulse`. */
+  /** 0..1: a held `highlight`, or the bump of a `pulse` (the larger of the two). */
   emphasis: number;
+  /** 0..1: the held `highlight` alone (no pulse), for emphasis styles that draw them apart. */
+  highlight: number;
   /** 0..1: ramps up after `dim`, back down after a later `highlight` or `enter`. */
   dimmed: number;
   /**
@@ -60,6 +62,7 @@ export type PartState = Omit<ElementState, 'parts'>;
 export const IDLE_STATE: PartState = {
   presence: 1,
   emphasis: 0,
+  highlight: 0,
   dimmed: 0,
   actions: {},
   elapsed: {},
@@ -119,12 +122,11 @@ function stateOf(events: readonly ElementEvent[], frame: number, fps: number): P
   const started = events.filter((e) => e.frame <= frame).sort((a, b) => a.frame - b.frame);
   const progress = (e: ElementEvent) => actionProgress(e, frame, fps);
   const elapsed = (e: ElementEvent) => Math.max(0, frame / fps - e.sec);
+  const highlight = heldLevel(started, 'highlight', HIGHLIGHT_TOGGLES, progress);
   return {
     presence: presence(events, started, progress),
-    emphasis: Math.max(
-      heldLevel(started, 'highlight', HIGHLIGHT_TOGGLES, progress),
-      pulse(started, progress),
-    ),
+    emphasis: Math.max(highlight, pulse(started, progress)),
+    highlight,
     dimmed: heldLevel(started, 'dim', DIM_TOGGLES, progress),
     actions: latestPerAction(events, started, progress),
     elapsed: latestPerAction(events, started, elapsed),

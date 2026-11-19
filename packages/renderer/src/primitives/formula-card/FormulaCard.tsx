@@ -1,3 +1,5 @@
+import { markHostCss, markLevels } from '../../emphasis/emphasis.ts';
+import { BoxMark } from '../../emphasis/Mark.tsx';
 import { useMemo } from 'react';
 import { semanticTint, textCss } from '../../theme/index.ts';
 import { stateStyle, type PrimitiveComponentProps } from '../component-props.ts';
@@ -20,6 +22,7 @@ export function FormulaCard({
   return (
     <div
       style={{
+        ...markHostCss(theme),
         ...stateStyle(state),
         ...cardSurfaceCss(theme, tint, state),
         width: box.width,
@@ -32,6 +35,7 @@ export function FormulaCard({
         padding: `0 ${theme.space.lg}px`,
       }}
     >
+      <BoxMark theme={theme} levels={markLevels(state)} radius={theme.radius.md} />
       <div
         // KaTeX's inline mode may break lines after relations; a formula stays on one line.
         style={{
