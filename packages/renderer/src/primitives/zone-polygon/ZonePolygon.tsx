@@ -1,4 +1,4 @@
-import { semanticTint, textCss, withAlpha, type Theme } from '../../theme/index.ts';
+import { semanticFill, semanticTint, textCss, type Theme } from '../../theme/index.ts';
 import type { PrimitiveComponentProps } from '../component-props.ts';
 import { partState, type PartState } from '../element-state.ts';
 import { svgPoints } from '../geometry.ts';
@@ -64,8 +64,12 @@ export function ZonePolygon({
   );
 }
 
+function zoneSemantic(zone: Zone, part: PartState) {
+  return (part.actions.reject ?? 0) > 0 ? 'problem' : zone.semantic;
+}
+
 function zoneTint(theme: Theme, zone: Zone, part: PartState) {
-  return semanticTint(theme, (part.actions.reject ?? 0) > 0 ? 'problem' : zone.semantic);
+  return semanticTint(theme, zoneSemantic(zone, part));
 }
 
 type ZoneViewProps = { theme: Theme; zone: Zone; shape: ZoneShape; part: PartState };
@@ -79,7 +83,7 @@ function ZoneShapeView({ theme, zone, shape, part }: ZoneViewProps) {
   return (
     <polygon
       points={svgPoints(shape.points)}
-      fill={withAlpha(tint.base, alpha)}
+      fill={semanticFill(theme, zoneSemantic(zone, part), alpha)}
       stroke={tint.border}
       strokeWidth={emphasisStroke(theme, theme.stroke.regular, part)}
       strokeLinejoin="round"

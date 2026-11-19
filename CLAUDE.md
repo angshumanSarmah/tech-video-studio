@@ -249,7 +249,9 @@ primitive to `docs/primitives/<id>.png`.
   check `blueprint-dark` on demand with `still:compare blueprint-dark --only <ids>`. The Studio UI
   tokens are pinned to it (`STUDIO_THEME_ID`), independent of the default video theme.
 - **Use the helpers, not raw values:** `tintFor`/`semanticTint` (soft fill, border, glow),
-  `textCss`, `safeAreas`.
+  `semanticFill(theme, semantic, alpha)` for any semantic wash, area or track at a primitive's
+  own strength (colour from `tint.fills` when the theme overrides it; never
+  `withAlpha(tint.base, …)`), `textCss`, `safeAreas`.
 - **Safe areas** come from per-platform exclusion zones (`topBar`, `actions`, `bottomInfo`: rects
   where Shorts/Reels UI covers the video). `safeAreas(theme)` derives a centred HUD band, stage
   and subtitle band from their union, plus `avoidZones` inside the stage that text and key
@@ -340,6 +342,11 @@ primitive to `docs/primitives/<id>.png`.
   instead of a full swipe; text-like elements (counter, tag, icon) always get the swipe. A
   `reject` ends a held highlight on that element or part (`elementState`), in every theme. All of them are no-ops in glow themes, so blueprint-dark output stays
   byte-identical. `EMPHASIS_THRESHOLD` decides "is emphasised" for label colours and z-order.
+  Text or numbers drawn in `semantic: focus` (counter, counter_transition, stat_card value,
+  timer_ring time, hero metric, story clock, focus headline) wrap their text in
+  `FocusUnderline`: in mark themes a resting highlighter band behind the lower 45% of the text
+  (`wrap` for text that breaks across lines), replaced by the swipe while highlighted (pass
+  `highlight={state.highlight}`); it renders the bare text in glow themes.
   Glows that are not emphasis (packets, the route line, tags) stay plain `tint.glow*`.
 - **Descriptions name only registered ids**, in backticks (a test checks that every backticked
   word is a registered primitive, an action, a part action or a prop). Example strings use

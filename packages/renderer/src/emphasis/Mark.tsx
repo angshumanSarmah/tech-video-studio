@@ -1,12 +1,16 @@
-import { useId } from 'react';
+import { useId, type ReactNode } from 'react';
 import type { Point } from '../primitives/geometry.ts';
 import type { Size } from '../primitives/types.ts';
-import type { Theme } from '../theme/index.ts';
+import type { SemanticColour, Theme } from '../theme/index.ts';
 import {
   MARK_ANGLE_DEG,
   MARK_FRAME_BAND,
   MARK_OVERHANG,
   MARK_RADIUS,
+  focusUnderlineView,
+  UNDERLINE_HEIGHT,
+  UNDERLINE_OVERHANG,
+  UNDERLINE_RADIUS,
   markFill,
   markShape,
   markView,
@@ -155,5 +159,70 @@ export function PointMark({ theme, levels, at, r }: PointMarkProps) {
         />
       ) : null}
     </g>
+  );
+}
+
+type FocusUnderlineProps = {
+  theme: Theme;
+  /** The semantic the text is drawn in; only `focus` gets an underline. */
+  semantic: SemanticColour;
+  /** The element's held highlight: while it shows, the swipe replaces the underline. */
+  highlight?: number;
+  /**
+   * Text that may wrap (a headline): the band is drawn per line as a background, without the
+   * tilt. Otherwise one tilted band sits behind the lower part of a single-line text box.
+   */
+  wrap?: boolean;
+  children: ReactNode;
+};
+
+/**
+ * A resting highlighter band behind the lower part of focus text (`focusUnderlineView`). Wrap
+ * the text itself in it. Returns the children untouched when no underline shows, so glow themes
+ * and other semantics render exactly as before.
+ */
+export function FocusUnderline({
+  theme,
+  semantic,
+  highlight,
+  wrap,
+  children,
+}: FocusUnderlineProps) {
+  const view = focusUnderlineView(theme, semantic, highlight);
+  if (!view) return <>{children}</>;
+  if (wrap) {
+    const top = `${Math.round((1 - UNDERLINE_HEIGHT) * 100)}%`;
+    return (
+      <span
+        style={{
+          backgroundImage: `linear-gradient(transparent ${top}, ${view.fill} ${top})`,
+          boxDecorationBreak: 'clone',
+          WebkitBoxDecorationBreak: 'clone',
+          borderRadius: UNDERLINE_RADIUS,
+          padding: `0 ${UNDERLINE_OVERHANG}px`,
+          margin: `0 ${-UNDERLINE_OVERHANG}px`,
+        }}
+      >
+        {children}
+      </span>
+    );
+  }
+  return (
+    <span style={{ position: 'relative', isolation: 'isolate', display: 'inline-block' }}>
+      <span
+        style={{
+          position: 'absolute',
+          left: -UNDERLINE_OVERHANG,
+          right: -UNDERLINE_OVERHANG,
+          bottom: 0,
+          height: `${UNDERLINE_HEIGHT * 100}%`,
+          zIndex: -1,
+          borderRadius: UNDERLINE_RADIUS,
+          background: view.fill,
+          transform: `rotate(${MARK_ANGLE_DEG}deg)`,
+        }}
+      />
+      {children}
+    </span>
   );
 }

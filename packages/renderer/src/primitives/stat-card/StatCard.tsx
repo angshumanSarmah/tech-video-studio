@@ -1,5 +1,5 @@
 import { emphasisShadow, markHostCss, markLevels } from '../../emphasis/emphasis.ts';
-import { BoxMark } from '../../emphasis/Mark.tsx';
+import { BoxMark, FocusUnderline } from '../../emphasis/Mark.tsx';
 import { semanticTint, textCss } from '../../theme/index.ts';
 import { stateStyle, type PrimitiveComponentProps } from '../component-props.ts';
 import { cardSurfaceCss } from '../surface.ts';
@@ -32,7 +32,9 @@ export function StatCard({ theme, props, box, state }: PrimitiveComponentProps<S
           textShadow: emphasisShadow(theme, tint, state.emphasis),
         }}
       >
-        {props.value}
+        <FocusUnderline theme={theme} semantic={props.semantic} highlight={state.highlight}>
+          {props.value}
+        </FocusUnderline>
       </div>
       <div
         style={{

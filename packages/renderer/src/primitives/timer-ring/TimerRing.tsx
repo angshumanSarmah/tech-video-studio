@@ -5,7 +5,7 @@ import {
   markHostCss,
   markLevels,
 } from '../../emphasis/emphasis.ts';
-import { BoxMark } from '../../emphasis/Mark.tsx';
+import { BoxMark, FocusUnderline } from '../../emphasis/Mark.tsx';
 import { semanticTint, textCss, type Theme } from '../../theme/index.ts';
 import { stateStyle, type PrimitiveComponentProps } from '../component-props.ts';
 import { timerDigitsSize, timerRingDiameter, type TimerRingProps } from './definition.ts';
@@ -125,7 +125,13 @@ export function TimerRing({ theme, props, box, state }: PrimitiveComponentProps<
             color: view.expired ? tint.base : theme.colours.ink.primary,
           }}
         >
-          {formatClock(view.shownSec)}
+          <FocusUnderline
+            theme={theme}
+            semantic={view.expired ? 'problem' : props.semantic}
+            highlight={state.highlight}
+          >
+            {formatClock(view.shownSec)}
+          </FocusUnderline>
         </div>
         <SpeedTag
           theme={theme}

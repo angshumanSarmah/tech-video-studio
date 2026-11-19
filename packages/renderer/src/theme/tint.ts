@@ -26,6 +26,20 @@ export function tintFor(theme: Theme, hex: string): Tint {
   };
 }
 
+/** The colour a semantic fills with: the theme's `tint.fills` override, else the semantic colour. */
+export function semanticFillColour(theme: Theme, semantic: SemanticColour): string {
+  return theme.tint.fills[semantic]?.colour ?? theme.colours.semantic[semantic];
+}
+
+/**
+ * A semantic fill at a primitive's own strength (`alpha`): the theme decides the colour (so focus
+ * fills with the highlighter on paper), the primitive decides how strong (rest vs emphasised).
+ * Use it instead of `withAlpha(tint.base, …)` for any semantic wash, area or track.
+ */
+export function semanticFill(theme: Theme, semantic: SemanticColour, alpha: number): string {
+  return withAlpha(semanticFillColour(theme, semantic), alpha);
+}
+
 /** A semantic's tint; its soft fill comes from `tint.fills` when the theme overrides it. */
 export function semanticTint(theme: Theme, semantic: SemanticColour): Tint {
   const tint = tintFor(theme, theme.colours.semantic[semantic]);

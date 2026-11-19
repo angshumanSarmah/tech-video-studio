@@ -1,5 +1,5 @@
 import { emphasisShadow, markHostCss, markLevels } from '../../emphasis/emphasis.ts';
-import { BoxMark } from '../../emphasis/Mark.tsx';
+import { BoxMark, FocusUnderline } from '../../emphasis/Mark.tsx';
 import { semanticTint, textCss } from '../../theme/index.ts';
 import { stateStyle, type PrimitiveComponentProps } from '../component-props.ts';
 import type { CounterProps } from './definition.ts';
@@ -33,7 +33,9 @@ export function Counter({ theme, props, box, state }: PrimitiveComponentProps<Co
             textShadow: emphasisShadow(theme, tint, state.emphasis),
           }}
         >
-          {formatCount(shown, theme.numberLocale, props.decimals)}
+          <FocusUnderline theme={theme} semantic={props.semantic} highlight={state.highlight}>
+            {formatCount(shown, theme.numberLocale, props.decimals)}
+          </FocusUnderline>
         </span>
         {props.unit ? (
           <span style={{ ...textCss(theme, 'label'), color: theme.colours.ink.muted }}>

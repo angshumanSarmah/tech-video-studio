@@ -1,6 +1,6 @@
 import { emphasisFilter, markLevels } from '../../emphasis/emphasis.ts';
 import { LineMark } from '../../emphasis/Mark.tsx';
-import { semanticTint, withAlpha } from '../../theme/index.ts';
+import { semanticFill, semanticTint } from '../../theme/index.ts';
 import type { PrimitiveComponentProps } from '../component-props.ts';
 import { connectorInset } from '../connector/definition.ts';
 import { pathD, pointAlong, standalonePath } from '../geometry.ts';
@@ -23,7 +23,8 @@ export function PacketStream({
 }: PrimitiveComponentProps<PacketStreamProps>) {
   const points = standalonePath(box, connectorInset(theme));
   const rejected = state.actions.reject ?? 0;
-  const tint = semanticTint(theme, rejected > 0 ? 'problem' : props.semantic);
+  const semantic = rejected > 0 ? 'problem' : props.semantic;
+  const tint = semanticTint(theme, semantic);
   const packets = streamPackets({
     rate: props.rate,
     flowSec: state.elapsed.enter,
@@ -41,7 +42,7 @@ export function PacketStream({
       <LineMark theme={theme} levels={markLevels(state)} d={pathD(points)} width={size * 2} />
       <path
         d={pathD(points)}
-        stroke={withAlpha(tint.base, TRACK_ALPHA)}
+        stroke={semanticFill(theme, semantic, TRACK_ALPHA)}
         strokeWidth={theme.stroke.thin}
         fill="none"
       />

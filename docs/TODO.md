@@ -4,15 +4,14 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 
 ## Open
 
-- [ ] **Theme — Fills built from `tint.base`.** `zone_polygon`, `segmented_time_bar`,
-      `grid_overlay`, `map_base` (park) and `packet_stream` (track) fill with
-      `withAlpha(tint.base, <own alpha>)` instead of `tint.soft`, so they bypass `tint.fills`:
-      on `drafting-paper` a focus zone, segment or cell is a grey ink wash, not the highlighter.
-      Move them to `tint.soft` (or a per-primitive strength on top of it).
-- [ ] **Theme — Focus as text colour.** `highlight`/`pulse` now draw a highlighter mark on paper
-      (`emphasis.style: mark`), but a `semantic: focus` element at rest still only colours its
-      text: `counter`, `stat_card`, `timer_ring`, the hero metric value and the story clock show
-      plain ink on paper. Decide whether focus-at-rest should draw a (lighter) mark too.
+- [ ] **Theme — Fill strength on paper.** Semantic fills take the theme's colour
+      (`semanticFill`) at each primitive's own alpha (0.16–0.45), not the theme's fill alpha
+      (0.55 for focus), so a focus zone or segment is a pale yellow at rest. Add a per-theme
+      strength scale if paper fills should read stronger.
+- [ ] **Emphasis — Focus underline on wrapping text.** The headline's underline is drawn per line
+      as a background (`FocusUnderline wrap`), so it has no −1° tilt; single-line values tilt.
+      The hero metric value sits on the pill's own focus fill, so its underline reads as a
+      denser band inside the pill.
 - [ ] **Emphasis — Clipped frames.** `map_base` clips its content (`overflow: hidden`), so its
       frame mark shows only the inner half of the band. Move the clip to an inner wrapper if the
       full band should show (check blueprint-dark stays byte-identical).

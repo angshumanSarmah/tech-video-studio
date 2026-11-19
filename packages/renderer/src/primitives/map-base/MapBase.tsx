@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { semanticTint, withAlpha } from '../../theme/index.ts';
+import { semanticFill, semanticTint, withAlpha } from '../../theme/index.ts';
 import type { PrimitiveComponentProps } from '../component-props.ts';
 import { pathD } from '../geometry.ts';
 import { emphasisShadow, markHostCss, markLevels } from '../../emphasis/emphasis.ts';
@@ -55,7 +55,7 @@ export function MapBase({ theme, props, box, state }: PrimitiveComponentProps<Ma
             width={b.width}
             height={b.height}
             rx={theme.radius.sm}
-            fill={b.park ? withAlpha(park.base, PARK_ALPHA) : theme.colours.surfaceRaised}
+            fill={b.park ? semanticFill(theme, 'ok', PARK_ALPHA) : theme.colours.surfaceRaised}
             stroke={b.park ? park.border : 'none'}
             strokeOpacity={0.35}
             strokeWidth={theme.stroke.hairline}

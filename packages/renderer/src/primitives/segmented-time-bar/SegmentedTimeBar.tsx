@@ -1,4 +1,4 @@
-import { semanticTint, textCss, withAlpha, type Theme } from '../../theme/index.ts';
+import { semanticFill, semanticTint, textCss, type Theme } from '../../theme/index.ts';
 import type { PrimitiveComponentProps } from '../component-props.ts';
 import { partState, type PartState } from '../element-state.ts';
 import {
@@ -176,7 +176,8 @@ type SegmentProps = {
 
 function SegmentView({ theme, segment, part, left, width, fill }: SegmentProps) {
   const rejected = part.actions.reject ?? 0;
-  const tint = semanticTint(theme, rejected > 0 ? 'problem' : segment.semantic);
+  const semantic = rejected > 0 ? 'problem' : segment.semantic;
+  const tint = semanticTint(theme, semantic);
   const strength = Math.max(part.emphasis, rejected);
   return (
     <div
@@ -194,7 +195,7 @@ function SegmentView({ theme, segment, part, left, width, fill }: SegmentProps) 
         alignItems: 'center',
         justifyContent: 'center',
         whiteSpace: 'nowrap',
-        background: withAlpha(tint.base, WASH + (WASH_STRONG - WASH) * strength),
+        background: semanticFill(theme, semantic, WASH + (WASH_STRONG - WASH) * strength),
         border: `${emphasisStroke(theme, theme.stroke.regular, part)}px solid ${tint.border}`,
         color: theme.colours.ink.primary,
         opacity: 1 - 0.7 * part.dimmed,
@@ -226,7 +227,7 @@ function SpareStretch({ theme, left, width }: { theme: Theme; left: number; widt
 
 /** Time past the budget: hatched red over the segments it covers. */
 function Overflow({ theme, left, right }: { theme: Theme; left: number; right: number }) {
-  const tint = semanticTint(theme, 'problem');
+  const hatch = semanticFill(theme, 'problem', 0.5);
   return (
     <div
       style={{
@@ -235,7 +236,7 @@ function Overflow({ theme, left, right }: { theme: Theme; left: number; right: n
         bottom: 0,
         left,
         width: Math.max(0, right - left),
-        background: `repeating-linear-gradient(45deg, ${withAlpha(tint.base, 0.5)} 0 10px, transparent 10px 20px)`,
+        background: `repeating-linear-gradient(45deg, ${hatch} 0 10px, transparent 10px 20px)`,
         zIndex: 2,
       }}
     />

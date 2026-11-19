@@ -1,4 +1,4 @@
-import { semanticTint, textCss, withAlpha, type Theme } from '../../theme/index.ts';
+import { semanticFill, semanticTint, textCss, withAlpha, type Theme } from '../../theme/index.ts';
 import type { PrimitiveComponentProps } from '../component-props.ts';
 import { partState, type PartState } from '../element-state.ts';
 import { emphasisFilter, markHostCss, markLevels } from '../../emphasis/emphasis.ts';
@@ -110,8 +110,12 @@ function cellLight(part: PartState): number {
   return Math.max(part.emphasis, part.actions.reject ?? 0) * (1 - 0.7 * part.dimmed);
 }
 
+function cellSemantic(cell: Cell, part: PartState) {
+  return (part.actions.reject ?? 0) > 0 ? 'problem' : cell.semantic;
+}
+
 function cellTint(theme: Theme, cell: Cell, part: PartState) {
-  return semanticTint(theme, (part.actions.reject ?? 0) > 0 ? 'problem' : cell.semantic);
+  return semanticTint(theme, cellSemantic(cell, part));
 }
 
 type CellProps = { theme: Theme; g: GridGeometry; cell: Cell; part: PartState };
@@ -127,7 +131,7 @@ function CellFill({ theme, g, cell, part }: CellProps) {
       y={r.y}
       width={r.size}
       height={r.size}
-      fill={withAlpha(tint.base, CELL_FILL_ALPHA * light)}
+      fill={semanticFill(theme, cellSemantic(cell, part), CELL_FILL_ALPHA * light)}
       stroke={tint.base}
       strokeWidth={theme.stroke.bold}
       strokeOpacity={light}

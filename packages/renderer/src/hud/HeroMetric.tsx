@@ -1,5 +1,6 @@
 import type { HeroMetric as HeroMetricData } from '@explainer-studio/shared';
 import { useCurrentFrame, useVideoConfig } from 'remotion';
+import { FocusUnderline } from '../emphasis/Mark.tsx';
 import { semanticTint, textCss, type Theme } from '../theme/index.ts';
 import { clockValueAt, formatClock, type ClockPoint } from './hud-state.ts';
 import { enterProgress } from './motion.ts';
@@ -29,7 +30,11 @@ export function HeroMetricPill({ theme, metric, from }: PillProps) {
     >
       {metric.label}
       <span style={{ color: theme.colours.ink.faint }}> · </span>
-      <span style={{ color: tint.base }}>{metric.value}</span>
+      <span style={{ color: tint.base }}>
+        <FocusUnderline theme={theme} semantic="focus">
+          {metric.value}
+        </FocusUnderline>
+      </span>
     </div>
   );
 }
@@ -61,7 +66,9 @@ export function StoryClock({ theme, fromLabel, toLabel, points, from }: ClockPro
       {fromLabel} → {toLabel}
       <span style={{ color: ink.faint }}> · </span>
       <span style={{ color: theme.colours.semantic.focus }}>
-        {formatClock(clockValueAt(points, frame / fps))}
+        <FocusUnderline theme={theme} semantic="focus">
+          {formatClock(clockValueAt(points, frame / fps))}
+        </FocusUnderline>
       </span>
     </div>
   );

@@ -1,7 +1,14 @@
 import type { CSSProperties } from 'react';
 import type { PartState } from '../primitives/element-state.ts';
 import type { Size } from '../primitives/types.ts';
-import { semanticTint, type Theme, type Tint } from '../theme/index.ts';
+import {
+  semanticFillColour,
+  semanticTint,
+  withAlpha,
+  type SemanticColour,
+  type Theme,
+  type Tint,
+} from '../theme/index.ts';
 
 /**
  * The one place emphasis (`highlight`, `pulse`) becomes pixels, for every primitive and HUD part.
@@ -129,4 +136,32 @@ export type MarkShape = 'swipe' | 'frame';
 export function markShape(size: Size | undefined): MarkShape {
   if (!size) return 'swipe';
   return size.width > MARK_FRAME_MIN || size.height > MARK_FRAME_MIN ? 'frame' : 'swipe';
+}
+
+/** Resting focus underline: the lower share of the text box it covers. */
+export const UNDERLINE_HEIGHT = 0.45;
+
+/** Resting focus underline opacity: lighter than a highlight swipe. */
+export const UNDERLINE_ALPHA = 0.45;
+
+/** How far the underline reaches past the text on each side, in px. */
+export const UNDERLINE_OVERHANG = 6;
+
+/** Corner radius of the underline's ends, in px. */
+export const UNDERLINE_RADIUS = 6;
+
+/** What a resting focus underline draws: its band colour. */
+export type UnderlineView = { fill: string };
+
+/**
+ * The resting underline for text drawn in `semantic`: only in mark themes, only for `focus`, and
+ * only while the element is not highlighted (the highlight swipe replaces it, never both).
+ */
+export function focusUnderlineView(
+  theme: Theme,
+  semantic: SemanticColour,
+  highlight = 0,
+): UnderlineView | null {
+  if (!isMarkTheme(theme) || semantic !== 'focus' || highlight > 0) return null;
+  return { fill: withAlpha(semanticFillColour(theme, 'focus'), UNDERLINE_ALPHA) };
 }

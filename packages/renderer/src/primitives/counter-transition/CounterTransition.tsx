@@ -2,7 +2,7 @@ import { semanticTint, textCss } from '../../theme/index.ts';
 import { stateStyle, type PrimitiveComponentProps } from '../component-props.ts';
 import { formatCount } from '../counter/format.ts';
 import { emphasisShadow, markHostCss, markLevels } from '../../emphasis/emphasis.ts';
-import { BoxMark } from '../../emphasis/Mark.tsx';
+import { BoxMark, FocusUnderline } from '../../emphasis/Mark.tsx';
 import { TRANSITION_ARROW, type CounterTransitionProps } from './definition.ts';
 import { transitionView } from './transition.ts';
 
@@ -38,7 +38,9 @@ export function CounterTransition({
       <BoxMark theme={theme} levels={markLevels(state)} />
       <div style={{ display: 'flex', alignItems: 'baseline', gap: theme.space.md }}>
         <span style={{ ...metric, color: fromTint.base, opacity: view.fromStrength }}>
-          {digits(props.from)}
+          <FocusUnderline theme={theme} semantic={props.fromSemantic} highlight={state.highlight}>
+            {digits(props.from)}
+          </FocusUnderline>
         </span>
         <span style={{ ...metric, color: theme.colours.ink.muted, opacity: view.arrow }}>
           {TRANSITION_ARROW}
@@ -60,7 +62,9 @@ export function CounterTransition({
               textShadow: emphasisShadow(theme, toTint, state.emphasis),
             }}
           >
-            {digits(props.to)}
+            <FocusUnderline theme={theme} semantic={props.toSemantic} highlight={state.highlight}>
+              {digits(props.to)}
+            </FocusUnderline>
           </span>
           {props.unit ? (
             <span style={{ ...textCss(theme, 'label'), color: theme.colours.ink.muted }}>
