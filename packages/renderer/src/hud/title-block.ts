@@ -121,3 +121,14 @@ export function titleBlockCells(input: TitleBlockCellsInput): TitleBlockCellId[]
 export function sheetLabel(index: number, count: number): string {
   return `SHEET ${index + 1}/${count}`;
 }
+
+/** The card viewport's label when the chapter header is off (a drawing's detail callout). */
+export const VIEWPORT_DEFAULT_LABEL = 'DETAIL A';
+
+/**
+ * The card viewport's label: the current chapter's name while the chapter header is on, else
+ * `VIEWPORT_DEFAULT_LABEL`.
+ */
+export function viewportLabel(input: { chapterHeader: boolean; chapterTitle?: string }): string {
+  return input.chapterHeader && input.chapterTitle ? input.chapterTitle : VIEWPORT_DEFAULT_LABEL;
+}

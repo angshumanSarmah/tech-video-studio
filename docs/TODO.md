@@ -142,9 +142,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       the card's headline band (drafting-paper: y 1183, 720 px wide), but `DevSubtitles` (not to
       be extended) still draws at the full format's band. The real subtitle layer must read the
       band from `formatAreas(theme, spec.meta.format)`.
-- [ ] **Card format — Window frame.** The card's diagram window is not outlined, so the card
-      reads as a board under a header. Draw a ruled frame (HUD, from `formatAreas`) if it should
-      read as a card.
 - [ ] **Runs — Episode number in the title block.** The title block's REV cell is the constant
       `REVISION_LABEL` ("REV A"). Replace it with the episode number ("NO. 12") once runs
       carry one.

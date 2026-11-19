@@ -6,7 +6,8 @@ import { withRegistryChecks } from '../catalog/validate.ts';
 import { exclusionZones, getTheme, listThemes, safeAreas } from '../theme/index.ts';
 import { MAX_ZOOM } from './camera.ts';
 import { applyRect } from './fit.ts';
-import { CARD_ASPECT, formatAreas } from './format.ts';
+import { cellHeight } from '../hud/title-block.ts';
+import { CARD_ASPECT, formatAreas, viewportBoard } from './format.ts';
 import { bottom, inside, overlaps } from './rect.ts';
 import { specLayout, specLayoutWarnings } from './spec-layout.ts';
 import { expectValidBoard, theme } from './test-layout.ts';
@@ -14,24 +15,39 @@ import { expectValidBoard, theme } from './test-layout.ts';
 const FORMATS: VideoFormat[] = ['full', 'card'];
 
 describe('formatAreas', () => {
+  it.each(listThemes().map((t) => t.id))(
+    '%s: card keeps the board inside the viewport, below its label cell',
+    (id) => {
+      const t = getTheme(id);
+      const { board, viewport } = formatAreas(t, 'card');
+      if (!viewport) throw new Error('card has a viewport');
+      expect(inside(viewport, board)).toBe(true);
+      expect(board.y).toBeGreaterThanOrEqual(viewport.y + cellHeight(t));
+      expect(board).toEqual(viewportBoard(t, viewport));
+    },
+  );
+
   it.each(listThemes().map((t) => t.id))('%s: full uses the safe areas', (id) => {
     const t = getTheme(id);
     const areas = formatAreas(t, 'full');
     expect(areas.board).toEqual(safeAreas(t).stage);
     expect(areas.boardWithHeadline).toEqual(safeAreas(t).stageWithHeadline);
     expect(areas.header).toBeNull();
+    expect(areas.viewport).toBeNull();
   });
 
   it.each(listThemes().map((t) => t.id))(
     '%s: card puts a 16:9 window clear of every zone between header and bands',
     (id) => {
       const t = getTheme(id);
-      const { board, header, headlineBand, subtitleBand, avoidZones } = formatAreas(t, 'card');
-      expect(Math.abs(board.width / board.height - CARD_ASPECT)).toBeLessThan(0.01);
-      for (const zone of exclusionZones(t)) expect(overlaps(board, zone)).toBe(false);
+      const areas = formatAreas(t, 'card');
+      const { header, headlineBand, subtitleBand, avoidZones, viewport } = areas;
+      if (!viewport) throw new Error('card has a viewport');
+      expect(Math.abs(viewport.width / viewport.height - CARD_ASPECT)).toBeLessThan(0.01);
+      for (const zone of exclusionZones(t)) expect(overlaps(viewport, zone)).toBe(false);
       expect(avoidZones).toEqual([]);
-      expect(header && bottom(header)).toBeLessThanOrEqual(board.y);
-      expect(headlineBand.y).toBeGreaterThanOrEqual(bottom(board));
+      expect(header && bottom(header)).toBeLessThanOrEqual(viewport.y);
+      expect(headlineBand.y).toBeGreaterThanOrEqual(bottom(viewport));
       expect(subtitleBand.y).toBeGreaterThanOrEqual(bottom(headlineBand));
       for (const band of [headlineBand, subtitleBand]) {
         for (const zone of exclusionZones(t)) expect(overlaps(band, zone)).toBe(false);

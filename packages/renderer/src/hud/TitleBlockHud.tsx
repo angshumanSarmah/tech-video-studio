@@ -3,6 +3,7 @@ import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion';
 import { rectCss } from '../layers/rect-css.ts';
 import { formatAreas } from '../layout/format.ts';
 import { textCss, type Theme } from '../theme/index.ts';
+import { CardViewport } from './CardViewport.tsx';
 import { ChapterHeader } from './ChapterHeader.tsx';
 import { DimensionMetric } from './DimensionMetric.tsx';
 import { Headline } from './Headline.tsx';
@@ -10,7 +11,7 @@ import { StoryClock } from './HeroMetric.tsx';
 import type { ChapterSpan } from './hud-state.ts';
 import { enterProgress, enterStyle } from './motion.ts';
 import { ellipsis } from './styles.ts';
-import { titleBlockLayout, type TitleBlockVariant } from './title-block.ts';
+import { titleBlockLayout, viewportLabel, type TitleBlockVariant } from './title-block.ts';
 import { TitleBlock } from './TitleBlock.tsx';
 import { useHudModel, type HudProps } from './use-hud-model.ts';
 
@@ -20,23 +21,33 @@ type Props = HudProps & { variant: TitleBlockVariant };
  * `hud.style: 'title-block'`. The strip variant draws the title block (topic, SHEET for the step
  * tracker, REV, handle), then the chapter header or step name beside the hero metric dimension,
  * then the story clock when `spec.hud` has it on. The header variant (card format) draws the title
- * block with the title in display type, and the same rows under it; its headline goes under the
- * diagram window (`formatAreas`).
+ * block with the title in display type, the same rows under it, and the diagram window as a ruled
+ * viewport (`CardViewport`); its headline goes under the window (`formatAreas`).
  */
 export function TitleBlockHud({ variant, ...props }: Props) {
   const { theme, spec, seriesLabel, accent, channelHandle } = props;
   const { frame, parts, chapters, chapter, cue, metric, clock, points, start, pinnedFrom } =
     useHudModel(props);
   const layout = useMemo(() => titleBlockLayout(theme, variant), [theme, variant]);
-  const headlineBand = useMemo(
-    () => formatAreas(theme, spec.meta.format).headlineBand,
-    [theme, spec.meta.format],
-  );
+  const areas = useMemo(() => formatAreas(theme, spec.meta.format), [theme, spec.meta.format]);
+  const headlineBand = areas.headlineBand;
   const row = { display: 'flex', alignItems: 'center', gap: theme.space.md } as const;
   const showSheet = parts.stepTracker && chapter !== undefined;
 
   return (
     <AbsoluteFill>
+      {variant === 'header' && areas.viewport ? (
+        <CardViewport
+          theme={theme}
+          rect={areas.viewport}
+          label={viewportLabel({
+            chapterHeader: parts.chapterHeader,
+            chapterTitle: chapter?.title,
+          })}
+          labelKey={parts.chapterHeader && chapter ? chapter.chapterId : 'detail'}
+          labelFrom={parts.chapterHeader && chapter ? chapter.from : start}
+        />
+      ) : null}
       {parts.topBar || variant === 'header' ? (
         <TitleBlock
           theme={theme}

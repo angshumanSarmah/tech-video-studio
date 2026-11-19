@@ -1,5 +1,5 @@
 import type { VideoFormat } from '@explainer-studio/shared';
-import { titleBlockLayout } from '../hud/title-block.ts';
+import { cellHeight, titleBlockLayout } from '../hud/title-block.ts';
 import {
   clearSymmetric,
   clipZones,
@@ -20,7 +20,8 @@ import { bottom } from './rect.ts';
  *   card   header region: title block (title, series, SHEET, REV, handle)
  *                         chapter header ··························· hero metric
  *                                                                     story clock
- *          diagram window (16:9, the board; clear of every exclusion zone)
+ *          diagram window (16:9, clear of every exclusion zone): a ruled viewport with a label
+ *          cell top-left; the board sits inside it, below the label
  *          headline band
  *          subtitle band
  *
@@ -41,6 +42,11 @@ export type FormatAreas = {
   avoidZones: Zone[];
   /** Card only: the persistent header region the HUD draws (title block and its rows). */
   header: Rect | null;
+  /**
+   * Card only: the diagram window, drawn by the HUD as a ruled viewport with a label cell in its
+   * top-left corner. The board sits inside it, below the label cell (`viewportBoard`).
+   */
+  viewport: Rect | null;
 };
 
 /** Diagram window aspect in the card format. */
@@ -60,6 +66,7 @@ function fullAreas(theme: Theme): FormatAreas {
     subtitleBand: areas.subtitleBand,
     avoidZones: areas.avoidZones,
     header: null,
+    viewport: null,
   };
 }
 
@@ -89,12 +96,28 @@ function cardAreas(theme: Theme): FormatAreas {
   }
   return {
     format: 'card',
-    board: window,
-    boardWithHeadline: window,
+    board: viewportBoard(theme, window),
+    boardWithHeadline: viewportBoard(theme, window),
     headlineBand,
     subtitleBand,
     avoidZones: clipZones(zones, window),
     header,
+    viewport: window,
+  };
+}
+
+/**
+ * Where the board goes inside the card's viewport: clear of its border by `space.sm`, and below
+ * the label cell in its top-left corner, so no element is ever drawn under the label.
+ */
+export function viewportBoard(theme: Theme, viewport: Rect): Rect {
+  const pad = theme.space.sm;
+  const top = cellHeight(theme) + pad;
+  return {
+    x: viewport.x + pad,
+    y: viewport.y + top,
+    width: viewport.width - 2 * pad,
+    height: viewport.height - top - pad,
   };
 }
 

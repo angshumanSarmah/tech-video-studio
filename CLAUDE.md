@@ -325,7 +325,9 @@ to `docs/patterns/<id>.png` (a panel per narration anchor, elements in one row p
   story clock. Its slots come from `titleBlockLayout(theme, variant)`. `TitleBlock` has a
   `header` variant (the title in display type over the cells): with `meta.format: "card"`, `Hud`
   draws it in every theme, with the same chapter / metric and clock rows, in the card header
-  region (`formatAreas`); the headline goes under the window. `still:compare` renders it as the
+  region (`formatAreas`); the headline goes under the window. `CardViewport` draws the window as
+  a ruled viewport (thin ink border, a label cell top-left: the chapter name while the chapter
+  header is on, else `DETAIL A`); the board sits inside it, below the cell (`viewportBoard`). `still:compare` renders it as the
   `rate-limiter-card` target.
 - **Scene layer** (`src/scene`): `beatWorld` (pure) collects a beat's elements, expanded
   patterns and everything inherited through `continuesPrevious`, each with the events that act on

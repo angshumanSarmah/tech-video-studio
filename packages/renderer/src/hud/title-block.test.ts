@@ -11,6 +11,8 @@ import {
   titleBlockCells,
   titleBlockLayout,
   topCellHeight,
+  VIEWPORT_DEFAULT_LABEL,
+  viewportLabel,
 } from './title-block.ts';
 
 const cases = listThemes().flatMap((theme) =>
@@ -73,6 +75,18 @@ describe('titleBlockLayout variants', () => {
       /strip title block needs \d+px but the HUD band is 120px/,
     );
     expect(() => titleBlockLayout(tiny, 'header')).not.toThrow();
+  });
+});
+
+describe('viewportLabel', () => {
+  it('names the chapter while the chapter header is on, else DETAIL A', () => {
+    expect(viewportLabel({ chapterHeader: true, chapterTitle: 'Token bucket' })).toBe(
+      'Token bucket',
+    );
+    expect(viewportLabel({ chapterHeader: false, chapterTitle: 'Token bucket' })).toBe(
+      VIEWPORT_DEFAULT_LABEL,
+    );
+    expect(viewportLabel({ chapterHeader: true })).toBe('DETAIL A');
   });
 });
 
