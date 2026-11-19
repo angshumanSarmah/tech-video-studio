@@ -30,6 +30,7 @@ export const atomicLockPattern = definePattern({
     at: anchorsSchema(ANCHORS),
   }),
   actions: ['exit', 'highlight', 'dim', 'pulse'],
+  formats: ['full'],
   anchors: ANCHORS,
   targets: [
     { id: 'resource', description: 'The locked resource.' },

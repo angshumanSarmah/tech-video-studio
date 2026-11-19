@@ -99,7 +99,13 @@ function placeOne(item: SceneItem, pass: Pass): boolean {
   if (item.target !== undefined) {
     const target = rects.get(item.target);
     if (!target) return false;
-    rects.set(item.key, item.role === 'decoration' ? ringRect(item, target, params) : target);
+    if (item.role !== 'decoration') {
+      rects.set(item.key, target);
+      return true;
+    }
+    const inside = enclosedRects(item, pass);
+    if (!inside) return false;
+    rects.set(item.key, ringRect(item, target, inside, params));
     return true;
   }
   if (item.pin) {
@@ -138,16 +144,46 @@ function placePath(item: SceneItem, pass: Pass): boolean {
 }
 
 /** A dashed circle around its target: wide enough to enclose it, label room kept on top. */
-function ringRect(item: SceneItem, target: Rect, params: RelationParams): Rect {
+function ringRect(
+  item: SceneItem,
+  target: Rect,
+  enclosed: readonly Rect[],
+  params: RelationParams,
+): Rect {
   const own = sizeOf(item);
   const labelRoom = Math.max(0, own.height - own.width);
-  const diameter = Math.max(
-    own.width,
-    Math.hypot(target.width, target.height) + 2 * params.ringPad,
-  );
   const c = centre(target);
+  const reach = Math.max(
+    Math.hypot(target.width, target.height) / 2,
+    ...enclosed.map((r) => farthestCorner(c, r)),
+  );
+  const diameter = Math.max(own.width, 2 * (reach + params.ringPad));
   const height = diameter + labelRoom;
   return { x: c.x - diameter / 2, y: c.y + diameter / 2 - height, width: diameter, height };
+}
+
+/**
+ * What a ring must enclose besides its centre element: its `encloses` elements and everything
+ * pinned to their sides. Undefined while one of them is not placed yet.
+ */
+function enclosedRects(item: SceneItem, pass: Pass): Rect[] | undefined {
+  const keys = new Set(item.encloses ?? []);
+  for (const other of pass.items) {
+    if (other.pin && other.pin.side !== 'middle' && keys.has(other.pin.host)) keys.add(other.key);
+  }
+  const rects: Rect[] = [];
+  for (const k of keys) {
+    const r = pass.rects.get(k);
+    if (!r) return undefined;
+    rects.push(r);
+  }
+  return rects;
+}
+
+function farthestCorner(c: Point, r: Rect): number {
+  const dx = Math.max(Math.abs(r.x - c.x), Math.abs(r.x + r.width - c.x));
+  const dy = Math.max(Math.abs(r.y - c.y), Math.abs(r.y + r.height - c.y));
+  return Math.hypot(dx, dy);
 }
 
 /**

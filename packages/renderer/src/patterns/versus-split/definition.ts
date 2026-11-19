@@ -31,6 +31,7 @@ export const versusSplitPattern = definePattern({
     at: anchorsSchema(ANCHORS),
   }),
   actions: ['exit', 'highlight', 'dim', 'pulse'],
+  formats: ['full', 'card'],
   anchors: ANCHORS,
   targets: [
     { id: 'event', description: 'The shared event tag.' },

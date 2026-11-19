@@ -27,6 +27,7 @@ export const cacheHitMissPattern = definePattern({
     at: anchorsSchema(ANCHORS),
   }),
   actions: ['exit', 'highlight', 'dim', 'pulse'],
+  formats: ['full'],
   anchors: ANCHORS,
   targets: [
     { id: 'client', description: 'The client.' },

@@ -4,7 +4,7 @@ import type { LayoutModeDefinition } from './modes.ts';
 import { ASIDE } from './place/common.ts';
 import { minReadableScale } from './readable.ts';
 import { overlaps, pathCrossesRect } from './rect.ts';
-import type { ItemRole, LayoutWarning, PlacedItem } from './types.ts';
+import { boxOf, type ItemRole, type LayoutWarning, type PlacedItem } from './types.ts';
 
 /**
  * Warnings about a placed board, for the Curator: more elements than the mode reads well with,
@@ -28,6 +28,7 @@ export function boardWarnings(input: Input): LayoutWarning[] {
     ...readabilityWarnings(input),
     ...overlapWarnings(input.items),
     ...crossingWarnings(input.analysis, input.items),
+    ...coveredTextWarnings(input.analysis, input.items, input.theme),
   ];
 }
 
@@ -101,6 +102,37 @@ export function crossingWarnings(
     return crossed.map((s) => ({
       code: 'connector_crosses' as const,
       message: `Connector "${placed.key}" passes through "${s.key}".`,
+      keys: [placed.key, s.key],
+    }));
+  });
+}
+
+/**
+ * Text an item draws outside its own body (a ring's rim label, `textRects`) with an element or
+ * pin drawn over it: the label would show only in fragments (a stray "0" between two cards).
+ */
+export function coveredTextWarnings(
+  analysis: Analysis,
+  items: readonly PlacedItem[],
+  theme: Theme,
+): LayoutWarning[] {
+  const byKey = new Map(analysis.items.map((i) => [i.key, i.item]));
+  const solids = items.filter((i) => SOLID_ROLES.includes(i.role));
+  return items.flatMap((placed) => {
+    const world = byKey.get(placed.key);
+    if (world?.kind !== 'primitive' || !world.definition.textRects) return [];
+    const texts = world.definition.textRects(world.props, boxOf(placed), theme).map((r) => ({
+      x: placed.rect.x + r.x * placed.scale,
+      y: placed.rect.y + r.y * placed.scale,
+      width: r.width * placed.scale,
+      height: r.height * placed.scale,
+    }));
+    const covering = solids.filter(
+      (s) => s.key !== placed.key && s.z > placed.z && texts.some((t) => overlaps(t, s.rect)),
+    );
+    return covering.map((s) => ({
+      code: 'text_covered' as const,
+      message: `"${s.key}" covers the text of "${placed.key}".`,
       keys: [placed.key, s.key],
     }));
   });

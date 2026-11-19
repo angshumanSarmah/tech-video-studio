@@ -50,7 +50,15 @@ export function NodeCard({ theme, props, box, state }: PrimitiveComponentProps<N
           {props.title}
         </div>
         {props.subtitle ? (
-          <div style={{ ...textCss(theme, 'label'), color: theme.colours.ink.muted }}>
+          <div
+            style={{
+              ...textCss(theme, 'label'),
+              color: theme.colours.ink.muted,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
             {props.subtitle}
           </div>
         ) : null}

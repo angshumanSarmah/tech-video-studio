@@ -63,6 +63,7 @@ export const LAYOUT_WARNING_CODES = [
   'layout_mode_ignored',
   'pin_unresolved',
   'connector_crosses',
+  'text_covered',
   'avoid_zone',
 ] as const;
 export type LayoutWarningCode = (typeof LAYOUT_WARNING_CODES)[number];

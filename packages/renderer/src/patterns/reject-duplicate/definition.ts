@@ -21,6 +21,7 @@ export const rejectDuplicatePattern = definePattern({
     at: anchorsSchema(ANCHORS),
   }),
   actions: ['exit', 'highlight', 'dim', 'pulse'],
+  formats: ['full'],
   anchors: ANCHORS,
   targets: [
     { id: 'sender', description: 'The sender.' },

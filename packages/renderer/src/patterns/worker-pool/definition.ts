@@ -34,6 +34,12 @@ export const workerPoolPattern = definePattern({
       path: ['workers'],
     }),
   actions: ['exit', 'highlight', 'dim', 'pulse'],
+  formats: ['full', 'card'],
+  formatRule: {
+    when: 'more than 2 workers',
+    formats: ['full'],
+    applies: (p) => p.workers.length > 2,
+  },
   anchors: ANCHORS,
   targets: [
     { id: 'queue', description: 'The job queue; its jobs are parts job-1, job-2, …' },

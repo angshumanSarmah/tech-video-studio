@@ -203,7 +203,7 @@ A titled card for one component of a system (a service, server, database, client
 | Name | Type | Required | Notes |
 | --- | --- | --- | --- |
 | `title` | string | yes | Name of the component, shown in uppercase. (min length 1, max length 24) |
-| `subtitle` | string | no | Optional second line: its role or a detail. (min length 1, max length 40) |
+| `subtitle` | string | no | Optional second line: its role or a detail. One line, at most 28 characters. (min length 1, max length 28) |
 | `icon` | string | no | Asset id from the asset library (an unknown id is drawn as a placeholder and reported). (max length 64) |
 | `role` | string | no | Optional role badge (asset id, e.g. a crown for a leader) at the top centre. It is the part "role": exit it on the old holder and enter it on the new one to move the role. (max length 64) |
 | `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Border and glow colour: neutral, focus, ok, problem or concept. (default `"neutral"`) |
@@ -497,7 +497,7 @@ A stylised top-down city: blocks, streets, avenues, parks and, in the riverside 
 
 **Family:** spatial · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`
 
-A dashed search circle centred on the element `around`, with an optional `label` on its rim (the radius, or what is searched). `enter` grows it out from the centre.
+A dashed search circle centred on the element `around`, with an optional `label` on its rim (the radius, or what is searched). `encloses` lists elements that must sit inside it (the circle grows to fit them). `enter` grows it out from the centre.
 
 **When to use:** A search area or reach: couriers within 2 km of a depot, servers within one network hop, the candidates a matcher considers around a target.
 
@@ -508,6 +508,7 @@ A dashed search circle centred on the element `around`, with an optional `label`
 | Name | Type | Required | Notes |
 | --- | --- | --- | --- |
 | `around` | string | yes | Id of the element in this beat at the centre of the circle. (max length 64) |
+| `encloses` | array | no | Optional ids of elements the ring must enclose (the candidates in reach); it grows to fit them. (min items 1, max items 8) |
 | `label` | string | no | Optional label on the ring, e.g. 2 KM. (min length 1, max length 16) |
 | `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Ring colour: neutral, focus, ok, problem or concept. (default `"focus"`) |
 
@@ -521,6 +522,9 @@ A dashed search circle centred on the element `around`, with an optional `label`
   "primitive": "radius_ring",
   "props": {
     "around": "example-target",
+    "encloses": [
+      "example-candidate"
+    ],
     "label": "<example-radius>"
   }
 }
@@ -1059,6 +1063,8 @@ Two halves side by side get the same event at the same moment, and each shows it
 
 **Layout mode:** `versus_split`
 
+**Formats:** `full`, `card`
+
 **Narration anchors** (`params.at`):
 
 - `show`: Both sides appear.
@@ -1131,6 +1137,8 @@ A brute-force search checks every item and each turns red, with a tag naming the
 **When not to:** A fast and a slow store side by side (use `cache_hit_miss`); two whole designs compared (use `versus_split`).
 
 **Layout mode:** `centered_focus`
+
+**Formats:** `full`, `card` (`full` only with more than 4 items)
 
 **Narration anchors** (`params.at`):
 
@@ -1210,6 +1218,8 @@ Inputs → model → prediction. Feature rows type in, grouped by a bracket, and
 **When not to:** A single number without inputs (use `counter_transition`); a decision between candidates (use `pick_by_rule`).
 
 **Layout mode:** `pipeline`
+
+**Formats:** `full`
 
 **Narration anchors** (`params.at`):
 
@@ -1308,13 +1318,15 @@ Inputs → model → prediction. Feature rows type in, grouped by a bracket, and
 
 **Family:** spatial · **Actions:** `exit`, `highlight`, `dim`, `pulse`
 
-Candidates around a target, optionally inside a search ring. The obvious pick (nearest, first, cheapest) gets a tag and is crossed out; the right one is ringed, linked to the target and tagged with the rule that makes it win ("FREE + 12 MS").
+Candidates around a target, optionally inside a search ring that encloses them. The obvious pick (nearest, first, cheapest) gets a tag and is crossed out; the right one is ringed, linked to the target and tagged with the rule that makes it win ("FREE + 12 MS").
 
 **When to use:** Matching and scheduling decisions where the naive rule is wrong: couriers to parcels, servers to requests, cache nodes to keys, workers to jobs.
 
 **When not to:** A prediction from features (use `inference_card`); two designs compared (use `versus_split`).
 
 **Layout mode:** `hub_spoke`
+
+**Formats:** `full`
 
 **Narration anchors** (`params.at`):
 
@@ -1341,7 +1353,7 @@ Candidates around a target, optionally inside a search ring. The obvious pick (n
 | `candidates` | array | yes | The candidates around the target, 3 to 5. (min items 3, max items 5) |
 | `candidates[].id` | string | yes | Short slug for this candidate, used by obvious and pick. (max length 64) |
 | `candidates[].title` | string | yes | Name of the candidate, e.g. SERVER 2. (min length 1, max length 24) |
-| `candidates[].detail` | string | no | Optional detail under the name, e.g. 12 MS AWAY. (min length 1, max length 40) |
+| `candidates[].detail` | string | no | Optional detail under the name, e.g. 12 MS AWAY. (min length 1, max length 28) |
 | `candidates[].icon` | string | no | Asset id from the asset library (an unknown id is drawn as a placeholder and reported). (max length 64) |
 | `obvious` | object | yes | The tempting pick that is wrong. |
 | `pick` | object | yes | The pick the rule chooses, with its reason. |
@@ -1415,6 +1427,8 @@ Two requests race for one resource. The first arrives and locks it (padlock) and
 **When not to:** Rejecting a repeat of the same request (use `reject_duplicate`); many requests overwhelming a server (use `flood_then_funnel`).
 
 **Layout mode:** `hub_spoke`
+
+**Formats:** `full`
 
 **Narration anchors** (`params.at`):
 
@@ -1501,6 +1515,8 @@ A client with a near store and a far store. A hit is answered by the near store 
 
 **Layout mode:** `near_far`
 
+**Formats:** `full`
+
 **Narration anchors** (`params.at`):
 
 - `show`: The client, the near store and the far store appear.
@@ -1579,6 +1595,8 @@ Two to four inputs, each drawn in a different style, flow into a hub; one output
 
 **Layout mode:** `pipeline`
 
+**Formats:** `full`, `card`
+
 **Narration anchors** (`params.at`):
 
 - `inputs`: The differently shaped inputs appear.
@@ -1648,6 +1666,8 @@ A writer, a leader with the role badge and its followers. The leader fails: it t
 **When not to:** Both sides believing they lead after a network split (use `split_brain`); one request refused while a lock is held (use `atomic_lock`).
 
 **Layout mode:** `pipeline`
+
+**Formats:** `full`, `card`
 
 **Narration anchors** (`params.at`):
 
@@ -1737,6 +1757,8 @@ One message leaves a source and splits into a copy per target (a packet on each 
 
 **Layout mode:** `pipeline`
 
+**Formats:** `full`, `card` (`full` only with more than 2 targets)
+
 **Narration anchors** (`params.at`):
 
 - `send`: The source sends the one message.
@@ -1817,6 +1839,8 @@ A dense stream of requests hits a node directly while the rate counts up; the no
 **When not to:** Two requests for one resource (use `atomic_lock`); one message copied to many targets (use `fan_out`).
 
 **Layout mode:** `pipeline`
+
+**Formats:** `full`
 
 **Narration anchors** (`params.at`):
 
@@ -1902,6 +1926,8 @@ The same request arrives twice. The first copy travels to the receiver and is ac
 
 **Layout mode:** `pipeline`
 
+**Formats:** `full`
+
 **Narration anchors** (`params.at`):
 
 - `first`: The request arrives the first time and is processed.
@@ -1972,6 +1998,8 @@ Two regions with a leader and a replica. The link breaks (red, then dashed) and 
 **When not to:** A clean failover where the old leader is really gone (use `failover`); a single request refused under a lock (use `atomic_lock`).
 
 **Layout mode:** `versus_split`
+
+**Formats:** `full`
 
 **Narration anchors** (`params.at`):
 
@@ -2070,6 +2098,8 @@ A queue of waiting jobs feeds a pool of workers: on the assign word each worker 
 **When not to:** One message copied to every target (use `fan_out`); a single queue with no workers (use a `conveyor_queue`).
 
 **Layout mode:** `pipeline`
+
+**Formats:** `full`, `card` (`full` only with more than 2 workers)
 
 **Narration anchors** (`params.at`):
 

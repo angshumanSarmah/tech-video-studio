@@ -2,6 +2,7 @@ import { validateRenderableVideoSpec, validateVideoSpec } from '@explainer-studi
 import { describe, expect, it } from 'vitest';
 import { buildPatternRegistry } from '../patterns/registry.ts';
 import { bouncePattern } from '../patterns/test-pattern.ts';
+import { patternFormats } from '../patterns/types.ts';
 import { listPatterns } from '../patterns/registry.ts';
 import { LAYOUT_MODE_IDS } from '../layout/modes.ts';
 import { listPrimitives } from '../primitives/registry.ts';
@@ -652,5 +653,36 @@ describe('pattern instances', () => {
     const input = withCachePattern();
     payoff(input).layoutMode = 'two_column';
     expect(check(input).warnings).toEqual([]);
+  });
+});
+
+describe('pattern formats', () => {
+  it('warns when a pattern does not suit the video format', () => {
+    const input = fixtureSpec();
+    expect(check(input).warnings).toEqual([]);
+    Object.assign(input.meta as object, { format: 'card' });
+    const warnings = check(input).warnings;
+    expect(warnings).toEqual([
+      expect.objectContaining({
+        path: '$.scenes[3].patterns[0]',
+        code: 'pattern_format_mismatch',
+      }),
+    ]);
+    expect(warnings[0]?.message).toMatch(
+      /flood_then_funnel reads well only in full; this video is card/,
+    );
+  });
+
+  it('narrows the formats by a params rule', () => {
+    const pool = DEFAULT_REGISTRIES.patterns.get('worker_pool');
+    if (!pool) throw new Error('worker_pool is registered');
+    const params = pool.paramsSchema.parse(pool.example.params) as { workers: unknown[] };
+    expect(patternFormats(pool, params)).toEqual(['full', 'card']);
+    const three = { ...params, workers: [...params.workers, ...params.workers].slice(0, 3) };
+    expect(patternFormats(pool, three)).toEqual(['full']);
+  });
+
+  it('every pattern declares the formats it suits', () => {
+    for (const p of listPatterns()) expect(p.formats.length).toBeGreaterThan(0);
   });
 });

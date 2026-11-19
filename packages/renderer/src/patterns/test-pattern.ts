@@ -15,6 +15,7 @@ export const bouncePattern = definePattern({
   }),
   layoutMode: 'two_column',
   actions: ['exit', 'dim'],
+  formats: ['full', 'card'],
   anchors: [{ name: 'bounce', description: 'The word where the second request is turned away.' }],
   targets: [
     { id: 'held', description: 'The held label.' },

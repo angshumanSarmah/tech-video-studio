@@ -11,7 +11,11 @@ import {
 } from '@explainer-studio/shared';
 import { patternLayoutModes } from '../layout/modes.ts';
 import { expansionProblems } from '../patterns/expansion-checks.ts';
-import type { AnyPatternDefinition, PatternExpansion } from '../patterns/types.ts';
+import {
+  patternFormats,
+  type AnyPatternDefinition,
+  type PatternExpansion,
+} from '../patterns/types.ts';
 import type { Registries } from './registries.ts';
 import type { Scope } from './scope.ts';
 
@@ -119,9 +123,32 @@ export function patternWarnings(spec: VideoSpec, registries: Registries): SpecEr
       const params = definition?.paramsSchema.safeParse(pattern.params);
       if (!definition || !params?.success) return [];
       const path = ['scenes', i, 'patterns', j, 'params'];
-      return assetWarnings(definition.expand(params.data), path, registries);
+      return [
+        ...formatWarnings(spec, definition, params.data, ['scenes', i, 'patterns', j]),
+        ...assetWarnings(definition.expand(params.data), path, registries),
+      ];
     }),
   ]);
+}
+
+/**
+ * A pattern used in a format it does not read well in (its board falls below the readable scale
+ * there): choose another format or a lighter pattern.
+ */
+function formatWarnings(
+  spec: VideoSpec,
+  definition: AnyPatternDefinition,
+  params: unknown,
+  path: Path,
+): SpecError[] {
+  const format = spec.meta?.format ?? 'full';
+  const fits = patternFormats(definition, params);
+  if (fits.includes(format)) return [];
+  const rule = definition.formatRule?.applies(params) ? ` with ${definition.formatRule.when}` : '';
+  const message =
+    `${definition.id}${rule} reads well only in ${fits.join(', ')}; this video is ${format}. ` +
+    'Choose a format that suits it, or a lighter pattern.';
+  return [error(path, 'pattern_format_mismatch', message)];
 }
 
 function layoutConflict(scene: BeatScene, i: number, registries: Registries): SpecError[] {

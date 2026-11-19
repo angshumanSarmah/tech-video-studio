@@ -27,6 +27,7 @@ export const failoverPattern = definePattern({
     at: anchorsSchema(ANCHORS),
   }),
   actions: ['exit', 'highlight', 'dim', 'pulse'],
+  formats: ['full', 'card'],
   anchors: ANCHORS,
   targets: [
     { id: 'writer', description: 'The writer.' },

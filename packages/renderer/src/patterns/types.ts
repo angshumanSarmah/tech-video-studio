@@ -3,6 +3,7 @@ import {
   type EventAction,
   type SceneElement,
   type SceneEvent,
+  type VideoFormat,
 } from '@explainer-studio/shared';
 import { z } from 'zod';
 import type { LayoutModeId } from '../layout/modes.ts';
@@ -58,6 +59,13 @@ export interface PatternDefinition<Id extends string = string, S extends z.ZodTy
   layoutMode: LayoutModeId;
   /** Expanded elements spec events may address as `<instance>/<id>`, for the catalogue. */
   targets: readonly PatternTarget[];
+  /**
+   * Video formats the pattern reads well in (`meta.format`): `full` only when its board falls
+   * below the readable scale in the card format's smaller window.
+   */
+  formats: readonly VideoFormat[];
+  /** Narrower formats for some params (e.g. more than 2 workers), described for the catalogue. */
+  formatRule?: PatternFormatRule<z.output<S>>;
   description: LlmDescription;
   /** One example usage; its params must parse and expand into valid elements. */
   example: { params: z.input<S> };
@@ -66,6 +74,23 @@ export interface PatternDefinition<Id extends string = string, S extends z.ZodTy
 }
 
 export type AnyPatternDefinition = PatternDefinition<string, z.ZodType>;
+
+export type PatternFormatRule<P> = {
+  /** When the rule applies, in words for the catalogue, e.g. "more than 2 workers". */
+  when: string;
+  formats: readonly VideoFormat[];
+  /** Method syntax keeps definitions with specific params assignable to the registry's type. */
+  applies(params: P): boolean;
+};
+
+/** The formats an instance with these (valid) params reads well in. */
+export function patternFormats<P>(
+  definition: Pick<PatternDefinition, 'formats'> & { formatRule?: PatternFormatRule<P> },
+  params: P,
+): readonly VideoFormat[] {
+  const rule = definition.formatRule;
+  return rule?.applies(params) ? rule.formats : definition.formats;
+}
 
 /** Identity helper that keeps the literal id and the params type of a definition. */
 export function definePattern<const Id extends string, S extends z.ZodType>(

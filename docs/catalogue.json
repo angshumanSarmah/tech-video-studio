@@ -377,9 +377,9 @@
           "subtitle": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 40,
+            "maxLength": 28,
             "pattern": "^[^\\n\\r]*$",
-            "description": "Optional second line: its role or a detail."
+            "description": "Optional second line: its role or a detail. One line, at most 28 characters."
           },
           "icon": {
             "type": "string",
@@ -953,7 +953,7 @@
     {
       "id": "radius_ring",
       "family": "spatial",
-      "summary": "A dashed search circle centred on the element `around`, with an optional `label` on its rim (the radius, or what is searched). `enter` grows it out from the centre.",
+      "summary": "A dashed search circle centred on the element `around`, with an optional `label` on its rim (the radius, or what is searched). `encloses` lists elements that must sit inside it (the circle grows to fit them). `enter` grows it out from the centre.",
       "whenToUse": "A search area or reach: couriers within 2 km of a depot, servers within one network hop, the candidates a matcher considers around a target.",
       "whenNotToUse": "A named area with edges (use `zone_polygon`); a grid of cells (use `grid_overlay`); a countdown (use `timer_ring`).",
       "actions": [
@@ -971,6 +971,17 @@
             "maxLength": 64,
             "pattern": "^[a-z0-9][a-z0-9_-]*$",
             "description": "Id of the element in this beat at the centre of the circle."
+          },
+          "encloses": {
+            "minItems": 1,
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64,
+              "pattern": "^[a-z0-9][a-z0-9_-]*$"
+            },
+            "description": "Optional ids of elements the ring must enclose (the candidates in reach); it grows to fit them."
           },
           "label": {
             "type": "string",
@@ -1002,6 +1013,9 @@
         "primitive": "radius_ring",
         "props": {
           "around": "example-target",
+          "encloses": [
+            "example-candidate"
+          ],
           "label": "<example-radius>"
         }
       }
@@ -2231,6 +2245,10 @@
         }
       ],
       "layoutMode": "versus_split",
+      "formats": [
+        "full",
+        "card"
+      ],
       "targets": [
         {
           "id": "event",
@@ -2659,6 +2677,16 @@
         }
       ],
       "layoutMode": "centered_focus",
+      "formats": [
+        "full",
+        "card"
+      ],
+      "formatRule": {
+        "when": "more than 4 items",
+        "formats": [
+          "full"
+        ]
+      },
       "targets": [
         {
           "id": "items",
@@ -3141,6 +3169,9 @@
         }
       ],
       "layoutMode": "pipeline",
+      "formats": [
+        "full"
+      ],
       "targets": [
         {
           "id": "features",
@@ -3784,7 +3815,7 @@
     {
       "id": "pick_by_rule",
       "family": "spatial",
-      "summary": "Candidates around a target, optionally inside a search ring. The obvious pick (nearest, first, cheapest) gets a tag and is crossed out; the right one is ringed, linked to the target and tagged with the rule that makes it win (\"FREE + 12 MS\").",
+      "summary": "Candidates around a target, optionally inside a search ring that encloses them. The obvious pick (nearest, first, cheapest) gets a tag and is crossed out; the right one is ringed, linked to the target and tagged with the rule that makes it win (\"FREE + 12 MS\").",
       "whenToUse": "Matching and scheduling decisions where the naive rule is wrong: couriers to parcels, servers to requests, cache nodes to keys, workers to jobs.",
       "whenNotToUse": "A prediction from features (use `inference_card`); two designs compared (use `versus_split`).",
       "actions": [
@@ -3812,6 +3843,9 @@
         }
       ],
       "layoutMode": "hub_spoke",
+      "formats": [
+        "full"
+      ],
       "targets": [
         {
           "id": "target",
@@ -3899,7 +3933,7 @@
                 "detail": {
                   "type": "string",
                   "minLength": 1,
-                  "maxLength": 40,
+                  "maxLength": 28,
                   "pattern": "^[^\\n\\r]*$",
                   "description": "Optional detail under the name, e.g. 12 MS AWAY."
                 },
@@ -4365,6 +4399,9 @@
         }
       ],
       "layoutMode": "hub_spoke",
+      "formats": [
+        "full"
+      ],
       "targets": [
         {
           "id": "resource",
@@ -4875,6 +4912,9 @@
         }
       ],
       "layoutMode": "near_far",
+      "formats": [
+        "full"
+      ],
       "targets": [
         {
           "id": "client",
@@ -5300,6 +5340,10 @@
         }
       ],
       "layoutMode": "pipeline",
+      "formats": [
+        "full",
+        "card"
+      ],
       "targets": [
         {
           "id": "input-<n>",
@@ -5675,6 +5719,10 @@
         }
       ],
       "layoutMode": "pipeline",
+      "formats": [
+        "full",
+        "card"
+      ],
       "targets": [
         {
           "id": "writer",
@@ -6179,6 +6227,16 @@
         }
       ],
       "layoutMode": "pipeline",
+      "formats": [
+        "full",
+        "card"
+      ],
+      "formatRule": {
+        "when": "more than 2 targets",
+        "formats": [
+          "full"
+        ]
+      },
       "targets": [
         {
           "id": "source",
@@ -6609,6 +6667,9 @@
         }
       ],
       "layoutMode": "pipeline",
+      "formats": [
+        "full"
+      ],
       "targets": [
         {
           "id": "source",
@@ -7076,6 +7137,9 @@
         }
       ],
       "layoutMode": "pipeline",
+      "formats": [
+        "full"
+      ],
       "targets": [
         {
           "id": "sender",
@@ -7476,6 +7540,9 @@
         }
       ],
       "layoutMode": "versus_split",
+      "formats": [
+        "full"
+      ],
       "targets": [
         {
           "id": "leader",
@@ -8132,6 +8199,16 @@
         }
       ],
       "layoutMode": "pipeline",
+      "formats": [
+        "full",
+        "card"
+      ],
+      "formatRule": {
+        "when": "more than 2 workers",
+        "formats": [
+          "full"
+        ]
+      },
       "targets": [
         {
           "id": "queue",

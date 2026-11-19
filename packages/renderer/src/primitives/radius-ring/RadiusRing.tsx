@@ -3,7 +3,7 @@ import { LineMark } from '../../emphasis/Mark.tsx';
 import { semanticFill, semanticTint, textCss } from '../../theme/index.ts';
 import type { PrimitiveComponentProps } from '../component-props.ts';
 import { growView } from '../overlay.ts';
-import type { RadiusRingProps } from './definition.ts';
+import { ringGeometry, type RadiusRingProps } from './definition.ts';
 
 /** Translucent wash inside the ring, at the ring's own strength. */
 const AREA_ALPHA = 0.08;
@@ -19,9 +19,7 @@ export function RadiusRing({ theme, props, box, state }: PrimitiveComponentProps
     rest: theme.stroke.regular,
     glow: theme.stroke.regular + theme.stroke.thin * state.emphasis,
   });
-  const size = Math.min(box.width, box.height);
-  const r = size / 2 - theme.stroke.bold;
-  const c = { x: box.width / 2, y: box.height - size / 2 };
+  const { c, r } = ringGeometry(box, theme);
   const circleD = `M ${c.x - r} ${c.y} a ${r} ${r} 0 1 0 ${2 * r} 0 a ${r} ${r} 0 1 0 ${-2 * r} 0`;
   return (
     <div

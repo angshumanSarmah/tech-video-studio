@@ -186,6 +186,37 @@ describe('relational items', () => {
     expect(centre(ring).x).toBeCloseTo(centre(depot).x);
   });
 
+  it('grows a ring to enclose its encloses elements, so they never hide its label', () => {
+    const spokes = ['s1', 's2', 's3'].map((k) => node(k, 'spoke', `SERVER ${k}`));
+    const ring = (encloses?: string[]) =>
+      item('reach', 'radius_ring', {
+        around: 'hub',
+        label: '500 M',
+        ...(encloses ? { encloses } : {}),
+      });
+    const run = (encloses?: string[]) =>
+      layout(
+        { items: [node('hub', 'hub'), ...spokes, ring(encloses)], mode: 'hub_spoke', focus: [] },
+        theme,
+        fullFrame(),
+      );
+    // Without encloses the rim runs through the spokes and they hide its label (the stray "0").
+    expect(run().warnings.map((w) => w.code)).toContain('text_covered');
+    const enclosed = run(['s1', 's2', 's3']);
+    expect(enclosed.warnings.map((w) => w.code)).not.toContain('text_covered');
+    const r = byKey(enclosed, 'reach').rect;
+    const c = { x: r.x + r.width / 2, y: r.y + r.height - r.width / 2 };
+    for (const k of ['s1', 's2', 's3']) {
+      const s = byKey(enclosed, k).rect;
+      for (const corner of [
+        { x: s.x, y: s.y },
+        { x: s.x + s.width, y: s.y + s.height },
+      ]) {
+        expect(Math.hypot(corner.x - c.x, corner.y - c.y)).toBeLessThanOrEqual(r.width / 2);
+      }
+    }
+  });
+
   it('spans a bracket under its targets', () => {
     const items = [
       tag('a', 'cell'),

@@ -102,10 +102,12 @@ describe.each(FORMATS)('every fixture board, %s format', (format) => {
 
 describe.each(FORMATS)('connector routing, %s format', (format) => {
   it.each(allFixtureSpecs.map((s) => [s.meta.id, s] as const))(
-    '%s: no connector crosses an element',
+    '%s: no connector crosses an element, no text is covered',
     (_id, base) => {
       const warnings = specLayoutWarnings(withFormat(base, format), theme);
       expect(warnings.filter((w) => w.code === 'connector_crosses')).toEqual([]);
+      // Text drawn outside an element's body (a ring's rim label) is never hidden by another.
+      expect(warnings.filter((w) => w.code === 'text_covered')).toEqual([]);
     },
   );
 });

@@ -31,6 +31,12 @@ export const fanOutPattern = definePattern({
     at: anchorsSchema(ANCHORS),
   }),
   actions: ['exit', 'highlight', 'dim', 'pulse'],
+  formats: ['full', 'card'],
+  formatRule: {
+    when: 'more than 2 targets',
+    formats: ['full'],
+    applies: (p) => p.targets.length > 2,
+  },
   anchors: ANCHORS,
   targets: [
     { id: 'source', description: 'The source.' },

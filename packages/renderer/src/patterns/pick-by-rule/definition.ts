@@ -1,6 +1,7 @@
 import { SpecIdSchema } from '@explainer-studio/shared';
 import { z } from 'zod';
 import { AssetIdSchema, lineText } from '../../primitives/common-props.ts';
+import { NODE_SUBTITLE_MAX } from '../../primitives/node-card/definition.ts';
 import { el, link, nodeParam, nodeProps, on } from '../build.ts';
 import { anchorsSchema, definePattern } from '../types.ts';
 
@@ -14,7 +15,10 @@ const ANCHORS = [
 const CandidateSchema = z.strictObject({
   id: SpecIdSchema.describe('Short slug for this candidate, used by obvious and pick.'),
   title: lineText(24, 'Name of the candidate, e.g. SERVER 2.'),
-  detail: lineText(40, 'Optional detail under the name, e.g. 12 MS AWAY.').optional(),
+  detail: lineText(
+    NODE_SUBTITLE_MAX,
+    'Optional detail under the name, e.g. 12 MS AWAY.',
+  ).optional(),
   icon: AssetIdSchema.optional(),
 });
 
@@ -65,6 +69,7 @@ export const pickByRulePattern = definePattern({
       }
     }),
   actions: ['exit', 'highlight', 'dim', 'pulse'],
+  formats: ['full'],
   anchors: ANCHORS,
   targets: [
     { id: 'target', description: 'The target.' },
@@ -76,7 +81,8 @@ export const pickByRulePattern = definePattern({
   ],
   description: {
     summary:
-      'Candidates around a target, optionally inside a search ring. The obvious pick (nearest, ' +
+      'Candidates around a target, optionally inside a search ring that encloses them. The ' +
+      'obvious pick (nearest, ' +
       'first, cheapest) gets a tag and is crossed out; the right one is ringed, linked to the ' +
       'target and tagged with the rule that makes it win ("FREE + 12 MS").',
     whenToUse:
@@ -112,7 +118,15 @@ export const pickByRulePattern = definePattern({
     return {
       elements: [
         el('target', 'node_card', nodeProps(p.target, { semantic: 'focus' }), 'hub'),
-        ...(p.radius ? [el('ring', 'radius_ring', { around: 'target', label: p.radius })] : []),
+        ...(p.radius
+          ? [
+              el('ring', 'radius_ring', {
+                around: 'target',
+                encloses: p.candidates.map((c) => candidate(c.id)),
+                label: p.radius,
+              }),
+            ]
+          : []),
         ...p.candidates.map((c) =>
           el(
             candidate(c.id),
@@ -121,8 +135,16 @@ export const pickByRulePattern = definePattern({
             'spoke',
           ),
         ),
-        el('obvious-tag', 'tag', { text: p.obvious.reason, semantic: 'focus' }, 'aside'),
-        el('pick-tag', 'tag', { text: p.pick.reason, semantic: 'ok' }, 'aside'),
+        el('obvious-tag', 'tag', {
+          text: p.obvious.reason,
+          semantic: 'focus',
+          pin: { to: obvious, side: 'top' },
+        }),
+        el('pick-tag', 'tag', {
+          text: p.pick.reason,
+          semantic: 'ok',
+          pin: { to: pick, side: 'top' },
+        }),
         link('pick-link', pick, 'target', { semantic: 'ok' }),
       ],
       events: [

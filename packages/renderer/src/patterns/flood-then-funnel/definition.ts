@@ -32,6 +32,7 @@ export const floodThenFunnelPattern = definePattern({
     at: anchorsSchema(ANCHORS),
   }),
   actions: ['exit', 'highlight', 'dim', 'pulse'],
+  formats: ['full'],
   anchors: ANCHORS,
   targets: [
     { id: 'source', description: 'Where the flood comes from.' },

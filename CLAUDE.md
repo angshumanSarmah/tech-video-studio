@@ -371,7 +371,9 @@ theme)` lays out a whole spec, memoised per spec object and theme (never per fra
   - **Primitive hooks** (registry data, no id switches): `layoutRole` (`background` map_base;
     `path` connector, packet_stream; `frame` grid_overlay; `ring` radius_ring; `span` bracket) and
     `contentInset` (containers size from their children and lay them out in their own box:
-    `PlacedItem.children`). Relational components get `path` (box px, layout output) and draw
+    `PlacedItem.children`), and `textRects` (text drawn outside the body, e.g. a ring's rim
+    label; the layout warns `text_covered` when an element covers it). A `radius_ring` grows to
+    enclose its `encloses` elements and their side pins. Relational components get `path` (box px, layout output) and draw
     `standalonePath` only on sheets.
   - **Connector routing** (`routing.ts`): a connector stays a straight edge-to-edge line when it
     crosses no element or pin box; otherwise it takes the shortest orthogonal candidate that
@@ -385,7 +387,7 @@ theme)` lays out a whole spec, memoised per spec object and theme (never per fra
     them on that side of their host wherever it goes; unresolved pins get `pin_unresolved`.
   - **Warnings** (`LayoutWarning`; `specLayoutWarnings(spec, theme)` gives `{ path, code,
 message }` for the Curator): `too_many_elements` (mode `maxUnits`), `text_too_small`,
-    `overlap`, `connector_crosses`, `unknown_zone`, `unknown_layout_mode`, `layout_mode_ignored`,
+    `overlap`, `connector_crosses`, `text_covered`, `unknown_zone`, `unknown_layout_mode`, `layout_mode_ignored`,
     `pin_unresolved`, `avoid_zone`. Tests run the invariants (no overlaps, inside the frame,
     clear of avoid zones, camera bounds) over every fixture beat in both formats.
 - **`src/dev/` is temporary.** `DevSubtitles` is a stand-in until P1B.3 replaces it. Do not build
@@ -510,6 +512,10 @@ message }` for the Curator): `too_many_elements` (mode `maxUnits`), `text_too_sm
     `layoutMode` takes its first pattern's (`beatLayoutMode`); an explicit scene mode wins. Do not
     add modes for a pattern: pick the closest (pin what belongs to another element) and note
     the loose fit in docs/TODO.md.
+  - **Formats:** each pattern declares `formats` (the `meta.format`s its board reads well in,
+    from measured board scale) and optionally a `formatRule` that narrows them by params (e.g.
+    `worker_pool` with more than 2 workers: full only). Validation warns
+    `pattern_format_mismatch`; the catalogue lists both, so the Director can choose the format.
   - Building the registry expands each example and rejects (`expansionProblems`): unknown
     primitives, bad props, duplicate ids, zones outside the mode, element refs that leave the
     expansion, unsupported actions or bad parts on events, events not anchored to `params.at`, and

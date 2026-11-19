@@ -1,6 +1,6 @@
 import type { EventAction } from '@explainer-studio/shared';
 import type { z } from 'zod';
-import type { Theme } from '../theme/index.ts';
+import type { Rect, Theme } from '../theme/index.ts';
 
 /**
  * Primitive definitions are React-free: the worker and server import them (through
@@ -128,6 +128,11 @@ export interface PrimitiveDefinition<Id extends string = string, S extends z.Zod
   layer?: PrimitiveLayer;
   /** How the layout engine places it, when not as an ordinary element (see the role list). */
   layoutRole?: PrimitiveLayoutRole;
+  /**
+   * Text it draws outside its own body (a label on a ring's rim), in box px. The layout reports
+   * `text_covered` when an element is placed over one. Omit when all its text is inside it.
+   */
+  textRects?(props: z.output<S>, box: Size, theme: Theme): Rect[];
   /**
    * Where contained elements go inside a container (an `inset_panel`): its padding in box px.
    * The layout sizes the container to its children plus this. Omit for non-containers.

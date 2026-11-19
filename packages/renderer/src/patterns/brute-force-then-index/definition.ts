@@ -38,6 +38,8 @@ export const bruteForceThenIndexPattern = definePattern({
       path: ['target'],
     }),
   actions: ['exit', 'highlight', 'dim', 'pulse'],
+  formats: ['full', 'card'],
+  formatRule: { when: 'more than 4 items', formats: ['full'], applies: (p) => p.items.length > 4 },
   anchors: ANCHORS,
   targets: [
     { id: 'items', description: 'The items, a slot grid; its slots are parts item-1, item-2, …' },

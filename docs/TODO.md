@@ -239,6 +239,12 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       connectors may overlap along a shared channel, and several ports on one side all leave from
       the side's centre line. Spread ports and penalise shared runs if boards get busy. Routes
       through narrow gaps get no reserved room (the mode's gaps are for straight links).
+- [ ] **Layout — Text outside bodies.** Only `radius_ring` declares `textRects` (its rim label).
+      `route_path` stop labels and `zone_polygon` zone labels can also sit under markers on a
+      map; declare their label rects so `text_covered` checks them too.
+- [ ] **P1C.5 — Format choice.** Patterns declare `formats` / `formatRule` from board scales
+      measured on the fixture text. The Director prompt should read them from the catalogue
+      when choosing the run's format; re-measure when the card window or a pattern changes.
 - [ ] **Layout — Board clip.** The board layer is clipped to its frame plus `space.sm` (so guides
       never leak into the HUD); an emphasis mark or glow on an element at the frame edge loses
       what overhangs further.

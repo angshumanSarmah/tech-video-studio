@@ -40,6 +40,8 @@ export type SceneItem = {
   span?: readonly string[];
   /** A `ring` or `frame` item: the item it surrounds or shares a rect with. */
   target?: string;
+  /** A ring's other refs: items it must enclose (with their side pins). */
+  encloses?: readonly string[];
 };
 
 export type Analysis = {
@@ -167,7 +169,7 @@ function resolveRefs(items: readonly SceneItem[], warnings: LayoutWarning[]): Sc
       case 'span':
         return { ...i, role: 'pin', span: ids };
       case 'ring':
-        return { ...i, role: 'decoration', target: ids[0] };
+        return { ...i, role: 'decoration', target: ids[0], encloses: ids.slice(1) };
       case 'frame':
         return { ...i, role: 'framed', target: ids[0] };
       default:

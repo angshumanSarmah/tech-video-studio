@@ -52,6 +52,7 @@ export const inferenceCardPattern = definePattern({
       path: ['at', 'compare'],
     }),
   actions: ['exit', 'highlight', 'dim', 'pulse'],
+  formats: ['full'],
   anchors: ANCHORS,
   targets: [
     { id: 'features', description: 'The feature rows.' },

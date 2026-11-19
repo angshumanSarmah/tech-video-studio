@@ -36,6 +36,10 @@ export type PatternCatalogueEntry = {
   anchors: { name: string; description: string; optional?: boolean }[];
   /** The beat's layout mode unless the scene sets one. */
   layoutMode: string;
+  /** Video formats (`meta.format`) it reads well in. */
+  formats: string[];
+  /** Narrower formats for some params, e.g. full only with more than 2 workers. */
+  formatRule?: { when: string; formats: string[] };
   /** Elements spec events may target as `<instance>/<id>`, with `innerActions` only. */
   targets: { id: string; description: string }[];
   innerActions: string[];
@@ -94,6 +98,10 @@ function patternEntry(d: AnyPatternDefinition): PatternCatalogueEntry {
     actions: [...d.actions],
     anchors: d.anchors.map((a) => ({ ...a })),
     layoutMode: d.layoutMode,
+    formats: [...d.formats],
+    ...(d.formatRule
+      ? { formatRule: { when: d.formatRule.when, formats: [...d.formatRule.formats] } }
+      : {}),
     targets: d.targets.map((t) => ({ ...t })),
     innerActions: [...INNER_TARGET_ACTIONS],
     params: inputJsonSchema(d.paramsSchema),
@@ -191,6 +199,8 @@ function patternSection(entry: PatternCatalogueEntry): string[] {
     ...describedSection(entry),
     `**Layout mode:** \`${entry.layoutMode}\``,
     '',
+    `**Formats:** ${formatsLine(entry)}`,
+    '',
     '**Narration anchors** (`params.at`):',
     '',
     ...entry.anchors.map(
@@ -204,6 +214,13 @@ function patternSection(entry: PatternCatalogueEntry): string[] {
     ...propsTable('Params', entry.params),
     ...exampleBlock(entry.example),
   ];
+}
+
+/** "full, card (full only with more than 2 workers)". */
+function formatsLine(entry: PatternCatalogueEntry): string {
+  const base = codeList(entry.formats);
+  const rule = entry.formatRule;
+  return rule ? `${base} (${codeList(rule.formats)} only with ${rule.when})` : base;
 }
 
 function describedSection(entry: PrimitiveCatalogueEntry | PatternCatalogueEntry): string[] {
