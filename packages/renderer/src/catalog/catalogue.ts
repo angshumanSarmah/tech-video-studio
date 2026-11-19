@@ -66,7 +66,11 @@ export function buildCatalogue(registries: Registries = DEFAULT_REGISTRIES): Cat
   return {
     primitives: [...registries.primitives.values()].map(primitiveEntry).sort(byFamilyThenId),
     patterns: [...registries.patterns.values()].map(patternEntry).sort(byFamilyThenId),
-    layoutModes: LAYOUT_MODE_DEFINITIONS.map((m) => ({ ...m, zones: [...m.zones] })),
+    layoutModes: LAYOUT_MODE_DEFINITIONS.map((m) => ({
+      id: m.id,
+      zones: [...m.zones],
+      description: m.description,
+    })),
   };
 }
 

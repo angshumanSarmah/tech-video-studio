@@ -25,6 +25,7 @@ export const packetStreamPrimitive = definePrimitive({
   family: 'flow',
   propsSchema: PacketStreamPropsSchema,
   actions: ['enter', 'exit', 'highlight', 'dim', 'pulse', 'reject'],
+  layoutRole: 'path',
   sizeHints: packetStreamSizeHints,
   elementRefs: (props) => [{ path: ['along'], id: props.along, primitives: ['connector'] }],
   description: {

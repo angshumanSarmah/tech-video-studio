@@ -47,6 +47,7 @@ export const connectorPrimitive = definePrimitive({
   family: 'flow',
   propsSchema: ConnectorPropsSchema,
   actions: ['enter', 'exit', 'move', 'highlight', 'dim', 'pulse', 'reject'],
+  layoutRole: 'path',
   sizeHints: connectorSizeHints,
   elementRefs: (props) => [
     { path: ['from'], id: props.from },

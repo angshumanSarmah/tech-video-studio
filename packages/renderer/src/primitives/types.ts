@@ -68,6 +68,19 @@ export type ElementRef = {
 export const PRIMITIVE_LAYERS = ['board', 'overlay'] as const;
 export type PrimitiveLayer = (typeof PRIMITIVE_LAYERS)[number];
 
+/**
+ * How the layout engine treats a primitive beyond its size (omit for an ordinary element the
+ * layout mode places):
+ * - `background`: others may sit on it (a `map_base`); never counts as an overlap.
+ * - `path`: drawn between the two elements its refs name (a `connector`), or along the path of
+ *   the one it names (a `packet_stream`); the layout supplies the path.
+ * - `frame`: shares the rect of the element its ref names (a `grid_overlay` `over` a map).
+ * - `ring`: centred around the element its ref names, large enough to enclose it.
+ * - `span`: drawn under the elements its refs name, as wide as all of them (a `bracket`).
+ */
+export const PRIMITIVE_LAYOUT_ROLES = ['background', 'path', 'frame', 'ring', 'span'] as const;
+export type PrimitiveLayoutRole = (typeof PRIMITIVE_LAYOUT_ROLES)[number];
+
 /** An element event as a primitive's own checks see it: the action and the parts it names. */
 export type EventSummary = { action: EventAction; parts?: readonly string[] };
 
@@ -102,6 +115,8 @@ export interface PrimitiveDefinition<Id extends string = string, S extends z.Zod
   parts?: PartsDefinition<z.output<S>>;
   /** `overlay` draws it above a scrim over the board (default `board`). */
   layer?: PrimitiveLayer;
+  /** How the layout engine places it, when not as an ordinary element (see the role list). */
+  layoutRole?: PrimitiveLayoutRole;
   /**
    * Warnings about the events that act on one element (across its `continuesPrevious` chain), in
    * order. Omit when the primitive has no such rules.

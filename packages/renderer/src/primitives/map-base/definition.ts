@@ -29,6 +29,7 @@ export const mapBasePrimitive = definePrimitive({
   family: 'spatial',
   propsSchema: MapBasePropsSchema,
   actions: ['enter', 'exit', 'highlight', 'dim'],
+  layoutRole: 'background',
   sizeHints: mapSizeHints,
   description: {
     summary:

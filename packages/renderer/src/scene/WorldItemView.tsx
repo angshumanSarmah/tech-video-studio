@@ -4,6 +4,7 @@ import { elementState } from '../primitives/element-state.ts';
 import type { Size } from '../primitives/types.ts';
 import { semanticTint, textCss, type Theme } from '../theme/index.ts';
 import type { WorldItem } from './beat-world.ts';
+import { MARKER_SIZE } from './marker.ts';
 import { containedState, type PrimitiveItem } from './scene-layers.ts';
 
 /**
@@ -21,7 +22,7 @@ type Props = {
   containerPresence?: number;
 };
 
-export const MARKER_SIZE: Size = { width: 420, height: 120 };
+export { MARKER_SIZE };
 
 export function WorldItemView({ theme, item, frame, fps, containerPresence = 1 }: Props) {
   const Component = item.kind === 'primitive' ? componentFor(item.definition.id) : undefined;
