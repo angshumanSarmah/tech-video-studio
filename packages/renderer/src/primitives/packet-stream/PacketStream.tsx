@@ -12,8 +12,8 @@ import { BLOCK_AT, streamPackets } from './stream.ts';
 const TRACK_ALPHA = 0.25;
 
 /**
- * Packets flowing along a connector. Until the layout engine (P1A.9) hands it the connector's
- * path, it flows straight across its own box over a faint track. The track follows presence (it
+ * Packets flowing along a connector, on the connector's path from the layout (straight across its
+ * own box when it stands alone), over a faint track. The track follows presence (it
  * is not drawn before `enter` or after `exit`); packets keep their own timing, so the ones in
  * flight at `exit` still finish.
  */
@@ -22,8 +22,9 @@ export function PacketStream({
   props,
   box,
   state,
+  path,
 }: PrimitiveComponentProps<PacketStreamProps>) {
-  const points = standalonePath(box, connectorInset(theme));
+  const points = path ? [...path] : standalonePath(box, connectorInset(theme));
   const rejected = state.actions.reject ?? 0;
   const semantic = rejected > 0 ? 'problem' : props.semantic;
   const tint = semanticTint(theme, semantic);

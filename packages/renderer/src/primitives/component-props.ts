@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { Theme } from '../theme/index.ts';
 import type { ElementState, PartState } from './element-state.ts';
+import type { Point } from './geometry.ts';
 import type { Size } from './types.ts';
 
 /**
@@ -12,6 +13,12 @@ export type PrimitiveComponentProps<P> = {
   props: P;
   box: Size;
   state: ElementState;
+  /**
+   * The path a relational primitive (`connector`, `packet_stream`) runs along, in its own box px.
+   * Layout output, never authored; absent when it stands alone (sheets), where it draws across
+   * its box.
+   */
+  path?: readonly Point[];
   /**
    * Contained elements, already drawn (an `inset_panel`'s children; see `ElementRef.contains`).
    * Only containers read it.

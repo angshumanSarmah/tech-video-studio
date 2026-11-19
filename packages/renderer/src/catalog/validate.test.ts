@@ -334,6 +334,31 @@ describe('element refs', () => {
     expect(errors[2]?.message).toBe('"grid" cannot point to itself.');
   });
 
+  it('checks pins: a side of any element, the middle of a connector only', () => {
+    const link = { id: 'link', primitive: 'connector', props: { from: 'client', to: 'api' } };
+    const onSide = { id: 'hot', primitive: 'tag', props: { text: 'HOT', pin: { to: 'api' } } };
+    const onLink = {
+      id: 'hit',
+      primitive: 'counter',
+      props: { value: 1, pin: { to: 'link', side: 'middle' } },
+    };
+    const bad = {
+      id: 'odd',
+      primitive: 'callout',
+      props: { text: 'Why?', pin: { to: 'api', side: 'middle' } },
+    };
+    const lost = {
+      id: 'lost',
+      primitive: 'timer_ring',
+      props: { durationSec: 5, pin: { to: 'ghost', side: 'left' } },
+    };
+    const errors = check(withElements(link, onSide, onLink, bad, lost)).errors;
+    expect(errors.map((e) => [e.path, e.code])).toEqual([
+      ['$.scenes[0].elements[6].props.pin.to', 'invalid_element_ref'],
+      ['$.scenes[0].elements[7].props.pin.to', 'unknown_element'],
+    ]);
+  });
+
   it('resolves refs to elements of a beat it continues', () => {
     const input = fixtureSpec();
     input.scenes[1]?.elements?.push({

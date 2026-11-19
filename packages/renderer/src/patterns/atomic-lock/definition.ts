@@ -75,13 +75,16 @@ export const atomicLockPattern = definePattern({
       el('second', 'node_card', nodeProps(p.second), 'spoke'),
       link('first-link', 'first', 'resource', { semantic: 'focus' }),
       link('second-link', 'second', 'resource'),
-      el(
-        'hold',
-        'timer_ring',
-        { durationSec: p.holdSec, ...(p.holdLabel ? { label: p.holdLabel } : {}) },
-        'aside',
-      ),
-      el('bounced', 'tag', { text: p.bounce, semantic: 'problem' }, 'aside'),
+      el('hold', 'timer_ring', {
+        durationSec: p.holdSec,
+        ...(p.holdLabel ? { label: p.holdLabel } : {}),
+        pin: { to: 'resource', side: 'right' },
+      }),
+      el('bounced', 'tag', {
+        text: p.bounce,
+        semantic: 'problem',
+        pin: { to: 'second', side: 'bottom' },
+      }),
     ],
     events: [
       on(p.at.arrive, 'enter', ['first', 'resource', 'first-link']),

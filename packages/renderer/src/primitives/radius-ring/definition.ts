@@ -32,6 +32,7 @@ export const radiusRingPrimitive = definePrimitive({
   family: 'spatial',
   propsSchema: RadiusRingPropsSchema,
   actions: ['enter', 'exit', 'highlight', 'dim', 'pulse'],
+  layoutRole: 'ring',
   sizeHints: radiusRingSizeHints,
   elementRefs: (props) => [{ path: ['around'], id: props.around }],
   description: {

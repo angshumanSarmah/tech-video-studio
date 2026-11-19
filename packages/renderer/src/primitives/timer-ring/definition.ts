@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { Theme } from '../../theme/index.ts';
-import { lineText, semanticProp } from '../common-props.ts';
+import { lineText, semanticProp, PinSchema, pinRefs } from '../common-props.ts';
 import { approxTextWidth, lineHeightPx } from '../measure.ts';
 import { definePrimitive, type SizeHints } from '../types.ts';
 
@@ -8,6 +8,7 @@ import { definePrimitive, type SizeHints } from '../types.ts';
 export const TIMER_MAX_SEC = 5999;
 
 export const TimerRingPropsSchema = z.strictObject({
+  pin: PinSchema.optional(),
   durationSec: z
     .number()
     .int()
@@ -43,6 +44,7 @@ export const timerRingPrimitive = definePrimitive({
   propsSchema: TimerRingPropsSchema,
   actions: ['enter', 'exit', 'count', 'reject', 'highlight', 'dim', 'pulse'],
   sizeHints: timerRingSizeHints,
+  elementRefs: (props) => pinRefs(props.pin),
   description: {
     summary:
       'A countdown ring with the time left as mm:ss in the middle. It shows `durationSec` until ' +
@@ -53,7 +55,8 @@ export const timerRingPrimitive = definePrimitive({
     whenToUse:
       'A deadline or hold in the story: a room held for 10 minutes, a token that expires, a ' +
       'lease or a timeout. Put `count` where the clock starts and `reject` on the word where the ' +
-      'time runs out.',
+      'time runs out. ' +
+      'Set `pin` to keep it on a side of the element it belongs to.',
     whenNotToUse:
       'A quantity that is not time (use `counter`); elapsed time across the whole video (that ' +
       'is the story clock in the HUD); a duration that never runs down.',

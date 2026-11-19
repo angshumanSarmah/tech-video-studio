@@ -84,7 +84,13 @@ export const workerPoolPattern = definePattern({
         ),
         ...p.workers.map((w, i) => el(nth('worker', i), 'node_card', nodeProps(w), 'stage')),
         ...workers.map((w, i) => link(nth('link', i), 'queue', w)),
-        ...outputs.map((id) => el(id, 'tag', { text: p.output, semantic: 'ok' }, 'sink')),
+        ...outputs.map((id, i) =>
+          el(id, 'tag', {
+            text: p.output,
+            semantic: 'ok',
+            pin: { to: nth('worker', i), side: 'bottom' },
+          }),
+        ),
       ],
       events: [
         on(p.at.queue, 'enter', ['queue', ...workers]),

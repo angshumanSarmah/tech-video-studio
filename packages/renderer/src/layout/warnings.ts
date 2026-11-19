@@ -3,7 +3,7 @@ import type { Analysis } from './analyse.ts';
 import type { LayoutModeDefinition } from './modes.ts';
 import { ASIDE } from './place/common.ts';
 import { minReadableScale } from './readable.ts';
-import { overlaps } from './rect.ts';
+import { overlaps, pathCrossesRect } from './rect.ts';
 import type { ItemRole, LayoutWarning, PlacedItem } from './types.ts';
 
 /**
@@ -27,6 +27,7 @@ export function boardWarnings(input: Input): LayoutWarning[] {
     ...capacityWarnings(input),
     ...readabilityWarnings(input),
     ...overlapWarnings(input.items),
+    ...crossingWarnings(input.analysis, input.items),
   ];
 }
 
@@ -70,4 +71,37 @@ export function overlapWarnings(items: readonly PlacedItem[]): LayoutWarning[] {
     }
   });
   return warnings;
+}
+
+/**
+ * Connectors whose line passes through an element that is not one of their ends (nor pinned to
+ * the connector, nor an end's pin): the line reads as going into that element. Elbow routing
+ * (docs/TODO.md) would go around it.
+ */
+export function crossingWarnings(
+  analysis: Analysis,
+  items: readonly PlacedItem[],
+): LayoutWarning[] {
+  const solids = items.filter((i) => SOLID_ROLES.includes(i.role));
+  const byKey = new Map(analysis.items.map((i) => [i.key, i]));
+  return items.flatMap((placed) => {
+    const source = byKey.get(placed.key);
+    if (placed.role !== 'relational' || !placed.path || source?.refs.length !== 2) return [];
+    const ends = new Set(source.refs.map((r) => r.id));
+    const path = placed.path.map((p) => ({
+      x: placed.rect.x + p.x * placed.scale,
+      y: placed.rect.y + p.y * placed.scale,
+    }));
+    const crossed = solids.filter((s) => {
+      if (ends.has(s.key)) return false;
+      const host = byKey.get(s.key)?.pin?.host;
+      if (host === placed.key) return false;
+      return pathCrossesRect(path, s.rect);
+    });
+    return crossed.map((s) => ({
+      code: 'connector_crosses' as const,
+      message: `Connector "${placed.key}" passes through "${s.key}".`,
+      keys: [placed.key, s.key],
+    }));
+  });
 }

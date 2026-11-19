@@ -3,6 +3,7 @@ import type { WorldItem } from '../scene/beat-world.ts';
 import type { Rect, Theme, Zone } from '../theme/index.ts';
 import { analyse, type Analysis, type SceneItem } from './analyse.ts';
 import { arrange, type Arranged } from './arrange.ts';
+import { containerChildren } from './containers.ts';
 import {
   applyPoint,
   applyRect,
@@ -171,7 +172,11 @@ function boardItems(analysis: Analysis, arranged: Arranged, t: Transform): Place
     .flatMap((item) => {
       const rect = arranged.rects.get(item.key);
       if (!rect || item.role === 'overlay') return [];
-      return [placedItem(item, applyRect(t, rect), t.scale * item.boost)];
+      const placed = placedItem(item, applyRect(t, rect), t.scale * item.boost);
+      const path = arranged.paths.get(item.key);
+      if (!path) return [placed];
+      // Box px equal logical px for relational items (they are never boosted).
+      return [{ ...placed, path: path.map((p) => ({ x: p.x - rect.x, y: p.y - rect.y })) }];
     })
     .sort((a, b) => a.z - b.z);
 }
@@ -180,7 +185,10 @@ function placedItem(item: SceneItem, rect: Rect, scale: number): PlacedItem {
   return { key: item.key, role: item.role, rect, scale, z: Z_BY_ROLE[item.role] };
 }
 
-/** Overlays at their preferred size (smaller if needed), centred in the frame, clear of zones. */
+/**
+ * Overlays at their preferred size (smaller if needed), centred in the frame, clear of zones. A
+ * container's size comes from its children, which it lays out in its own frame.
+ */
 function overlayItems(analysis: Analysis, theme: Theme, frame: LayoutFrame): PlacedItem[] {
   return analysis.items
     .filter((item) => item.role === 'overlay')
@@ -192,9 +200,11 @@ function overlayItems(analysis: Analysis, theme: Theme, frame: LayoutFrame): Pla
         transform: fitTransform(own, rect),
       });
       const { transform } = chooseClear(attempt, frame, theme.space.md);
+      const children = containerChildren(item.item, theme, item.size);
       return {
         ...placedItem(item, applyRect(transform, own), transform.scale),
         z: Z_BY_ROLE.overlay + i,
+        ...(children.length > 0 ? { children } : {}),
       };
     });
 }

@@ -58,6 +58,7 @@ export const gridOverlayPrimitive = definePrimitive({
   family: 'spatial',
   propsSchema: GridOverlayPropsSchema,
   actions: ['enter', 'exit', 'highlight', 'dim'],
+  layoutRole: 'frame',
   sizeHints: mapSizeHints,
   elementRefs: (props) =>
     props.over

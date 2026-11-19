@@ -1,6 +1,6 @@
 import { expect } from 'vitest';
 import { PRIMITIVES } from '../primitives/registry.ts';
-import type { WorldItem } from '../scene/beat-world.ts';
+import type { PrimitiveItem } from '../scene/scene-layers.ts';
 import { getTheme, safeAreas, type Theme } from '../theme/index.ts';
 import { inside, overlaps, pathCrossesRect, pointsRect } from './rect.ts';
 import type { BoardLayout, LayoutFrame, PlacedItem } from './types.ts';
@@ -30,7 +30,7 @@ export function item(
   primitive: string,
   props: Record<string, unknown>,
   zone?: string,
-): WorldItem {
+): PrimitiveItem {
   const definition = PRIMITIVES.get(primitive);
   if (!definition) throw new Error(`Unknown primitive ${primitive}`);
   return {

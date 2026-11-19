@@ -17,11 +17,17 @@ import { packetProgress } from './packet.ts';
 import { connectorInset, type ConnectorProps } from './definition.ts';
 
 /**
- * A line or arrow between two elements. Until the layout engine (P1A.9) supplies its endpoints it
- * runs straight across its own box, with a small port dot at each end.
+ * A line or arrow between two elements, along the path the layout gives it (straight across its
+ * own box when it stands alone), with a small port dot at each end.
  */
-export function Connector({ theme, props, box, state }: PrimitiveComponentProps<ConnectorProps>) {
-  const points = standalonePath(box, connectorInset(theme));
+export function Connector({
+  theme,
+  props,
+  box,
+  state,
+  path,
+}: PrimitiveComponentProps<ConnectorProps>) {
+  const points = path ? [...path] : standalonePath(box, connectorInset(theme));
   const { draw, opacity } = revealState(state);
   const rejected = state.actions.reject ?? 0;
   const tint = semanticTint(theme, rejected > 0 ? 'problem' : props.semantic);

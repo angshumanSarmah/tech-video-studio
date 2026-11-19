@@ -83,7 +83,7 @@
       "id": "callout",
       "family": "annotation",
       "summary": "A small card with one or two lines of text and an optional `title`, for a counterfactual or a warning: \"If the lease never expires: the lock is held forever ✗\". Tinted by `semantic`: problem, focus or concept. `reject` turns it red with a cross and a shake (the assumption it states is ruled out).",
-      "whenToUse": "A what-if, a caveat or a consequence that sits beside the diagram: the cost of the naive choice, a warning about a failure mode, an aside that explains a term.",
+      "whenToUse": "A what-if, a caveat or a consequence that sits beside the diagram: the cost of the naive choice, a warning about a failure mode, an aside that explains a term. Set `pin` to keep it on a side of the element it belongs to.",
       "whenNotToUse": "A one-word status (use `tag`); a big statement over the whole scene (use `statement_card`); a number with a source (use `stat_card`).",
       "actions": [
         "enter",
@@ -97,6 +97,34 @@
       "props": {
         "type": "object",
         "properties": {
+          "pin": {
+            "type": "object",
+            "properties": {
+              "to": {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                "description": "Id of the element in this beat to pin to (a connector, for middle)."
+              },
+              "side": {
+                "default": "top",
+                "description": "Side of that element: top, bottom, left, right, or middle (a connector midpoint).",
+                "type": "string",
+                "enum": [
+                  "top",
+                  "bottom",
+                  "left",
+                  "right",
+                  "middle"
+                ]
+              }
+            },
+            "required": [
+              "to"
+            ],
+            "additionalProperties": false,
+            "description": "Optional: pin this element to another one so it stays attached to it."
+          },
           "title": {
             "type": "string",
             "minLength": 1,
@@ -486,7 +514,7 @@
       "id": "tag",
       "family": "annotation",
       "summary": "A boxed monospace label in a semantic colour, like a sticker on the board. It names a thing, a state or a result in two or three words (\"429\", \"CACHE HIT\", \"RATE LIMITED\").",
-      "whenToUse": "Labelling a state, outcome or status code; calling out the key term of the beat; marking a result as ok or problem. `reject` turns it red with a cross.",
+      "whenToUse": "Labelling a state, outcome or status code; calling out the key term of the beat; marking a result as ok or problem. `reject` turns it red with a cross. Set `pin` to keep it on a side of the element it belongs to.",
       "whenNotToUse": "Sentences or explanations (the narration and headline carry those); numbers that change (use `counter`); a component or service in a system diagram.",
       "actions": [
         "enter",
@@ -500,6 +528,34 @@
       "props": {
         "type": "object",
         "properties": {
+          "pin": {
+            "type": "object",
+            "properties": {
+              "to": {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                "description": "Id of the element in this beat to pin to (a connector, for middle)."
+              },
+              "side": {
+                "default": "top",
+                "description": "Side of that element: top, bottom, left, right, or middle (a connector midpoint).",
+                "type": "string",
+                "enum": [
+                  "top",
+                  "bottom",
+                  "left",
+                  "right",
+                  "middle"
+                ]
+              }
+            },
+            "required": [
+              "to"
+            ],
+            "additionalProperties": false,
+            "description": "Optional: pin this element to another one so it stays attached to it."
+          },
           "text": {
             "type": "string",
             "minLength": 1,
@@ -1397,7 +1453,7 @@
       "id": "counter",
       "family": "metric",
       "summary": "A big number with an optional unit and caption. Without a `count` event it shows `value`. With one, it shows `from` (default 0) until the count begins, then counts up or down to `value`, so the viewer watches a quantity grow or drain. With `ticking` the count runs on narration time and lands on `value` exactly at the `reject` (an outage clock that stops when the outage ends). `reject` turns the number red with a shake.",
-      "whenToUse": "One quantity that matters to the story: requests per second, tokens left, queue length, latency, how long an outage lasted. Use `count` when the change itself is the point.",
+      "whenToUse": "One quantity that matters to the story: requests per second, tokens left, queue length, latency, how long an outage lasted. Use `count` when the change itself is the point. Set `pin` to keep it on a side of the element it belongs to.",
       "whenNotToUse": "A word or status instead of a quantity (use `tag`); a countdown in time; several numbers at once (one counter per number, and only the ones the story needs).",
       "actions": [
         "enter",
@@ -1412,6 +1468,34 @@
       "props": {
         "type": "object",
         "properties": {
+          "pin": {
+            "type": "object",
+            "properties": {
+              "to": {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                "description": "Id of the element in this beat to pin to (a connector, for middle)."
+              },
+              "side": {
+                "default": "top",
+                "description": "Side of that element: top, bottom, left, right, or middle (a connector midpoint).",
+                "type": "string",
+                "enum": [
+                  "top",
+                  "bottom",
+                  "left",
+                  "right",
+                  "middle"
+                ]
+              }
+            },
+            "required": [
+              "to"
+            ],
+            "additionalProperties": false,
+            "description": "Optional: pin this element to another one so it stays attached to it."
+          },
           "value": {
             "type": "number",
             "description": "The number shown once any count has finished."
@@ -1746,7 +1830,7 @@
       "id": "timer_ring",
       "family": "metric",
       "summary": "A countdown ring with the time left as mm:ss in the middle. It shows `durationSec` until `count` starts the clock. Its pace is set by the narration: it reaches 00:00 exactly on the `reject` (expiry: empty ring, red flash); without `reject` it runs out at the element's `exit` or the end of the beat, and holds 00:00. It never runs slower than real time; when faster, a fast-forward tag shows the multiplier (e.g. 60×).",
-      "whenToUse": "A deadline or hold in the story: a room held for 10 minutes, a token that expires, a lease or a timeout. Put `count` where the clock starts and `reject` on the word where the time runs out.",
+      "whenToUse": "A deadline or hold in the story: a room held for 10 minutes, a token that expires, a lease or a timeout. Put `count` where the clock starts and `reject` on the word where the time runs out. Set `pin` to keep it on a side of the element it belongs to.",
       "whenNotToUse": "A quantity that is not time (use `counter`); elapsed time across the whole video (that is the story clock in the HUD); a duration that never runs down.",
       "actions": [
         "enter",
@@ -1761,6 +1845,34 @@
       "props": {
         "type": "object",
         "properties": {
+          "pin": {
+            "type": "object",
+            "properties": {
+              "to": {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                "description": "Id of the element in this beat to pin to (a connector, for middle)."
+              },
+              "side": {
+                "default": "top",
+                "description": "Side of that element: top, bottom, left, right, or middle (a connector midpoint).",
+                "type": "string",
+                "enum": [
+                  "top",
+                  "bottom",
+                  "left",
+                  "right",
+                  "middle"
+                ]
+              }
+            },
+            "required": [
+              "to"
+            ],
+            "additionalProperties": false,
+            "description": "Optional: pin this element to another one so it stays attached to it."
+          },
           "durationSec": {
             "type": "integer",
             "minimum": 1,

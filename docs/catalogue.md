@@ -55,7 +55,7 @@ A curly brace that groups a run of sibling elements (`targets`), or some `parts`
 
 A small card with one or two lines of text and an optional `title`, for a counterfactual or a warning: "If the lease never expires: the lock is held forever ✗". Tinted by `semantic`: problem, focus or concept. `reject` turns it red with a cross and a shake (the assumption it states is ruled out).
 
-**When to use:** A what-if, a caveat or a consequence that sits beside the diagram: the cost of the naive choice, a warning about a failure mode, an aside that explains a term.
+**When to use:** A what-if, a caveat or a consequence that sits beside the diagram: the cost of the naive choice, a warning about a failure mode, an aside that explains a term. Set `pin` to keep it on a side of the element it belongs to.
 
 **When not to:** A one-word status (use `tag`); a big statement over the whole scene (use `statement_card`); a number with a source (use `stat_card`).
 
@@ -63,6 +63,7 @@ A small card with one or two lines of text and an optional `title`, for a counte
 
 | Name | Type | Required | Notes |
 | --- | --- | --- | --- |
+| `pin` | object | no | Optional: pin this element to another one so it stays attached to it. |
 | `title` | string | no | Optional short heading above the text, e.g. WHAT IF. (min length 1, max length 20) |
 | `text` | string | yes | The counterfactual or warning; wraps to at most two lines. (min length 1, max length 64) |
 | `semantic` | `problem` \| `focus` \| `concept` | no | Colour meaning: problem (a warning), focus (the point) or concept (an aside). (default `"problem"`) |
@@ -276,7 +277,7 @@ One to three large `lines` at display size on a card that spans the stage, over 
 
 A boxed monospace label in a semantic colour, like a sticker on the board. It names a thing, a state or a result in two or three words ("429", "CACHE HIT", "RATE LIMITED").
 
-**When to use:** Labelling a state, outcome or status code; calling out the key term of the beat; marking a result as ok or problem. `reject` turns it red with a cross.
+**When to use:** Labelling a state, outcome or status code; calling out the key term of the beat; marking a result as ok or problem. `reject` turns it red with a cross. Set `pin` to keep it on a side of the element it belongs to.
 
 **When not to:** Sentences or explanations (the narration and headline carry those); numbers that change (use `counter`); a component or service in a system diagram.
 
@@ -284,6 +285,7 @@ A boxed monospace label in a semantic colour, like a sticker on the board. It na
 
 | Name | Type | Required | Notes |
 | --- | --- | --- | --- |
+| `pin` | object | no | Optional: pin this element to another one so it stays attached to it. |
 | `text` | string | yes | Short label, shown in uppercase monospace. (min length 1, max length 32) |
 | `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Colour meaning: neutral label, focus, ok, problem or concept. (default `"neutral"`) |
 
@@ -742,7 +744,7 @@ A steady stream of small packets flowing along a `connector`, at `rate` packets 
 
 A big number with an optional unit and caption. Without a `count` event it shows `value`. With one, it shows `from` (default 0) until the count begins, then counts up or down to `value`, so the viewer watches a quantity grow or drain. With `ticking` the count runs on narration time and lands on `value` exactly at the `reject` (an outage clock that stops when the outage ends). `reject` turns the number red with a shake.
 
-**When to use:** One quantity that matters to the story: requests per second, tokens left, queue length, latency, how long an outage lasted. Use `count` when the change itself is the point.
+**When to use:** One quantity that matters to the story: requests per second, tokens left, queue length, latency, how long an outage lasted. Use `count` when the change itself is the point. Set `pin` to keep it on a side of the element it belongs to.
 
 **When not to:** A word or status instead of a quantity (use `tag`); a countdown in time; several numbers at once (one counter per number, and only the ones the story needs).
 
@@ -750,6 +752,7 @@ A big number with an optional unit and caption. Without a `count` event it shows
 
 | Name | Type | Required | Notes |
 | --- | --- | --- | --- |
+| `pin` | object | no | Optional: pin this element to another one so it stays attached to it. |
 | `value` | number | yes | The number shown once any count has finished. |
 | `from` | number | no | Where a `count` starts (default 0). Shown until the count begins. |
 | `unit` | string | no | Short unit after the number. (min length 1, max length 16) |
@@ -906,7 +909,7 @@ A card with one big figure, a label under it, and a small source footnote. The f
 
 A countdown ring with the time left as mm:ss in the middle. It shows `durationSec` until `count` starts the clock. Its pace is set by the narration: it reaches 00:00 exactly on the `reject` (expiry: empty ring, red flash); without `reject` it runs out at the element's `exit` or the end of the beat, and holds 00:00. It never runs slower than real time; when faster, a fast-forward tag shows the multiplier (e.g. 60×).
 
-**When to use:** A deadline or hold in the story: a room held for 10 minutes, a token that expires, a lease or a timeout. Put `count` where the clock starts and `reject` on the word where the time runs out.
+**When to use:** A deadline or hold in the story: a room held for 10 minutes, a token that expires, a lease or a timeout. Put `count` where the clock starts and `reject` on the word where the time runs out. Set `pin` to keep it on a side of the element it belongs to.
 
 **When not to:** A quantity that is not time (use `counter`); elapsed time across the whole video (that is the story clock in the HUD); a duration that never runs down.
 
@@ -914,6 +917,7 @@ A countdown ring with the time left as mm:ss in the middle. It shows `durationSe
 
 | Name | Type | Required | Notes |
 | --- | --- | --- | --- |
+| `pin` | object | no | Optional: pin this element to another one so it stays attached to it. |
 | `durationSec` | integer | yes | Time on the clock when it starts, in seconds (600 shows 10:00). (min 1, max 5999) |
 | `label` | string | no | Caption under the ring: what the time is for. (min length 1, max length 24) |
 | `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Ring colour while running: neutral, focus, ok, problem or concept. (default `"focus"`) |

@@ -3,12 +3,14 @@ import type { Rect, Theme } from '../theme/index.ts';
 import type { Analysis } from './analyse.ts';
 import type { Guide } from './blocks.ts';
 import type { LayoutModeDefinition } from './modes.ts';
+import { placeFollowers } from './relations.ts';
 import { separate } from './separate.ts';
 import type { ModeContext, Unit } from './types.ts';
 
 /**
- * A board arranged in logical px (scale 1, any origin): the mode places the units, overlapping
- * solids are pushed apart, then everything that follows another item gets its rect. Pure.
+ * A board arranged in logical px (scale 1, any origin): the mode places the units (clusters),
+ * overlapping units are pushed apart, each cluster is unpacked into its members, then everything
+ * that follows another item gets its rect and path. Pure.
  */
 
 export type Arranged = {
@@ -32,17 +34,38 @@ export function arrange(
   mode: LayoutModeDefinition,
   params: ArrangeParams,
 ): Arranged {
+  const { theme } = params;
   const ctx = modeContext(analysis, params);
   const block = mode.place(ctx);
   const rects = new Map(block.rects);
-  const solids = analysis.items.filter((i) => i.role === 'solid' && rects.has(i.key));
-  separate(
-    rects,
-    solids.map((i) => i.key),
-    ctx.gap,
-  );
+  const movable = analysis.units
+    .filter((u) => rects.has(u.key) && !isBackground(analysis, u.key))
+    .map((u) => u.key);
+  separate(rects, movable, ctx.gap);
+  unpackClusters(analysis, rects);
   frameOnBase(analysis, mode, rects);
-  return { rects, paths: new Map(block.routes), guides: block.guides };
+  const paths = new Map(block.routes);
+  placeFollowers(analysis.items, rects, paths, {
+    pinGap: theme.space.xs,
+    portGap: theme.space.xs,
+    labelBand: ctx.labelBand,
+    ringPad: theme.space.md,
+  });
+  return { rects, paths, guides: block.guides };
+}
+
+function isBackground(analysis: Analysis, key: string): boolean {
+  return analysis.items.some((i) => i.key === key && i.role === 'background');
+}
+
+/** Replaces each unit's cluster rect with its members' rects (the unit's own item included). */
+function unpackClusters(analysis: Analysis, rects: Map<string, Rect>): void {
+  for (const unit of analysis.units) {
+    const at = rects.get(unit.key);
+    const cluster = analysis.clusters.get(unit.key);
+    if (!at || !cluster) continue;
+    cluster.block.rects.forEach((r, key) => rects.set(key, { ...r, x: r.x + at.x, y: r.y + at.y }));
+  }
 }
 
 export function modeContext(analysis: Analysis, params: ArrangeParams): ModeContext {
@@ -56,11 +79,23 @@ export function modeContext(analysis: Analysis, params: ArrangeParams): ModeCont
     links: analysis.links,
     focus: params.focus,
     gap,
-    linkGap: Math.max(2 * gap, 2 * band),
+    linkGap: linkGap(analysis, gap, band, params.aspect < 1),
     aspect: params.aspect,
     maxRowWidth: params.maxRowWidth,
     labelBand: band,
   };
+}
+
+/**
+ * Space between linked units: room for a label on each side of the line, and for any midpoint
+ * pin along the flow (its height in a tall frame, where links mostly run down; its width in a
+ * wide one).
+ */
+function linkGap(analysis: Analysis, gap: number, band: number, tall: boolean): number {
+  const pins = analysis.items
+    .filter((i) => i.pin?.side === 'middle')
+    .map((i) => (tall ? i.size.height : i.size.width) + 2 * gap);
+  return Math.max(2 * gap, 2 * band, ...pins);
 }
 
 /** Room above (and below) a line for its label: one label line plus a little air. */
@@ -76,7 +111,7 @@ function frameOnBase(analysis: Analysis, mode: LayoutModeDefinition, rects: Map<
   const baseKey = analysis.units.find((u) => u.zone === base)?.key;
   const baseRect = baseKey ? rects.get(baseKey) : undefined;
   for (const item of analysis.items) {
-    if (item.role !== 'framed' || item.zone !== zone) continue;
+    if (item.role !== 'framed' || item.zone !== zone || item.target !== undefined) continue;
     rects.set(item.key, baseRect ?? { x: 0, y: 0, ...item.size });
   }
 }

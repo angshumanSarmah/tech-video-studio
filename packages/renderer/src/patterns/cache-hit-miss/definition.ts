@@ -70,8 +70,16 @@ export const cacheHitMissPattern = definePattern({
       el('far', 'node_card', nodeProps(p.far), 'far'),
       link('near-link', 'client', 'near', { heads: 'both' }),
       link('far-link', 'near', 'far', { heads: 'both', semantic: 'problem' }),
-      el('hit', 'tag', { text: `HIT · ${p.hitLatency}`, semantic: 'ok' }, 'aside'),
-      el('miss', 'tag', { text: `MISS · ${p.missLatency}`, semantic: 'problem' }, 'aside'),
+      el('hit', 'tag', {
+        text: `HIT · ${p.hitLatency}`,
+        semantic: 'ok',
+        pin: { to: 'near-link', side: 'middle' },
+      }),
+      el('miss', 'tag', {
+        text: `MISS · ${p.missLatency}`,
+        semantic: 'problem',
+        pin: { to: 'far-link', side: 'middle' },
+      }),
     ],
     events: [
       on(p.at.show, 'enter', ['client', 'near', 'far', 'near-link']),

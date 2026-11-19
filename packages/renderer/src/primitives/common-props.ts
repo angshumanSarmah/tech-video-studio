@@ -1,6 +1,7 @@
 import { SpecIdSchema } from '@explainer-studio/shared';
 import { z } from 'zod';
 import { SEMANTIC_COLOURS, type SemanticColour } from '../theme/index.ts';
+import { PIN_SIDES, type ElementRef } from './types.ts';
 
 /** Prop schemas shared by several primitives, so their LLM-facing wording stays the same. */
 
@@ -70,3 +71,27 @@ export function partList<T extends z.ZodType<{ id: string }>>(
 
 /** The ids of a part list, for `parts.ids`. */
 export const idsOf = (items: readonly { id: string }[]): string[] => items.map((i) => i.id);
+
+/**
+ * Optional `pin`: keeps a small element (tag, counter, timer, callout) on one side of another
+ * element, or on a connector's midpoint, wherever the layout puts it.
+ */
+export const PinSchema = z
+  .strictObject({
+    to: elementRefProp('Id of the element in this beat to pin to (a connector, for middle).'),
+    side: z
+      .enum(PIN_SIDES)
+      .default('top')
+      .describe(
+        'Side of that element: top, bottom, left, right, or middle (a connector midpoint).',
+      ),
+  })
+  .describe('Optional: pin this element to another one so it stays attached to it.');
+export type Pin = z.output<typeof PinSchema>;
+
+/** The element ref a `pin` prop declares (none without a pin). */
+export function pinRefs(pin: Pin | undefined): ElementRef[] {
+  if (!pin) return [];
+  const middle = pin.side === 'middle' ? { primitives: ['connector'] } : {};
+  return [{ path: ['pin', 'to'], id: pin.to, pin: pin.side, ...middle }];
+}

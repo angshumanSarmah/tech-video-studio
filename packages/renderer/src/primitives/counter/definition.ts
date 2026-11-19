@@ -1,10 +1,12 @@
 import { z } from 'zod';
+import { PinSchema, pinRefs } from '../common-props.ts';
 import { SEMANTIC_COLOURS, type Theme } from '../../theme/index.ts';
 import { approxTextWidth, lineHeightPx } from '../measure.ts';
 import { definePrimitive, type SizeHints } from '../types.ts';
 import { formatCount } from './format.ts';
 
 export const CounterPropsSchema = z.strictObject({
+  pin: PinSchema.optional(),
   value: z.number().finite().describe('The number shown once any count has finished.'),
   from: z
     .number()
@@ -48,6 +50,7 @@ export const counterPrimitive = definePrimitive({
   propsSchema: CounterPropsSchema,
   actions: ['enter', 'exit', 'count', 'highlight', 'dim', 'pulse', 'reject'],
   sizeHints: counterSizeHints,
+  elementRefs: (props) => pinRefs(props.pin),
   description: {
     summary:
       'A big number with an optional unit and caption. Without a `count` event it shows `value`. ' +
@@ -57,7 +60,8 @@ export const counterPrimitive = definePrimitive({
       'when the outage ends). `reject` turns the number red with a shake.',
     whenToUse:
       'One quantity that matters to the story: requests per second, tokens left, queue length, ' +
-      'latency, how long an outage lasted. Use `count` when the change itself is the point.',
+      'latency, how long an outage lasted. Use `count` when the change itself is the point. ' +
+      'Set `pin` to keep it on a side of the element it belongs to.',
     whenNotToUse:
       'A word or status instead of a quantity (use `tag`); a countdown in time; several numbers ' +
       'at once (one counter per number, and only the ones the story needs).',

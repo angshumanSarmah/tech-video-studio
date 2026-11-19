@@ -22,7 +22,7 @@ export const InsetPanelPropsSchema = z
   });
 export type InsetPanelProps = z.output<typeof InsetPanelPropsSchema>;
 
-/** Panel size over the 936×1080 stage until the layout engine (P1A.9) sizes it from its children. */
+/** Panel size when it stands alone; on a board the layout engine sizes it from its children. */
 const WIDTH = 860;
 const HEIGHT = 900;
 const MIN_WIDTH = 600;
@@ -57,6 +57,10 @@ export const insetPanelPrimitive = definePrimitive({
   actions: ['enter', 'exit', 'highlight', 'dim', 'pulse'],
   sizeHints: insetPanelSizeHints,
   layer: 'overlay',
+  contentInset: (props, theme) => {
+    const pad = theme.space.lg;
+    return { top: insetHeaderHeight(props, theme) + pad, right: pad, bottom: pad, left: pad };
+  },
   elementRefs: insetPanelRefs,
   description: {
     summary:

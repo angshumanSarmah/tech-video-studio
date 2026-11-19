@@ -40,6 +40,8 @@ export type SizeHints = {
 
 export type Size = { width: number; height: number };
 
+export type Insets = { top: number; right: number; bottom: number; left: number };
+
 /** An asset id a primitive's props reference, with its path inside `props`. */
 export type AssetRef = { path: (string | number)[]; id: string };
 
@@ -59,7 +61,16 @@ export type ElementRef = {
   contains?: boolean;
   /** Parts of the referenced element this ref is limited to (a `bracket` over some slots). */
   parts?: readonly string[];
+  /**
+   * This element is pinned to the referenced one: the layout keeps it on that side of it (or on a
+   * connector's midpoint) wherever the referenced element goes.
+   */
+  pin?: PinSide;
 };
+
+/** Sides an element can be pinned to; `middle` is a connector's midpoint. */
+export const PIN_SIDES = ['top', 'bottom', 'left', 'right', 'middle'] as const;
+export type PinSide = (typeof PIN_SIDES)[number];
 
 /**
  * Where an element is drawn: on the board (default) or as an overlay above the board. Overlays are
@@ -117,6 +128,11 @@ export interface PrimitiveDefinition<Id extends string = string, S extends z.Zod
   layer?: PrimitiveLayer;
   /** How the layout engine places it, when not as an ordinary element (see the role list). */
   layoutRole?: PrimitiveLayoutRole;
+  /**
+   * Where contained elements go inside a container (an `inset_panel`): its padding in box px.
+   * The layout sizes the container to its children plus this. Omit for non-containers.
+   */
+  contentInset?(props: z.output<S>, theme: Theme): Insets;
   /**
    * Warnings about the events that act on one element (across its `continuesPrevious` chain), in
    * order. Omit when the primitive has no such rules.

@@ -50,6 +50,7 @@ export const bracketPrimitive = definePrimitive({
   family: 'annotation',
   propsSchema: BracketPropsSchema,
   actions: ['enter', 'exit', 'highlight', 'dim', 'pulse'],
+  layoutRole: 'span',
   sizeHints: bracketSizeHints,
   elementRefs: bracketRefs,
   description: {

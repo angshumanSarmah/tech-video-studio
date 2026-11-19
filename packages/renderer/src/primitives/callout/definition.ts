@@ -1,12 +1,13 @@
 import { z } from 'zod';
 import type { Theme } from '../../theme/index.ts';
-import { lineText } from '../common-props.ts';
+import { lineText, PinSchema, pinRefs } from '../common-props.ts';
 import { approxTextWidth, lineHeightPx } from '../measure.ts';
 import { definePrimitive, type SizeHints } from '../types.ts';
 
 export const CALLOUT_SEMANTICS = ['problem', 'focus', 'concept'] as const;
 
 export const CalloutPropsSchema = z.strictObject({
+  pin: PinSchema.optional(),
   title: lineText(20, 'Optional short heading above the text, e.g. WHAT IF.').optional(),
   text: lineText(64, 'The counterfactual or warning; wraps to at most two lines.'),
   semantic: z
@@ -45,6 +46,7 @@ export const calloutPrimitive = definePrimitive({
   propsSchema: CalloutPropsSchema,
   actions: ['enter', 'exit', 'highlight', 'dim', 'pulse', 'reject'],
   sizeHints: calloutSizeHints,
+  elementRefs: (props) => pinRefs(props.pin),
   description: {
     summary:
       'A small card with one or two lines of text and an optional `title`, for a counterfactual ' +
@@ -53,7 +55,8 @@ export const calloutPrimitive = definePrimitive({
       'assumption it states is ruled out).',
     whenToUse:
       'A what-if, a caveat or a consequence that sits beside the diagram: the cost of the ' +
-      'naive choice, a warning about a failure mode, an aside that explains a term.',
+      'naive choice, a warning about a failure mode, an aside that explains a term. ' +
+      'Set `pin` to keep it on a side of the element it belongs to.',
     whenNotToUse:
       'A one-word status (use `tag`); a big statement over the whole scene (use ' +
       '`statement_card`); a number with a source (use `stat_card`).',
