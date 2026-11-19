@@ -112,8 +112,8 @@ export function svgPoints(points: readonly Point[]): string {
 }
 
 /**
- * TEMPORARY until the layout engine (P1A.9) supplies real endpoints: a straight left-to-right
- * line through the middle of the box, `inset` px from each side.
+ * The path of a relational primitive that stands alone (sheets; the layout gives it a `path` on a
+ * board): a straight left-to-right line through the middle of the box, `inset` px from each side.
  */
 export function standalonePath(box: Size, inset: number): Point[] {
   const y = box.height / 2;

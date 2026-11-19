@@ -59,8 +59,8 @@ export const placeTwoColumn: ModePlacer = (ctx) =>
   withAside(ctx, row([zoneColumn(ctx, 'left'), zoneColumn(ctx, 'right')], ctx.linkGap));
 
 /**
- * Two halves for the same situation with a divider between them; `shared` elements in a row under
- * both halves (or beside them in a wide frame, where there is no room below).
+ * Two halves for the same situation with a divider between them; `shared` elements in a row above
+ * both halves (the event that hits both), so links from them run down into each half.
  */
 export const placeVersusSplit: ModePlacer = (ctx) => {
   const left = zoneColumn(ctx, 'left');
@@ -76,5 +76,5 @@ export const placeVersusSplit: ModePlacer = (ctx) => {
       ? [{ from: { x: left.width + gap / 2, y: 0 }, to: { x: left.width + gap / 2, y: height } }]
       : [],
   );
-  return column([halves, wrappedRow(ctx, 'shared')], ctx.linkGap);
+  return column([wrappedRow(ctx, 'shared'), halves], ctx.linkGap);
 };

@@ -2,22 +2,25 @@ import type { EffectiveTiming, RenderableVideoSpec } from '@explainer-studio/sha
 import { useMemo } from 'react';
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion';
 import { DEFAULT_REGISTRIES } from '../catalog/registries.ts';
-import { stageForBeat } from '../hud/hud-state.ts';
 import { rectCss } from '../layers/rect-css.ts';
-import { lineHeightPx } from '../primitives/measure.ts';
+import type { Transform } from '../layout/fit.ts';
+import { inflate } from '../layout/rect.ts';
+import { specLayout } from '../layout/spec-layout.ts';
+import { boxOf, type Guide, type PlacedItem } from '../layout/types.ts';
 import { elementState } from '../primitives/element-state.ts';
-import { safeAreas, textCss, type Rect, type Theme } from '../theme/index.ts';
+import { textCss, type Rect, type Theme } from '../theme/index.ts';
 import { beatWorld, type WorldItem } from './beat-world.ts';
-import { scrimColour, scrimLevel, splitLayers, type PrimitiveItem } from './scene-layers.ts';
-import { footnoteOpacity, footnoteRect, footnoteText } from './source-footnote.ts';
+import { scrimColour, scrimLevel, splitLayers } from './scene-layers.ts';
+import { footnoteOpacity, footnoteText } from './source-footnote.ts';
 import { WorldItemView } from './WorldItemView.tsx';
 
 /**
- * One beat's board: every element drawn by its registered component, with state from its anchored
- * events. Overlays (`statement_card`, `inset_panel`) are drawn centred over the stage above a
- * scrim that dims the board; their contained children are drawn inside them, above the scrim.
- * TEMPORARY placement: board elements flow in a centred wrap inside the stage at their preferred
- * size until the layout engine (P1A.9) computes positions, sizes and focus.
+ * One beat's board, placed by the layout engine (`specLayout`: one placement per
+ * `continuesPrevious` chain, computed once per spec). Board items are drawn back to front at their
+ * placed rects under the beat's camera (a uniform zoom and pan of the board layer, clipped to the
+ * board frame); overlays are drawn at their own rects above a scrim that dims the board, with their
+ * contained children where the nested layout put them; the source footnote sits where the layout
+ * reserved it.
  */
 
 type Props = {
@@ -36,28 +39,42 @@ export function BeatScene({ theme, spec, timing, beatId, beatFrom }: Props) {
     () => splitLayers(beatWorld(spec, timing, beatId, fps, DEFAULT_REGISTRIES)),
     [spec, timing, beatId, fps],
   );
-  const areas = useMemo(() => safeAreas(theme), [theme]);
-  const stage = stageForBeat(areas, spec, beatId);
+  const beat = specLayout(spec, theme).beats.get(beatId);
+  if (!beat) return null;
+  const { board, footnote } = beat.chain;
   const scrim = scrimLevel(
     layers.overlays.map((item) => elementState(item.events, frame, fps).presence),
   );
-  const footnote = footnoteText(spec, beatId);
+  const footnoteLine = footnoteText(spec, beatId);
   const beatStartSec = timing.beats.find((b) => b.beatId === beatId)?.startSec ?? 0;
   return (
     <>
-      <Board theme={theme} stage={stage} items={layers.board} frame={frame} fps={fps} />
+      <Board
+        theme={theme}
+        clip={inflate(board.frame, theme.space.sm)}
+        camera={beat.camera}
+        guides={board.guides}
+        items={layers.board}
+        placed={board.items}
+        frame={frame}
+        fps={fps}
+      />
       {scrim > 0 ? <AbsoluteFill style={{ background: scrimColour(theme, scrim) }} /> : null}
-      <Overlays theme={theme} stage={stage} items={layers.overlays} frame={frame} fps={fps} />
-      {footnote ? (
+      {layers.overlays.map((item) => (
+        <Placed
+          key={item.key}
+          theme={theme}
+          item={item}
+          placed={board.overlays.find((p) => p.key === item.key)}
+          frame={frame}
+          fps={fps}
+        />
+      ))}
+      {footnote && footnoteLine ? (
         <SourceFootnote
           theme={theme}
-          text={footnote}
-          rect={footnoteRect(
-            stage,
-            areas.avoidZones,
-            lineHeightPx(theme, 'footnote'),
-            theme.space.md,
-          )}
+          text={footnoteLine}
+          rect={footnote}
           opacity={footnoteOpacity(frame / fps, beatStartSec)}
         />
       ) : null}
@@ -65,39 +82,95 @@ export function BeatScene({ theme, spec, timing, beatId, beatFrom }: Props) {
   );
 }
 
-type LayerProps<T> = { theme: Theme; stage: Rect; items: T[]; frame: number; fps: number };
+type BoardProps = {
+  theme: Theme;
+  clip: Rect;
+  camera: Transform;
+  guides: readonly Guide[];
+  items: readonly WorldItem[];
+  placed: readonly PlacedItem[];
+  frame: number;
+  fps: number;
+};
 
-function Board({ theme, stage, items, frame, fps }: LayerProps<WorldItem>) {
+/** The board layer: canvas-space items under the camera, clipped to the (padded) board frame. */
+function Board({ theme, clip, camera, guides, items, placed, frame, fps }: BoardProps) {
+  const byKey = new Map(items.map((item) => [item.key, item]));
   return (
-    <div
-      style={{
-        ...rectCss(stage),
-        display: 'flex',
-        flexWrap: 'wrap',
-        alignContent: 'center',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: theme.space.lg,
-      }}
-    >
-      {items.map((item) => (
-        <WorldItemView key={item.key} theme={theme} item={item} frame={frame} fps={fps} />
-      ))}
+    <div style={{ ...rectCss(clip), overflow: 'hidden' }}>
+      <div
+        style={{
+          position: 'absolute',
+          left: -clip.x,
+          top: -clip.y,
+          width: theme.canvas.width,
+          height: theme.canvas.height,
+          transform: `translate(${camera.dx}px, ${camera.dy}px) scale(${camera.scale})`,
+          transformOrigin: '0 0',
+        }}
+      >
+        <Guides theme={theme} guides={guides} />
+        {placed.map((p) => {
+          const item = byKey.get(p.key);
+          return item ? (
+            <Placed key={p.key} theme={theme} item={item} placed={p} frame={frame} fps={fps} />
+          ) : null;
+        })}
+      </div>
     </div>
   );
 }
 
-/** Overlays share the stage's centre (validation warns when two show at once). */
-function Overlays({ theme, stage, items, frame, fps }: LayerProps<PrimitiveItem>) {
-  if (items.length === 0) return null;
+type PlacedProps = {
+  theme: Theme;
+  item: WorldItem;
+  placed: PlacedItem | undefined;
+  frame: number;
+  fps: number;
+};
+
+/** One item at its placed rect: drawn in its own box px and scaled to the rect. */
+function Placed({ theme, item, placed, frame, fps }: PlacedProps) {
+  if (!placed) return null;
   return (
-    <div style={{ ...rectCss(stage), display: 'grid', placeItems: 'center' }}>
-      {items.map((item) => (
-        <div key={item.key} style={{ gridArea: '1 / 1' }}>
-          <WorldItemView theme={theme} item={item} frame={frame} fps={fps} />
-        </div>
-      ))}
+    <div
+      style={{
+        position: 'absolute',
+        left: placed.rect.x,
+        top: placed.rect.y,
+        ...boxOf(placed),
+        transform: `scale(${placed.scale})`,
+        transformOrigin: '0 0',
+      }}
+    >
+      <WorldItemView theme={theme} item={item} frame={frame} fps={fps} placed={placed} />
     </div>
+  );
+}
+
+/** Faint lines the mode draws (swimlane lifelines, the versus divider). */
+function Guides({ theme, guides }: { theme: Theme; guides: readonly Guide[] }) {
+  if (guides.length === 0) return null;
+  const stroke = theme.stroke.thin;
+  return (
+    <svg
+      width={theme.canvas.width}
+      height={theme.canvas.height}
+      style={{ position: 'absolute', inset: 0, overflow: 'visible' }}
+    >
+      {guides.map((g, i) => (
+        <line
+          key={i}
+          x1={g.from.x}
+          y1={g.from.y}
+          x2={g.to.x}
+          y2={g.to.y}
+          stroke={theme.colours.ink.faint}
+          strokeWidth={stroke}
+          strokeDasharray={`${stroke * 4} ${stroke * 4}`}
+        />
+      ))}
+    </svg>
   );
 }
 

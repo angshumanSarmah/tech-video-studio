@@ -3,7 +3,7 @@ import { pointAlong, type Point } from '../primitives/geometry.ts';
 import type { PinSide } from '../primitives/types.ts';
 import type { WorldItem } from '../scene/beat-world.ts';
 import { layout } from './layout.ts';
-import { bottom, centre, inflate, inside, right } from './rect.ts';
+import { bottom, centre, inflate, inside, pathCrossesRect, right } from './rect.ts';
 import {
   byKey,
   canvasPath,
@@ -77,7 +77,7 @@ describe('pins', () => {
     expectValidBoard(result, fullFrame());
   });
 
-  it('pins to a connector midpoint', () => {
+  it('pins beside a connector midpoint, clear of the line', () => {
     const items = [
       node('a', 'source'),
       node('b', 'sink'),
@@ -86,10 +86,18 @@ describe('pins', () => {
     ];
     for (const frame of [fullFrame(), wideFrame()]) {
       const result = layout({ items, mode: 'pipeline', focus: [] }, theme, frame);
-      const mid = pointAlong(canvasPath(byKey(result, 'ab')), 0.5).point;
-      const c = centre(byKey(result, 'hit').rect);
-      expect(c.x).toBeCloseTo(mid.x, 5);
-      expect(c.y).toBeCloseTo(mid.y, 5);
+      const path = canvasPath(byKey(result, 'ab'));
+      const { point: mid, angle } = pointAlong(path, 0.5);
+      const pin = byKey(result, 'hit').rect;
+      const gap = theme.space.xs * result.scale;
+      if (Math.abs(Math.cos(angle)) >= Math.abs(Math.sin(angle))) {
+        expect(pin.y).toBeCloseTo(mid.y + gap, 5);
+        expect(centre(pin).x).toBeCloseTo(mid.x, 5);
+      } else {
+        expect(pin.x).toBeCloseTo(mid.x + gap, 5);
+        expect(centre(pin).y).toBeCloseTo(mid.y, 5);
+      }
+      expect(pathCrossesRect(path, pin)).toBe(false);
       expectValidBoard(result, frame);
     }
   });

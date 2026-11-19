@@ -11,8 +11,8 @@ import { BRACE_DEPTH, type BracketProps } from './definition.ts';
 const LABEL_FROM = 0.6;
 
 /**
- * A brace with a label at its tip. Until the layout engine (P1A.9) spans it along its targets it
- * stands alone, across its own box.
+ * A brace with a label at its tip, across its box: on a board the layout makes the box span its
+ * targets, under them.
  */
 export function Bracket({ theme, props, box, state }: PrimitiveComponentProps<BracketProps>) {
   const { draw, opacity } = revealState(state);

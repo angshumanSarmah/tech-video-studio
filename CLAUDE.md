@@ -117,6 +117,8 @@ Dev ports: the UI is on http://localhost:4310 (`WEB_PORT`, Vite, `strictPort`) a
 - **User edits at gates:** a save succeeds when `ok` is true; the UI shows the warnings.
 - A narration "word" is whatever `narrationWords()` returns. Word anchors and timed word lists
   both count words this way.
+- `meta.format` is `full` (default) or `card` (title header, 16:9 diagram window, headline,
+  subtitles). It is a run setting: the LLM `meta` schema leaves it out.
 
 ## Database
 
@@ -228,7 +230,8 @@ src/web/
 each theme's swatch board to `docs/themes/<theme>.png`; `… still:safe-area` renders the
 safe-area overlay to `docs/safe-area/zones.png`; `… still:primitives [ids…]` renders one sheet per
 primitive to `docs/primitives/<id>.png`; `… still:patterns [ids…]` renders one sheet per pattern
-to `docs/patterns/<id>.png` (a panel per narration anchor, elements in one row per zone).
+to `docs/patterns/<id>.png` (a panel per narration anchor, elements in one row per zone);
+`… still:layouts` renders `docs/layouts/<mode>-<format>.png` from the layout board.
 
 - **Themes** live in `src/theme` and are registered by id (`getTheme`, `listThemes`;
   default `drafting-paper`, a light engineering-drawing look). Each is validated against
@@ -258,8 +261,9 @@ to `docs/patterns/<id>.png` (a panel per narration anchor, elements in one row p
 - **Safe areas** come from per-platform exclusion zones (`topBar`, `actions`, `bottomInfo`: rects
   where Shorts/Reels UI covers the video). `safeAreas(theme)` derives a centred HUD band, stage
   and subtitle band from their union, plus `avoidZones` inside the stage that text and key
-  elements must stay out of. The stage's top `headlineBand` is reserved only on beats that show
-  a headline: such a beat's board gets `stageWithHeadline` (`stageForBeat(areas, spec, beatId)`). Calibrate zones with `calibrate:safe-area <shorts|reels>` against a
+  elements must stay out of. The stage's top `headlineBand` is reserved only where a headline
+  shows: a `continuesPrevious` chain with a headline beat gets `stageWithHeadline` for all its
+  beats (`formatAreas`; `stageForBeat` is the per-beat test). Calibrate zones with `calibrate:safe-area <shorts|reels>` against a
   screenshot in `public/calibration/` (gitignored, as are the `docs/safe-area/*-check.png`
   outputs: they show other creators' videos).
 - **Series accents are data**, passed in as props, and adapt to the theme: draw them as
@@ -304,6 +308,9 @@ to `docs/patterns/<id>.png` (a panel per narration anchor, elements in one row p
   batch of primitives gets a new board, listed in `primitiveBoardSpecs` (`fixtures/index.ts`).
   Pattern boards (`PatternFlowBoard`, `PatternDecisionBoard`; `patternBoardSpecs`) have one beat
   per pattern with every anchor, and no scene `layoutMode` (each beat takes its pattern's).
+  `LayoutModesBoard` / `LayoutModesBoardCard` (`fixtures/layout-modes-board.json`, the second
+  via `withFormat`) have one beat per layout mode, with pins, a ring, a bracket, an inset, a
+  footnote and one `continuesPrevious` chain. `allFixtureSpecs` lists every fixture spec.
 - **HUD** (`src/hud`): top bar, step tracker, hero metric pill, chapter header, story clock and
   headline. Slots come from `hudLayout(theme)` (derived from `safeAreas`); what each part shows at
   a frame comes from pure functions in `hud-state.ts`. Parts are toggled per video in `spec.hud`
@@ -316,26 +323,59 @@ to `docs/patterns/<id>.png` (a panel per narration anchor, elements in one row p
   a ruled title block (`SERIES · TOPIC` over `SHEET n/N | REV A | handle`; SHEET is the step
   tracker), the hero metric as a dimension (`DimensionMetric`), then the chapter header and
   story clock. Its slots come from `titleBlockLayout(theme, variant)`. `TitleBlock` has a
-  `header` variant (the title in display type over the cells) for the card format's persistent
-  header. P1A.9 wires it; until then the `CardHeaderPreview` composition shows it, and
-  `still:compare` renders it as the `rate-limiter-header` target.
+  `header` variant (the title in display type over the cells): with `meta.format: "card"`, `Hud`
+  draws it in every theme, with the same chapter / metric and clock rows, in the card header
+  region (`formatAreas`); the headline goes under the window. `still:compare` renders it as the
+  `rate-limiter-card` target.
 - **Scene layer** (`src/scene`): `beatWorld` (pure) collects a beat's elements, expanded
   patterns and everything inherited through `continuesPrevious`, each with the events that act on
   it; `BeatScene` draws them with their registered components (through `WorldItemView`, which
   the primitive sheets share). Unknown ids and invalid props are drawn as red, hatched error
-  markers, never as content. Placement is a temporary centred wrap at each element's preferred
-  size until the layout engine (P1A.9).
-  - **Overlays** (`layer: 'overlay'`: `inset_panel`, `statement_card`) are drawn centred over
-    the stage above a scrim that dims the board while one shows (`scene-layers.ts`:
+  markers, never as content. Placement comes from the layout engine (`specLayout`, below):
+  each item at its placed rect, drawn in its own box px and scaled, under the beat's camera.
+  - **Overlays** (`layer: 'overlay'`: `inset_panel`, `statement_card`) are placed centred in
+    the board frame above a scrim that dims the board while one shows (`scene-layers.ts`:
     `splitLayers`, `scrimLevel`). At most one should show at a time (`overlay_overlap`).
   - **Containers:** elements a primitive points to with a `contains` element ref (an
     `inset_panel`'s `children`) are nested under it by `beatWorld` and drawn inside it, above
     the scrim. A child's presence is multiplied by its container's (`containedState`), so it
     enters and exits with it; it keeps its own events.
   - **Source footnote:** a beat's `script[].source` is drawn as "Source: …" in the footnote
-    style at the stage's bottom-left (`source-footnote.ts`), fading in 0.3 s after the beat
-    starts. Required whenever a beat shows a real incident or a sourced number (agent prompts
-    enforce it; the layout engine will own its position).
+    style at the board frame's bottom-left (`source-footnote.ts`), fading in 0.3 s after the beat
+    starts. The layout reserves its line for the whole chain when any beat in it has a source.
+    Required whenever a beat shows a real incident or a sourced number (agent prompts enforce it).
+- **Layout engine** (`src/layout`, React-free, exported through `catalog`):
+  `layout({ items, mode, focus }, theme, { rect, avoidZones })` places one board; `specLayout(spec,
+theme)` lays out a whole spec, memoised per spec object and theme (never per frame) and
+  deterministic. Pipeline: `analyse` (units = elements with their pins as one cluster; links =
+  connectors) → the mode's `place` (from `LAYOUT_MODE_DEFINITIONS`, composed from `blocks.ts`) →
+  `separate` → followers (`relations.ts`) → `fit` (one board scale ≤ 1, centred).
+  - **One placement per `continuesPrevious` chain** (over all its elements), so continuing beats
+    keep every position; mode and focus come from the chain (a continuing scene's own mode is
+    ignored with `layout_mode_ignored`). **Each beat gets a camera** (`camera.ts`): a uniform zoom
+    (1 to `MAX_ZOOM` 1.6) and pan of the board layer framing the elements visible in that beat,
+    biased to its focus, kept in frame and clear of avoid zones. Beats snap between cameras.
+  - **Frames are parameters** (`formatAreas(theme, format)`): `full` = the stage (or
+    `stageWithHeadline`); `card` = a 16:9 window under the header region, clear of every
+    exclusion zone (narrowed if needed). Avoid zones are hard: a board that hits one is slid out
+    or re-arranged beside / above it. Modes pick orientation from the frame (pipeline top-down in
+    tall frames, left-right in wide), and the fit keeps the other orientation if it is clearly
+    larger.
+  - **Sizes:** preferred size hints at board scale; focus elements and `center`/`hub` zones ×1.2
+    (`FOCUS_BOOST`). Below 18 px labels (`minReadableScale`) a board gets `text_too_small`.
+  - **Primitive hooks** (registry data, no id switches): `layoutRole` (`background` map_base;
+    `path` connector, packet_stream; `frame` grid_overlay; `ring` radius_ring; `span` bracket) and
+    `contentInset` (containers size from their children and lay them out in their own box:
+    `PlacedItem.children`). Relational components get `path` (box px, layout output) and draw
+    `standalonePath` only on sheets.
+  - **Pins:** `tag`, `counter`, `timer_ring` and `callout` take `pin: { to, side }` (`top`,
+    `bottom`, `left`, `right`, or `middle` of a connector: beside its midpoint). The layout keeps
+    them on that side of their host wherever it goes; unresolved pins get `pin_unresolved`.
+  - **Warnings** (`LayoutWarning`; `specLayoutWarnings(spec, theme)` gives `{ path, code,
+message }` for the Curator): `too_many_elements` (mode `maxUnits`), `text_too_small`,
+    `overlap`, `connector_crosses`, `unknown_zone`, `unknown_layout_mode`, `layout_mode_ignored`,
+    `pin_unresolved`, `avoid_zone`. Tests run the invariants (no overlaps, inside the frame,
+    clear of avoid zones, camera bounds) over every fixture beat in both formats.
 - **`src/dev/` is temporary.** `DevSubtitles` is a stand-in until P1B.3 replaces it. Do not build
   on it or extend it. `src/dev/dev-layers.test.ts` fails once `src/subtitles/` exists and a
   composition still uses `DevSubtitles`.
@@ -387,7 +427,8 @@ to `docs/patterns/<id>.png` (a panel per narration anchor, elements in one row p
   catalogue text (descriptions, param hints, examples) is made up for this project, never taken
   from the reference breakdowns or their videos (no scenarios, names, labels or numbers lifted
   from them; see Originality in the design doc). Agents read the catalogue and copy from it.
-- **Components receive only `{ theme, props, box, state }`**, never events or anchors. `state`
+- **Components receive only `{ theme, props, box, state }`** (plus `path` for relational ones,
+  `children` for containers), never events or anchors. `state`
   comes from `elementState(events, frame, fps)` (`primitives/element-state.ts`): `presence`,
   `emphasis` (held highlight or pulse bump), `highlight` (the held highlight alone), `dimmed`, per-action `actions[action]` progress and `elapsed[action]` seconds (both
   0 while the element's first such event is still ahead, absent when it has none),
@@ -415,10 +456,9 @@ to `docs/patterns/<id>.png` (a panel per narration anchor, elements in one row p
   catalogue lists `partActions`.
 - **Element refs.** Props that point to other elements (`connector.from/to`,
   `packet_stream.along`, `grid_overlay.over`) are declared by `elementRefs(props)`, optionally
-  limited to certain primitives, to some of the target's `parts` (`bracket.parts`), or marked
-  `contains` (drawn inside this element; see Containers). Until the layout engine (P1A.9) supplies geometry, relational
-  primitives draw a standalone path across their own box (`standalonePath`) and overlays draw on
-  their own; `BeatScene` does not connect or stack them yet.
+  limited to certain primitives, to some of the target's `parts` (`bracket.parts`), marked
+  `contains` (drawn inside this element; see Containers), or a `pin` side (see Layout engine).
+  The layout engine turns them into geometry.
 - **`elapsed` is measured on the global timeline**: `frame / fps` minus the event's unrounded
   resolved seconds (`ElementEvent.sec`), so a beat cut, a draft (15 fps) and the final (30 fps)
   agree, including for actions that started in an earlier beat. Effects that outlast an action's
@@ -452,11 +492,12 @@ to `docs/patterns/<id>.png` (a panel per narration anchor, elements in one row p
     (from `PATTERN_INSTANCE_ACTIONS`: exit, highlight, dim, pulse; they act on every element).
     Spec events may target one inner element as `<instance>/<id>` with `INNER_TARGET_ACTIONS`
     only (highlight, pulse, dim). The pattern keeps enter, reject and lock.
-  - **Layout:** `layoutMode` comes from `src/layout/modes.ts` (`LAYOUT_MODE_DEFINITIONS`: the
-    P1A.9 modes, each with its allowed zones). Every expanded element sits in a zone of that mode,
-    except relational ones (with element refs), which follow what they point to. A beat without
-    its own `layoutMode` takes its first pattern's (`beatLayoutMode`); an explicit scene mode wins.
-    Do not add modes for a pattern: pick the closest and note it in docs/TODO.md for P1A.9.
+  - **Layout:** `layoutMode` comes from `src/layout/modes.ts` (`LAYOUT_MODE_DEFINITIONS`, each
+    with its allowed zones). Every expanded element sits in a zone of that mode, except ones with
+    element refs (relational, pinned), which follow what they point to. A beat without its own
+    `layoutMode` takes its first pattern's (`beatLayoutMode`); an explicit scene mode wins. Do not
+    add modes for a pattern: pick the closest (pin what belongs to another element) and note
+    the loose fit in docs/TODO.md.
   - Building the registry expands each example and rejects (`expansionProblems`): unknown
     primitives, bad props, duplicate ids, zones outside the mode, element refs that leave the
     expansion, unsupported actions or bad parts on events, events not anchored to `params.at`, and
@@ -466,7 +507,7 @@ to `docs/patterns/<id>.png` (a panel per narration anchor, elements in one row p
     props included, and keeps each element's `zone` on its world item.
 - **Validation:** `withRegistryChecks(validateVideoSpec(input), input)` (or with
   `validateRenderableVideoSpec`) adds registry errors in the same `{ path, code, message }` shape:
-  `unknown_reference` for unknown primitive/pattern ids (the message lists valid ids), Zod issue
+  `unknown_reference` for unknown primitive/pattern/layout mode ids (the message lists valid ids), Zod issue
   codes for props/params with paths into them, and `unsupported_action` for an event action a
   target (including one inherited through `continuesPrevious`) does not support. For
   `params.parts`: `unknown_part` (unknown id, or a target without parts), `parts_need_one_target`,

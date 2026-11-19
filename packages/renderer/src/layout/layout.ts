@@ -89,8 +89,10 @@ type Placement = {
 };
 
 /**
- * Arranges and fits the board in the frame; when that overlaps an avoid zone, slides it clear, or
- * re-arranges it for the part of the frame beside or above the zones (largest scale wins).
+ * Arranges and fits the board in the frame, in the frame's orientation or the other one when that
+ * fits clearly larger (a near_far scale in a wide window reads better top-down); when that
+ * overlaps an avoid zone, slides it clear, or re-arranges it for the part of the frame beside or
+ * above the zones (largest scale wins).
  */
 function placeBoard(
   analysis: Analysis,
@@ -100,14 +102,20 @@ function placeBoard(
   frame: LayoutFrame,
 ): Placement {
   const minScale = minReadableScale(theme);
-  const attempt = (rect: Rect) => {
-    const arranged = arrange(analysis, mode, {
-      theme,
-      focus,
-      aspect: rect.width / Math.max(1, rect.height),
-      maxRowWidth: rect.width / minScale,
+  const attempt = (rect: Rect): Attempt => {
+    const aspect = rect.width / Math.max(1, rect.height);
+    const tries = [aspect, 1 / aspect].map((shape) => {
+      const arranged = arrange(analysis, mode, {
+        theme,
+        focus,
+        aspect: shape,
+        maxRowWidth: rect.width / minScale,
+      });
+      return { rect, arranged, transform: fitTransform(boundsOf(arranged), rect) };
     });
-    return { rect, arranged, transform: fitTransform(boundsOf(arranged), rect) };
+    // The frame's own orientation unless the other one fits clearly larger.
+    const [natural, flipped] = tries as [Attempt, Attempt];
+    return flipped.transform.scale > natural.transform.scale * 1.05 ? flipped : natural;
   };
   return chooseClear(attempt, frame, theme.space.md);
 }

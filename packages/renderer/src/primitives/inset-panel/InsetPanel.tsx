@@ -7,8 +7,8 @@ import { cardSurfaceCss } from '../surface.ts';
 import { insetHeaderHeight, type InsetPanelProps } from './definition.ts';
 
 /**
- * A detail card over the dimmed scene, holding its (already drawn) children. Until the layout
- * engine (P1A.9) knows where its anchor is, it zooms from its own centre.
+ * A detail card over the dimmed scene, holding its (already drawn and placed) children. It zooms
+ * from its own centre; zooming out of its anchor's placed box is in docs/TODO.md.
  */
 export function InsetPanel({
   theme,

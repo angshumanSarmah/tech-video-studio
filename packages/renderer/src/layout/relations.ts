@@ -2,7 +2,7 @@ import { distance, pointAlong, type Point } from '../primitives/geometry.ts';
 import type { Size } from '../primitives/types.ts';
 import type { Rect } from '../theme/index.ts';
 import type { SceneItem } from './analyse.ts';
-import { bottom, centre, exitPoint, inflate, pointsRect, rectAt, union } from './rect.ts';
+import { bottom, centre, exitPoint, inflate, pointsRect, union } from './rect.ts';
 
 /**
  * Everything that follows another item, placed once the mode has placed the units: frames share
@@ -134,13 +134,25 @@ function placePin(
   if (pin.side === 'middle') {
     const path = paths.get(pin.host);
     if (!path) return false;
-    rects.set(item.key, rectAt(pointAlong(path, 0.5).point, size));
+    rects.set(item.key, besideLine(pointAlong(path, 0.5), size, params.pinGap));
     return true;
   }
   const host = rects.get(pin.host);
   if (!host) return false;
   rects.set(item.key, besideRect(host, size, pin.side, params.pinGap));
   return true;
+}
+
+/**
+ * A midpoint pin beside its connector, so the line never runs through it: below a mostly
+ * horizontal line (its label is above), right of a mostly vertical one, `gap` away.
+ */
+export function besideLine(at: { point: Point; angle: number }, size: Size, gap: number): Rect {
+  const { point } = at;
+  const horizontal = Math.abs(Math.cos(at.angle)) >= Math.abs(Math.sin(at.angle));
+  return horizontal
+    ? { x: point.x - size.width / 2, y: point.y + gap, ...size }
+    : { x: point.x + gap, y: point.y - size.height / 2, ...size };
 }
 
 /** A rect of `size` centred on one side of `host`, `gap` away from it. */

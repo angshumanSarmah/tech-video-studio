@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { buildPatternRegistry } from '../patterns/registry.ts';
 import { bouncePattern } from '../patterns/test-pattern.ts';
 import { listPatterns } from '../patterns/registry.ts';
+import { LAYOUT_MODE_IDS } from '../layout/modes.ts';
 import { listPrimitives } from '../primitives/registry.ts';
 import { DEFAULT_REGISTRIES, type Registries } from './registries.ts';
 import { fixtureSpec } from './test-specs.ts';
@@ -44,6 +45,16 @@ describe('withRegistryChecks', () => {
       message: `Unknown pattern "flood_and_funnel". Use one of: ${listPatterns()
         .map((p) => p.id)
         .join(', ')}.`,
+    });
+  });
+
+  it('rejects an unknown layout mode, listing the valid ones', () => {
+    const input = fixtureSpec();
+    Object.assign(input.scenes[0] ?? {}, { layoutMode: 'spiral' });
+    expect(check(input).errors).toContainEqual({
+      path: '$.scenes[0].layoutMode',
+      code: 'unknown_reference',
+      message: `Unknown layout mode "spiral". Use one of: ${LAYOUT_MODE_IDS.join(', ')}.`,
     });
   });
 

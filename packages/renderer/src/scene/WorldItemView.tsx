@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { boxOf, type PlacedItem } from '../layout/types.ts';
 import { componentFor } from '../primitives/components.ts';
 import { elementState } from '../primitives/element-state.ts';
 import type { Size } from '../primitives/types.ts';
@@ -8,9 +9,11 @@ import { MARKER_SIZE } from './marker.ts';
 import { containedState, type PrimitiveItem } from './scene-layers.ts';
 
 /**
- * One world item drawn by its registered component at its preferred size, with its contained
- * children drawn inside it (each scaled down to fit). Errors become red markers. Shared by
- * `BeatScene` and the primitive sheets, so both draw nesting and presence the same way.
+ * One world item drawn by its registered component, with its contained children drawn inside it.
+ * With a `placed` layout (on a board) it gets the layout's box and path, and its children go where
+ * the layout put them; without one (primitive and pattern sheets) it takes its preferred size and
+ * its children are scaled down to fit. Errors become red markers. Shared by `BeatScene` and the
+ * sheets, so both draw nesting and presence the same way.
  */
 
 type Props = {
@@ -20,22 +23,58 @@ type Props = {
   fps: number;
   /** Presence of the container this item is drawn in; 1 on the board. */
   containerPresence?: number;
+  /** Where the layout put it (and its children); absent on sheets. */
+  placed?: PlacedItem;
 };
 
 export { MARKER_SIZE };
 
-export function WorldItemView({ theme, item, frame, fps, containerPresence = 1 }: Props) {
+export function WorldItemView({ theme, item, frame, fps, containerPresence = 1, placed }: Props) {
   const Component = item.kind === 'primitive' ? componentFor(item.definition.id) : undefined;
   if (item.kind === 'error' || !Component) {
     const detail = item.kind === 'error' ? item.detail : item.definition.id;
     const title = item.kind === 'error' ? item.title : 'No component';
     return <ErrorMarker theme={theme} title={title} detail={detail} />;
   }
-  const box = itemBox(item, theme);
+  const box = placed ? boxOf(placed) : itemBox(item, theme);
   const state = containedState(elementState(item.events, frame, fps), containerPresence);
+  const path = placed?.path;
+  if (placed?.children) {
+    return (
+      <Component theme={theme} props={item.props} box={box} state={state} path={path}>
+        {item.children.map((child) => {
+          const at = placed.children?.find((c) => c.key === child.key);
+          if (!at) return null;
+          const size = boxOf(at);
+          return (
+            <div
+              key={child.key}
+              style={{
+                position: 'absolute',
+                left: at.rect.x,
+                top: at.rect.y,
+                ...size,
+                transform: `scale(${at.scale})`,
+                transformOrigin: '0 0',
+              }}
+            >
+              <WorldItemView
+                theme={theme}
+                item={child}
+                frame={frame}
+                fps={fps}
+                containerPresence={state.presence}
+                placed={at}
+              />
+            </div>
+          );
+        })}
+      </Component>
+    );
+  }
   const room = childRoom(theme, box, item.children.length);
   return (
-    <Component theme={theme} props={item.props} box={box} state={state}>
+    <Component theme={theme} props={item.props} box={box} state={state} path={path}>
       {item.children.map((child) => (
         <Fit
           key={child.key}
@@ -55,7 +94,7 @@ export function WorldItemView({ theme, item, frame, fps, containerPresence = 1 }
   );
 }
 
-/** An item's box: its preferred size (TEMPORARY until the layout engine, P1A.9). */
+/** An item's box when it stands alone (sheets): its preferred size. */
 export function itemBox(item: PrimitiveItem, theme: Theme): Size {
   const hints = item.definition.sizeHints(item.props, theme);
   return { width: hints.preferredWidth, height: hints.preferredHeight };

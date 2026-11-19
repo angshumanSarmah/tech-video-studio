@@ -11,7 +11,7 @@ export const RadiusRingPropsSchema = z.strictObject({
 });
 export type RadiusRingProps = z.output<typeof RadiusRingPropsSchema>;
 
-/** Standalone diameter until the layout engine (P1A.9) sizes it around its centre element. */
+/** Standalone (and minimum on a board) diameter; the layout grows it to enclose its target. */
 const DIAMETER = 520;
 const MIN_DIAMETER = 320;
 

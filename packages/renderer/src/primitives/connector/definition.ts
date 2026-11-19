@@ -21,7 +21,7 @@ export const ConnectorPropsSchema = z
   .refine((p) => p.from !== p.to, { message: 'from and to must differ.', path: ['to'] });
 export type ConnectorProps = z.output<typeof ConnectorPropsSchema>;
 
-/** Shortest standalone span; the layout engine (P1A.9) stretches it between its endpoints. */
+/** Shortest standalone span (sheets); on a board the layout runs it between its endpoints. */
 const MIN_SPAN = 200;
 
 /** Distance from each end of the box to the endpoint, leaving room for an arrowhead. */

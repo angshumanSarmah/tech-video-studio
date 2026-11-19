@@ -119,6 +119,8 @@ export type ModeContext = {
   maxRowWidth: number;
   /** Logical size of the label band above and below a routed message line. */
   labelBand: number;
+  /** Sides of each unit's own element that hold pins (links should not run through them). */
+  pinnedSides: ReadonlyMap<string, ReadonlySet<string>>;
 };
 
 /** A layout mode's placement: units in logical px, composed into one block. */

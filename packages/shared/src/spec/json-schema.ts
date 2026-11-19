@@ -9,7 +9,8 @@ import { StoryLayerSchema } from './story.ts';
  * `scene` is one beat (per-beat generation); `scenes` is the whole layer.
  */
 const LLM_SCHEMAS = {
-  meta: MetaSchema,
+  // The format is a run setting, not the model's choice.
+  meta: MetaSchema.omit({ format: true }),
   story: StoryLayerSchema,
   script: ScriptLayerSchema,
   scene: BeatSceneSchema,

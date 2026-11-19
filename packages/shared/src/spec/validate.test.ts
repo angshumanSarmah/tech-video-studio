@@ -62,6 +62,17 @@ describe('validateVideoSpec: valid specs', () => {
     expect(validateVideoSpec(spec).ok).toBe(true);
   });
 
+  it('defaults meta.format to full, accepts card and rejects other formats', () => {
+    const plain = validateVideoSpec(validSpec());
+    expect(plain.ok && plain.spec.meta.format).toBe('full');
+    const spec = validSpec();
+    const card = validateVideoSpec({ ...spec, meta: { ...spec.meta, format: 'card' } });
+    expect(card.ok && card.spec.meta.format).toBe('card');
+    const odd = validateVideoSpec({ ...spec, meta: { ...spec.meta, format: 'square' } });
+    expect(odd.ok).toBe(false);
+    expect(odd.errors.map((e) => [e.path, e.code])).toEqual([['$.meta.format', 'invalid_value']]);
+  });
+
   it('keeps HUD toggles that are set and defaults the rest to on', () => {
     const result = validateVideoSpec({ ...validSpec(), hud: { storyClock: false } });
     expect(result.ok && result.spec.hud).toMatchObject({ storyClock: false, headline: true });

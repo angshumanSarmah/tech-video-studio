@@ -4,9 +4,10 @@ import { SOURCE_PREFIX } from '../primitives/stat-card/definition.ts';
 import type { Rect, Zone } from '../theme/index.ts';
 
 /**
- * The beat source line ("Source: …"): small, in the stage's bottom-left corner, clear of the
- * avoid zones (the platform buttons sit bottom-right). TEMPORARY placement: the layout engine
- * (P1A.9) owns it, and in the "card" format it sits inside the diagram window. Pure.
+ * The beat source line ("Source: …"): small, in the bottom-left corner of the board frame (the
+ * stage, or the card format's diagram window), clear of the avoid zones (the platform buttons sit
+ * bottom-right). The layout reserves its line for the whole `continuesPrevious` chain
+ * (`specLayout`), so the board never runs under it. Pure.
  */
 
 /** The footnote fades in this long after the beat starts, over `FADE_SEC`. */

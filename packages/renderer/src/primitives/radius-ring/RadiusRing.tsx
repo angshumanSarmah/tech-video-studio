@@ -9,8 +9,8 @@ import type { RadiusRingProps } from './definition.ts';
 const AREA_ALPHA = 0.08;
 
 /**
- * A dashed circle around an element. Until the layout engine (P1A.9) centres it on `around`, it
- * stands alone in its own box with a dot at the centre.
+ * A dashed circle around an element, with a dot at the centre: on a board the layout centres its
+ * box on `around` and makes it large enough to enclose it.
  */
 export function RadiusRing({ theme, props, box, state }: PrimitiveComponentProps<RadiusRingProps>) {
   const tint = semanticTint(theme, props.semantic);

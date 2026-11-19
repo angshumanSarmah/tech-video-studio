@@ -8,8 +8,8 @@ import { unitBlock, withAside, zoneUnits } from './common.ts';
 
 /**
  * One element in the middle with the rest around it: above and below in a tall frame (rows, the
- * first half above), left and right in a wide one (columns). Without a `center` element, the
- * first focus element moves to the middle.
+ * first half above), left and right in a wide one (columns), or on the axis the middle's pins leave
+ * free. Without a `center` element, the first focus element moves to the middle.
  */
 export const placeCenteredFocus: ModePlacer = (ctx) => placeAround(ctx, 'center', 'around');
 
@@ -22,7 +22,7 @@ function placeAround(ctx: ModeContext, middleZone: string, aroundZone: string): 
   const half = Math.ceil(around.length / 2);
   const first = around.slice(0, half).map(unitBlock);
   const second = around.slice(half).map(unitBlock);
-  const main = tallish(ctx)
+  const main = stacked(ctx, middle)
     ? column(
         [wrap(first, ctx.maxRowWidth, ctx.gap), centre, wrap(second, ctx.maxRowWidth, ctx.gap)],
         ctx.linkGap,
@@ -31,7 +31,18 @@ function placeAround(ctx: ModeContext, middleZone: string, aroundZone: string): 
   return withAside(ctx, main);
 }
 
-const tallish = (ctx: ModeContext) => ctx.aspect < 1.2;
+/**
+ * Whether the others go above and below the middle (else left and right): by the frame's shape,
+ * unless the middle has pins on one axis only; then the others take the other axis, so their links
+ * never run through the pins.
+ */
+function stacked(ctx: ModeContext, middle: readonly Unit[]): boolean {
+  const sides = new Set(middle.flatMap((u) => [...(ctx.pinnedSides.get(u.key) ?? [])]));
+  const across = sides.has('left') || sides.has('right');
+  const along = sides.has('top') || sides.has('bottom');
+  if (across !== along) return across;
+  return ctx.aspect < 1.2;
+}
 
 function splitMiddle(ctx: ModeContext, middleZone: string, aroundZone: string) {
   const middle = [...zoneUnits(ctx, middleZone)];

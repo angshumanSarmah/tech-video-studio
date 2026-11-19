@@ -1,6 +1,8 @@
 import { parseRenderableSpec } from '../src/compositions/metadata.ts';
 import type { SeriesProps } from '../src/compositions/props.ts';
+import type { RenderableVideoSpec, VideoFormat } from '@explainer-studio/shared';
 import insetRevealBoardJson from './inset-reveal-board.json';
+import layoutModesBoardJson from './layout-modes-board.json';
 import patternDecisionBoardJson from './pattern-decision-board.json';
 import patternFlowBoardJson from './pattern-flow-board.json';
 import primitivesBoardJson from './primitives-board.json';
@@ -53,6 +55,29 @@ export const patternDecisionBoardSpec = parseRenderableSpec(patternDecisionBoard
 
 /** Every pattern board, in registry order. */
 export const patternBoardSpecs = [patternFlowBoardSpec, patternDecisionBoardSpec];
+
+/** The same spec in another format (the card format's header, window and bands). */
+export function withFormat(spec: RenderableVideoSpec, format: VideoFormat): RenderableVideoSpec {
+  return { ...spec, meta: { ...spec.meta, format } };
+}
+
+/**
+ * Layout board (P1A.9): one beat per layout mode, each scene naming its mode, with pins, rings,
+ * a bracket, an inset, a sourced beat (footnote) and one `continuesPrevious` chain (the pipeline:
+ * positions stay, the camera reframes). Studio previews it as `LayoutModesBoard` and, in the card
+ * format, `LayoutModesBoardCard`; `still:layouts` renders `docs/layouts/<mode>-<format>.png`.
+ */
+export const layoutModesBoardSpec = parseRenderableSpec(layoutModesBoardJson);
+
+export const layoutModesBoardCardSpec = withFormat(layoutModesBoardSpec, 'card');
+
+/** Every fixture spec with scenes, for checks that run over all of them. */
+export const allFixtureSpecs = [
+  rateLimiterSpec,
+  ...primitiveBoardSpecs,
+  ...patternBoardSpecs,
+  layoutModesBoardSpec,
+];
 
 /** Example series data; real values come from the DB `series` row at render time. */
 export const fixtureSeries: SeriesProps = { label: 'System Design', accentColour: '#4F8CFF' };

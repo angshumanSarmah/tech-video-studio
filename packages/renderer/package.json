@@ -16,6 +16,7 @@
     "still:safe-area": "remotion still src/entry.ts SafeAreaCalibration ../../docs/safe-area/zones.png",
     "still:primitives": "tsx scripts/render-primitive-stills.ts",
     "still:patterns": "tsx scripts/render-pattern-stills.ts",
+    "still:layouts": "tsx scripts/render-layout-stills.ts",
     "still:compare": "tsx scripts/render-theme-compare.ts",
     "calibrate:safe-area": "tsx scripts/calibrate-safe-area.ts",
     "gen:catalogue": "tsx scripts/generate-catalogue.ts",

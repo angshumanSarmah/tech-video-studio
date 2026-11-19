@@ -3,6 +3,8 @@ import {
   fixtureChannelHandle,
   fixtureSeries,
   insetRevealBoardSpec,
+  layoutModesBoardCardSpec,
+  layoutModesBoardSpec,
   patternDecisionBoardSpec,
   patternFlowBoardSpec,
   primitivesBoardSpec,
@@ -10,7 +12,6 @@ import {
   spatialFlowBoardSpec,
 } from '../fixtures/index.ts';
 import { BeatFromSpec } from './compositions/BeatFromSpec.tsx';
-import { CardHeaderPreview } from './compositions/CardHeaderPreview.tsx';
 import { calculateBeatMetadata, calculateVideoMetadata } from './compositions/metadata.ts';
 import type { BeatFromSpecProps, VideoFromSpecProps } from './compositions/props.ts';
 import { VideoFromSpec } from './compositions/VideoFromSpec.tsx';
@@ -48,6 +49,13 @@ const patternDecisionDefaults: VideoFromSpecProps = {
   spec: patternDecisionBoardSpec,
 };
 
+const layoutModesDefaults: VideoFromSpecProps = { ...videoDefaults, spec: layoutModesBoardSpec };
+
+const layoutModesCardDefaults: VideoFromSpecProps = {
+  ...videoDefaults,
+  spec: layoutModesBoardCardSpec,
+};
+
 /** Remotion root. Duration and fps of the spec compositions come from `calculateMetadata`. */
 export function Root() {
   return (
@@ -73,13 +81,23 @@ export function Root() {
         calculateMetadata={calculateBeatMetadata}
       />
       <Composition
-        id="CardHeaderPreview"
-        component={CardHeaderPreview}
+        id="LayoutModesBoard"
+        component={VideoFromSpec}
         width={canvas.width}
         height={canvas.height}
         fps={FINAL_FPS}
         durationInFrames={1}
-        defaultProps={videoDefaults}
+        defaultProps={layoutModesDefaults}
+        calculateMetadata={calculateVideoMetadata}
+      />
+      <Composition
+        id="LayoutModesBoardCard"
+        component={VideoFromSpec}
+        width={canvas.width}
+        height={canvas.height}
+        fps={FINAL_FPS}
+        durationInFrames={1}
+        defaultProps={layoutModesCardDefaults}
         calculateMetadata={calculateVideoMetadata}
       />
       <Composition

@@ -48,7 +48,7 @@ export type AssetRef = { path: (string | number)[]; id: string };
 /**
  * Another element a primitive's props point to (`connector.from`), with its path inside `props`.
  * Validation checks that the id is in the beat's scope and, when `primitives` is given, that it is
- * one of those primitives. The layout engine (P1A.9) resolves it to geometry.
+ * one of those primitives. The layout engine resolves it to geometry (`layoutRole`, pins).
  */
 export type ElementRef = {
   path: (string | number)[];

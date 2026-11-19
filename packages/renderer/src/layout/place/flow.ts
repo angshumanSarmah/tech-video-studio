@@ -84,9 +84,11 @@ function orderTiers(tiers: Unit[][], links: readonly Link[]): Unit[][] {
 }
 
 /**
- * The origin between its two destinations, the distances to scale: the far one is at least three
- * times as far from the origin as the near one (centre to centre). Tall: near above, far below.
- * Wide: near left, far right. Opposite sides keep the two links from crossing.
+ * An origin with a near and a far destination, the distances to scale: the far one is at least
+ * three times as far from the origin as the near one (centre to centre), along the frame's long
+ * axis. When a connector joins near and far (a miss that goes on from the cache to the database)
+ * they line up origin → near → far; otherwise the origin sits between them (near before it, far
+ * after it), so the two links never cross.
  */
 export const placeNearFar: ModePlacer = (ctx) => {
   const tall = isTall(ctx);
@@ -99,16 +101,25 @@ export const placeNearFar: ModePlacer = (ctx) => {
   const far = group('far');
   const extent = (b: Block) => (tall ? b.height : b.width);
   const nearDistance = extent(origin) / 2 + ctx.linkGap + extent(near) / 2;
-  const farDistance = Math.max(
-    3 * nearDistance,
-    extent(origin) / 2 + ctx.linkGap + extent(far) / 2,
-  );
+  const chained = linksBetween(ctx, 'near', 'far');
+  const clearOf = chained ? nearDistance + extent(near) / 2 : extent(origin) / 2;
+  const farDistance = Math.max(3 * nearDistance, clearOf + ctx.linkGap + extent(far) / 2);
   const at = (b: Block, d: number) =>
     tall ? shift(b, -b.width / 2, d - b.height / 2) : shift(b, d - b.width / 2, -b.height / 2);
   const main = combine([
-    ...(extent(near) > 0 ? [at(near, -nearDistance)] : []),
+    ...(extent(near) > 0 ? [at(near, chained ? nearDistance : -nearDistance)] : []),
     at(origin, 0),
     ...(extent(far) > 0 ? [at(far, farDistance)] : []),
   ]);
   return withAside(ctx, main);
 };
+
+/** True when a connector joins a unit of zone `a` and one of zone `b` (either way). */
+function linksBetween(ctx: ModeContext, a: string, b: string): boolean {
+  const keys = (zone: string) => new Set(zoneUnits(ctx, zone).map((u) => u.key));
+  const inA = keys(a);
+  const inB = keys(b);
+  return ctx.links.some(
+    (l) => (inA.has(l.from) && inB.has(l.to)) || (inB.has(l.from) && inA.has(l.to)),
+  );
+}

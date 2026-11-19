@@ -1,0 +1,1113 @@
+{
+  "schemaVersion": 1,
+  "meta": {
+    "id": "layout-modes-board",
+    "series": "system-design",
+    "title": "Layout modes board",
+    "topicClass": "concept",
+    "targetLengthSec": 77
+  },
+  "hud": {
+    "heroMetric": false,
+    "storyClock": false,
+    "headline": false
+  },
+  "story": {
+    "devices": [],
+    "ending": {
+      "kind": "summary"
+    },
+    "chapters": [
+      {
+        "id": "place",
+        "title": "Place"
+      },
+      {
+        "id": "order",
+        "title": "Order"
+      },
+      {
+        "id": "flow",
+        "title": "Flow"
+      },
+      {
+        "id": "talk",
+        "title": "Talk"
+      },
+      {
+        "id": "reach",
+        "title": "Reach"
+      }
+    ],
+    "beats": [
+      {
+        "id": "map",
+        "chapterId": "place",
+        "intent": "Show the map layout mode",
+        "targetSec": 8
+      },
+      {
+        "id": "two-column",
+        "chapterId": "place",
+        "intent": "Show the two_column layout mode",
+        "targetSec": 7
+      },
+      {
+        "id": "grid",
+        "chapterId": "place",
+        "intent": "Show the grid layout mode",
+        "targetSec": 6
+      },
+      {
+        "id": "stacked-list",
+        "chapterId": "order",
+        "intent": "Show the stacked_list layout mode",
+        "targetSec": 7
+      },
+      {
+        "id": "centered-focus",
+        "chapterId": "order",
+        "intent": "Show the centered_focus layout mode",
+        "targetSec": 7
+      },
+      {
+        "id": "pipeline",
+        "chapterId": "flow",
+        "intent": "Show the pipeline layout mode",
+        "targetSec": 5
+      },
+      {
+        "id": "pipeline-more",
+        "chapterId": "flow",
+        "intent": "Show the pipeline layout mode",
+        "targetSec": 5
+      },
+      {
+        "id": "cycle",
+        "chapterId": "flow",
+        "intent": "Show the cycle layout mode",
+        "targetSec": 6
+      },
+      {
+        "id": "swimlane",
+        "chapterId": "talk",
+        "intent": "Show the swimlane layout mode",
+        "targetSec": 6
+      },
+      {
+        "id": "versus-split",
+        "chapterId": "talk",
+        "intent": "Show the versus_split layout mode",
+        "targetSec": 6
+      },
+      {
+        "id": "near-far",
+        "chapterId": "reach",
+        "intent": "Show the near_far layout mode",
+        "targetSec": 7
+      },
+      {
+        "id": "hub-spoke",
+        "chapterId": "reach",
+        "intent": "Show the hub_spoke layout mode",
+        "targetSec": 7
+      }
+    ]
+  },
+  "script": [
+    {
+      "beatId": "map",
+      "narration": "A delivery map splits the town into zones, and every new order lands on a pin inside one of them."
+    },
+    {
+      "beatId": "two-column",
+      "narration": "The writer keeps the record on the left, and the reader copies it to the right a moment later."
+    },
+    {
+      "beatId": "grid",
+      "narration": "Six lockers wait in a grid, and the first two are booked together for one parcel."
+    },
+    {
+      "beatId": "stacked-list",
+      "narration": "Three commands run in order. The second one is the slow step, and a closer look shows why."
+    },
+    {
+      "beatId": "centered-focus",
+      "narration": "The cache sits in the middle, close to the three services that ask it for answers all day."
+    },
+    {
+      "beatId": "pipeline",
+      "narration": "Uploads enter on the left and a resizer works through each one."
+    },
+    {
+      "beatId": "pipeline-more",
+      "narration": "Then the store keeps every result, and a done tag marks the link."
+    },
+    {
+      "beatId": "cycle",
+      "narration": "Plan, build, check and learn, then the loop starts again with a counter of rounds."
+    },
+    {
+      "beatId": "swimlane",
+      "narration": "The phone asks the gateway, the gateway asks the ledger, and the answer travels back."
+    },
+    {
+      "beatId": "versus-split",
+      "narration": "One queue on the left, two queues on the right. The same rush hits both sides."
+    },
+    {
+      "beatId": "near-far",
+      "narration": "The edge copy is near, so a read takes a few milliseconds. The origin is far away.",
+      "source": "Example lab notes, 2026"
+    },
+    {
+      "beatId": "hub-spoke",
+      "narration": "One broker in the hub hands work to four workers, and holds each lease for ten seconds."
+    }
+  ],
+  "scenes": [
+    {
+      "beatId": "map",
+      "kind": "board",
+      "layoutMode": "map",
+      "elements": [
+        {
+          "id": "town",
+          "primitive": "map_base",
+          "props": {
+            "variant": "downtown"
+          },
+          "zone": "base"
+        },
+        {
+          "id": "zones",
+          "primitive": "zone_polygon",
+          "props": {
+            "zones": [
+              {
+                "id": "north",
+                "label": "NORTH"
+              },
+              {
+                "id": "south",
+                "label": "SOUTH"
+              }
+            ]
+          },
+          "zone": "overlay"
+        },
+        {
+          "id": "order",
+          "primitive": "tag",
+          "props": {
+            "text": "ORDER 41",
+            "semantic": "focus"
+          },
+          "zone": "marker"
+        },
+        {
+          "id": "legend",
+          "primitive": "tag",
+          "props": {
+            "text": "TWO ZONES"
+          },
+          "zone": "aside"
+        }
+      ],
+      "patterns": [],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "zones"
+          },
+          "action": "enter",
+          "targets": ["zones"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "pin"
+          },
+          "action": "enter",
+          "targets": ["order"]
+        }
+      ],
+      "focus": []
+    },
+    {
+      "beatId": "two-column",
+      "kind": "board",
+      "layoutMode": "two_column",
+      "elements": [
+        {
+          "id": "writer",
+          "primitive": "node_card",
+          "props": {
+            "title": "Writer",
+            "icon": "server"
+          },
+          "zone": "left"
+        },
+        {
+          "id": "record",
+          "primitive": "data_block",
+          "props": {
+            "title": "RECORD",
+            "fields": [
+              {
+                "key": "id",
+                "value": "41"
+              },
+              {
+                "key": "state",
+                "value": "new"
+              }
+            ]
+          },
+          "zone": "left"
+        },
+        {
+          "id": "reader",
+          "primitive": "node_card",
+          "props": {
+            "title": "Reader",
+            "icon": "users"
+          },
+          "zone": "right"
+        },
+        {
+          "id": "copy",
+          "primitive": "tag",
+          "props": {
+            "text": "COPY",
+            "semantic": "ok",
+            "pin": {
+              "to": "reader",
+              "side": "bottom"
+            }
+          }
+        },
+        {
+          "id": "sync",
+          "primitive": "connector",
+          "props": {
+            "from": "writer",
+            "to": "reader",
+            "label": "SYNC"
+          }
+        }
+      ],
+      "patterns": [],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "reader"
+          },
+          "action": "enter",
+          "targets": ["reader", "sync"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "copies"
+          },
+          "action": "move",
+          "targets": ["sync"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "later"
+          },
+          "action": "enter",
+          "targets": ["copy"]
+        }
+      ],
+      "focus": []
+    },
+    {
+      "beatId": "grid",
+      "kind": "board",
+      "layoutMode": "grid",
+      "elements": [
+        {
+          "id": "locker-1",
+          "primitive": "item_icon",
+          "props": {
+            "asset": "package",
+            "caption": "L1"
+          },
+          "zone": "cell"
+        },
+        {
+          "id": "locker-2",
+          "primitive": "item_icon",
+          "props": {
+            "asset": "package",
+            "caption": "L2"
+          },
+          "zone": "cell"
+        },
+        {
+          "id": "locker-3",
+          "primitive": "item_icon",
+          "props": {
+            "asset": "package",
+            "caption": "L3"
+          },
+          "zone": "cell"
+        },
+        {
+          "id": "locker-4",
+          "primitive": "item_icon",
+          "props": {
+            "asset": "package",
+            "caption": "L4"
+          },
+          "zone": "cell"
+        },
+        {
+          "id": "locker-5",
+          "primitive": "item_icon",
+          "props": {
+            "asset": "package",
+            "caption": "L5"
+          },
+          "zone": "cell"
+        },
+        {
+          "id": "locker-6",
+          "primitive": "item_icon",
+          "props": {
+            "asset": "package",
+            "caption": "L6"
+          },
+          "zone": "cell"
+        },
+        {
+          "id": "pair",
+          "primitive": "bracket",
+          "props": {
+            "targets": ["locker-1", "locker-2"],
+            "label": "BOOKED"
+          }
+        }
+      ],
+      "patterns": [],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "booked"
+          },
+          "action": "enter",
+          "targets": ["pair"]
+        }
+      ],
+      "focus": ["locker-1"]
+    },
+    {
+      "beatId": "stacked-list",
+      "kind": "board",
+      "layoutMode": "stacked_list",
+      "elements": [
+        {
+          "id": "cmd-1",
+          "primitive": "command_bubble",
+          "props": {
+            "text": "GET cart:41"
+          },
+          "zone": "row"
+        },
+        {
+          "id": "cmd-2",
+          "primitive": "command_bubble",
+          "props": {
+            "text": "SCAN orders *"
+          },
+          "zone": "row"
+        },
+        {
+          "id": "cmd-3",
+          "primitive": "command_bubble",
+          "props": {
+            "text": "SET cart:41 done"
+          },
+          "zone": "row"
+        },
+        {
+          "id": "why",
+          "primitive": "data_block",
+          "props": {
+            "title": "SCAN",
+            "fields": [
+              {
+                "key": "rows",
+                "value": 90000
+              },
+              {
+                "key": "index",
+                "value": false
+              }
+            ]
+          }
+        },
+        {
+          "id": "zoom",
+          "primitive": "inset_panel",
+          "props": {
+            "title": "WHY SLOW",
+            "anchor": "cmd-2",
+            "children": ["why"]
+          }
+        }
+      ],
+      "patterns": [],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "slow"
+          },
+          "action": "highlight",
+          "targets": ["cmd-2"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "closer"
+          },
+          "action": "enter",
+          "targets": ["zoom"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "why"
+          },
+          "action": "exit",
+          "targets": ["zoom"]
+        }
+      ],
+      "focus": ["cmd-2"]
+    },
+    {
+      "beatId": "centered-focus",
+      "kind": "board",
+      "layoutMode": "centered_focus",
+      "elements": [
+        {
+          "id": "cache",
+          "primitive": "node_card",
+          "props": {
+            "title": "Cache",
+            "icon": "zap",
+            "semantic": "focus"
+          },
+          "zone": "center"
+        },
+        {
+          "id": "svc-a",
+          "primitive": "tag",
+          "props": {
+            "text": "CHECKOUT"
+          },
+          "zone": "around"
+        },
+        {
+          "id": "svc-b",
+          "primitive": "tag",
+          "props": {
+            "text": "SEARCH"
+          },
+          "zone": "around"
+        },
+        {
+          "id": "svc-c",
+          "primitive": "tag",
+          "props": {
+            "text": "PROFILE"
+          },
+          "zone": "around"
+        },
+        {
+          "id": "near",
+          "primitive": "radius_ring",
+          "props": {
+            "around": "cache",
+            "label": "1 HOP"
+          }
+        }
+      ],
+      "patterns": [],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "close"
+          },
+          "action": "enter",
+          "targets": ["near"]
+        }
+      ],
+      "focus": ["cache"]
+    },
+    {
+      "beatId": "pipeline",
+      "kind": "board",
+      "layoutMode": "pipeline",
+      "elements": [
+        {
+          "id": "upload",
+          "primitive": "node_card",
+          "props": {
+            "title": "Upload",
+            "icon": "cloud"
+          },
+          "zone": "source"
+        },
+        {
+          "id": "resize",
+          "primitive": "node_card",
+          "props": {
+            "title": "Resizer",
+            "icon": "cpu"
+          },
+          "zone": "stage"
+        },
+        {
+          "id": "to-resize",
+          "primitive": "connector",
+          "props": {
+            "from": "upload",
+            "to": "resize"
+          }
+        },
+        {
+          "id": "stream",
+          "primitive": "packet_stream",
+          "props": {
+            "along": "to-resize"
+          }
+        }
+      ],
+      "patterns": [],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "enter"
+          },
+          "action": "enter",
+          "targets": ["stream"]
+        }
+      ],
+      "focus": ["resize"]
+    },
+    {
+      "beatId": "pipeline-more",
+      "kind": "board",
+      "elements": [
+        {
+          "id": "store",
+          "primitive": "node_card",
+          "props": {
+            "title": "Store",
+            "icon": "database"
+          },
+          "zone": "sink"
+        },
+        {
+          "id": "to-store",
+          "primitive": "connector",
+          "props": {
+            "from": "resize",
+            "to": "store"
+          }
+        },
+        {
+          "id": "done",
+          "primitive": "tag",
+          "props": {
+            "text": "DONE",
+            "semantic": "ok",
+            "pin": {
+              "to": "to-store",
+              "side": "middle"
+            }
+          }
+        }
+      ],
+      "patterns": [],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "store"
+          },
+          "action": "enter",
+          "targets": ["store", "to-store"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "done"
+          },
+          "action": "enter",
+          "targets": ["done"]
+        }
+      ],
+      "focus": ["store"],
+      "continuesPrevious": true
+    },
+    {
+      "beatId": "cycle",
+      "kind": "board",
+      "layoutMode": "cycle",
+      "elements": [
+        {
+          "id": "plan",
+          "primitive": "tag",
+          "props": {
+            "text": "PLAN"
+          },
+          "zone": "ring"
+        },
+        {
+          "id": "build",
+          "primitive": "tag",
+          "props": {
+            "text": "BUILD"
+          },
+          "zone": "ring"
+        },
+        {
+          "id": "check",
+          "primitive": "tag",
+          "props": {
+            "text": "CHECK"
+          },
+          "zone": "ring"
+        },
+        {
+          "id": "learn",
+          "primitive": "tag",
+          "props": {
+            "text": "LEARN"
+          },
+          "zone": "ring"
+        },
+        {
+          "id": "rounds",
+          "primitive": "counter",
+          "props": {
+            "value": 3,
+            "label": "ROUNDS"
+          },
+          "zone": "center"
+        },
+        {
+          "id": "c1",
+          "primitive": "connector",
+          "props": {
+            "from": "plan",
+            "to": "build"
+          }
+        },
+        {
+          "id": "c2",
+          "primitive": "connector",
+          "props": {
+            "from": "build",
+            "to": "check"
+          }
+        },
+        {
+          "id": "c3",
+          "primitive": "connector",
+          "props": {
+            "from": "check",
+            "to": "learn"
+          }
+        },
+        {
+          "id": "c4",
+          "primitive": "connector",
+          "props": {
+            "from": "learn",
+            "to": "plan"
+          }
+        }
+      ],
+      "patterns": [],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "counter"
+          },
+          "action": "count",
+          "targets": ["rounds"]
+        }
+      ],
+      "focus": []
+    },
+    {
+      "beatId": "swimlane",
+      "kind": "board",
+      "layoutMode": "swimlane",
+      "elements": [
+        {
+          "id": "phone",
+          "primitive": "node_card",
+          "props": {
+            "title": "Phone",
+            "icon": "smartphone"
+          },
+          "zone": "lane-1"
+        },
+        {
+          "id": "gateway",
+          "primitive": "node_card",
+          "props": {
+            "title": "Gateway",
+            "icon": "shield"
+          },
+          "zone": "lane-2"
+        },
+        {
+          "id": "ledger",
+          "primitive": "node_card",
+          "props": {
+            "title": "Ledger",
+            "icon": "database"
+          },
+          "zone": "lane-3"
+        },
+        {
+          "id": "ask-1",
+          "primitive": "connector",
+          "props": {
+            "from": "phone",
+            "to": "gateway",
+            "label": "PAY"
+          },
+          "zone": "message"
+        },
+        {
+          "id": "ask-2",
+          "primitive": "connector",
+          "props": {
+            "from": "gateway",
+            "to": "ledger",
+            "label": "DEBIT"
+          },
+          "zone": "message"
+        },
+        {
+          "id": "answer",
+          "primitive": "connector",
+          "props": {
+            "from": "ledger",
+            "to": "phone",
+            "label": "OK",
+            "semantic": "ok"
+          },
+          "zone": "message"
+        }
+      ],
+      "patterns": [],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "asks"
+          },
+          "action": "enter",
+          "targets": ["ask-1"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "asks",
+            "occurrence": 2
+          },
+          "action": "enter",
+          "targets": ["ask-2"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "back"
+          },
+          "action": "enter",
+          "targets": ["answer"]
+        }
+      ],
+      "focus": []
+    },
+    {
+      "beatId": "versus-split",
+      "kind": "board",
+      "layoutMode": "versus_split",
+      "elements": [
+        {
+          "id": "one",
+          "primitive": "node_card",
+          "props": {
+            "title": "One queue"
+          },
+          "zone": "left"
+        },
+        {
+          "id": "one-wait",
+          "primitive": "tag",
+          "props": {
+            "text": "9 MIN",
+            "semantic": "problem",
+            "pin": {
+              "to": "one",
+              "side": "bottom"
+            }
+          }
+        },
+        {
+          "id": "two",
+          "primitive": "node_card",
+          "props": {
+            "title": "Two queues"
+          },
+          "zone": "right"
+        },
+        {
+          "id": "two-wait",
+          "primitive": "tag",
+          "props": {
+            "text": "4 MIN",
+            "semantic": "ok",
+            "pin": {
+              "to": "two",
+              "side": "bottom"
+            }
+          }
+        },
+        {
+          "id": "rush",
+          "primitive": "callout",
+          "props": {
+            "text": "Same rush of 200 people."
+          },
+          "zone": "shared"
+        }
+      ],
+      "patterns": [],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "rush"
+          },
+          "action": "enter",
+          "targets": ["rush"]
+        }
+      ],
+      "focus": []
+    },
+    {
+      "beatId": "near-far",
+      "kind": "board",
+      "layoutMode": "near_far",
+      "elements": [
+        {
+          "id": "viewer",
+          "primitive": "node_card",
+          "props": {
+            "title": "Viewer",
+            "icon": "user"
+          },
+          "zone": "origin"
+        },
+        {
+          "id": "edge",
+          "primitive": "node_card",
+          "props": {
+            "title": "Edge",
+            "icon": "globe",
+            "semantic": "ok"
+          },
+          "zone": "near"
+        },
+        {
+          "id": "origin",
+          "primitive": "node_card",
+          "props": {
+            "title": "Origin",
+            "icon": "server"
+          },
+          "zone": "far"
+        },
+        {
+          "id": "to-edge",
+          "primitive": "connector",
+          "props": {
+            "from": "viewer",
+            "to": "edge",
+            "heads": "both"
+          }
+        },
+        {
+          "id": "to-origin",
+          "primitive": "connector",
+          "props": {
+            "from": "viewer",
+            "to": "origin",
+            "heads": "both",
+            "semantic": "problem"
+          }
+        },
+        {
+          "id": "fast",
+          "primitive": "tag",
+          "props": {
+            "text": "4 MS",
+            "semantic": "ok",
+            "pin": {
+              "to": "to-edge",
+              "side": "middle"
+            }
+          }
+        },
+        {
+          "id": "slow",
+          "primitive": "tag",
+          "props": {
+            "text": "180 MS",
+            "semantic": "problem",
+            "pin": {
+              "to": "to-origin",
+              "side": "middle"
+            }
+          }
+        }
+      ],
+      "patterns": [],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "far"
+          },
+          "action": "enter",
+          "targets": ["slow"]
+        }
+      ],
+      "focus": []
+    },
+    {
+      "beatId": "hub-spoke",
+      "kind": "board",
+      "layoutMode": "hub_spoke",
+      "elements": [
+        {
+          "id": "broker",
+          "primitive": "node_card",
+          "props": {
+            "title": "Broker",
+            "icon": "layers"
+          },
+          "zone": "hub"
+        },
+        {
+          "id": "lease",
+          "primitive": "timer_ring",
+          "props": {
+            "durationSec": 10,
+            "label": "LEASE",
+            "pin": {
+              "to": "broker",
+              "side": "right"
+            }
+          }
+        },
+        {
+          "id": "w1",
+          "primitive": "tag",
+          "props": {
+            "text": "WORKER 1"
+          },
+          "zone": "spoke"
+        },
+        {
+          "id": "w2",
+          "primitive": "tag",
+          "props": {
+            "text": "WORKER 2"
+          },
+          "zone": "spoke"
+        },
+        {
+          "id": "w3",
+          "primitive": "tag",
+          "props": {
+            "text": "WORKER 3"
+          },
+          "zone": "spoke"
+        },
+        {
+          "id": "w4",
+          "primitive": "tag",
+          "props": {
+            "text": "WORKER 4"
+          },
+          "zone": "spoke"
+        },
+        {
+          "id": "l1",
+          "primitive": "connector",
+          "props": {
+            "from": "broker",
+            "to": "w1"
+          }
+        },
+        {
+          "id": "l2",
+          "primitive": "connector",
+          "props": {
+            "from": "broker",
+            "to": "w2"
+          }
+        },
+        {
+          "id": "l3",
+          "primitive": "connector",
+          "props": {
+            "from": "broker",
+            "to": "w3"
+          }
+        },
+        {
+          "id": "l4",
+          "primitive": "connector",
+          "props": {
+            "from": "broker",
+            "to": "w4"
+          }
+        }
+      ],
+      "patterns": [],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "holds"
+          },
+          "action": "count",
+          "targets": ["lease"]
+        }
+      ],
+      "focus": ["broker"]
+    }
+  ]
+}

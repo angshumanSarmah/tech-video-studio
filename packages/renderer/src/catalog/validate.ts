@@ -9,6 +9,7 @@ import {
   type VideoSpec,
 } from '@explainer-studio/shared';
 import type { z } from 'zod';
+import { LAYOUT_MODES } from '../layout/modes.ts';
 import { DEFAULT_REGISTRIES, type Registries } from './registries.ts';
 import {
   innerTargetErrors,
@@ -21,7 +22,7 @@ import { sceneScopes, type Scope, type ScopeEntry } from './scope.ts';
 import { findTimelineWarnings } from './timeline-checks.ts';
 
 /**
- * Registry checks for a spec's scenes: primitive and pattern ids exist, props and params match
+ * Registry checks for a spec's scenes: layout modes, primitive and pattern ids exist, props and params match
  * their schemas (pattern instances: `pattern-checks.ts`), events only use actions their targets
  * (or the parts they name, or `<instance>/<id>` inside a pattern) support, props
  * only point to elements in the beat's scope (errors), and asset ids exist
@@ -68,6 +69,7 @@ export function findRegistryErrors(
   return scenes.flatMap((scene, i) => {
     const scope: Scope = scopes[i] ?? new Map<string, ScopeEntry>();
     return [
+      ...layoutModeErrors(scene, i),
       ...elementErrors(scene, i, registries),
       ...patternErrors(scene, i, words.get(scene.beatId), registries),
       ...actionErrors(scene, i, scope),
@@ -131,9 +133,15 @@ function schemaErrors(schema: z.ZodType, value: unknown, path: Path): SpecError[
   }));
 }
 
+/** A scene's own `layoutMode` must be a registered layout mode. */
+function layoutModeErrors(scene: BeatScene, i: number): SpecError[] {
+  if (scene.layoutMode === undefined || LAYOUT_MODES.has(scene.layoutMode)) return [];
+  return [unknownId(['scenes', i, 'layoutMode'], 'layout mode', scene.layoutMode, LAYOUT_MODES)];
+}
+
 function unknownId(
   path: Path,
-  what: 'primitive',
+  what: 'primitive' | 'layout mode',
   id: string,
   registry: ReadonlyMap<string, unknown>,
 ): SpecError {

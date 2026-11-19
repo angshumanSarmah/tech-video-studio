@@ -36,7 +36,7 @@ export type TitleBlockProps = {
 
 /**
  * A drawing title block: an ink-ruled box of cells on the paper's surface colour. Built from
- * theme tokens only, so it draws in any theme (P1A.9's card header uses the `header` variant).
+ * theme tokens only, so it draws in any theme (the card format's header uses the `header` variant).
  */
 export function TitleBlock(props: TitleBlockProps) {
   const { theme, variant, layout, title, channelHandle, sheet, from } = props;

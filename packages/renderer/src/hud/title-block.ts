@@ -22,7 +22,7 @@ import { lineHeightPx } from './hud-layout.ts';
  * Both variants share the bottom row of cells and differ only in the top cell: one HUD line in the
  * strip (one row of four cells cannot hold a real title at a readable size), the title in display
  * type in the header. `strip` is the full-format HUD. `header` is the card format's persistent
- * header (P1A.9): it draws only the block; the card layout places the metric and chapter itself.
+ * header region (`formatAreas`), with the same chapter / metric and clock rows under the block.
  */
 
 export const TITLE_BLOCK_VARIANTS = ['strip', 'header'] as const;
@@ -39,10 +39,10 @@ export type TitleBlockLayout = {
   block: Rect;
   /** The top cell's height, its bottom divider included (subject line or title). */
   topHeight: number;
-  /** Strip variant: chapter header (left) and the hero metric dimension (right). */
-  metaRow: Rect | null;
-  /** Strip variant: the story clock (right). */
-  clockRow: Rect | null;
+  /** Chapter header (left) and the hero metric dimension (right). */
+  metaRow: Rect;
+  /** The story clock (right). */
+  clockRow: Rect;
 };
 
 /** One row of cells: a HUD text line plus vertical padding. */
@@ -67,8 +67,9 @@ function blockHeight(theme: Theme, variant: TitleBlockVariant): number {
 }
 
 /**
- * Slots for a title-block variant, stacked from the top of the HUD band. Throws when they do not
- * fit in it, like `hudLayout`.
+ * Slots for a title-block variant, stacked from the top of the HUD band: the block, then the
+ * chapter / metric row, then the clock row. The strip must fit the HUD band (throws otherwise,
+ * like `hudLayout`); the card format's header region is as tall as the header needs.
  */
 export function titleBlockLayout(theme: Theme, variant: TitleBlockVariant): TitleBlockLayout {
   const { hudBand } = safeAreas(theme);
@@ -81,13 +82,11 @@ export function titleBlockLayout(theme: Theme, variant: TitleBlockVariant): Titl
   const block = row(hudBand.y, blockHeight(theme, variant));
   const gap = theme.space.sm;
   const metaHeight = Math.max(lineHeightPx(theme, 'chapter'), dimensionHeight(theme));
-  const metaRow = variant === 'strip' ? row(block.y + block.height + gap, metaHeight) : null;
-  const clockRow = metaRow
-    ? row(metaRow.y + metaRow.height + gap, lineHeightPx(theme, 'hud'))
-    : null;
-  const last = clockRow ?? block;
-  const needed = last.y + last.height - hudBand.y;
-  if (needed > hudBand.height) {
+  const metaRow = row(block.y + block.height + gap, metaHeight);
+  const clockRow = row(metaRow.y + metaRow.height + gap, lineHeightPx(theme, 'hud'));
+  const needed = clockRow.y + clockRow.height - hudBand.y;
+  // The card format's header region is as tall as it needs; its window goes below it.
+  if (variant === 'strip' && needed > hudBand.height) {
     throw new Error(
       `Theme "${theme.id}": the ${variant} title block needs ${needed}px but the HUD band is ${hudBand.height}px.`,
     );

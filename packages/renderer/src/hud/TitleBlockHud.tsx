@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion';
 import { rectCss } from '../layers/rect-css.ts';
-import { safeAreas, textCss, type Theme } from '../theme/index.ts';
+import { formatAreas } from '../layout/format.ts';
+import { textCss, type Theme } from '../theme/index.ts';
 import { ChapterHeader } from './ChapterHeader.tsx';
 import { DimensionMetric } from './DimensionMetric.tsx';
 import { Headline } from './Headline.tsx';
@@ -18,15 +19,19 @@ type Props = HudProps & { variant: TitleBlockVariant };
 /**
  * `hud.style: 'title-block'`. The strip variant draws the title block (topic, SHEET for the step
  * tracker, REV, handle), then the chapter header or step name beside the hero metric dimension,
- * then the story clock when `spec.hud` has it on. The header variant (card format) draws only
- * the block; P1A.9 places the rest.
+ * then the story clock when `spec.hud` has it on. The header variant (card format) draws the title
+ * block with the title in display type, and the same rows under it; its headline goes under the
+ * diagram window (`formatAreas`).
  */
 export function TitleBlockHud({ variant, ...props }: Props) {
   const { theme, spec, seriesLabel, accent, channelHandle } = props;
   const { frame, parts, chapters, chapter, cue, metric, clock, points, start, pinnedFrom } =
     useHudModel(props);
   const layout = useMemo(() => titleBlockLayout(theme, variant), [theme, variant]);
-  const headlineBand = useMemo(() => safeAreas(theme).headlineBand, [theme]);
+  const headlineBand = useMemo(
+    () => formatAreas(theme, spec.meta.format).headlineBand,
+    [theme, spec.meta.format],
+  );
   const row = { display: 'flex', alignItems: 'center', gap: theme.space.md } as const;
   const showSheet = parts.stepTracker && chapter !== undefined;
 
@@ -45,7 +50,7 @@ export function TitleBlockHud({ variant, ...props }: Props) {
           from={start}
         />
       ) : null}
-      {layout.metaRow ? (
+      {
         <div style={{ ...rectCss(layout.metaRow), ...row, justifyContent: 'space-between' }}>
           {parts.chapterHeader && chapter ? (
             <ChapterHeader theme={theme} chapter={chapter} accent={accent} />
@@ -58,8 +63,8 @@ export function TitleBlockHud({ variant, ...props }: Props) {
             <DimensionMetric theme={theme} metric={metric} from={pinnedFrom} />
           ) : null}
         </div>
-      ) : null}
-      {layout.clockRow && parts.storyClock && clock ? (
+      }
+      {parts.storyClock && clock ? (
         <div style={{ ...rectCss(layout.clockRow), ...row, justifyContent: 'flex-end' }}>
           <StoryClock
             theme={theme}

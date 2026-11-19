@@ -96,10 +96,9 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       the structured errors to the run, so a marker can never reach an exported MP4.
   - It must also refuse a spec with any `unknown_asset` warning (a warning everywhere else), so
     an asset placeholder never reaches an export.
-- [ ] **P1A.9 — Size hints.** `sizeHints` estimate text width from per-font average advances
-      (`src/primitives/measure.ts`). If the layout engine needs exact widths, measure glyphs
-      (`@remotion/layout-utils` or the font files) instead. `BeatScene`'s centred wrap is
-      temporary; the layout engine replaces it.
+- [ ] **Layout — Size hints.** `sizeHints` estimate text width from per-font average advances
+      (`src/primitives/measure.ts`), and the layout engine trusts them. If boards overflow their
+      boxes, measure glyphs (`@remotion/layout-utils` or the font files) instead.
   - `formula_card` estimates its extent from the LaTeX (`latex-size.ts`: glyph count, fractions
     as wide as their wider part); KaTeX only lays out in a browser. Measure the rendered DOM if
     formulas overflow their card.
@@ -117,12 +116,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       `SpecLayers` tiles beat `<Sequence>`s with no overlap and ignores `transitionIn` and
       `focus`. Transitions that overlap two beats must keep `BeatFromSpec` frame-identical to
       `VideoFromSpec` (P1A.12 drafts show transitions into a beat as cuts).
-- [ ] **P1A.9 — Safe areas.** `safeAreas(theme)` returns the centred stage the layout engine
-      fills, plus `avoidZones` (platform action buttons clipped to the stage). Keep text and key
-      elements out of avoid zones; background decoration may pass under. The layout engine picks
-      the stage per beat with `stageForBeat(areas, spec, beatId)`: `stageWithHeadline` (940 px
-      tall in `blueprint-dark`) when the beat shows a headline and `hud.headline` is on, else the
-      full `stage` (1080 px).
 - [ ] **P1D.8 — Accent contrast warning.** Renders adapt low-contrast accents (`accentFor`), so
       Settings should show the adapted value next to the stored one per theme (as the swatch board
       does) and warn when they differ, using `accentFor`/`checkAccentContrast` (from
@@ -132,45 +125,34 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       (`getTheme`, `listThemes`). When a channel or series stores a theme id, validate it against
       the registry (or move the id list into `packages/shared`). The studio tokens stay pinned to
       `STUDIO_THEME_ID` (`blueprint-dark`) unless the UI should follow the video theme.
-- [ ] **P1A.9 / P1C.4 — Catalogue ids.** Primitive and pattern ids, props and params are checked
-      by `withRegistryChecks` (P1A.5). The VideoSpec schema still only checks these are slugs:
-      `scenes[].layoutMode`, `story.beats[].layoutMode` and
-      `suggestedPatternIds`, `story.devices`, `story.beats[].device`, `story.metaphorWorld`,
-      (`src/layout/modes.ts` now lists the layout mode ids; P1A.8 only checks patterns' modes),
-      `story.ending.kind`, `story.missingPrimitiveRequests[].fallbackUsed`. Validate each against
-      its registry or catalogue (structured errors with JSON paths, like `validateVideoSpec`).
+- [ ] **P1C.4 — Catalogue ids.** Primitive, pattern and layout mode ids, props and params are
+      checked by `withRegistryChecks`. The VideoSpec schema still only checks these are slugs:
+      `story.beats[].layoutMode` and `suggestedPatternIds`, `story.devices`,
+      `story.beats[].device`, `story.metaphorWorld`, `story.ending.kind`,
+      `story.missingPrimitiveRequests[].fallbackUsed`. Validate each against its registry or
+      catalogue (structured errors with JSON paths, like `validateVideoSpec`).
 - [ ] **Parts on `data_block`.** P1A.7 settled the target syntax (`params.parts`, one target).
       Still open: `data_block` fields as parts, so "this `status` flips" highlights one field.
-- [ ] **P1A.9 — Geometry for relational primitives and overlays.** `connector` (between
-      `from`/`to`), `packet_stream` (along its connector's path) and `route_path` draw a
-      standalone path across their own box (`standalonePath`, `routeLayout`); `grid_overlay`
-      (`over`), `route_path` and `zone_polygon` on a map draw on their own. The layout engine
-      must give relational primitives their path in box coordinates (components already draw
-      from a `Point[]`; add it to the component props as layout output, never authored), stack
-      overlays on their `over` / `map_base` at the same box and a higher z, and may snap route
-      stops and zones to places on the map. `BeatScene`'s wrap shows boards with these elements
-      side by side until then.
-- [ ] **P1A.9 — Source footnote placement.** The beat source line (`BeatScript.source`) is
-      placed by `BeatScene` in the stage's bottom-left corner (`scene/source-footnote.ts`,
-      `footnoteRect`), clear of the avoid zones. Its position is owned by the layout engine:
-      move it there, and in the "card" format it must sit inside the diagram window.
-- [ ] **P1A.9 — Card format header region.** The card format gets its own header region,
-      taller than `hudBand` (its diagram window is only 16:9, so the room is there). It holds
-      the title block's `header` variant (`TitleBlock`, `titleBlockLayout(theme, 'header')`)
-      plus the hero metric dimension (`DimensionMetric`) and the chapter header, which do not
-      fit beside the header inside the 200 px `hudBand`. Replace the temporary `cardHeader`
-      flag (`SpecLayers` → `Hud`, `CardHeaderPreview` composition, `rate-limiter-header`
-      still) with `meta.format: "card"`.
+- [ ] **Layout — Places on a map.** `route_path` and `zone_polygon` over a `map_base` share its
+      rect but keep their own internal geometry, and `marker` elements sit in a row inside the
+      map's top edge. Snapping route stops, zones and markers to places on the map needs named
+      places (metaphor worlds, P2). `MAP_DEFAULT_ZONES` (`layout/modes.ts`) names primitive ids;
+      move it to a primitive field if more spatial primitives arrive.
+- [ ] **P1B.3 — Card format subtitles.** `formatAreas(theme, 'card').subtitleBand` sits under
+      the card's headline band (drafting-paper: y 1183, 720 px wide), but `DevSubtitles` (not to
+      be extended) still draws at the full format's band. The real subtitle layer must read the
+      band from `formatAreas(theme, spec.meta.format)`.
+- [ ] **Card format — Window frame.** The card's diagram window is not outlined, so the card
+      reads as a board under a header. Draw a ruled frame (HUD, from `formatAreas`) if it should
+      read as a card.
 - [ ] **Runs — Episode number in the title block.** The title block's REV cell is the constant
       `REVISION_LABEL` ("REV A"). Replace it with the episode number ("NO. 12") once runs
       carry one.
-- [ ] **P1A.9 — Inset, ring and bracket geometry.** `inset_panel` zooms from its own centre;
-      `enter` should zoom out of its `anchor` element's placed box (transform origin from layout
-      output) and lay its children out in its own frame (nested layout) instead of the scaled
-      wrap in `WorldItemView`. `radius_ring` must be centred and sized on its `around` element;
-      `bracket` must span its `targets` (or the named parts) along their shared side, which
-      also decides its orientation (it draws below its group for now). `route_path`'s mover
-      sits on the end pin when it arrives; offset it once the layout gives the pin room.
+- [ ] **Layout — Inset, bracket and route geometry.** `inset_panel` zooms from its own centre;
+      `enter` should zoom out of its `anchor` element's placed box (transform origin from the
+      layout). Its children are a plain stack (no pins or connectors between children). `bracket`
+      spans its targets underneath; brace orientation along their shared side, and `parts`
+      spans, need part geometry. `route_path`'s mover sits on the end pin when it arrives.
 - [ ] **P1B / P1C — Source required.** A beat that shows a real incident or a sourced number must
       carry `BeatScript.source`. Schema code cannot tell, so the Scriptwriter prompt states it
       as a DO rule and the Curator checks it against the research notes (`stat_card` already
@@ -242,25 +224,33 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       heroMetric, storyClock, headline) is user-set and not in the LLM JSON schemas. Expose the
       toggles at the scene gate (form view), and show "estimated timing" in the preview UI (the
       temporary in-frame badge went away with `DevHud`).
-- [ ] **P1A.9 — Pattern layout inputs.** Patterns declare a layout mode and zones
-      (`src/layout/modes.ts`); P1A.9 adds the placement. Where a pattern fits its mode loosely:
-  - `reject_duplicate` (pipeline): the two id tags sit in `stage` between sender and receiver;
-    they travel the link rather than being a stage.
-  - `worker_pool` (pipeline): each `output-<n>` belongs next to `worker-<n>`, but zones carry no
-    pairing. Pipeline needs per-row pairing (or attachments) for parallel lanes.
-  - `atomic_lock` (hub_spoke): the hold timer and the bounce tag sit in `aside`; they belong
-    attached to the resource and the second request (attachments, P1A.9).
-  - `cache_hit_miss` (near_far): the HIT and MISS tags belong attached to their links.
-  - `inference_card` (pipeline): the comparison row (`compare-features`, `compare-prediction`)
-    sits in `aside`; it is a second, parallel lane through the same model.
-  - `failover` (pipeline): the leader and followers share the `sink` tier and replicate to each
-    other inside it; the writer's arrow moves within that tier on the reroute.
-  - `brute_force_then_index` (centered_focus): the index sits `around` the grid and points into
-    one slot; a connector to a part (`jump` → `item-<n>`) needs part endpoints.
-  - `split_brain` (versus_split): `link`, `cut` and `restored` join the same two nodes and never
-    show together; they should share one path.
+- [ ] **Layout — Pattern fits and crossing connectors.** `atomic_lock`, `cache_hit_miss` and
+      `worker_pool` now pin what belongs to another element. Still loose (`specLayoutWarnings`
+      reports `connector_crosses` for most of them on the fixture boards):
+  - Elbow routing: connectors are straight, so a bypass (`flood_then_funnel` `direct`, the
+    rate-limiter fixture's flood) runs through the middle stage. Route around solids.
+  - Wrapped pipeline tiers (`fan_out` with three wide targets): links to the second row cross
+    the first. Stagger rows or route around.
+  - `reject_duplicate` (pipeline): the two id tags sit in `stage`; they travel the link.
+  - `inference_card` (pipeline): the comparison row sits in `aside`; it is a parallel lane.
+  - `failover` (pipeline): leader and followers share `sink` and replicate inside it.
+  - `brute_force_then_index` (centered_focus): the index points into one slot; connectors to a
+    part need part endpoints.
+  - `split_brain` (versus_split): `link`, `cut` and `restored` should share one path.
   - A pattern's mode is static per definition; a pattern that wants a different mode by params
     would move `layoutMode` into the expansion.
+- [ ] **P1A.10 — Camera easing.** `specLayout` gives each beat a camera (zoom and pan of the
+      board layer); beats snap from one to the next. Ease between cameras at beat boundaries
+      (and keep `BeatFromSpec` frame-identical to `VideoFromSpec`), and fold focus dimming in.
+- [ ] **Layout — Board clip.** The board layer is clipped to its frame plus `space.sm` (so guides
+      never leak into the HUD); an emphasis mark or glow on an element at the frame edge loses
+      what overhangs further.
+- [ ] **Layout — Radial centring.** `centered_focus` and `hub_spoke` centre the others on the
+      middle element's cluster (with its pins), so a hub with a side pin sits off centre.
+- [ ] **P1C.7 — Layout warnings.** `specLayoutWarnings(spec, theme)` (from
+      `@explainer-studio/renderer/catalog`) is not called yet. The Curator runs it on Generator
+      output (warnings count as failures there) with the run's theme and format, and the scene
+      gate shows it.
 - [ ] **Recover without a reject.** A `recover` on an element or part that was never rejected
       (in its `continuesPrevious` chain) is a silent no-op. Add a timeline warning
       (`recover_without_reject`) so agents repair it; the board fixtures are checked by a test.

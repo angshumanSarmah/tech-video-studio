@@ -32,7 +32,7 @@ export function visibleHudParts(spec: RenderableVideoSpec): Record<HudPart, bool
   };
 }
 
-/** True when the beat shows a headline, so its board gets `stageWithHeadline` (P1A.9). */
+/** True when the beat shows a headline, so its chain's board gets `stageWithHeadline`. */
 export function beatHasHeadline(spec: RenderableVideoSpec, beatId: string): boolean {
   if (!spec.hud.headline) return false;
   return spec.script.some((beat) => beat.beatId === beatId && beat.headline !== undefined);

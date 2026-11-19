@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { contains, intersect, listThemes, safeAreas, ThemeSchema } from '../theme/index.ts';
+import { formatAreas } from '../layout/format.ts';
 import { draftingPaper } from '../theme/themes/drafting-paper.ts';
 import { lineHeightPx } from './hud-layout.ts';
 import {
@@ -19,10 +20,13 @@ const cases = listThemes().flatMap((theme) =>
 describe.each(cases)('titleBlockLayout(%s, %s)', (_id, variant, theme) => {
   const areas = safeAreas(theme);
   const layout = titleBlockLayout(theme, variant);
-  const slots = [layout.block, layout.metaRow, layout.clockRow].flatMap((r) => (r ? [r] : []));
+  const slots = [layout.block, layout.metaRow, layout.clockRow];
+  // The strip is the full format's HUD band; the header is the card format's taller region.
+  const region =
+    variant === 'strip' ? areas.hudBand : (formatAreas(theme, 'card').header ?? areas.hudBand);
 
-  it('stacks its slots inside the HUD band without overlap', () => {
-    for (const slot of slots) expect(contains(areas.hudBand, slot)).toBe(true);
+  it('stacks its slots inside its region without overlap', () => {
+    for (const slot of slots) expect(contains(region, slot)).toBe(true);
     for (let i = 1; i < slots.length; i++) {
       const [above, below] = [slots[i - 1], slots[i]];
       if (!above || !below) throw new Error('missing slot');
@@ -45,13 +49,12 @@ describe.each(cases)('titleBlockLayout(%s, %s)', (_id, variant, theme) => {
 describe('titleBlockLayout variants', () => {
   const theme = ThemeSchema.parse(draftingPaper);
 
-  it('gives the strip the metric and clock rows, and the header only the block', () => {
-    const strip = titleBlockLayout(theme, 'strip');
-    const header = titleBlockLayout(theme, 'header');
-    expect(strip.metaRow).not.toBeNull();
-    expect(strip.clockRow).not.toBeNull();
-    expect(header.metaRow).toBeNull();
-    expect(header.clockRow).toBeNull();
+  it('puts the metric and clock rows under the block in both variants', () => {
+    for (const variant of ['strip', 'header'] as const) {
+      const { block, metaRow, clockRow } = titleBlockLayout(theme, variant);
+      expect(metaRow.y).toBeGreaterThan(block.y + block.height);
+      expect(clockRow.y).toBeGreaterThan(metaRow.y + metaRow.height);
+    }
   });
 
   it('reserves two title lines in the header, one HUD line in the strip', () => {
@@ -66,9 +69,10 @@ describe('titleBlockLayout variants', () => {
       ...draftingPaper,
       safeArea: { ...draftingPaper.safeArea, hudBand: 120 },
     });
-    expect(() => titleBlockLayout(tiny, 'header')).toThrow(
-      /header title block needs \d+px but the HUD band is 120px/,
+    expect(() => titleBlockLayout(tiny, 'strip')).toThrow(
+      /strip title block needs \d+px but the HUD band is 120px/,
     );
+    expect(() => titleBlockLayout(tiny, 'header')).not.toThrow();
   });
 });
 

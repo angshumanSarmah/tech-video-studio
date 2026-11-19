@@ -83,7 +83,17 @@ export function modeContext(analysis: Analysis, params: ArrangeParams): ModeCont
     aspect: params.aspect,
     maxRowWidth: params.maxRowWidth,
     labelBand: band,
+    pinnedSides: pinnedSides(analysis),
   };
+}
+
+function pinnedSides(analysis: Analysis): Map<string, Set<string>> {
+  const sides = new Map<string, Set<string>>();
+  for (const item of analysis.items) {
+    if (!item.pin || item.pin.side === 'middle') continue;
+    sides.set(item.pin.host, (sides.get(item.pin.host) ?? new Set()).add(item.pin.side));
+  }
+  return sides;
 }
 
 /**
