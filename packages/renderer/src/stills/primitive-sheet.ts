@@ -4,7 +4,7 @@ import {
   type EventAnchor,
   type RenderableVideoSpec,
 } from '@explainer-studio/shared';
-import { ACTION_DURATION_SEC } from '../primitives/element-state.ts';
+import { ACTION_DURATION_SEC } from '../events/presets.ts';
 import { eventParts } from '../primitives/parts.ts';
 import { anchorToTime, secToFrame } from '../timing/frames.ts';
 
@@ -43,8 +43,8 @@ export type SheetPlan = { beatId: string; elementId: string; panels: SheetPanel[
 /** Longest wait after the last event, so a long beat tail does not hide a short effect. */
 const LAST_PANEL_MAX_SEC = 2;
 
-/** Where a pulse's bump peaks, as a fraction of its duration (ease-out cubic reaches 0.5 here). */
-const PULSE_PEAK = 1 - 0.5 ** (1 / 3);
+/** Where a pulse's bump peaks, as a fraction of its duration (its easing is linear). */
+const PULSE_PEAK = 0.5;
 
 export function planPrimitiveSheet(
   spec: RenderableVideoSpec,

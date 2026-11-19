@@ -1,3 +1,4 @@
+import { dimOpacity } from '../../events/presets.ts';
 import type { CSSProperties } from 'react';
 import { AssetGlyph } from '../../assets/AssetGlyph.tsx';
 import { emphasisFilter, markHostCss, markLevels } from '../../emphasis/emphasis.ts';
@@ -35,7 +36,7 @@ export function SlotGrid({ theme, props, box, state }: PrimitiveComponentProps<S
         flexDirection: 'column',
         alignItems: 'center',
         gap: m.gap,
-        opacity: state.presence * (1 - 0.7 * state.dimmed),
+        opacity: state.presence * dimOpacity(state.dimmed),
         filter: emphasisFilter(theme, semanticTint(theme, 'neutral'), state.emphasis),
       }}
     >
@@ -116,7 +117,7 @@ function SlotView({ theme, kind, slot, m, part }: SlotViewProps) {
           gap: theme.space.xs,
           color: theme.colours.ink.primary,
           whiteSpace: 'nowrap',
-          opacity: part.presence * (1 - 0.7 * part.dimmed),
+          opacity: part.presence * dimOpacity(part.dimmed),
           transform: `translate(${shakeOffset(rejected, theme.space.xs)}px, ${-lift}px) scale(${1 + 0.08 * part.emphasis})`,
         }}
       >

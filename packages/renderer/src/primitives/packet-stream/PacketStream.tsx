@@ -1,3 +1,4 @@
+import { dimOpacity } from '../../events/presets.ts';
 import { emphasisFilter, markLevels } from '../../emphasis/emphasis.ts';
 import { LineMark } from '../../emphasis/Mark.tsx';
 import { semanticFill, semanticTint } from '../../theme/index.ts';
@@ -40,7 +41,7 @@ export function PacketStream({
     <svg
       width={box.width}
       height={box.height}
-      style={{ overflow: 'visible', opacity: 1 - 0.7 * state.dimmed }}
+      style={{ overflow: 'visible', opacity: dimOpacity(state.dimmed) }}
     >
       <LineMark theme={theme} levels={markLevels(state)} d={pathD(points)} width={size * 2} />
       <path

@@ -104,10 +104,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
     formulas overflow their card.
   - Sizes are fixed per props, so typing (`data_block`, `command_bubble`) and transitions
     (`counter_transition`) reserve their final size up front and never reflow.
-- [ ] **P1A.10 — Element state.** `elementState` uses linear ramps with an ease-out and fixed
-      durations per action. P1A.10 adds easing presets, group stagger and focus dimming there
-      (components read only `ElementState`, so they need no changes). Keep `elapsed` measured on
-      the global timeline (seconds, not beat-local frames) when reworking it.
 - [ ] **P3.4 — Number locale per channel.** `numberLocale` lives on the theme (`en-IN` in
       `blueprint-dark`). When channels get their own settings, let a channel override it (passed
       through composition props) instead of forking a theme.
@@ -154,17 +150,10 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       carry `BeatScript.source`. Schema code cannot tell, so the Scriptwriter prompt states it
       as a DO rule and the Curator checks it against the research notes (`stat_card` already
       requires its own source).
-- [ ] **P1A.10 — Overlay focus.** The scrim behind `inset_panel` / `statement_card` is drawn by
-      `BeatScene` from the overlays' presence (`scene-layers.ts`). When P1A.10 adds focus and
-      dimming, fold the scrim into it (overlays as the focus set) so dimming has one source.
 - [ ] **Scene — Container cycles.** `nestContained` (`scene/beat-world.ts`) never nests an
       overlay, and every container today (`inset_panel`) is an overlay, so containment cannot
       cycle. If a non-overlay container is ever added, add a cycle check (in `nestContained`
       and as a validation error): A contains B contains A would drop both from the scene.
-- [ ] **P1A.10 — Part stagger.** An event naming several parts (`params.parts: [a, b, c]`)
-      starts them together. P1A.10's group stagger should apply to parts too (in
-      `elementState`, so components stay unchanged). `brute_force_then_index` relies on it: its
-      scan rejects every item in one event and should read as a one-by-one sweep.
 - [ ] **P1B.1 / P1B.2 — Word contract.** Word anchors and `timing.beats[].words` count words with
       `narrationWords()` from `packages/shared`. Map TTS tokens back onto that list so the
       timed word count equals it (enforced by `validateVideoSpec`). Cases the mapping must
@@ -273,3 +262,9 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       `timer_ring` option.
 - [ ] **Catalogue — nested params.** The markdown params table shows object params (a pattern's
       `resource: { title, icon }`) as `object` without their fields; the JSON schema has them.
+- [ ] **P1C.7 — Generator rules for the event engine.** The catalogue states the engine's rules
+      (focus events, `hold`, `stagger: "scan"`, transitions, `zoomFrom`). Add them to the
+      Generator's DO / COMMON MISTAKES: focus what the beat is about (a highlight lifts the
+      focus dim only while it shows), leave `transitionIn` at `cut` on continuing beats, keep
+      `scan` for deliberate sweeps, and use `hold` sparingly (a held highlight shows through an
+      overlay's dim).

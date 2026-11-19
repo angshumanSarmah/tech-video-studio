@@ -37,7 +37,10 @@ export function WorldItemView({ theme, item, frame, fps, containerPresence = 1, 
     return <ErrorMarker theme={theme} title={title} detail={detail} />;
   }
   const box = placed ? boxOf(placed) : itemBox(item, theme);
-  const state = containedState(elementState(item.events, frame, fps), containerPresence);
+  const state = containedState(
+    elementState(item.events, frame, fps, item.focus),
+    containerPresence,
+  );
   const path = placed?.path;
   if (placed?.children) {
     return (

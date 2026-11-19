@@ -19,6 +19,11 @@ export function el(
 }
 
 /** One event per call; `parts` makes it a part event on its single target. */
+/** The event as a deliberate one-by-one sweep (`params.stagger: 'scan'`). */
+export function scan(event: SceneEvent): SceneEvent {
+  return { ...event, params: { ...event.params, stagger: 'scan' } };
+}
+
 export function on(
   at: EventAnchor,
   action: EventAction,

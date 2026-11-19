@@ -1,11 +1,11 @@
 import type { ElementState } from '../primitives/element-state.ts';
-import { withAlpha, type Theme } from '../theme/index.ts';
 import type { WorldItem } from './beat-world.ts';
 
 /**
- * How a beat's items stack: board items in the stage, then a scrim that dims the board while an
- * overlay shows, then the overlays (with their children inside them, so the scrim never dims
- * them). Pure: `BeatScene` draws what this returns.
+ * How a beat's items stack: board items in the stage, then the overlays (with their children
+ * inside them). While an overlay shows, focus moves to it and the board dims through each
+ * element's `dimmed` (the focus track, `events/focus.ts`), so there is no separate scrim. Pure:
+ * `BeatScene` draws what this returns.
  */
 
 export type PrimitiveItem = Extract<WorldItem, { kind: 'primitive' }>;
@@ -19,17 +19,12 @@ export function splitLayers(items: readonly WorldItem[]): SceneLayers {
   return { board: items.filter((item) => !overlays.includes(item as PrimitiveItem)), overlays };
 }
 
-/** How strongly the scrim dims the board at full strength. */
-export const SCRIM_ALPHA = 0.72;
-
-/** The scrim follows the most present overlay: 0 (none) to 1 (one fully shown). */
-export function scrimLevel(overlayPresences: readonly number[]): number {
+/**
+ * How much the board's own decoration (the mode's guide lines) dims for overlays: the most
+ * present overlay, 0 (none) to 1 (one fully shown). Elements dim through their focus track.
+ */
+export function overlayLevel(overlayPresences: readonly number[]): number {
   return Math.max(0, ...overlayPresences);
-}
-
-/** The scrim's colour: the theme background over the board, at `level` of full strength. */
-export function scrimColour(theme: Theme, level: number): string {
-  return withAlpha(theme.colours.background, SCRIM_ALPHA * level);
 }
 
 /**

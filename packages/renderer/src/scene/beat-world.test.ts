@@ -6,6 +6,7 @@ import { fixtureSpec } from '../catalog/test-specs.ts';
 import { buildPatternRegistry } from '../patterns/registry.ts';
 import { bouncePattern } from '../patterns/test-pattern.ts';
 import { elementState } from '../primitives/element-state.ts';
+import patternDecisionBoardJson from '../../fixtures/pattern-decision-board.json';
 import { beatWorld, sceneChain } from './beat-world.ts';
 
 const FPS = 30;
@@ -203,5 +204,104 @@ describe('sceneChain', () => {
     ]);
     expect(sceneChain(scenes, 'bucket-empty').map((s) => s.beatId)).toEqual(['bucket-empty']);
     expect(sceneChain(scenes, 'missing')).toEqual([]);
+  });
+});
+
+describe('beatWorld: event engine', () => {
+  type Json = Record<string, unknown>;
+  const word = (text: string) => ({ type: 'word_text', text });
+  const ev = (action: string, targets: string[], text: string, params?: Json) => ({
+    at: word(text),
+    action,
+    targets,
+    ...(params ? { params } : {}),
+  });
+  /** The rate-limiter hook beat with extra elements, events and focus. */
+  const hook = (elements: Json[], events: Json[], focus?: string[]) => {
+    const input = fixtureSpec();
+    const scene = input.scenes[0] as Json & { elements: Json[]; events: Json[] };
+    scene.elements.push(...elements);
+    scene.events.push(...(events as never[]));
+    if (focus) scene.focus = focus;
+    return parseRenderableSpec(input);
+  };
+  const timing = (spec: RenderableVideoSpec) => effectiveTiming(spec).beats[0];
+  /** Global frame of the n-th word (0-based) of the hook beat. */
+  const wordFrame = (spec: RenderableVideoSpec, index: number) =>
+    Math.round((timing(spec)?.words[index]?.startSec ?? 0) * FPS);
+  const stateOf = (spec: RenderableVideoSpec, key: string, frame: number) => {
+    const item = world(spec, 'hook').find((i) => i.key === key);
+    if (item?.kind !== 'primitive') throw new Error(key);
+    return elementState(item.events, frame, FPS, item.focus);
+  };
+
+  it('dims what is out of the beat’s focus, and the elements pinned to the focus stay lit', () => {
+    const pinned = { id: 'note', primitive: 'tag', props: { text: '429', pin: { to: 'api' } } };
+    const spec = hook([pinned], [], ['api']);
+    const late = wordFrame(spec, 12);
+    expect(stateOf(spec, 'api', late).dimmed).toBe(0);
+    expect(stateOf(spec, 'note', late).dimmed).toBe(0);
+    expect(stateOf(spec, 'client', late).dimmed).toBe(1);
+  });
+
+  it('moves the focus at a focus event, animating the change', () => {
+    const spec = hook([], [ev('focus', ['client'], 'error')], ['api']);
+    const at = wordFrame(spec, 19);
+    expect(stateOf(spec, 'api', at - 1).dimmed).toBe(0);
+    expect(stateOf(spec, 'api', at + 3).dimmed).toBeGreaterThan(0);
+    expect(stateOf(spec, 'api', at + 3).dimmed).toBeLessThan(1);
+    expect(stateOf(spec, 'api', at + 20).dimmed).toBe(1);
+    expect(stateOf(spec, 'client', at + 20).dimmed).toBe(0);
+  });
+
+  it('moves focus to an overlay while it shows: the board dims, the overlay does not', () => {
+    const card = {
+      id: 'ask',
+      primitive: 'statement_card',
+      props: { lines: [{ id: 'q', text: 'Why does it fall over?' }] },
+    };
+    const spec = hook([card], [ev('enter', ['ask'], 'slows'), ev('exit', ['ask'], 'error')]);
+    const shown = wordFrame(spec, 14);
+    expect(stateOf(spec, 'api', wordFrame(spec, 2)).dimmed).toBe(0);
+    expect(stateOf(spec, 'api', shown).dimmed).toBe(1);
+    expect(stateOf(spec, 'ask', shown).dimmed).toBe(0);
+    expect(stateOf(spec, 'api', wordFrame(spec, 25)).dimmed).toBe(0);
+  });
+
+  it('leads a highlight before its word and clears it before the overlay takes focus', () => {
+    const card = {
+      id: 'ask',
+      primitive: 'statement_card',
+      props: { lines: [{ id: 'q', text: 'Why does it fall over?' }] },
+    };
+    const spec = hook(
+      [card],
+      [ev('highlight', ['client'], 'client'), ev('enter', ['ask'], 'every')],
+    );
+    const lead = wordFrame(spec, 1) - 3;
+    expect(stateOf(spec, 'client', lead).highlight).toBeGreaterThan(0);
+    const overlay = wordFrame(spec, 15);
+    expect(stateOf(spec, 'client', overlay).highlight).toBe(0);
+    const held = hook(
+      [card],
+      [ev('highlight', ['client'], 'client', { hold: true }), ev('enter', ['ask'], 'every')],
+    );
+    expect(stateOf(held, 'client', overlay).highlight).toBe(1);
+  });
+
+  it('sweeps the brute-force scan one item at a time', () => {
+    const spec = parseRenderableSpec(patternDecisionBoardJson);
+    const items = beatWorld(
+      spec,
+      effectiveTiming(spec),
+      'brute-force-then-index',
+      FPS,
+      DEFAULT_REGISTRIES,
+    ).find((i) => i.key === 'brute-force-then-index/items');
+    if (items?.kind !== 'primitive') throw new Error('items');
+    const scan = items.events.filter((e) => e.action === 'reject' || e.action === 'pulse');
+    const secs = scan.map((e) => e.sec);
+    expect(new Set(secs).size).toBe(secs.length);
+    expect(secs.at(-1)! - secs[0]!).toBeGreaterThan(0.4);
   });
 });

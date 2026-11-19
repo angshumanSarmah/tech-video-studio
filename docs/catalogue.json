@@ -2652,7 +2652,7 @@
     {
       "id": "brute_force_then_index",
       "family": "data",
-      "summary": "A brute-force search checks every item and each turns red, with a tag naming the cost. Then an index appears and jumps straight to the one item, which lights up.",
+      "summary": "A brute-force search sweeps the items one by one and each turns red (the target pulses as the sweep passes it), with a tag naming the cost. Then an index appears and jumps straight to the one item, which lights up.",
       "whenToUse": "Brute force before the clever fix: a full table scan vs an index, checking every zone vs a grid cell lookup, a linear search vs a hash map.",
       "whenNotToUse": "A fast and a slow store side by side (use `cache_hit_miss`); two whole designs compared (use `versus_split`).",
       "actions": [

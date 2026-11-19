@@ -39,6 +39,7 @@ export function item(
     definition,
     props: definition.propsSchema.parse(props),
     events: [],
+    focus: [],
     layer: definition.layer ?? 'board',
     ...(zone ? { zone } : {}),
     children: [],

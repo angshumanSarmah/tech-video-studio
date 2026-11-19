@@ -1,3 +1,4 @@
+import { dimOpacity } from '../../events/presets.ts';
 import {
   emphasisFilter,
   emphasisLineWidth,
@@ -48,7 +49,7 @@ export function RoutePath({ theme, props, box, state }: PrimitiveComponentProps<
         position: 'relative',
         width: box.width,
         height: box.height,
-        opacity: state.presence * (1 - 0.7 * state.dimmed),
+        opacity: state.presence * dimOpacity(state.dimmed),
       }}
     >
       <svg

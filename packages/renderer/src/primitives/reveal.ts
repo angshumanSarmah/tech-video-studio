@@ -1,7 +1,5 @@
+import { dimOpacity } from '../events/presets.ts';
 import type { PartState } from './element-state.ts';
-
-/** How strongly a dimmed element fades (the same factor as `stateStyle`). */
-const DIM_FADE = 0.7;
 
 /**
  * For lines that draw themselves on `enter` instead of fading in (`connector`, `route_path`):
@@ -12,5 +10,5 @@ const DIM_FADE = 0.7;
 export function revealState(state: PartState): { draw: number; opacity: number } {
   const draw = state.actions.enter ?? 1;
   const shown = draw > 0 ? Math.min(1, state.presence / draw) : 0;
-  return { draw, opacity: shown * (1 - DIM_FADE * state.dimmed) };
+  return { draw, opacity: shown * dimOpacity(state.dimmed) };
 }

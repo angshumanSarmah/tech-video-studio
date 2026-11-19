@@ -8,7 +8,7 @@ import {
   type SpecError,
   type VideoSpec,
 } from '@explainer-studio/shared';
-import { ACTION_DURATION_SEC } from '../primitives/element-state.ts';
+import { ACTION_DURATION_SEC } from '../events/presets.ts';
 import { eventParts } from '../primitives/parts.ts';
 import type { AnyPrimitiveDefinition } from '../primitives/types.ts';
 import type { Registries } from './registries.ts';

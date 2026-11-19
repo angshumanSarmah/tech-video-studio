@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { lineText } from '../../primitives/common-props.ts';
 import { SLOT_KINDS } from '../../primitives/slot-grid/definition.ts';
-import { el, link, nodeParam, nodeProps, nth, on } from '../build.ts';
+import { el, link, nodeParam, nodeProps, nth, on, scan } from '../build.ts';
 import { anchorsSchema, definePattern } from '../types.ts';
 
 const ANCHORS = [
@@ -50,7 +50,8 @@ export const bruteForceThenIndexPattern = definePattern({
   ],
   description: {
     summary:
-      'A brute-force search checks every item and each turns red, with a tag naming the cost. ' +
+      'A brute-force search sweeps the items one by one and each turns red (the target pulses ' +
+      'as the sweep passes it), with a tag naming the cost. ' +
       'Then an index appears and jumps straight to the one item, which lights up.',
     whenToUse:
       'Brute force before the clever fix: a full table scan vs an index, checking every zone vs ' +
@@ -91,8 +92,8 @@ export const bruteForceThenIndexPattern = definePattern({
       ],
       events: [
         on(p.at.scan, 'enter', ['items']),
-        on(p.at.scan, 'reject', ['items'], others),
-        on(p.at.scan, 'pulse', ['items'], [target]),
+        scan(on(p.at.scan, 'reject', ['items'], others)),
+        scan(on(p.at.scan, 'pulse', ['items'], [target])),
         on(p.at.slow, 'enter', ['cost']),
         on(p.at.slow, 'pulse', ['cost']),
         on(p.at.index, 'enter', ['index']),

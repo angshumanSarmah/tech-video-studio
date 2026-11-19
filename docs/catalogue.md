@@ -10,6 +10,14 @@ Fail → recover: a `reject` holds (red, crossed out) until a later `recover` on
 
 Lock → release: a `lock` holds (padlock) until a later `release` on the same element or part fades it out. Only `release` ends a lock. Every primitive and part that supports `lock` supports `release`.
 
+## Timing, focus and transitions
+
+- Every event plays over its action’s preset duration and easing; never set times or durations.
+- A `highlight` starts about 0.2 s before its word and clears by the end of its beat or the next focus change. `params.hold: true` keeps it on (until a later `dim`, `exit` or `reject`).
+- An event on several targets, a pattern instance or several parts starts them slightly apart (`enter`, `exit`, `highlight`, `dim`, `pulse`). `params.stagger: "scan"` makes any event a deliberate one-by-one sweep: about 0.15 s apart (parts in the element’s own order), at most 2 s and never past the beat’s next event.
+- Focus: a scene’s `focus` ids show at full opacity and everything else dims (an empty `focus` dims nothing); the camera frames them. A `focus` event, valid on any element or pattern instance in scope, moves the focus to its targets from its word. While an overlay shows, focus moves to it and the board dims.
+- `transitionIn` (`cut`, `fade`, `slide`, `zoom-in`, `zoom-out`) applies to a beat that starts a new board; a `continuesPrevious` beat keeps its board, so leave it at `cut`. Semantic zoom: `transitionIn: "zoom-in"` with `zoomFrom` naming an element of the previous board pushes into it, then cuts to this board (a component, then its insides).
+
 ## Primitives
 
 ### bracket
@@ -1132,7 +1140,7 @@ Two halves side by side get the same event at the same moment, and each shows it
 
 **Family:** data · **Actions:** `exit`, `highlight`, `dim`, `pulse`
 
-A brute-force search checks every item and each turns red, with a tag naming the cost. Then an index appears and jumps straight to the one item, which lights up.
+A brute-force search sweeps the items one by one and each turns red (the target pulses as the sweep passes it), with a tag naming the cost. Then an index appears and jumps straight to the one item, which lights up.
 
 **When to use:** Brute force before the clever fix: a full table scan vs an index, checking every zone vs a grid cell lookup, a linear search vs a hash map.
 

@@ -1,3 +1,4 @@
+import { dimOpacity } from '../events/presets.ts';
 import type { ReactNode } from 'react';
 import type { Theme } from '../theme/index.ts';
 import type { ElementState, PartState } from './element-state.ts';
@@ -28,7 +29,7 @@ export type PrimitiveComponentProps<P> = {
 
 /** Opacity and scale shared by all primitives: presence, dimming and emphasis. */
 export function stateStyle(state: Pick<PartState, 'presence' | 'dimmed' | 'emphasis'>) {
-  const opacity = state.presence * (1 - 0.7 * state.dimmed);
+  const opacity = state.presence * dimOpacity(state.dimmed);
   const scale = (0.9 + 0.1 * state.presence) * (1 + 0.06 * state.emphasis);
   return { opacity, transform: `scale(${scale})` } as const;
 }

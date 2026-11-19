@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ACTION_DURATION_SEC, easeOut } from '../element-state.ts';
+import { ACTION_DURATION_SEC, easeOutCubic as easeOut } from '../../events/presets.ts';
 import { formatClock, speedLabel, speedTagOpacity, timerSpeed, timerView } from './timer.ts';
 
 const base = {

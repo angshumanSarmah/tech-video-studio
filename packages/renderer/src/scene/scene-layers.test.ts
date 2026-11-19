@@ -1,16 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_REGISTRIES } from '../catalog/registries.ts';
 import { elementState, type ElementEvent } from '../primitives/element-state.ts';
-import { getTheme, withAlpha } from '../theme/index.ts';
-import { nestContained, type WorldItem } from './beat-world.ts';
-import {
-  containedState,
-  SCRIM_ALPHA,
-  scrimColour,
-  scrimLevel,
-  splitLayers,
-  type PrimitiveItem,
-} from './scene-layers.ts';
+import { nestContained } from './beat-world.ts';
+import { containedState, overlayLevel, splitLayers, type PrimitiveItem } from './scene-layers.ts';
 
 const FPS = 30;
 const at = (action: ElementEvent['action'], frame: number): ElementEvent => ({
@@ -24,12 +16,13 @@ function item(id: string, primitive: string, props: unknown, events: ElementEven
   const definition = DEFAULT_REGISTRIES.primitives.get(primitive);
   if (!definition) throw new Error(primitive);
   const parsed: unknown = definition.propsSchema.parse(props);
-  const world: WorldItem = {
+  const world: PrimitiveItem = {
     kind: 'primitive',
     key: id,
     definition,
     props: parsed,
     events,
+    focus: [],
     layer: definition.layer ?? 'board',
     children: [],
   };
@@ -59,7 +52,7 @@ describe('containedState', () => {
 });
 
 describe('splitLayers', () => {
-  it('puts overlays above the scrim and their children inside them, never on the board', () => {
+  it('puts overlays above the board and their children inside them, never on the board', () => {
     const layers = splitLayers(nestContained([board, note, zoom, question]));
     expect(layers.board.map((i) => i.key)).toEqual(['api']);
     expect(layers.overlays.map((i) => i.key)).toEqual(['zoom', 'question']);
@@ -75,15 +68,9 @@ describe('splitLayers', () => {
   });
 });
 
-describe('scrim', () => {
+describe('overlayLevel', () => {
   it('follows the most present overlay, and is clear without one', () => {
-    expect(scrimLevel([])).toBe(0);
-    expect(scrimLevel([0.2, 0.8])).toBe(0.8);
-  });
-
-  it('washes the board with the theme background', () => {
-    const theme = getTheme();
-    expect(scrimColour(theme, 1)).toBe(withAlpha(theme.colours.background, SCRIM_ALPHA));
-    expect(scrimColour(theme, 0.5)).toBe(withAlpha(theme.colours.background, SCRIM_ALPHA / 2));
+    expect(overlayLevel([])).toBe(0);
+    expect(overlayLevel([0.2, 0.8])).toBe(0.8);
   });
 });

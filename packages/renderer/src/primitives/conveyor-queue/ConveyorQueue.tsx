@@ -1,3 +1,4 @@
+import { dimOpacity } from '../../events/presets.ts';
 import { AssetGlyph } from '../../assets/AssetGlyph.tsx';
 import { semanticTint, textCss, type Theme } from '../../theme/index.ts';
 import { Badge, SMALL_BADGE, SMALL_BADGE_GLYPH } from '../badge.tsx';
@@ -31,7 +32,7 @@ export function ConveyorQueue({
         position: 'relative',
         width: box.width,
         height: box.height,
-        opacity: state.presence * (1 - 0.7 * state.dimmed),
+        opacity: state.presence * dimOpacity(state.dimmed),
       }}
     >
       <BoxMark theme={theme} levels={markLevels(state)} radius={theme.radius.md} size={box} />
@@ -167,7 +168,7 @@ function Block({ theme, item, part, m, x, lift, opacity }: BlockProps) {
         justifyContent: 'center',
         color: theme.colours.ink.primary,
         whiteSpace: 'nowrap',
-        opacity: opacity * (1 - 0.7 * part.dimmed),
+        opacity: opacity * dimOpacity(part.dimmed),
         transform: `scale(${1 + 0.08 * part.emphasis})`,
       }}
     >

@@ -491,6 +491,28 @@ describe('containers, overlays and timeline warnings', () => {
     ]);
   });
 
+  it('accepts a focus event on any element or pattern instance in scope', () => {
+    const result = check(hook([note], [ev('focus', 'note', 'slows'), ev('focus', 'api', 'error')]));
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('checks the engine params: hold on highlights only, stagger is scan', () => {
+    const fine = [
+      ev('highlight', 'api', 'slows', { hold: true }),
+      ev('pulse', 'api', 'error', { stagger: 'scan' }),
+    ];
+    expect(check(hook([], fine)).errors).toEqual([]);
+    const bad = [
+      ev('pulse', 'api', 'slows', { hold: true }),
+      ev('pulse', 'api', 'error', { stagger: 'fast' }),
+    ];
+    expect(codes(check(hook([], bad)).errors)).toEqual([
+      ['$.scenes[0].events[5].params.hold', 'invalid_event_param'],
+      ['$.scenes[0].events[6].params.stagger', 'invalid_value'],
+    ]);
+  });
+
   it('warns on a recover with no reject held before it, on the element or the part', () => {
     const fine = check(
       hook([], [ev('reject', 'client', 'slows'), ev('recover', 'client', 'error')]),

@@ -1,3 +1,4 @@
+import { dimOpacity } from '../../events/presets.ts';
 import { semanticFill, semanticTint, textCss, type Theme } from '../../theme/index.ts';
 import type { PrimitiveComponentProps } from '../component-props.ts';
 import { partState, type PartState } from '../element-state.ts';
@@ -42,7 +43,7 @@ export function SegmentedTimeBar({
         ...markHostCss(theme),
         width: box.width,
         height: box.height,
-        opacity: state.presence * (1 - 0.7 * state.dimmed),
+        opacity: state.presence * dimOpacity(state.dimmed),
         display: 'flex',
         flexDirection: 'column',
       }}
@@ -198,7 +199,7 @@ function SegmentView({ theme, segment, part, left, width, fill }: SegmentProps) 
         background: semanticFill(theme, semantic, WASH + (WASH_STRONG - WASH) * strength),
         border: `${emphasisStroke(theme, theme.stroke.regular, part)}px solid ${tint.border}`,
         color: theme.colours.ink.primary,
-        opacity: 1 - 0.7 * part.dimmed,
+        opacity: dimOpacity(part.dimmed),
         boxShadow: emphasisShadow(theme, tint, part.emphasis),
         zIndex: part.emphasis > EMPHASIS_THRESHOLD ? 1 : 0,
       }}

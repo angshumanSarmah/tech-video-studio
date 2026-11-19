@@ -1,4 +1,4 @@
-import { ACTION_DURATION_SEC, easeOut } from '../element-state.ts';
+import { ACTION_DURATION_SEC, easeOutCubic } from '../../events/presets.ts';
 
 /**
  * Pure timer logic. Every visible change comes from an anchored event: `count` starts the clock
@@ -65,7 +65,7 @@ export function timerView(input: TimerInput): TimerView {
  */
 export function speedTagOpacity(countElapsed: number | undefined): number {
   if (countElapsed === undefined) return 0;
-  return easeOut(countElapsed / ACTION_DURATION_SEC.enter);
+  return easeOutCubic(countElapsed / ACTION_DURATION_SEC.enter);
 }
 
 /**

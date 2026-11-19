@@ -340,16 +340,17 @@ its lease in card). The per-anchor sheets stay the record of timing.
   `rate-limiter-card` target.
 - **Scene layer** (`src/scene`): `beatWorld` (pure) collects a beat's elements, expanded
   patterns and everything inherited through `continuesPrevious`, each with the events that act on
-  it; `BeatScene` draws them with their registered components (through `WorldItemView`, which
+  it (resolved by the event engine, below) and its focus keys; `BeatScene` draws them with their registered components (through `WorldItemView`, which
   the primitive sheets share). Unknown ids and invalid props are drawn as red, hatched error
   markers, never as content. Placement comes from the layout engine (`specLayout`, below):
   each item at its placed rect, drawn in its own box px and scaled, under the beat's camera.
   - **Overlays** (`layer: 'overlay'`: `inset_panel`, `statement_card`) are placed centred in
-    the board frame above a scrim that dims the board while one shows (`scene-layers.ts`:
-    `splitLayers`, `scrimLevel`). At most one should show at a time (`overlay_overlap`).
+    the board frame above it (`scene-layers.ts`: `splitLayers`). While one shows, focus moves to
+    it and its children and the board dims through each element's `dimmed` (the focus track);
+    there is no scrim layer. At most one should show at a time (`overlay_overlap`).
   - **Containers:** elements a primitive points to with a `contains` element ref (an
-    `inset_panel`'s `children`) are nested under it by `beatWorld` and drawn inside it, above
-    the scrim. A child's presence is multiplied by its container's (`containedState`), so it
+    `inset_panel`'s `children`) are nested under it by `beatWorld` and drawn inside it, never
+    focus-dimmed with the board. A child's presence is multiplied by its container's (`containedState`), so it
     enters and exits with it; it keeps its own events.
   - **Source footnote:** a beat's `script[].source` is drawn as "Source: …" in the footnote
     style at the board frame's bottom-left (`source-footnote.ts`), fading in 0.3 s after the beat
@@ -449,13 +450,26 @@ message }` for the Curator): `too_many_elements` (mode `maxUnits`), `text_too_sm
   from them; see Originality in the design doc). Agents read the catalogue and copy from it.
 - **Components receive only `{ theme, props, box, state }`** (plus `path` for relational ones,
   `children` for containers), never events or anchors. `state`
-  comes from `elementState(events, frame, fps)` (`primitives/element-state.ts`): `presence`,
+  comes from `elementState(events, frame, fps, focus)` (`primitives/element-state.ts`): `presence`,
   `emphasis` (held highlight or pulse bump), `highlight` (the held highlight alone), `dimmed`, per-action `actions[action]` progress and `elapsed[action]` seconds (both
   0 while the element's first such event is still ahead, absent when it has none),
   `runSec[action]` (below), `starts[action]` (how many occurrences have started, for components
-  that step once per occurrence) and `parts` (below). It is the single place events become state;
-  P1A.10 upgrades it (easing, focus, stagger) without touching components. An element is present
-  from the start unless its first `enter`/`exit` is an `enter`, so it can exit and re-enter.
+  that step once per occurrence) and `parts` (below). It is the single place events become state.
+  An element is present from the start unless its first `enter`/`exit` is an `enter`, so it can
+  exit and re-enter.
+- **Event engine** (`src/events`, React-free). `presets.ts` holds every timing and strength
+  constant: per-action duration and easing (none overshoots), group stagger, highlight lead,
+  camera and transition times, and `DIM_FADE`, the one dim strength (components use
+  `dimOpacity(state.dimmed)`, never a literal). `resolve.ts` turns anchored scene and pattern
+  events into per-element events: a default stagger for groups (several targets, an instance,
+  several parts; enter, exit, highlight, dim, pulse), `params.stagger: 'scan'` for a one-by-one
+  sweep (any action; parts in the element's own order; ≤ 2 s and never past the beat's next
+  event), a highlight 0.2 s before its word that clears by its beat's end or the next focus
+  change (`untilSec`) unless `params.hold`. `focus.ts` is the focus track: the beat's `focus`,
+  `focus` events (an engine action, valid on any target; never delivered to elements) and
+  overlays give each element focus keys; out of focus means `dimmed` (lifted while highlighted).
+  Followers (pinned, contained) share their host's focus. `params.ts` reads and validates
+  `hold` / `stagger` (`invalid_event_param`: `hold` off a highlight).
 - **Fail → recover.** A `reject` is held until a later `recover` on the same element or part;
   nothing else ends it (highlight, enter and pulse leave it red; lock is separate). Once a
   recover starts, `actions.reject` reads 0, so components drop their problem look without code

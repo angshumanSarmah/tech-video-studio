@@ -9,6 +9,7 @@ import {
   type VideoSpec,
 } from '@explainer-studio/shared';
 import type { z } from 'zod';
+import { EventEngineParamsSchema } from '../events/params.ts';
 import { LAYOUT_MODES } from '../layout/modes.ts';
 import { DEFAULT_REGISTRIES, type Registries } from './registries.ts';
 import {
@@ -73,6 +74,7 @@ export function findRegistryErrors(
       ...elementErrors(scene, i, registries),
       ...patternErrors(scene, i, words.get(scene.beatId), registries),
       ...actionErrors(scene, i, scope),
+      ...scene.events.flatMap((event, e) => eventParamErrors(event, ['scenes', i, 'events', e])),
       ...elementRefErrors(scene, i, scope, registries),
     ];
   });
@@ -156,7 +158,8 @@ function unknownId(
 
 /**
  * Unknown targets are reported by the shape checks, unknown registry ids above; skip both here.
- * An event that names parts is checked against its target's part actions instead.
+ * An event that names parts is checked against its target's part actions instead. `focus` is the
+ * engine's own action (it moves the beat's focus to its targets), valid on anything in scope.
  */
 function actionErrors(scene: BeatScene, i: number, scope: Scope): SpecError[] {
   return scene.events.flatMap((event, e) => {
@@ -164,12 +167,27 @@ function actionErrors(scene: BeatScene, i: number, scope: Scope): SpecError[] {
     if (inner.length > 0) return inner;
     const parts = partErrors(event, ['scenes', i, 'events', e], scope);
     if (parts) return parts;
+    if (event.action === 'focus') return [];
     return event.targets.flatMap((target, t) => {
       const entry = scope.get(target);
       if (!entry?.actions || entry.actions.includes(event.action)) return [];
       return [unsupportedAction(['scenes', i, 'events', e, 'targets', t], event, target, entry)];
     });
   });
+}
+
+/** The engine's event params (`hold`, `stagger`) must parse; `hold` is for highlights only. */
+function eventParamErrors(event: SceneEvent, path: Path): SpecError[] {
+  if (!event.params) return [];
+  const errors = schemaErrors(EventEngineParamsSchema, event.params, [...path, 'params']);
+  if (event.params.hold !== undefined && event.action !== 'highlight') {
+    errors.push({
+      path: toJsonPath([...path, 'params', 'hold']),
+      code: 'invalid_event_param',
+      message: `"hold" keeps a highlight on; it does nothing on "${event.action}".`,
+    });
+  }
+  return errors;
 }
 
 function unsupportedAction(

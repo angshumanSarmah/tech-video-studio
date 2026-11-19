@@ -1,16 +1,17 @@
 import type { EffectiveTiming, RenderableVideoSpec } from '@explainer-studio/shared';
 import { useMemo } from 'react';
-import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion';
+import { useCurrentFrame, useVideoConfig } from 'remotion';
 import { DEFAULT_REGISTRIES } from '../catalog/registries.ts';
 import { rectCss } from '../layers/rect-css.ts';
 import type { Transform } from '../layout/fit.ts';
 import { inflate } from '../layout/rect.ts';
 import { specLayout } from '../layout/spec-layout.ts';
 import { boxOf, type Guide, type PlacedItem } from '../layout/types.ts';
+import { dimOpacity } from '../events/presets.ts';
 import { elementState } from '../primitives/element-state.ts';
 import { textCss, type Rect, type Theme } from '../theme/index.ts';
 import { beatWorld, type WorldItem } from './beat-world.ts';
-import { scrimColour, scrimLevel, splitLayers } from './scene-layers.ts';
+import { overlayLevel, splitLayers } from './scene-layers.ts';
 import { footnoteOpacity, footnoteText } from './source-footnote.ts';
 import { WorldItemView } from './WorldItemView.tsx';
 
@@ -18,9 +19,9 @@ import { WorldItemView } from './WorldItemView.tsx';
  * One beat's board, placed by the layout engine (`specLayout`: one placement per
  * `continuesPrevious` chain, computed once per spec). Board items are drawn back to front at their
  * placed rects under the beat's camera (a uniform zoom and pan of the board layer, clipped to the
- * board frame); overlays are drawn at their own rects above a scrim that dims the board, with their
- * contained children where the nested layout put them; the source footnote sits where the layout
- * reserved it.
+ * board frame); overlays are drawn at their own rects above it, with their contained children
+ * where the nested layout put them (while one shows, the board dims through its elements' focus
+ * track); the source footnote sits where the layout reserved it.
  */
 
 type Props = {
@@ -42,7 +43,7 @@ export function BeatScene({ theme, spec, timing, beatId, beatFrom }: Props) {
   const beat = specLayout(spec, theme).beats.get(beatId);
   if (!beat) return null;
   const { board, footnote } = beat.chain;
-  const scrim = scrimLevel(
+  const overlays = overlayLevel(
     layers.overlays.map((item) => elementState(item.events, frame, fps).presence),
   );
   const footnoteLine = footnoteText(spec, beatId);
@@ -54,12 +55,12 @@ export function BeatScene({ theme, spec, timing, beatId, beatFrom }: Props) {
         clip={inflate(board.frame, theme.space.sm)}
         camera={beat.camera}
         guides={board.guides}
+        guideOpacity={dimOpacity(overlays)}
         items={layers.board}
         placed={board.items}
         frame={frame}
         fps={fps}
       />
-      {scrim > 0 ? <AbsoluteFill style={{ background: scrimColour(theme, scrim) }} /> : null}
       {layers.overlays.map((item) => (
         <Placed
           key={item.key}
@@ -87,6 +88,7 @@ type BoardProps = {
   clip: Rect;
   camera: Transform;
   guides: readonly Guide[];
+  guideOpacity: number;
   items: readonly WorldItem[];
   placed: readonly PlacedItem[];
   frame: number;
@@ -94,7 +96,8 @@ type BoardProps = {
 };
 
 /** The board layer: canvas-space items under the camera, clipped to the (padded) board frame. */
-function Board({ theme, clip, camera, guides, items, placed, frame, fps }: BoardProps) {
+function Board(props: BoardProps) {
+  const { theme, clip, camera, guides, guideOpacity, items, placed, frame, fps } = props;
   const byKey = new Map(items.map((item) => [item.key, item]));
   return (
     <div style={{ ...rectCss(clip), overflow: 'hidden' }}>
@@ -109,7 +112,7 @@ function Board({ theme, clip, camera, guides, items, placed, frame, fps }: Board
           transformOrigin: '0 0',
         }}
       >
-        <Guides theme={theme} guides={guides} />
+        <Guides theme={theme} guides={guides} opacity={guideOpacity} />
         {placed.map((p) => {
           const item = byKey.get(p.key);
           return item ? (
@@ -149,14 +152,16 @@ function Placed({ theme, item, placed, frame, fps }: PlacedProps) {
 }
 
 /** Faint lines the mode draws (swimlane lifelines, the versus divider). */
-function Guides({ theme, guides }: { theme: Theme; guides: readonly Guide[] }) {
+type GuidesProps = { theme: Theme; guides: readonly Guide[]; opacity: number };
+
+function Guides({ theme, guides, opacity }: GuidesProps) {
   if (guides.length === 0) return null;
   const stroke = theme.stroke.thin;
   return (
     <svg
       width={theme.canvas.width}
       height={theme.canvas.height}
-      style={{ position: 'absolute', inset: 0, overflow: 'visible' }}
+      style={{ position: 'absolute', inset: 0, overflow: 'visible', opacity }}
     >
       {guides.map((g, i) => (
         <line

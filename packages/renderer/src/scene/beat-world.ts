@@ -4,16 +4,26 @@ import type {
   EffectiveTiming,
   RenderableVideoSpec,
   SceneElement,
+  SceneEvent,
   ScenePattern,
 } from '@explainer-studio/shared';
 import type { Registries } from '../catalog/registries.ts';
+import {
+  focusChangeSecs,
+  focusChanges,
+  focusKeys,
+  overlayToggles,
+  type FocusKey,
+} from '../events/focus.ts';
+import { resolveElementEvents, type AnchoredEvent } from '../events/resolve.ts';
 import type { ElementEvent } from '../primitives/element-state.ts';
 import type { AnyPrimitiveDefinition, PrimitiveLayer } from '../primitives/types.ts';
-import { anchorToTime, resolveEventFrames, type FramedEvent } from '../timing/frames.ts';
+import { anchorToTime } from '../timing/frames.ts';
 
 /**
  * What a beat shows: its own elements and expanded patterns, plus everything inherited through
- * `continuesPrevious`, each with the events that act on it (from every beat in the chain, in frame order). Ids
+ * `continuesPrevious`, each with the events that act on it (from every beat in the chain, resolved
+ * by the event engine: stagger, highlight lead and clear) and its focus keys. Ids
  * that are not in a registry, or props that fail their schema, become error items: the scene
  * layer draws them as red markers that are clearly not content. Final renders refuse such specs
  * (`withRegistryChecks`), so markers only ever appear in Studio and drafts.
@@ -31,6 +41,8 @@ export type WorldItem =
       /** Parsed by the definition's schema. */
       props: unknown;
       events: ElementEvent[];
+      /** Focus dim over the chain (`events/focus.ts`); empty for overlays and their children. */
+      focus: FocusKey[];
       layer: PrimitiveLayer;
       /** Zone of the beat's layout mode the element asked for (input to the layout engine). */
       zone?: string;
@@ -50,6 +62,9 @@ type Draft =
     }
   | { kind: 'error'; key: string; title: string; detail: string };
 
+/** A draft and the start (global seconds) of the beat that adds it. */
+type Placed = { draft: Draft; sinceSec: number };
+
 type Context = {
   beat: BeatTiming | undefined;
   narration: string;
@@ -64,8 +79,9 @@ export function beatWorld(
   fps: number,
   registries: Registries,
 ): WorldItem[] {
-  const drafts = new Map<string, Draft>();
-  const events: FramedEvent[] = [];
+  const drafts = new Map<string, Placed>();
+  const events: AnchoredEvent[] = [];
+  const beats: { focus: readonly string[]; startSec: number }[] = [];
   for (const scene of sceneChain(spec.scenes, beatId)) {
     const ctx: Context = {
       beat: timing.beats.find((b) => b.beatId === scene.beatId),
@@ -73,17 +89,110 @@ export function beatWorld(
       fps,
       registries,
     };
-    for (const element of scene.elements)
-      drafts.set(element.id, elementDraft(element, [element.id], registries));
+    const sinceSec = ctx.beat?.startSec ?? 0;
+    beats.push({ focus: scene.focus, startSec: sinceSec });
+    for (const element of scene.elements) {
+      drafts.set(element.id, { draft: elementDraft(element, [element.id], registries), sinceSec });
+    }
     for (const pattern of scene.patterns) {
       const expanded = patternDrafts(pattern, ctx);
-      expanded.drafts.forEach((d) => drafts.set(d.key, d));
+      expanded.drafts.forEach((draft) => drafts.set(draft.key, { draft, sinceSec }));
       events.push(...expanded.events);
     }
-    if (ctx.beat) events.push(...resolveEventFrames(scene, ctx.beat, ctx.narration, fps));
+    events.push(...anchored(scene.events, ctx, (t) => t));
   }
-  const ordered = events.sort((a, b) => a.frame - b.frame);
-  return nestContained([...drafts.values()].map((draft) => withEvents(draft, ordered)));
+  return nestContained(resolveWorld([...drafts.values()], events, beats, fps));
+}
+
+/** Resolves the chain's events per element and gives every item its events and focus keys. */
+function resolveWorld(
+  placed: readonly Placed[],
+  events: readonly AnchoredEvent[],
+  beats: readonly { focus: readonly string[]; startSec: number }[],
+  fps: number,
+): WorldItem[] {
+  const drafts = placed.map((p) => p.draft);
+  const keysFor = (target: string) =>
+    drafts
+      .filter((d) => (d.kind === 'primitive' ? d.targetIds.includes(target) : d.key === target))
+      .map((d) => d.key);
+  const overlays = new Set(drafts.filter(isOverlayDraft).map((d) => d.key));
+  const byKey = resolveElementEvents(events, {
+    fps,
+    keysFor,
+    partOrder: (key) => partOrder(drafts.find((d) => d.key === key)),
+    focusChanges: focusChangeSecs(events, (t) => keysFor(t).some((k) => overlays.has(k))),
+  });
+  const hosts = hostMap(drafts);
+  const track = {
+    changes: focusChanges(beats, events),
+    overlays: placed
+      .filter((p) => overlays.has(p.draft.key))
+      .flatMap((p) => overlayToggles(byKey.get(p.draft.key) ?? [], p.sinceSec)),
+    hostOf: (key: string) => hosts.get(key),
+  };
+  const exempt = (key: string) => {
+    for (let k: string | undefined = key; k !== undefined; k = hosts.get(k)) {
+      if (overlays.has(k)) return true;
+    }
+    return false;
+  };
+  return drafts.map((draft) =>
+    withEvents(
+      draft,
+      byKey.get(draft.key) ?? [],
+      exempt(draft.key) ? [] : focusKeys(draft.key, track),
+    ),
+  );
+}
+
+function isOverlayDraft(draft: Draft): boolean {
+  return draft.kind === 'primitive' && draft.definition.layer === 'overlay';
+}
+
+function partOrder(draft: Draft | undefined): readonly string[] {
+  if (draft?.kind !== 'primitive' || !draft.definition.parts) return [];
+  return draft.definition.parts.ids(draft.props);
+}
+
+/**
+ * The element each element follows for focus: the one it is pinned to, or the container it is
+ * drawn in. (Cycles are harmless: `inFocus` stops at a repeat.)
+ */
+function hostMap(drafts: readonly Draft[]): Map<string, string> {
+  const hosts = new Map<string, string>();
+  for (const draft of drafts) {
+    if (draft.kind !== 'primitive' || !draft.definition.elementRefs) continue;
+    for (const ref of draft.definition.elementRefs(draft.props)) {
+      if (ref.pin) hosts.set(draft.key, ref.id);
+      if (ref.contains && !hosts.has(ref.id)) hosts.set(ref.id, draft.key);
+    }
+  }
+  return hosts;
+}
+
+/** Scene or pattern events at their anchors' global seconds (unmatched anchors dropped). */
+function anchored(
+  events: readonly SceneEvent[],
+  ctx: Context,
+  rename: (target: string) => string,
+): AnchoredEvent[] {
+  const beat = ctx.beat;
+  if (!beat) return [];
+  return events.flatMap((event) => {
+    const time = anchorToTime(event.at, beat, ctx.narration, ctx.fps);
+    if (!time) return [];
+    return [
+      {
+        action: event.action,
+        targets: event.targets.map(rename),
+        ...(event.params ? { params: event.params } : {}),
+        sec: time.sec,
+        beatStartSec: beat.startSec,
+        beatEndSec: beat.endSec,
+      },
+    ];
+  });
 }
 
 /** Moves contained elements under their container (see the module comment). */
@@ -158,7 +267,7 @@ function elementDraft(element: SceneElement, targetIds: string[], registries: Re
 function patternDrafts(
   pattern: ScenePattern,
   ctx: Context,
-): { drafts: Draft[]; events: FramedEvent[] } {
+): { drafts: Draft[]; events: AnchoredEvent[] } {
   const definition = ctx.registries.patterns.get(pattern.pattern);
   const params = definition?.paramsSchema.safeParse(pattern.params);
   if (!definition || !params?.success) {
@@ -176,19 +285,7 @@ function patternDrafts(
     drafts: expansion.elements.map((e) =>
       namespaceRefs(elementDraft(e, [part(e.id), pattern.id], ctx.registries), part),
     ),
-    events: expansion.events.flatMap((event) => {
-      const time = ctx.beat ? anchorToTime(event.at, ctx.beat, ctx.narration, ctx.fps) : undefined;
-      if (!ctx.beat || !time) return [];
-      return [
-        {
-          action: event.action,
-          targets: event.targets.map(part),
-          ...time,
-          beatEndSec: ctx.beat.endSec,
-          ...(event.params ? { params: event.params } : {}),
-        },
-      ];
-    }),
+    events: anchored(expansion.events, ctx, part),
   };
 }
 
@@ -209,17 +306,19 @@ function setAtPath(target: unknown, path: readonly (string | number)[], value: s
   if (last !== undefined) (node as Record<string | number, unknown>)[last] = value;
 }
 
-function withEvents(draft: Draft, events: readonly FramedEvent[]): WorldItem {
+function withEvents(draft: Draft, events: ElementEvent[], focus: FocusKey[]): WorldItem {
   if (draft.kind === 'error') return draft;
-  const { targetIds, ...item } = draft;
-  const mine = events
-    .filter((e) => e.targets.some((t) => targetIds.includes(t)))
-    .map(({ action, frame, sec, beatEndSec, params }) => ({
-      action,
-      frame,
-      sec,
-      beatEndSec,
-      ...(params ? { params } : {}),
-    }));
-  return { ...item, events: mine, layer: item.definition.layer ?? 'board', children: [] };
+  const { kind, key, definition, props, zone } = draft;
+  const layer = definition.layer ?? 'board';
+  return {
+    kind,
+    key,
+    definition,
+    props,
+    ...(zone ? { zone } : {}),
+    events,
+    focus,
+    layer,
+    children: [],
+  };
 }

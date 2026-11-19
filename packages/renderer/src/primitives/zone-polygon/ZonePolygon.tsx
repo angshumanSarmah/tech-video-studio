@@ -1,3 +1,4 @@
+import { dimOpacity } from '../../events/presets.ts';
 import { semanticFill, semanticTint, textCss, type Theme } from '../../theme/index.ts';
 import type { PrimitiveComponentProps } from '../component-props.ts';
 import { partState, type PartState } from '../element-state.ts';
@@ -35,7 +36,7 @@ export function ZonePolygon({
         position: 'relative',
         width: box.width,
         height: box.height,
-        opacity: state.presence * (1 - 0.7 * state.dimmed),
+        opacity: state.presence * dimOpacity(state.dimmed),
         filter: emphasisFilter(theme, semanticTint(theme, 'neutral'), state.emphasis),
       }}
     >
@@ -87,7 +88,7 @@ function ZoneShapeView({ theme, zone, shape, part }: ZoneViewProps) {
       stroke={tint.border}
       strokeWidth={emphasisStroke(theme, theme.stroke.regular, part)}
       strokeLinejoin="round"
-      opacity={part.presence * (1 - 0.7 * part.dimmed)}
+      opacity={part.presence * dimOpacity(part.dimmed)}
       transform={`translate(${x} ${y}) scale(${scale}) translate(${-x} ${-y})`}
       style={{ filter: emphasisFilter(theme, tint, part.emphasis) }}
     />
@@ -107,7 +108,7 @@ function ZoneLabel({ theme, zone, shape, part }: ZoneViewProps) {
         transform: 'translate(-50%, -50%)',
         whiteSpace: 'nowrap',
         color: strong ? tint.base : theme.colours.ink.primary,
-        opacity: part.presence * (1 - 0.7 * part.dimmed),
+        opacity: part.presence * dimOpacity(part.dimmed),
       }}
     >
       {zone.label}

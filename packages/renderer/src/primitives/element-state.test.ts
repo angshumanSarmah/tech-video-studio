@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import type { FocusKey } from '../events/focus.ts';
+import { ACTION_DURATION_SEC } from '../events/presets.ts';
 import {
   actionProgress,
   actionRunSec,
@@ -123,7 +125,7 @@ describe('elementState', () => {
   it('holds a lock until a release fades it out, with a settle bump (lock → release)', () => {
     const events = [at('lock', 0), at('reject', 20), at('release', 60)];
     expect(elementState(events, 50, FPS).actions.lock).toBe(1);
-    const releasing = elementState(events, 64, FPS);
+    const releasing = elementState(events, 66, FPS);
     expect(releasing.actions.lock).toBeGreaterThan(0);
     expect(releasing.actions.lock).toBeLessThan(1);
     expect(releasing.emphasis).toBeGreaterThan(0.3);
@@ -303,5 +305,68 @@ describe('parts', () => {
     const state = elementState([event], 30, FPS);
     expect(state.emphasis).toBe(1);
     expect(state.parts).toEqual({});
+  });
+});
+
+describe('easing presets', () => {
+  const half = (action: ElementEvent['action']) =>
+    actionProgress(at(action, 0), Math.round((ACTION_DURATION_SEC[action] * FPS) / 2), FPS);
+
+  it('decelerates arrivals, accelerates departures, and eases travel both ways', () => {
+    expect(half('enter')).toBeGreaterThan(0.75);
+    expect(half('exit')).toBeLessThan(0.25);
+    expect(half('move')).toBeCloseTo(0.5);
+    expect(half('pulse')).toBeCloseTo(0.5);
+  });
+
+  it('never overshoots: progress stays in 0..1', () => {
+    for (const action of Object.keys(ACTION_DURATION_SEC) as ElementEvent['action'][]) {
+      for (let frame = -5; frame < 60; frame += 1) {
+        const p = actionProgress(at(action, 0), frame, FPS);
+        expect(p, action).toBeGreaterThanOrEqual(0);
+        expect(p, action).toBeLessThanOrEqual(1);
+      }
+    }
+  });
+});
+
+describe('highlight clear', () => {
+  it('fades a highlight out from its untilSec, and holds one without it', () => {
+    const cleared = [{ ...at('highlight', 0), untilSec: 2 }];
+    expect(elementState(cleared, 45, FPS).highlight).toBe(1);
+    const fading = elementState(cleared, 64, FPS).highlight;
+    expect(fading).toBeGreaterThan(0);
+    expect(fading).toBeLessThan(1);
+    expect(elementState(cleared, 75, FPS)).toMatchObject({ highlight: 0, emphasis: 0 });
+    expect(elementState([at('highlight', 0)], 300, FPS).highlight).toBe(1);
+  });
+
+  it('starts again at a later highlight', () => {
+    const events = [{ ...at('highlight', 0), untilSec: 1 }, at('highlight', 90)];
+    expect(elementState(events, 60, FPS).highlight).toBe(0);
+    expect(elementState(events, 120, FPS).highlight).toBe(1);
+  });
+});
+
+describe('focus dim', () => {
+  const unfocused: FocusKey[] = [
+    { sec: 0, dim: 1, durationSec: 0, action: 'focus' },
+    { sec: 2, dim: 0, durationSec: 0.3, action: 'focus' },
+  ];
+
+  it('dims the whole element through dimmed while it is out of focus', () => {
+    expect(elementState([], 30, FPS, unfocused).dimmed).toBe(1);
+    expect(elementState([], 90, FPS, unfocused).dimmed).toBe(0);
+  });
+
+  it('keeps the stronger of an explicit dim and the focus dim', () => {
+    expect(elementState([at('dim', 60)], 90, FPS, unfocused).dimmed).toBe(1);
+  });
+
+  it('is lifted while the element is highlighted, and leaves its parts alone', () => {
+    const events = [at('highlight', 0), { ...at('pulse', 0), params: { parts: ['a'] } }];
+    const state = elementState(events, 30, FPS, unfocused);
+    expect(state.dimmed).toBe(0);
+    expect(partState(state, 'a').dimmed).toBe(0);
   });
 });

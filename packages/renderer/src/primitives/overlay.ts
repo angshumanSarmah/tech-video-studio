@@ -1,12 +1,10 @@
+import { dimOpacity } from '../events/presets.ts';
 import type { PartState } from './element-state.ts';
 
 /**
  * Entrance motions for overlays and other elements that do not use `stateStyle`'s grow-in.
  * Pure: components spread the returned opacity and transform.
  */
-
-/** How strongly a dimmed element fades (the same factor as `stateStyle`). */
-const DIM_FADE = 0.7;
 
 /** Scale bump while emphasised (the same factor as `stateStyle`). */
 const EMPHASIS_GROW = 0.06;
@@ -18,7 +16,7 @@ export function riseView(state: PartState, rise: number): MotionView {
   const offset = (1 - state.presence) * rise;
   const scale = 1 + EMPHASIS_GROW * state.emphasis;
   return {
-    opacity: state.presence * (1 - DIM_FADE * state.dimmed),
+    opacity: state.presence * dimOpacity(state.dimmed),
     transform: `translateY(${round(offset)}px) scale(${round(scale)})`,
   };
 }
@@ -34,7 +32,7 @@ export function zoomView(state: PartState): MotionView {
   const scale =
     (ZOOM_FROM + (1 - ZOOM_FROM) * state.presence) * (1 + EMPHASIS_GROW * state.emphasis);
   return {
-    opacity: Math.min(1, 2 * state.presence) * (1 - DIM_FADE * state.dimmed),
+    opacity: Math.min(1, 2 * state.presence) * dimOpacity(state.dimmed),
     transform: `scale(${round(scale)})`,
   };
 }
@@ -43,7 +41,7 @@ export function zoomView(state: PartState): MotionView {
 export function growView(state: PartState): MotionView {
   const scale = state.presence * (1 + EMPHASIS_GROW * state.emphasis);
   return {
-    opacity: Math.min(1, 2 * state.presence) * (1 - DIM_FADE * state.dimmed),
+    opacity: Math.min(1, 2 * state.presence) * dimOpacity(state.dimmed),
     transform: `scale(${round(scale)})`,
   };
 }

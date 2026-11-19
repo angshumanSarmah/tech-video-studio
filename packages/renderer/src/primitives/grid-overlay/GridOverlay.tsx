@@ -1,3 +1,4 @@
+import { dimOpacity } from '../../events/presets.ts';
 import { semanticFill, semanticTint, textCss, withAlpha, type Theme } from '../../theme/index.ts';
 import type { PrimitiveComponentProps } from '../component-props.ts';
 import { partState, type PartState } from '../element-state.ts';
@@ -31,7 +32,7 @@ export function GridOverlay({
         position: 'relative',
         width: box.width,
         height: box.height,
-        opacity: state.presence * (1 - 0.7 * state.dimmed),
+        opacity: state.presence * dimOpacity(state.dimmed),
         transform: `scale(${scale})`,
       }}
     >
@@ -107,7 +108,7 @@ function GridLines({ theme, g, rows, cols, colour }: GridLinesProps) {
 
 /** A cell is lit while emphasised (held highlight or pulse) or rejected. */
 function cellLight(part: PartState): number {
-  return Math.max(part.emphasis, part.actions.reject ?? 0) * (1 - 0.7 * part.dimmed);
+  return Math.max(part.emphasis, part.actions.reject ?? 0) * dimOpacity(part.dimmed);
 }
 
 function cellSemantic(cell: Cell, part: PartState) {

@@ -1,10 +1,14 @@
 import type { EventAction } from '@explainer-studio/shared';
+import { focusLevel, type FocusKey } from '../events/focus.ts';
+import { ACTION_DURATION_SEC, ACTION_EASING } from '../events/presets.ts';
 import { eventParts } from './parts.ts';
 
 /**
- * The single place where anchored events become per-frame element state. Components receive only
- * `ElementState`, never events or anchors. Deliberately simple for now (linear ramps with an
- * ease-out); P1A.10 upgrades it (easing presets, focus, stagger) without touching components.
+ * The single place where resolved events become per-frame element state. Components receive only
+ * `ElementState`, never events or anchors. Each action plays over its preset duration and easing
+ * (`events/presets.ts`); stagger, highlight lead and clear are already in the events
+ * (`events/resolve.ts`), and the element's focus track (`events/focus.ts`) dims it through
+ * `dimmed`.
  */
 
 /** One event acting on an element, on the global timeline (already resolved from its anchor). */
@@ -17,6 +21,8 @@ export type ElementEvent = {
   /** End (global seconds) of the beat the event is anchored in. */
   beatEndSec: number;
   params?: Record<string, unknown>;
+  /** A highlight's automatic clear: global seconds where it starts to fade out. */
+  untilSec?: number;
 };
 
 export type ElementState = {
@@ -26,7 +32,10 @@ export type ElementState = {
   emphasis: number;
   /** 0..1: the held `highlight` alone (no pulse), for emphasis styles that draw them apart. */
   highlight: number;
-  /** 0..1: ramps up after `dim`, back down after a later `highlight` or `enter`. */
+  /**
+   * 0..1: ramps up after `dim`, back down after a later `highlight` or `enter`; also out of
+   * focus, or on the board behind an overlay (the focus track; a highlight lifts that part).
+   */
   dimmed: number;
   /**
    * Progress (0..1) of the latest started occurrence of each action the element has; 0 while its
@@ -82,23 +91,6 @@ export function partState(state: ElementState, partId: string): PartState {
   return Object.hasOwn(state.parts, partId) ? (state.parts[partId] ?? IDLE_STATE) : IDLE_STATE;
 }
 
-/** Seconds each action takes to play out; scaled by fps so drafts (15) match finals (30). */
-export const ACTION_DURATION_SEC: Record<EventAction, number> = {
-  enter: 0.45,
-  exit: 0.35,
-  highlight: 0.3,
-  dim: 0.3,
-  focus: 0.3,
-  move: 0.6,
-  morph: 0.6,
-  count: 0.9,
-  lock: 0.4,
-  release: 0.4,
-  reject: 0.5,
-  recover: 0.6,
-  pulse: 0.6,
-};
-
 const PRESENCE: ReadonlySet<EventAction> = new Set(['enter', 'exit']);
 const DIM_TOGGLES: ReadonlySet<EventAction> = new Set(['dim', 'highlight', 'enter']);
 /** A held highlight ends at a later dim, exit or reject (a new highlight after it starts again). */
@@ -115,15 +107,26 @@ const SETTLE_PEAK = 0.6;
 
 /**
  * State at global `frame`; elapsed times use `frame / fps` as the absolute video time. Events that
- * name parts (`params.parts`) drive only those parts; the rest drive the whole element.
+ * name parts (`params.parts`) drive only those parts; the rest drive the whole element. `focus`
+ * (the element's focus keys) dims the whole element.
  */
 export function elementState(
   events: readonly ElementEvent[],
   frame: number,
   fps: number,
+  focus: readonly FocusKey[] = [],
 ): ElementState {
-  const whole = events.filter((e) => !eventParts(e.params));
-  return { ...stateOf(whole, frame, fps), parts: partStates(events, frame, fps) };
+  const whole = stateOf(
+    events.filter((e) => !eventParts(e.params)),
+    frame,
+    fps,
+  );
+  const unfocused = focusLevel(focus, frame / fps) * (1 - whole.highlight);
+  return {
+    ...whole,
+    dimmed: Math.max(whole.dimmed, unfocused),
+    parts: partStates(events, frame, fps),
+  };
 }
 
 function partStates(events: readonly ElementEvent[], frame: number, fps: number) {
@@ -142,7 +145,11 @@ function stateOf(events: readonly ElementEvent[], frame: number, fps: number): P
   const started = events.filter((e) => e.frame <= frame).sort((a, b) => a.frame - b.frame);
   const progress = (e: ElementEvent) => actionProgress(e, frame, fps);
   const elapsed = (e: ElementEvent) => Math.max(0, frame / fps - e.sec);
-  const highlight = heldLevel(started, 'highlight', HIGHLIGHT_TOGGLES, progress);
+  const highlight = clearing(
+    started,
+    heldLevel(started, 'highlight', HIGHLIGHT_TOGGLES, progress),
+    frame / fps,
+  );
   const actions = latestPerAction(events, started, progress);
   if (actions.reject !== undefined) {
     actions.reject = heldLevel(started, 'reject', REJECT_TOGGLES, progress);
@@ -190,16 +197,23 @@ function runPerAction(all: readonly ElementEvent[], started: readonly ElementEve
   return runs;
 }
 
-/** Eased 0..1 progress of one event at `frame`. */
+/** Eased 0..1 progress of one event at `frame`, with its action's duration and easing. */
 export function actionProgress(event: ElementEvent, frame: number, fps: number): number {
   const frames = Math.max(1, Math.round(ACTION_DURATION_SEC[event.action] * fps));
-  return easeOut((frame - event.frame) / frames);
+  return ACTION_EASING[event.action]((frame - event.frame) / frames);
 }
 
-/** The easing every action uses (ease-out cubic), for linear progress `t`, clamped to 0..1. */
-export function easeOut(t: number): number {
-  const clamped = Math.min(1, Math.max(0, t));
-  return 1 - (1 - clamped) ** 3;
+/**
+ * A held highlight with an automatic clear (`untilSec`) fades back out from there, over the
+ * highlight duration.
+ */
+function clearing(started: readonly ElementEvent[], level: number, sec: number): number {
+  const last = started.findLast((e) => HIGHLIGHT_TOGGLES.has(e.action));
+  if (last?.action !== 'highlight' || last.untilSec === undefined || sec < last.untilSec) {
+    return level;
+  }
+  const out = (sec - last.untilSec) / ACTION_DURATION_SEC.highlight;
+  return level * (1 - ACTION_EASING.highlight(out));
 }
 
 type Progress = (e: ElementEvent) => number;
