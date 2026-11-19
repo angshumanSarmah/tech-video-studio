@@ -6,14 +6,13 @@ import type { AssetRegistry } from './library.ts';
  * from it). Deterministic: a token score over the asset's id, name and tags, a bonus for how much
  * of the asset's id the query covers (`gpu_card` → `gpu` before `credit_card`) and a character
  * bigram similarity to its id; ties break by id. When the prop implies a family, assets of that
- * family come first (relevant ones, then filler).
+ * family come first. Only real matches are returned (none when nothing is close).
  */
 
 export const SUGGESTION_LIMIT = 6;
 /** Always suggest at least this many (when the library has them), relevant or not. */
-export const SUGGESTION_MIN = 5;
-/** Below this score an asset is not a real match (only filler up to `SUGGESTION_MIN`). */
-const RELEVANT_SCORE = 1;
+/** Below this score an asset is not a real match and is never suggested. */
+export const RELEVANT_SCORE = 1;
 
 const EXACT = 3;
 const PREFIX = 2;
@@ -27,22 +26,17 @@ export function suggestAssets(
   family?: AssetFamily,
 ): string[] {
   const query = tokens(unknownId);
-  const scored = [...registry.values()]
+  const relevant = [...registry.values()]
     .map((asset) => ({ asset, score: assetScore(unknownId, query, asset) }))
+    .filter((s) => s.score >= RELEVANT_SCORE)
     .sort((a, b) => b.score - a.score || a.asset.id.localeCompare(b.asset.id));
-  const familyFirst = (list: typeof scored) =>
-    family
-      ? [
-          ...list.filter((s) => s.asset.family === family),
-          ...list.filter((s) => s.asset.family !== family),
-        ]
-      : list;
-  const relevant = familyFirst(scored.filter((s) => s.score >= RELEVANT_SCORE));
-  const picked = relevant.slice(0, SUGGESTION_LIMIT).map((s) => s.asset.id);
-  const filler = familyFirst(scored)
-    .map((s) => s.asset.id)
-    .filter((id) => !picked.includes(id));
-  return [...picked, ...filler.slice(0, Math.max(0, SUGGESTION_MIN - picked.length))];
+  const ordered = family
+    ? [
+        ...relevant.filter((s) => s.asset.family === family),
+        ...relevant.filter((s) => s.asset.family !== family),
+      ]
+    : relevant;
+  return ordered.slice(0, SUGGESTION_LIMIT).map((s) => s.asset.id);
 }
 
 /** Each query token's best match among the asset's words, plus id similarity. */

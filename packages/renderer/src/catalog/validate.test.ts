@@ -79,7 +79,7 @@ describe('withRegistryChecks', () => {
     });
     expect(result.warnings[0]?.message).toBe(
       'Unknown asset "rocket_ship" (drawn as a placeholder). Closest approved ids: rocket, ' +
-        'truck, ticket, lock, clock. See the asset list in your catalogue.',
+        'truck. See the asset list in your catalogue.',
     );
   });
 

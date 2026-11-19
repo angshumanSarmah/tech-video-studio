@@ -76,9 +76,23 @@ describe('unknown_asset suggestions', () => {
     const [warning] = withRegistryChecks(validateVideoSpec(input), input).warnings;
     expect(warning?.path).toBe('$.scenes[0].elements[1].props.role');
     expect(warning?.message).toMatch(
-      /^Unknown asset "leader" \(drawn as a placeholder\)\. Closest approved ids: crown, /,
+      /^Unknown asset "leader" \(drawn as a placeholder\)\. Closest approved ids: crown\. /,
     );
     expect(warning?.message).toMatch(/See the asset list in your catalogue\.$/);
+  });
+});
+
+describe('unknown_asset without a close match', () => {
+  it('says so instead of suggesting unrelated ids', () => {
+    const input = fixtureSpec();
+    Object.assign(input.scenes[0]?.elements?.[0] ?? {}, {
+      props: { title: 'Client', icon: 'qwzx' },
+    });
+    const [warning] = withRegistryChecks(validateVideoSpec(input), input).warnings;
+    expect(warning?.message).toBe(
+      'Unknown asset "qwzx" (drawn as a placeholder). No close match. Pick from the asset list ' +
+        'in your catalogue, or request a new asset.',
+    );
   });
 });
 

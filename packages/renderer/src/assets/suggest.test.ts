@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildAssetRegistry, SEED_REGISTRY } from './library.ts';
-import { SUGGESTION_LIMIT, SUGGESTION_MIN, suggestAssets } from './suggest.ts';
+import { SUGGESTION_LIMIT, suggestAssets } from './suggest.ts';
 
 const suggest = (id: string, family?: Parameters<typeof suggestAssets>[2]) =>
   suggestAssets(id, SEED_REGISTRY, family);
@@ -25,29 +25,34 @@ describe('suggestAssets', () => {
     expect(suggest('gpu_card').slice(0, 2)).toEqual(['gpu', 'credit_card']);
   });
 
-  it('suggests between 5 and 8 ids, even when nothing is close', () => {
-    for (const id of ['db', 'lock_closed', 'load_balancer', 'qwzx']) {
+  it('suggests only real matches, at most the cap', () => {
+    for (const id of ['db', 'lock_closed', 'load_balancer', 'user_profile']) {
       const ids = suggest(id);
-      expect(ids.length).toBeGreaterThanOrEqual(SUGGESTION_MIN);
-      expect(ids.length).toBeLessThanOrEqual(Math.min(8, SUGGESTION_LIMIT));
+      expect(ids.length).toBeGreaterThan(0);
+      expect(ids.length).toBeLessThanOrEqual(SUGGESTION_LIMIT);
       expect(new Set(ids).size).toBe(ids.length);
     }
+    expect(SUGGESTION_LIMIT).toBe(6);
+    expect(suggest('load_balancer')).toHaveLength(SUGGESTION_LIMIT);
+    expect(suggest('db')).toEqual(['database']);
+  });
+
+  it('suggests nothing when nothing is close (no filler)', () => {
+    expect(suggest('qwzx')).toEqual([]);
+    expect(suggest('taxi', 'transport')).toEqual([]);
   });
 
   it('puts the implied family first', () => {
     expect(suggest('box')[0]).toBe('archive');
     expect(suggest('box', 'object')[0]).toBe('package');
-    expect(
-      suggest('taxi', 'transport')
-        .slice(0, 2)
-        .every((id) => SEED_REGISTRY.get(id)?.family === 'transport'),
-    ).toBe(true);
+    expect(suggest('delivery')).toEqual(['package', 'pizza', 'truck']);
+    expect(suggest('delivery', 'transport')).toEqual(['truck', 'package', 'pizza']);
     expect(suggest('leader', 'symbol')[0]).toBe('crown');
   });
 
   it('is deterministic and independent of library order', () => {
     const reversed = buildAssetRegistry([...SEED_REGISTRY.values()].reverse());
-    for (const id of ['db', 'qwzx', 'lock_closed']) {
+    for (const id of ['db', 'load_balancer', 'lock_closed']) {
       expect(suggestAssets(id, reversed)).toEqual(suggest(id));
     }
   });

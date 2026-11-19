@@ -547,9 +547,10 @@ message }` for the Curator): `too_many_elements` (mode `maxUnits`), `text_too_sm
   beat it is anchored in (`ElementEvent.beatEndSec`), whichever comes first.
 - **Assets** (`src/assets`; style rules in `docs/asset-style.md`). Asset ids in props are
   slugs, not enums, so unknown ids are warnings (`unknown_asset`), never schema errors. The
-  warning suggests the 5–6 closest approved ids (`suggestAssets`: deterministic token, id
+  warning suggests up to 6 closest approved ids (`suggestAssets`: deterministic token, id
   coverage and bigram score over id, name and tags; the family an `AssetRef` implies ranks
-  first), never the whole list.
+  first), only real matches and never the whole list; with none it says "No close match"
+  (`NO_CLOSE_ASSET`).
   - **House SVG** (`house-svg.ts`): one `<svg>` with a 24×24 viewBox and a flat list of shapes
     (`AssetShapeSchema` in `packages/shared`: geometry attributes plus the palette tokens
     `currentColor` and `var(--asset-fill)`). `parseHouseSvg` rejects anything else (no

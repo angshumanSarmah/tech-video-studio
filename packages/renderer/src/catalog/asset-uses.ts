@@ -101,14 +101,18 @@ export function unknownAssetWarnings(
     code: 'unknown_asset',
     message:
       `Unknown asset "${use.id}"${innerSuffix(use.element)} (drawn as a placeholder). ` +
-      `${closestLine(use, registries)}See the asset list in your catalogue.${logos}`,
+      `${suggestionText(use, registries)}${logos}`,
   }));
 }
 
-/** "Closest approved ids: a, b, c. " (empty for an empty library). */
-function closestLine(use: AssetUse, registries: Registries): string {
+export const NO_CLOSE_ASSET =
+  'No close match. Pick from the asset list in your catalogue, or request a new asset.';
+
+/** The closest approved ids, or `NO_CLOSE_ASSET` when nothing really matches. */
+function suggestionText(use: AssetUse, registries: Registries): string {
   const closest = suggestAssets(use.id, registries.assets, use.family);
-  return closest.length > 0 ? `Closest approved ids: ${closest.join(', ')}. ` : '';
+  if (closest.length === 0) return NO_CLOSE_ASSET;
+  return `Closest approved ids: ${closest.join(', ')}. See the asset list in your catalogue.`;
 }
 
 /** ` on "<id>"` for an element inside a pattern (the path points only to its params). */
