@@ -23,10 +23,12 @@
     "gen:theme": "tsx scripts/generate-theme-css.ts"
   },
   "dependencies": {
+    "@explainer-studio/renderer": "workspace:*",
     "@explainer-studio/shared": "workspace:*",
     "@hono/node-server": "catalog:",
     "better-sqlite3": "catalog:",
     "drizzle-orm": "catalog:",
+    "fast-xml-parser": "catalog:",
     "hono": "catalog:",
     "pinia": "catalog:",
     "vue": "catalog:",
@@ -34,7 +36,6 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@explainer-studio/renderer": "workspace:*",
     "@tailwindcss/vite": "catalog:",
     "@types/better-sqlite3": "catalog:",
     "@types/node": "catalog:",

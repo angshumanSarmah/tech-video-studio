@@ -11,6 +11,21 @@ export function runDir(runId: number): string {
   return posix.join('runs', String(runId));
 }
 
+/** A library asset's house SVG file. */
+export function assetSvgPath(assetId: string): string {
+  return posix.join('assets', `${assetId}.svg`);
+}
+
+/** User-supplied logo files for a run's logo slots: `<slot id>.svg` or `.png`. */
+export function runLogosDir(runId: number): string {
+  return posix.join(runDir(runId), 'logos');
+}
+
+/** Ids the run's renders drew as placeholders (`MissingAssetListSchema`). */
+export function missingAssetsPath(runId: number): string {
+  return posix.join(runDir(runId), 'missing-assets.json');
+}
+
 /** Extracted source text is content-addressed so re-fetching never overwrites an older version. */
 export function sourceTextPath(topicId: number, sourceId: number, contentHash: string): string {
   return posix.join('topics', String(topicId), 'sources', String(sourceId), `${contentHash}.txt`);

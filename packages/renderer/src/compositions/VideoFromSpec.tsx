@@ -8,6 +8,7 @@ export function VideoFromSpec({
   audioSrc,
   channelHandle,
   themeId,
+  assets,
 }: VideoFromSpecProps) {
   return (
     <SpecLayers
@@ -16,6 +17,7 @@ export function VideoFromSpec({
       audioSrc={audioSrc}
       channelHandle={channelHandle}
       themeId={themeId}
+      assets={assets}
     />
   );
 }

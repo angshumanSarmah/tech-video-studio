@@ -24,8 +24,10 @@ catalog:
   react-dom: 19.2.9
   # formula_card (LaTeX); its fonts are bundled from the package by Remotion's webpack
   katex: ^0.19.1
-  # icon data for the temporary built-in asset set (until P1A.11)
+  # seed asset library: icon data (ISC; licence in packages/renderer/src/assets/LICENSE-lucide.txt)
   lucide: ^1.74.0
+  # house SVG parser for asset files (renderer catalog; reused by the P1C.12 sanitizer)
+  fast-xml-parser: ^5.9.3
   # fonts: subsetting script + glyph coverage test (fontkit 3 is younger than minimumReleaseAge)
   subset-font: ^2.9.0
   fontkit: ^2.0.4

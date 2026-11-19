@@ -1,3 +1,4 @@
+import { ASSET_FAMILIES, type AssetFamily } from '@explainer-studio/shared';
 import { z } from 'zod';
 import { LAYOUT_MODE_DEFINITIONS } from '../layout/modes.ts';
 import { INNER_TARGET_ACTIONS, type AnyPatternDefinition } from '../patterns/types.ts';
@@ -49,10 +50,20 @@ export type PatternCatalogueEntry = {
 
 export type LayoutModeCatalogueEntry = { id: string; zones: string[]; description: string };
 
+export type AssetCatalogueGroup = {
+  family: AssetFamily;
+  assets: { id: string; name: string; tags: string[] }[];
+};
+
 export type Catalogue = {
   primitives: PrimitiveCatalogueEntry[];
   patterns: PatternCatalogueEntry[];
   layoutModes: LayoutModeCatalogueEntry[];
+  /**
+   * Approved asset ids by family, from `registries.assets` (the seed library here; P1C.4 builds
+   * the Generator's list from the DB at run time).
+   */
+  assets: AssetCatalogueGroup[];
 };
 
 /** Input-side JSON Schema (fields with defaults are optional), without the `$schema` header. */
@@ -75,7 +86,20 @@ export function buildCatalogue(registries: Registries = DEFAULT_REGISTRIES): Cat
       zones: [...m.zones],
       description: m.description,
     })),
+    assets: assetGroups(registries),
   };
+}
+
+/** Families in `ASSET_FAMILIES` order (empty ones left out), ids sorted within each. */
+function assetGroups({ assets }: Registries): AssetCatalogueGroup[] {
+  const all = [...assets.values()];
+  return ASSET_FAMILIES.map((family) => ({
+    family,
+    assets: all
+      .filter((a) => a.family === family)
+      .map((a) => ({ id: a.id, name: a.name, tags: [...a.tags] }))
+      .sort((a, b) => a.id.localeCompare(b.id)),
+  })).filter((group) => group.assets.length > 0);
 }
 
 function primitiveEntry(d: AnyPrimitiveDefinition): PrimitiveCatalogueEntry {
@@ -120,7 +144,7 @@ export function catalogueMarkdown(
   registries: Registries = DEFAULT_REGISTRIES,
   theme: Theme = getTheme(),
 ): string {
-  const { primitives, patterns, layoutModes } = buildCatalogue(registries);
+  const { primitives, patterns, layoutModes, assets } = buildCatalogue(registries);
   const lines = [
     GENERATED_NOTE,
     '',
@@ -183,6 +207,7 @@ export function catalogueMarkdown(
     '| --- | --- | --- |',
     ...layoutModes.map((m) => `| \`${m.id}\` | ${codeList(m.zones)} | ${m.description} |`),
     '',
+    ...assetSection(assets),
   ];
   return `${lines.join('\n').trimEnd()}\n`;
 }
@@ -257,6 +282,26 @@ function describedSection(entry: PrimitiveCatalogueEntry | PatternCatalogueEntry
     '',
     `**When not to:** ${entry.whenNotToUse}`,
     '',
+  ];
+}
+
+function assetSection(groups: readonly AssetCatalogueGroup[]): string[] {
+  return [
+    '## Assets',
+    '',
+    'Asset ids for props that take one (`asset`, `icon`, `role`, `mover`), by family. Ids are ' +
+      'exhaustive: there are no others. An unknown id is drawn as a placeholder and reported as ' +
+      'a missing asset. Logo slots declared by the video (`logo_<name>`) may be used like asset ' +
+      'ids; never invent one.',
+    '',
+    ...groups.flatMap((group) => [
+      `### ${group.family}`,
+      '',
+      '| Id | Name | Tags |',
+      '| --- | --- | --- |',
+      ...group.assets.map((a) => `| \`${a.id}\` | ${a.name} | ${a.tags.join(', ')} |`),
+      '',
+    ]),
   ];
 }
 

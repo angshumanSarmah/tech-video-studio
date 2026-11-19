@@ -1,4 +1,4 @@
-import type { RenderableVideoSpec } from '@explainer-studio/shared';
+import type { RenderableVideoSpec, ResolvedAsset } from '@explainer-studio/shared';
 
 /** Series label and accent are data (DB `series`); the render service passes them in. */
 export type SeriesProps = {
@@ -25,6 +25,12 @@ export type VideoFromSpecProps = {
   fps: number;
   /** Theme registry id; omitted renders the default theme. Unknown ids fail in `calculateMetadata`. */
   themeId?: string;
+  /**
+   * The library assets and logo files the spec uses, resolved by the worker from the DB and the
+   * run's logo slots (data URIs: nothing is fetched). Omitted uses the seed library (Studio,
+   * stills). Ids missing here are drawn as labelled placeholders.
+   */
+  assets?: ResolvedAsset[];
 };
 
 export type BeatFromSpecProps = VideoFromSpecProps & { beatId: string };

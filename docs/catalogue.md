@@ -2198,3 +2198,172 @@ Ids are exhaustive. Elements may name a zone of their beat’s layout mode.
 | `versus_split` | `left`, `right`, `shared` | Two halves side by side for the same situation; shared elements span both. |
 | `near_far` | `origin`, `near`, `far`, `aside` | An origin with a near and a far destination, the distance drawn to scale. |
 | `hub_spoke` | `hub`, `spoke`, `aside` | One hub in the middle with spokes around it. |
+
+## Assets
+
+Asset ids for props that take one (`asset`, `icon`, `role`, `mover`), by family. Ids are exhaustive: there are no others. An unknown id is drawn as a placeholder and reported as a missing asset. Logo slots declared by the video (`logo_<name>`) may be used like asset ids; never invent one.
+
+### infra
+
+| Id | Name | Tags |
+| --- | --- | --- |
+| `circuit` | Circuit board | hardware, chip |
+| `cloud` | Cloud | hosted, provider, region |
+| `cluster` | Cluster | pods, replicas, fleet |
+| `container` | Container | docker, image, deploy |
+| `cpu` | CPU | processor, compute, core |
+| `database` | Database | db, storage, sql, store |
+| `datacenter` | Data centre | region, site, building |
+| `disk` | Disk | storage, drive, ssd |
+| `layers` | Layers | stack, tiers, levels |
+| `memory` | Memory | ram, cache, in-memory |
+| `server` | Server | host, machine, backend, service |
+
+### network
+
+| Id | Name | Tags |
+| --- | --- | --- |
+| `globe` | Internet | web, world, public |
+| `link` | Link | url, connection, reference |
+| `network` | Network | topology, nodes, lan |
+| `router` | Router | gateway, switch |
+| `split` | Split | load balancer, fan out, route |
+| `swap` | Exchange | request, response |
+| `waypoints` | Hops | path, graph, peers |
+| `wifi` | Wi-Fi | wireless, signal, connection |
+
+### data
+
+| Id | Name | Tags |
+| --- | --- | --- |
+| `archive` | Archive | backup, cold storage, box |
+| `bar_chart` | Bar chart | metrics, stats |
+| `binary` | Bits | bytes, encoding, raw |
+| `copy` | Copy | replica, duplicate, clone |
+| `document` | Document | file, page, text |
+| `filter` | Filter | funnel, match, where |
+| `hash` | Hash | key, checksum, shard |
+| `inbox` | Inbox | incoming, tray, buffer |
+| `json` | JSON | payload, object, api |
+| `line_chart` | Line chart | trend, latency, graph |
+| `list` | List | items, records, rows |
+| `queue` | Queue | ordered, fifo, backlog |
+| `search` | Search | lookup, query, find |
+| `shuffle` | Shuffle | random, rebalance, mix |
+| `table` | Table | rows, columns, schema |
+
+### security
+
+| Id | Name | Tags |
+| --- | --- | --- |
+| `eye` | Watch | visible, monitor, observe |
+| `fingerprint` | Fingerprint | identity, auth |
+| `key` | Key | secret, token, credential |
+| `lock` | Lock | locked, mutex, secure |
+| `shield` | Shield | protection, firewall, guard |
+| `shield_check` | Verified | safe, trusted |
+| `unlock` | Unlocked | open, released, free |
+
+### people
+
+| Id | Name | Tags |
+| --- | --- | --- |
+| `user` | User | person, customer, client |
+| `user_check` | Approved user | verified, allowed |
+| `user_x` | Blocked user | denied, banned |
+| `users` | Users | people, crowd, audience |
+
+### ai
+
+| Id | Name | Tags |
+| --- | --- | --- |
+| `bot` | Bot | agent, assistant, llm |
+| `brain` | Brain | model, reasoning, neural |
+| `gpu` | GPU | accelerator, training, inference |
+| `scan_text` | Read text | tokenize, ocr, parse |
+| `sparkles` | Sparkles | generate, ai, magic |
+| `wand` | Wand | generate, transform |
+
+### time
+
+| Id | Name | Tags |
+| --- | --- | --- |
+| `calendar` | Calendar | date, schedule, day |
+| `clock` | Clock | time, latency, wait |
+| `history` | History | past, log, rewind |
+| `hourglass` | Hourglass | waiting, ttl, expiry |
+| `timer` | Timer | timeout, stopwatch, deadline |
+
+### object
+
+| Id | Name | Tags |
+| --- | --- | --- |
+| `book` | Book | docs, reading, manual |
+| `cash` | Cash | money, payment, note |
+| `coffee` | Coffee | cup, cafe, drink |
+| `credit_card` | Card | payment, checkout |
+| `gamepad` | Gamepad | game, player, console |
+| `home` | Home | house, address, origin |
+| `laptop` | Laptop | computer, client, device |
+| `package` | Parcel | box, delivery, order |
+| `photo` | Photo | image, picture, upload |
+| `pizza` | Pizza | food, order, delivery |
+| `receipt` | Receipt | bill, invoice, order |
+| `shop` | Shop | store, seller, merchant |
+| `shopping_bag` | Shopping bag | purchase, cart |
+| `smartphone` | Phone | mobile, app, device |
+| `ticket` | Ticket | booking, seat, pass |
+| `video` | Video | camera, stream, recording |
+
+### transport
+
+| Id | Name | Tags |
+| --- | --- | --- |
+| `bike` | Bike | rider, courier, cycle |
+| `car` | Car | ride, vehicle, driver |
+| `map_pin` | Location | place, address, pin |
+| `plane` | Plane | flight, travel, airline |
+| `route` | Route | path, directions, trip |
+| `truck` | Truck | shipping, freight, delivery |
+
+### ui
+
+| Id | Name | Tags |
+| --- | --- | --- |
+| `bell` | Notification | alert, push, ping |
+| `chat` | Chat | message, reply, prompt |
+| `gauge` | Gauge | meter, speed, load |
+| `mail` | Message | email, envelope, notification |
+| `monitor` | Screen | display, desktop, dashboard |
+| `pointer` | Click | cursor, tap, select |
+| `refresh` | Retry | reload, sync, refresh |
+| `settings` | Settings | config, gear, options |
+| `window` | App window | browser, tab, page |
+
+### symbol
+
+| Id | Name | Tags |
+| --- | --- | --- |
+| `alert` | Warning | danger, caution, error |
+| `check` | Check | ok, done, yes |
+| `crown` | Leader | leader, primary, winner |
+| `failure` | Failure | failed, error, down |
+| `flag` | Flag | marker, goal, milestone |
+| `repeat` | Loop | retry, cycle, again |
+| `rocket` | Launch | ship, deploy, start |
+| `scale` | Trade-off | balance, compare, weigh |
+| `star` | Star | favourite, rating, best |
+| `success` | Success | passed, ok, healthy |
+| `thumbs_up` | Thumbs up | like, approve, good |
+| `x` | Cross | no, wrong, fail |
+| `zap` | Fast | speed, instant, power |
+
+### dev
+
+| Id | Name | Tags |
+| --- | --- | --- |
+| `bug` | Bug | defect, error, issue |
+| `code` | Code | source, program, snippet |
+| `git_branch` | Git branch | version control, fork |
+| `module` | Software package | package, library, dependency |
+| `terminal` | Terminal | shell, cli, command |

@@ -11,11 +11,8 @@ import {
 } from '@explainer-studio/shared';
 import { patternLayoutModes } from '../layout/modes.ts';
 import { expansionProblems } from '../patterns/expansion-checks.ts';
-import {
-  patternFormats,
-  type AnyPatternDefinition,
-  type PatternExpansion,
-} from '../patterns/types.ts';
+import { patternFormats, type AnyPatternDefinition } from '../patterns/types.ts';
+import { patternAssetUses, unknownAssetWarnings } from './asset-uses.ts';
 import type { Registries } from './registries.ts';
 import type { Scope } from './scope.ts';
 
@@ -25,7 +22,7 @@ import type { Scope } from './scope.ts';
  * safety net: param schemas are written so this never happens), anchors in `params.at` outside
  * the beat's narration (`anchor_out_of_range`) and `<instance>/<id>` targets naming no element of
  * the expansion (`unknown_reference`). Warnings: asset ids inside expansions that are not in the
- * asset registry (`unknown_asset`) and patterns in one beat that disagree on the layout mode
+ * asset library or the spec's logo slots (`unknown_asset`) and patterns in one beat that disagree on the layout mode
  * while the scene sets none (`pattern_layout_conflict`).
  */
 
@@ -125,7 +122,11 @@ export function patternWarnings(spec: VideoSpec, registries: Registries): SpecEr
       const path = ['scenes', i, 'patterns', j, 'params'];
       return [
         ...formatWarnings(spec, definition, params.data, ['scenes', i, 'patterns', j]),
-        ...assetWarnings(definition.expand(params.data), path, registries),
+        ...unknownAssetWarnings(
+          patternAssetUses(pattern.id, definition, params.data, path, scene.beatId, registries),
+          spec,
+          registries,
+        ),
       ];
     }),
   ]);
@@ -159,27 +160,6 @@ function layoutConflict(scene: BeatScene, i: number, registries: Registries): Sp
     `The patterns in this beat ask for different layout modes (${modes.join(', ')}); the first ` +
     'one is used. Set scenes[].layoutMode to choose, or split the beat.';
   return [error(['scenes', i, 'layoutMode'], 'pattern_layout_conflict', message)];
-}
-
-/** Asset ids the expanded elements use that are not in the asset registry. */
-function assetWarnings(expansion: PatternExpansion, path: Path, registries: Registries) {
-  const known = [...registries.assets.keys()].join(', ');
-  return expansion.elements.flatMap((element) => {
-    const definition = registries.primitives.get(element.primitive);
-    const props = definition?.propsSchema.safeParse(element.props);
-    if (!definition?.assetRefs || !props?.success) return [];
-    return definition
-      .assetRefs(props.data)
-      .filter((ref) => !registries.assets.has(ref.id))
-      .map((ref) =>
-        error(
-          path,
-          'unknown_asset',
-          `Unknown asset "${ref.id}" on "${element.id}" (drawn as a placeholder). ` +
-            `Use one of: ${known}.`,
-        ),
-      );
-  });
 }
 
 function error(path: Path, code: string, message: string): SpecError {

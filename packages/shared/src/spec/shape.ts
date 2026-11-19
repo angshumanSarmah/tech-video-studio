@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { LogoSlotSchema } from '../domain/assets.ts';
 import { HudSchema } from './hud.ts';
 import { MetaSchema } from './meta.ts';
 import { SceneLayerSchema } from './scene.ts';
@@ -8,6 +9,9 @@ import { TimingLayerSchema } from './timing.ts';
 
 /** Bump only once real videos exist; until then the schema changes in place. */
 export const VIDEO_SPEC_SCHEMA_VERSION = 1;
+
+/** Most logo slots one video may declare. */
+export const MAX_LOGO_SLOTS = 4;
 
 /**
  * Structure of a VideoSpec without cross-reference checks (see `VideoSpecSchema`). Layers after
@@ -19,6 +23,12 @@ export const VideoSpecShapeSchema = z.strictObject({
   story: StoryLayerSchema,
   /** Presentation toggles, set by the user (not the LLM). Omitted means every part is on. */
   hud: HudSchema.prefault({}),
+  /**
+   * Per-video logo slots, set by the user (not the LLM): primitives reference a slot id like an
+   * asset id, and the user supplies the file. Unfilled slots render as labelled placeholders in
+   * drafts only.
+   */
+  logos: z.array(LogoSlotSchema).max(MAX_LOGO_SLOTS).optional(),
   script: ScriptLayerSchema.optional(),
   scenes: SceneLayerSchema.optional(),
   timing: TimingLayerSchema.optional(),

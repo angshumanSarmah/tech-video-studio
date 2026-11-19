@@ -82,7 +82,7 @@ describe('withRegistryChecks', () => {
     );
   });
 
-  it('accepts asset ids from the built-in set', () => {
+  it('accepts asset ids from the seed library', () => {
     const input = fixtureSpec();
     Object.assign(input.scenes[0]?.elements?.[0] ?? {}, {
       props: { title: 'Client', icon: 'smartphone' },

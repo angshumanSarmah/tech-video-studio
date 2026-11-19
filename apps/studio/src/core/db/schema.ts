@@ -6,6 +6,7 @@
  * data dir (see `#core/data-files.ts`).
  */
 import {
+  ASSET_FAMILIES,
   ASSET_STATUSES,
   BACKLOG_STATUSES,
   DECIDED_BY,
@@ -317,13 +318,16 @@ export const events = sqliteTable(
 // ---------------------------------------------------------------------------------------------
 // Library, memory and backlog
 
-/** Text id: primitives and the LLM reference assets by id. */
+/**
+ * Text id: primitives and the LLM reference assets by id. The house SVG lives at `svg_path`
+ * (`assets/<id>.svg`); only `approved` rows are in the library a render sees.
+ */
 export const assets = sqliteTable(
   'assets',
   {
     id: text('id').primaryKey(),
     name: text('name').notNull(),
-    family: text('family').notNull(),
+    family: text('family', { enum: ASSET_FAMILIES }).notNull(),
     tags: jsonStringArray('tags'),
     styleVersion: integer('style_version').notNull().default(1),
     licence: text('licence').notNull(),

@@ -41,7 +41,7 @@ apps/studio/            one Node app, three entrypoints
   src/web/              Vue 3 + Vite SPA (Vue Router, Pinia, Tailwind v4; see "Web app")
   drizzle/              generated SQL migrations (drizzle-kit)
 packages/shared/        Zod schemas, catalogues, inferred types (consumed as TS source)
-packages/renderer/      Remotion compositions (React) and the theme system (see "Renderer")
+packages/renderer/      Remotion compositions (React), the theme system and the asset library (see "Renderer")
 data/                   runtime data: SQLite DB, runs/, topics/, assets/, exports/ (gitignored)
 docs/TODO.md            follow-ups logged instead of done
 ```
@@ -545,10 +545,32 @@ message }` for the Curator): `too_many_elements` (mode `maxUnits`), `text_too_sm
 - **`runSec[action]`** (`actionRunSec`) is how long an occurrence runs, from resolved event
   times: until the element's next `reject`; without one, until its next `exit` or the end of the
   beat it is anchored in (`ElementEvent.beatEndSec`), whichever comes first.
-- **Assets** (temporary until P1A.11): `src/assets/builtin.ts` is a small set of Lucide glyphs
-  (ISC), split into `icon` and `item` kinds; `AssetGlyph` draws one, or a neutral dashed
-  placeholder for an unknown id. Asset ids in props are slugs, not enums, so unknown ids are
-  warnings, never schema errors.
+- **Assets** (`src/assets`; style rules in `docs/asset-style.md`). Asset ids in props are
+  slugs, not enums, so unknown ids are warnings (`unknown_asset`), never schema errors.
+  - **House SVG** (`house-svg.ts`): one `<svg>` with a 24×24 viewBox and a flat list of shapes
+    (`AssetShapeSchema` in `packages/shared`: geometry attributes plus the palette tokens
+    `currentColor` and `var(--asset-fill)`). `parseHouseSvg` rejects anything else (no
+    sanitising; that is P1C.12); the renderer draws the parsed shapes, never raw markup, and sets
+    stroke width, round caps and joins itself. Bump `HOUSE_STYLE_VERSION` when the rules change.
+  - **Library:** the `assets` table (approved rows) plus `<DATA_DIR>/assets/<id>.svg`. The seed
+    set (`seed.ts`: curated Lucide icons, canonical export names, ISC or ISC AND MIT for icons
+    Lucide derived from Feather, `LICENSE-lucide.txt`) is copied in by `prepareDatabase`
+    (`db:migrate`), idempotently; it refreshes only rows it seeded. Families are the closed
+    `ASSET_FAMILIES`; `logo_` ids are reserved for logo slots. `gen:catalogue` lists the seed ids
+    by family.
+  - **Renders get assets as props** (`assets: ResolvedAsset[]`, validated in
+    `calculateMetadata`): the worker resolves them with `prepareRenderAssets`
+    (`#core/assets/render-assets.ts`); without the prop the seed library is used (Studio,
+    stills). `SpecLayers` provides them through `AssetProvider`; `AssetGlyph` draws library
+    shapes, a logo file, or a neutral placeholder showing a readable label.
+  - **Logo slots:** `spec.logos` (`logo_<slug>` + label, a run setting outside the LLM schema)
+    are used like asset ids and filled by the user's file in `runs/<id>/logos/<slot>.svg|png`
+    (≤ 300 KB, ≤ 1024 px, checked on load; never fetched), drawn as an image in its own
+    colours. Unfilled slots are draft-only placeholders.
+  - **Missing assets:** `missingAssets(spec, assetContext(...))` lists unknown ids and unfilled
+    slots with their beats and paths (the same walk as `unknown_asset`: `catalog/asset-uses.ts`);
+    `recordMissingAssets` merges each render's list per beat into
+    `runs/<id>/missing-assets.json`.
 - **A pattern** is `patterns/<id>/definition.ts` (`definePattern`): the primitive shape minus
   component and size hints, plus `anchors` (the narration moments it needs, some `optional`),
   `layoutMode`, `targets` (its inner elements, documented for the catalogue; `worker-<n>` for list
@@ -589,7 +611,8 @@ message }` for the Curator): `too_many_elements` (mode `maxUnits`), `text_too_sm
   primitive, an overlay put in a container, or an element already in another container) and
   `unknown_part` (a ref's parts). It also adds **warnings** (the spec stays valid, Studio shows
   them, agent output repairs them since warnings count as failures there): `unknown_asset` for
-  asset ids (from `assetRefs`) missing from the asset registry (a placeholder is drawn), and
+  asset ids (from `assetRefs`) that are neither in the asset registry nor a declared logo slot
+  (a placeholder is drawn), and
   timeline warnings (`catalog/timeline-checks.ts`, from real or estimated timing):
   `overlay_overlap` (two overlays visible at once), `child_before_container` (a contained
   child's event before its container enters), `recover_without_reject` /

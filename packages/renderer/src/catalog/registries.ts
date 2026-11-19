@@ -1,4 +1,4 @@
-import { ASSETS, type AssetRegistry } from '../assets/builtin.ts';
+import { SEED_REGISTRY, type AssetRegistry } from '../assets/library.ts';
 import { PATTERNS, type PatternRegistry } from '../patterns/registry.ts';
 import { PRIMITIVES, type PrimitiveRegistry } from '../primitives/registry.ts';
 
@@ -12,5 +12,6 @@ export type Registries = {
 export const DEFAULT_REGISTRIES: Registries = {
   primitives: PRIMITIVES,
   patterns: PATTERNS,
-  assets: ASSETS,
+  /** The seed library; the worker injects the DB library (P1C.4). */
+  assets: SEED_REGISTRY,
 };

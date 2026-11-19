@@ -9,6 +9,7 @@ export * from './api/topics.ts';
 export * from './config/env.ts';
 export * from './config/llm.ts';
 export * from './config/settings.ts';
+export * from './domain/assets.ts';
 export * from './domain/events.ts';
 export * from './domain/job.ts';
 export * from './domain/library.ts';

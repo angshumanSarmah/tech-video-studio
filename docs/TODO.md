@@ -78,6 +78,10 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
     path, never `timing.audioFile` (a path relative to the data dir). Serve the run's audio via
     the studio server (or copy it into Remotion's public dir) and pass that URL.
   - Pass `channelHandle` from the run's channel (`channels.handle`; null hides it).
+  - Pass `assets` from `prepareRenderAssets(db, dataDir, runId, spec)`
+    (`#core/assets/render-assets.ts`), and after every render call `recordMissingAssets` with its
+    `missing` (per-beat drafts pass their `beatIds`), so the gate 3 panel (P1D.10) and P1C.12
+    read one list. Log its `problems` (asset files that failed to load) to the run.
   - Before rendering, check that `audioSrc` loads (e.g. a `HEAD`/range request that returns an
     audio content type) and fail the render with a clear error if it does not. A spec with
     timing must never render silently; `audioSrc: null` is only for previews before TTS.
@@ -94,8 +98,26 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       invalid props as red error markers (`src/scene/BeatScene.tsx`). A final render must refuse
       any spec that fails `withRegistryChecks(validateRenderableVideoSpec(spec), spec)` and report
       the structured errors to the run, so a marker can never reach an exported MP4.
-  - It must also refuse a spec with any `unknown_asset` warning (a warning everywhere else), so
-    an asset placeholder never reaches an export.
+  - It must also refuse a spec with any `unknown_asset` warning (a warning everywhere else), or
+    any unfilled logo slot (`prepareRenderAssets(...).missing` not empty, or `problems` from a
+    logo file that failed its checks): placeholders are draft-only and never reach an export.
+- [ ] **P1C.4 — Asset list from the DB.** The catalogue's asset section (`buildCatalogue`)
+      comes from `registries.assets`, which is the seed library by default. The Generator must
+      build its closed asset list from the DB's approved rows at run time (`loadAssetLibrary`,
+      then `buildAssetRegistry` into `Registries.assets`, filtered by the beat's keywords and
+      families), and validate with the same registries so `unknown_asset` matches the library.
+- [ ] **P1C.12 — Asset aliases and the dev `package` id.** Aliases (e.g. `gpu_card` → `gpu`)
+      need a column on `assets`; add it with the drafter. The seed keeps `package` as the parcel
+      (object family; fixtures use it), so the software package is `module` (dev). Add an alias
+      if the Generator keeps asking for `package` in dev topics.
+- [ ] **P1D.6 — Logo uploads.** Uploads go to `runs/<id>/logos/<slot>.svg|png` and must pass
+      `checkLogoFile` (`#core/assets/logo-file.ts`: SVG or PNG, at most 300 KB and 1024 px on
+      the longest side, no scripts or external references) before they are written. A slot
+      holds one file; replace the other extension on upload.
+- [ ] **P1D.10 — Missing-asset decisions.** `runs/<id>/missing-assets.json` holds only what
+      each render drew as a placeholder. The panel's decisions (swap, skip, approve a draft)
+      need their own storage (a `run_missing_assets` table or a decisions file) so a re-render
+      does not lose them.
 - [ ] **Layout — Size hints.** `sizeHints` estimate text width from per-font average advances
       (`src/primitives/measure.ts`), and the layout engine trusts them. If boards overflow their
       boxes, measure glyphs (`@remotion/layout-utils` or the font files) instead.
@@ -168,12 +190,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       the run's approved custom elements (and the max of 2 per video).
 - [ ] **P1C ingest — Pin sources per run.** Call `recordRunSources` when a run starts research,
       and write extracted text via `sourceTextPath` so re-fetches never overwrite older versions.
-- [ ] **P1A.11 — Asset library replaces the built-in set.** `src/assets/builtin.ts` (Lucide
-      glyphs, ISC) is temporary. P1A.11 swaps the registry behind `getAsset` / `ASSETS` for the
-      on-disk library, keeping ids slugs and unknown ids as placeholder + `unknown_asset` warning.
-  - Prompts need the closed list of asset ids (rule: closed lists for every id). Add assets to
-    `buildCatalogue()` (ids, kind, label) when the library lands.
-  - Record the run's missing assets (the placeholder path) for P1C.12 and the gate 3 panel.
 - [ ] **P1C.12 — Asset drafts.** Reuse the `assets` table (status `draft | approved | rejected`)
       for drafts; do not add a separate `asset_drafts` table. Variant SVGs live in files, listed
       in a `variants` column on the asset row.

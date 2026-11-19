@@ -52,6 +52,8 @@ describe('prepareDatabase on a fresh data dir', () => {
     const result = prepareDatabase(dataDir, TEST_MIGRATIONS_DIR);
 
     expect(result.seeded).toBe(true);
+    expect(result.assets.inserted).toBeGreaterThan(0);
+    expect(existsSync(join(dataDir, 'assets', 'server.svg'))).toBe(true);
     for (const sub of DATA_SUBDIRS) expect(existsSync(join(dataDir, sub))).toBe(true);
 
     db = openDatabase(result.dbPath);
@@ -73,6 +75,7 @@ describe('prepareDatabase on a fresh data dir', () => {
     const result = prepareDatabase(dataDir, TEST_MIGRATIONS_DIR);
 
     expect(result.seeded).toBe(false);
+    expect(result.assets).toMatchObject({ inserted: 0, updated: 0 });
     db = openDatabase(result.dbPath);
     expect(db.select().from(series).all()).toHaveLength(DEFAULT_SERIES.length);
   });

@@ -2,7 +2,6 @@ import {
   toJsonPath,
   VideoSpecShapeSchema,
   type BeatScene,
-  type SceneElement,
   type SceneEvent,
   type SpecError,
   type SpecValidationResult,
@@ -11,6 +10,7 @@ import {
 import type { z } from 'zod';
 import { EventEngineParamsSchema } from '../events/params.ts';
 import { LAYOUT_MODES } from '../layout/modes.ts';
+import { elementAssetUses, unknownAssetWarnings } from './asset-uses.ts';
 import { DEFAULT_REGISTRIES, type Registries } from './registries.ts';
 import {
   innerTargetErrors,
@@ -26,8 +26,9 @@ import { findTimelineWarnings } from './timeline-checks.ts';
  * Registry checks for a spec's scenes: layout modes, primitive and pattern ids exist, props and params match
  * their schemas (pattern instances: `pattern-checks.ts`), events only use actions their targets
  * (or the parts they name, or `<instance>/<id>` inside a pattern) support, props
- * only point to elements in the beat's scope (errors), and asset ids exist
- * (`unknown_asset` warnings: the scene layer draws a placeholder, agents repair it). Timeline
+ * only point to elements in the beat's scope (errors), and asset ids exist in the library or
+ * name a declared logo slot (`unknown_asset` warnings: the scene layer draws a placeholder,
+ * agents repair it; `asset-uses.ts`). Timeline
  * warnings (`timeline-checks.ts`): overlays shown at once, children acting before their
  * container, and each primitive's own `eventWarnings`. Kept out of
  * `validateVideoSpec` because `packages/shared` cannot see the renderer's registries.
@@ -85,33 +86,16 @@ export function findRegistryWarnings(
   spec: VideoSpec,
   registries: Registries = DEFAULT_REGISTRIES,
 ): SpecError[] {
-  const assets = (spec.scenes ?? []).flatMap((scene, i) =>
+  const elementUses = (spec.scenes ?? []).flatMap((scene, i) =>
     scene.elements.flatMap((element, j) =>
-      assetWarnings(element, ['scenes', i, 'elements', j, 'props'], registries),
+      elementAssetUses(element, ['scenes', i, 'elements', j], scene.beatId, registries),
     ),
   );
   return [
-    ...assets,
+    ...unknownAssetWarnings(elementUses, spec, registries),
     ...patternWarnings(spec, registries),
     ...findTimelineWarnings(spec, registries),
   ];
-}
-
-/** Asset ids in valid props that are not in the asset registry (bad props are errors already). */
-function assetWarnings(element: SceneElement, path: Path, registries: Registries): SpecError[] {
-  const definition = registries.primitives.get(element.primitive);
-  if (!definition?.assetRefs) return [];
-  const props = definition.propsSchema.safeParse(element.props);
-  if (!props.success) return [];
-  const known = [...registries.assets.keys()].join(', ');
-  return definition
-    .assetRefs(props.data)
-    .filter((ref) => !registries.assets.has(ref.id))
-    .map((ref) => ({
-      path: toJsonPath([...path, ...ref.path]),
-      code: 'unknown_asset',
-      message: `Unknown asset "${ref.id}" (drawn as a placeholder). Use one of: ${known}.`,
-    }));
 }
 
 function elementErrors(scene: BeatScene, i: number, { primitives }: Registries): SpecError[] {

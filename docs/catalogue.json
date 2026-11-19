@@ -8764,5 +8764,1002 @@
       ],
       "description": "One hub in the middle with spokes around it."
     }
+  ],
+  "assets": [
+    {
+      "family": "infra",
+      "assets": [
+        {
+          "id": "circuit",
+          "name": "Circuit board",
+          "tags": [
+            "hardware",
+            "chip"
+          ]
+        },
+        {
+          "id": "cloud",
+          "name": "Cloud",
+          "tags": [
+            "hosted",
+            "provider",
+            "region"
+          ]
+        },
+        {
+          "id": "cluster",
+          "name": "Cluster",
+          "tags": [
+            "pods",
+            "replicas",
+            "fleet"
+          ]
+        },
+        {
+          "id": "container",
+          "name": "Container",
+          "tags": [
+            "docker",
+            "image",
+            "deploy"
+          ]
+        },
+        {
+          "id": "cpu",
+          "name": "CPU",
+          "tags": [
+            "processor",
+            "compute",
+            "core"
+          ]
+        },
+        {
+          "id": "database",
+          "name": "Database",
+          "tags": [
+            "db",
+            "storage",
+            "sql",
+            "store"
+          ]
+        },
+        {
+          "id": "datacenter",
+          "name": "Data centre",
+          "tags": [
+            "region",
+            "site",
+            "building"
+          ]
+        },
+        {
+          "id": "disk",
+          "name": "Disk",
+          "tags": [
+            "storage",
+            "drive",
+            "ssd"
+          ]
+        },
+        {
+          "id": "layers",
+          "name": "Layers",
+          "tags": [
+            "stack",
+            "tiers",
+            "levels"
+          ]
+        },
+        {
+          "id": "memory",
+          "name": "Memory",
+          "tags": [
+            "ram",
+            "cache",
+            "in-memory"
+          ]
+        },
+        {
+          "id": "server",
+          "name": "Server",
+          "tags": [
+            "host",
+            "machine",
+            "backend",
+            "service"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "network",
+      "assets": [
+        {
+          "id": "globe",
+          "name": "Internet",
+          "tags": [
+            "web",
+            "world",
+            "public"
+          ]
+        },
+        {
+          "id": "link",
+          "name": "Link",
+          "tags": [
+            "url",
+            "connection",
+            "reference"
+          ]
+        },
+        {
+          "id": "network",
+          "name": "Network",
+          "tags": [
+            "topology",
+            "nodes",
+            "lan"
+          ]
+        },
+        {
+          "id": "router",
+          "name": "Router",
+          "tags": [
+            "gateway",
+            "switch"
+          ]
+        },
+        {
+          "id": "split",
+          "name": "Split",
+          "tags": [
+            "load balancer",
+            "fan out",
+            "route"
+          ]
+        },
+        {
+          "id": "swap",
+          "name": "Exchange",
+          "tags": [
+            "request",
+            "response"
+          ]
+        },
+        {
+          "id": "waypoints",
+          "name": "Hops",
+          "tags": [
+            "path",
+            "graph",
+            "peers"
+          ]
+        },
+        {
+          "id": "wifi",
+          "name": "Wi-Fi",
+          "tags": [
+            "wireless",
+            "signal",
+            "connection"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "data",
+      "assets": [
+        {
+          "id": "archive",
+          "name": "Archive",
+          "tags": [
+            "backup",
+            "cold storage",
+            "box"
+          ]
+        },
+        {
+          "id": "bar_chart",
+          "name": "Bar chart",
+          "tags": [
+            "metrics",
+            "stats"
+          ]
+        },
+        {
+          "id": "binary",
+          "name": "Bits",
+          "tags": [
+            "bytes",
+            "encoding",
+            "raw"
+          ]
+        },
+        {
+          "id": "copy",
+          "name": "Copy",
+          "tags": [
+            "replica",
+            "duplicate",
+            "clone"
+          ]
+        },
+        {
+          "id": "document",
+          "name": "Document",
+          "tags": [
+            "file",
+            "page",
+            "text"
+          ]
+        },
+        {
+          "id": "filter",
+          "name": "Filter",
+          "tags": [
+            "funnel",
+            "match",
+            "where"
+          ]
+        },
+        {
+          "id": "hash",
+          "name": "Hash",
+          "tags": [
+            "key",
+            "checksum",
+            "shard"
+          ]
+        },
+        {
+          "id": "inbox",
+          "name": "Inbox",
+          "tags": [
+            "incoming",
+            "tray",
+            "buffer"
+          ]
+        },
+        {
+          "id": "json",
+          "name": "JSON",
+          "tags": [
+            "payload",
+            "object",
+            "api"
+          ]
+        },
+        {
+          "id": "line_chart",
+          "name": "Line chart",
+          "tags": [
+            "trend",
+            "latency",
+            "graph"
+          ]
+        },
+        {
+          "id": "list",
+          "name": "List",
+          "tags": [
+            "items",
+            "records",
+            "rows"
+          ]
+        },
+        {
+          "id": "queue",
+          "name": "Queue",
+          "tags": [
+            "ordered",
+            "fifo",
+            "backlog"
+          ]
+        },
+        {
+          "id": "search",
+          "name": "Search",
+          "tags": [
+            "lookup",
+            "query",
+            "find"
+          ]
+        },
+        {
+          "id": "shuffle",
+          "name": "Shuffle",
+          "tags": [
+            "random",
+            "rebalance",
+            "mix"
+          ]
+        },
+        {
+          "id": "table",
+          "name": "Table",
+          "tags": [
+            "rows",
+            "columns",
+            "schema"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "security",
+      "assets": [
+        {
+          "id": "eye",
+          "name": "Watch",
+          "tags": [
+            "visible",
+            "monitor",
+            "observe"
+          ]
+        },
+        {
+          "id": "fingerprint",
+          "name": "Fingerprint",
+          "tags": [
+            "identity",
+            "auth"
+          ]
+        },
+        {
+          "id": "key",
+          "name": "Key",
+          "tags": [
+            "secret",
+            "token",
+            "credential"
+          ]
+        },
+        {
+          "id": "lock",
+          "name": "Lock",
+          "tags": [
+            "locked",
+            "mutex",
+            "secure"
+          ]
+        },
+        {
+          "id": "shield",
+          "name": "Shield",
+          "tags": [
+            "protection",
+            "firewall",
+            "guard"
+          ]
+        },
+        {
+          "id": "shield_check",
+          "name": "Verified",
+          "tags": [
+            "safe",
+            "trusted"
+          ]
+        },
+        {
+          "id": "unlock",
+          "name": "Unlocked",
+          "tags": [
+            "open",
+            "released",
+            "free"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "people",
+      "assets": [
+        {
+          "id": "user",
+          "name": "User",
+          "tags": [
+            "person",
+            "customer",
+            "client"
+          ]
+        },
+        {
+          "id": "user_check",
+          "name": "Approved user",
+          "tags": [
+            "verified",
+            "allowed"
+          ]
+        },
+        {
+          "id": "user_x",
+          "name": "Blocked user",
+          "tags": [
+            "denied",
+            "banned"
+          ]
+        },
+        {
+          "id": "users",
+          "name": "Users",
+          "tags": [
+            "people",
+            "crowd",
+            "audience"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "ai",
+      "assets": [
+        {
+          "id": "bot",
+          "name": "Bot",
+          "tags": [
+            "agent",
+            "assistant",
+            "llm"
+          ]
+        },
+        {
+          "id": "brain",
+          "name": "Brain",
+          "tags": [
+            "model",
+            "reasoning",
+            "neural"
+          ]
+        },
+        {
+          "id": "gpu",
+          "name": "GPU",
+          "tags": [
+            "accelerator",
+            "training",
+            "inference"
+          ]
+        },
+        {
+          "id": "scan_text",
+          "name": "Read text",
+          "tags": [
+            "tokenize",
+            "ocr",
+            "parse"
+          ]
+        },
+        {
+          "id": "sparkles",
+          "name": "Sparkles",
+          "tags": [
+            "generate",
+            "ai",
+            "magic"
+          ]
+        },
+        {
+          "id": "wand",
+          "name": "Wand",
+          "tags": [
+            "generate",
+            "transform"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "time",
+      "assets": [
+        {
+          "id": "calendar",
+          "name": "Calendar",
+          "tags": [
+            "date",
+            "schedule",
+            "day"
+          ]
+        },
+        {
+          "id": "clock",
+          "name": "Clock",
+          "tags": [
+            "time",
+            "latency",
+            "wait"
+          ]
+        },
+        {
+          "id": "history",
+          "name": "History",
+          "tags": [
+            "past",
+            "log",
+            "rewind"
+          ]
+        },
+        {
+          "id": "hourglass",
+          "name": "Hourglass",
+          "tags": [
+            "waiting",
+            "ttl",
+            "expiry"
+          ]
+        },
+        {
+          "id": "timer",
+          "name": "Timer",
+          "tags": [
+            "timeout",
+            "stopwatch",
+            "deadline"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "object",
+      "assets": [
+        {
+          "id": "book",
+          "name": "Book",
+          "tags": [
+            "docs",
+            "reading",
+            "manual"
+          ]
+        },
+        {
+          "id": "cash",
+          "name": "Cash",
+          "tags": [
+            "money",
+            "payment",
+            "note"
+          ]
+        },
+        {
+          "id": "coffee",
+          "name": "Coffee",
+          "tags": [
+            "cup",
+            "cafe",
+            "drink"
+          ]
+        },
+        {
+          "id": "credit_card",
+          "name": "Card",
+          "tags": [
+            "payment",
+            "checkout"
+          ]
+        },
+        {
+          "id": "gamepad",
+          "name": "Gamepad",
+          "tags": [
+            "game",
+            "player",
+            "console"
+          ]
+        },
+        {
+          "id": "home",
+          "name": "Home",
+          "tags": [
+            "house",
+            "address",
+            "origin"
+          ]
+        },
+        {
+          "id": "laptop",
+          "name": "Laptop",
+          "tags": [
+            "computer",
+            "client",
+            "device"
+          ]
+        },
+        {
+          "id": "package",
+          "name": "Parcel",
+          "tags": [
+            "box",
+            "delivery",
+            "order"
+          ]
+        },
+        {
+          "id": "photo",
+          "name": "Photo",
+          "tags": [
+            "image",
+            "picture",
+            "upload"
+          ]
+        },
+        {
+          "id": "pizza",
+          "name": "Pizza",
+          "tags": [
+            "food",
+            "order",
+            "delivery"
+          ]
+        },
+        {
+          "id": "receipt",
+          "name": "Receipt",
+          "tags": [
+            "bill",
+            "invoice",
+            "order"
+          ]
+        },
+        {
+          "id": "shop",
+          "name": "Shop",
+          "tags": [
+            "store",
+            "seller",
+            "merchant"
+          ]
+        },
+        {
+          "id": "shopping_bag",
+          "name": "Shopping bag",
+          "tags": [
+            "purchase",
+            "cart"
+          ]
+        },
+        {
+          "id": "smartphone",
+          "name": "Phone",
+          "tags": [
+            "mobile",
+            "app",
+            "device"
+          ]
+        },
+        {
+          "id": "ticket",
+          "name": "Ticket",
+          "tags": [
+            "booking",
+            "seat",
+            "pass"
+          ]
+        },
+        {
+          "id": "video",
+          "name": "Video",
+          "tags": [
+            "camera",
+            "stream",
+            "recording"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "transport",
+      "assets": [
+        {
+          "id": "bike",
+          "name": "Bike",
+          "tags": [
+            "rider",
+            "courier",
+            "cycle"
+          ]
+        },
+        {
+          "id": "car",
+          "name": "Car",
+          "tags": [
+            "ride",
+            "vehicle",
+            "driver"
+          ]
+        },
+        {
+          "id": "map_pin",
+          "name": "Location",
+          "tags": [
+            "place",
+            "address",
+            "pin"
+          ]
+        },
+        {
+          "id": "plane",
+          "name": "Plane",
+          "tags": [
+            "flight",
+            "travel",
+            "airline"
+          ]
+        },
+        {
+          "id": "route",
+          "name": "Route",
+          "tags": [
+            "path",
+            "directions",
+            "trip"
+          ]
+        },
+        {
+          "id": "truck",
+          "name": "Truck",
+          "tags": [
+            "shipping",
+            "freight",
+            "delivery"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "ui",
+      "assets": [
+        {
+          "id": "bell",
+          "name": "Notification",
+          "tags": [
+            "alert",
+            "push",
+            "ping"
+          ]
+        },
+        {
+          "id": "chat",
+          "name": "Chat",
+          "tags": [
+            "message",
+            "reply",
+            "prompt"
+          ]
+        },
+        {
+          "id": "gauge",
+          "name": "Gauge",
+          "tags": [
+            "meter",
+            "speed",
+            "load"
+          ]
+        },
+        {
+          "id": "mail",
+          "name": "Message",
+          "tags": [
+            "email",
+            "envelope",
+            "notification"
+          ]
+        },
+        {
+          "id": "monitor",
+          "name": "Screen",
+          "tags": [
+            "display",
+            "desktop",
+            "dashboard"
+          ]
+        },
+        {
+          "id": "pointer",
+          "name": "Click",
+          "tags": [
+            "cursor",
+            "tap",
+            "select"
+          ]
+        },
+        {
+          "id": "refresh",
+          "name": "Retry",
+          "tags": [
+            "reload",
+            "sync",
+            "refresh"
+          ]
+        },
+        {
+          "id": "settings",
+          "name": "Settings",
+          "tags": [
+            "config",
+            "gear",
+            "options"
+          ]
+        },
+        {
+          "id": "window",
+          "name": "App window",
+          "tags": [
+            "browser",
+            "tab",
+            "page"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "symbol",
+      "assets": [
+        {
+          "id": "alert",
+          "name": "Warning",
+          "tags": [
+            "danger",
+            "caution",
+            "error"
+          ]
+        },
+        {
+          "id": "check",
+          "name": "Check",
+          "tags": [
+            "ok",
+            "done",
+            "yes"
+          ]
+        },
+        {
+          "id": "crown",
+          "name": "Leader",
+          "tags": [
+            "leader",
+            "primary",
+            "winner"
+          ]
+        },
+        {
+          "id": "failure",
+          "name": "Failure",
+          "tags": [
+            "failed",
+            "error",
+            "down"
+          ]
+        },
+        {
+          "id": "flag",
+          "name": "Flag",
+          "tags": [
+            "marker",
+            "goal",
+            "milestone"
+          ]
+        },
+        {
+          "id": "repeat",
+          "name": "Loop",
+          "tags": [
+            "retry",
+            "cycle",
+            "again"
+          ]
+        },
+        {
+          "id": "rocket",
+          "name": "Launch",
+          "tags": [
+            "ship",
+            "deploy",
+            "start"
+          ]
+        },
+        {
+          "id": "scale",
+          "name": "Trade-off",
+          "tags": [
+            "balance",
+            "compare",
+            "weigh"
+          ]
+        },
+        {
+          "id": "star",
+          "name": "Star",
+          "tags": [
+            "favourite",
+            "rating",
+            "best"
+          ]
+        },
+        {
+          "id": "success",
+          "name": "Success",
+          "tags": [
+            "passed",
+            "ok",
+            "healthy"
+          ]
+        },
+        {
+          "id": "thumbs_up",
+          "name": "Thumbs up",
+          "tags": [
+            "like",
+            "approve",
+            "good"
+          ]
+        },
+        {
+          "id": "x",
+          "name": "Cross",
+          "tags": [
+            "no",
+            "wrong",
+            "fail"
+          ]
+        },
+        {
+          "id": "zap",
+          "name": "Fast",
+          "tags": [
+            "speed",
+            "instant",
+            "power"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "dev",
+      "assets": [
+        {
+          "id": "bug",
+          "name": "Bug",
+          "tags": [
+            "defect",
+            "error",
+            "issue"
+          ]
+        },
+        {
+          "id": "code",
+          "name": "Code",
+          "tags": [
+            "source",
+            "program",
+            "snippet"
+          ]
+        },
+        {
+          "id": "git_branch",
+          "name": "Git branch",
+          "tags": [
+            "version control",
+            "fork"
+          ]
+        },
+        {
+          "id": "module",
+          "name": "Software package",
+          "tags": [
+            "package",
+            "library",
+            "dependency"
+          ]
+        },
+        {
+          "id": "terminal",
+          "name": "Terminal",
+          "tags": [
+            "shell",
+            "cli",
+            "command"
+          ]
+        }
+      ]
+    }
   ]
 }

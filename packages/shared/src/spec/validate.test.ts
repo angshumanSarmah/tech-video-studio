@@ -78,6 +78,18 @@ describe('validateVideoSpec: valid specs', () => {
     expect(result.ok && result.spec.hud).toMatchObject({ storyClock: false, headline: true });
   });
 
+  it('accepts logo slots and rejects duplicate or non-logo slot ids', () => {
+    const logos = [{ id: 'logo_example-company', label: '<example-company>' }];
+    const ok = validateVideoSpec({ ...validSpec(), logos });
+    expect(ok.ok && ok.spec.logos).toEqual(logos);
+    const duplicate = validateVideoSpec({ ...validSpec(), logos: [...logos, ...logos] });
+    expect(duplicate.errors.map((e) => [e.path, e.code])).toEqual([
+      ['$.logos[1].id', 'duplicate_id'],
+    ]);
+    const plain = validateVideoSpec({ ...validSpec(), logos: [{ id: 'server', label: 'x' }] });
+    expect(plain.errors.map((e) => e.path)).toEqual(['$.logos[0].id']);
+  });
+
   it('accepts a scene without a layout mode (its patterns or the default decide)', () => {
     const errors = errorsAfter((spec) => delete at(spec.scenes, 0).layoutMode);
     expect(errors).toEqual([]);

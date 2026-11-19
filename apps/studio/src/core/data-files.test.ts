@@ -3,11 +3,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  assetSvgPath,
   contentHash,
+  missingAssetsPath,
   readDataJson,
   readDataText,
   resolveDataPath,
   runDir,
+  runLogosDir,
   sourceTextPath,
   writeDataJson,
   writeDataText,
@@ -19,6 +22,9 @@ describe('data file paths', () => {
   it('builds relative POSIX paths', () => {
     expect(runDir(12)).toBe('runs/12');
     expect(sourceTextPath(3, 7, 'abc')).toBe('topics/3/sources/7/abc.txt');
+    expect(assetSvgPath('server')).toBe('assets/server.svg');
+    expect(runLogosDir(4)).toBe('runs/4/logos');
+    expect(missingAssetsPath(4)).toBe('runs/4/missing-assets.json');
   });
 
   it('hashes text as sha256 hex', () => {

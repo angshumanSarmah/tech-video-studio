@@ -8,6 +8,7 @@
     ".": "./src/index.ts",
     "./theme": "./src/theme/index.ts",
     "./catalog": "./src/catalog/index.ts",
+    "./fixtures": "./fixtures/index.ts",
     "./package.json": "./package.json"
   },
   "scripts": {
@@ -28,6 +29,7 @@
   "dependencies": {
     "@explainer-studio/shared": "workspace:*",
     "@remotion/fonts": "catalog:",
+    "fast-xml-parser": "catalog:",
     "katex": "catalog:",
     "lucide": "catalog:",
     "react": "catalog:",

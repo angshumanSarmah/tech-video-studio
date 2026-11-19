@@ -1,6 +1,6 @@
 import type { VideoSpec } from '../shape.ts';
 import { checkFormulaCards, checkLayerCoverage } from './coverage.ts';
-import type { SpecIssue } from './issue.ts';
+import { findDuplicateIds, type SpecIssue } from './issue.ts';
 import { checkScenes } from './scenes.ts';
 import { checkScript } from './script.ts';
 import { checkStory } from './story.ts';
@@ -18,6 +18,10 @@ export function findSpecErrors(spec: VideoSpec): SpecIssue[] {
   const coverage = checkLayerCoverage(spec);
   return [
     ...checkStory(spec),
+    ...findDuplicateIds(
+      (spec.logos ?? []).map((l) => l.id),
+      (i) => ['logos', i, 'id'],
+    ),
     ...coverage,
     ...checkFormulaCards(spec),
     ...checkScript(spec),

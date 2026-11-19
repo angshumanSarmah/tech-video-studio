@@ -68,3 +68,20 @@ describe('beatMetadata', () => {
     );
   });
 });
+
+describe('assets prop', () => {
+  it('passes valid resolved assets through and rejects invalid ones with a path', async () => {
+    const { parseRenderAssets } = await import('./metadata.ts');
+    expect(parseRenderAssets(undefined)).toBeUndefined();
+    const logo = {
+      kind: 'logo',
+      id: 'logo_example',
+      mime: 'image/png',
+      dataUri: 'data:image/png;base64,AA==',
+    };
+    expect(parseRenderAssets([logo])).toEqual([logo]);
+    expect(() => parseRenderAssets([{ ...logo, dataUri: 'https://example.com/logo.png' }])).toThrow(
+      /^Invalid assets:\n {2}assets\.0\.dataUri/,
+    );
+  });
+});

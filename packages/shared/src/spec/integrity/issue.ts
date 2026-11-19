@@ -28,7 +28,10 @@ export const SPEC_ERROR_CODES = [
 ] as const;
 export type SpecErrorCode = (typeof SPEC_ERROR_CODES)[number];
 
-/** `unknown_asset` is raised by the renderer's registry checks (`withRegistryChecks`). */
+/**
+ * `unknown_asset` is raised by the renderer's registry checks (`withRegistryChecks`): an id
+ * that is neither in the asset library nor a declared logo slot.
+ */
 export const SPEC_WARNING_CODES = [
   'target_length_mismatch',
   'transition_on_continuing_beat',

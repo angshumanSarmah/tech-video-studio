@@ -1,6 +1,8 @@
 import { effectiveTiming } from '@explainer-studio/shared';
 import { useMemo } from 'react';
 import { AbsoluteFill, Sequence, useVideoConfig } from 'remotion';
+import { AssetProvider } from '../assets/AssetContext.tsx';
+import { assetContext } from '../assets/library.ts';
 import { Background } from '../background/Background.tsx';
 import { DevSubtitles } from '../dev/DevSubtitles.tsx';
 import { loadThemeFonts } from '../fonts/load-theme-fonts.ts';
@@ -26,7 +28,7 @@ type Props = Omit<VideoFromSpecProps, 'fps'> & {
  * overlapping transition), HUD, subtitles, audio.
  */
 export function SpecLayers(props: Props) {
-  const { spec, series, audioSrc, channelHandle, themeId, onlyBeatId } = props;
+  const { spec, series, audioSrc, channelHandle, themeId, assets, onlyBeatId } = props;
   const theme = getTheme(themeId ?? DEFAULT_THEME_ID);
   loadThemeFonts(theme);
   const { fps } = useVideoConfig();
@@ -39,38 +41,41 @@ export function SpecLayers(props: Props) {
   // Every accent use (top bar, step tracker, chapter number, subtitles) gets the adapted colour.
   const accent = seriesAccent(theme, series.accentColour);
   const shown = onlyBeatId ? scenes.filter((s) => s.beatId === onlyBeatId) : scenes;
+  const assetValue = useMemo(() => assetContext(spec.logos, assets), [spec.logos, assets]);
   return (
-    <AbsoluteFill>
-      <Background theme={theme} />
-      {shown.map((span) => (
-        <Sequence
-          key={span.beatId}
-          name={`Beat ${span.beatId}`}
-          from={span.from}
-          durationInFrames={span.durationInFrames}
-        >
-          <BeatScene
-            theme={theme}
-            spec={spec}
-            timing={timing}
-            beatId={span.beatId}
-            beatFrom={span.from}
-            transitions={span.transitions}
-          />
-        </Sequence>
-      ))}
-      <Hud
-        theme={theme}
-        spec={spec}
-        timing={timing}
-        spans={spans}
-        fps={fps}
-        seriesLabel={series.label}
-        accent={accent}
-        channelHandle={channelHandle}
-      />
-      <DevSubtitles theme={theme} spec={spec} timing={timing} spans={spans} accent={accent} />
-      {audioSrc ? <NarrationAudio src={audioSrc} /> : null}
-    </AbsoluteFill>
+    <AssetProvider value={assetValue}>
+      <AbsoluteFill>
+        <Background theme={theme} />
+        {shown.map((span) => (
+          <Sequence
+            key={span.beatId}
+            name={`Beat ${span.beatId}`}
+            from={span.from}
+            durationInFrames={span.durationInFrames}
+          >
+            <BeatScene
+              theme={theme}
+              spec={spec}
+              timing={timing}
+              beatId={span.beatId}
+              beatFrom={span.from}
+              transitions={span.transitions}
+            />
+          </Sequence>
+        ))}
+        <Hud
+          theme={theme}
+          spec={spec}
+          timing={timing}
+          spans={spans}
+          fps={fps}
+          seriesLabel={series.label}
+          accent={accent}
+          channelHandle={channelHandle}
+        />
+        <DevSubtitles theme={theme} spec={spec} timing={timing} spans={spans} accent={accent} />
+        {audioSrc ? <NarrationAudio src={audioSrc} /> : null}
+      </AbsoluteFill>
+    </AssetProvider>
   );
 }
