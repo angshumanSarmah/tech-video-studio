@@ -36,6 +36,16 @@ export function elementRefProp(description: string) {
   return SpecIdSchema.describe(description);
 }
 
+/** Several element ids in this beat, each at most once. */
+export function elementRefList({ min, max }: { min: number; max: number }, description: string) {
+  return z
+    .array(SpecIdSchema)
+    .min(min)
+    .max(max)
+    .refine((ids) => new Set(ids).size === ids.length, 'Each element id at most once.')
+    .describe(description);
+}
+
 /** A list of parts whose `id`s are unique within the element. */
 export function partList<T extends z.ZodType<{ id: string }>>(
   item: T,

@@ -48,7 +48,31 @@ export type AssetRef = { path: (string | number)[]; id: string };
  * Validation checks that the id is in the beat's scope and, when `primitives` is given, that it is
  * one of those primitives. The layout engine (P1A.9) resolves it to geometry.
  */
-export type ElementRef = { path: (string | number)[]; id: string; primitives?: readonly string[] };
+export type ElementRef = {
+  path: (string | number)[];
+  id: string;
+  primitives?: readonly string[];
+  /**
+   * The element is drawn inside this one (an `inset_panel`'s children): the scene layer nests it,
+   * its presence is multiplied by the container's, and validation allows it in one container only.
+   */
+  contains?: boolean;
+  /** Parts of the referenced element this ref is limited to (a `bracket` over some slots). */
+  parts?: readonly string[];
+};
+
+/**
+ * Where an element is drawn: on the board (default) or as an overlay above the board. Overlays are
+ * centred over the stage above a scrim that dims everything else; at most one shows at a time.
+ */
+export const PRIMITIVE_LAYERS = ['board', 'overlay'] as const;
+export type PrimitiveLayer = (typeof PRIMITIVE_LAYERS)[number];
+
+/** An element event as a primitive's own checks see it: the action and the parts it names. */
+export type EventSummary = { action: EventAction; parts?: readonly string[] };
+
+/** A warning a primitive reports about its own events; validation adds the path. */
+export type PrimitiveWarning = { code: string; message: string };
 
 /**
  * Named parts of an element (slots, cells, zones) that an event can address on its own with
@@ -76,6 +100,13 @@ export interface PrimitiveDefinition<Id extends string = string, S extends z.Zod
   elementRefs?(props: z.output<S>): ElementRef[];
   /** Parts events can address with `params.parts`. Omit when the element acts only as a whole. */
   parts?: PartsDefinition<z.output<S>>;
+  /** `overlay` draws it above a scrim over the board (default `board`). */
+  layer?: PrimitiveLayer;
+  /**
+   * Warnings about the events that act on one element (across its `continuesPrevious` chain), in
+   * order. Omit when the primitive has no such rules.
+   */
+  eventWarnings?(props: z.output<S>, events: readonly EventSummary[]): PrimitiveWarning[];
   description: LlmDescription;
   /** One example usage; its props must parse (checked when the registry is built). */
   example: { props: z.input<S> };

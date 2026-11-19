@@ -56,6 +56,12 @@ describe('validateVideoSpec: valid specs', () => {
     });
   });
 
+  it('accepts a beat source line', () => {
+    const spec = validSpec();
+    Object.assign(at(spec.script ?? [], 0), { source: '<example-publisher> report, 2026-01-01' });
+    expect(validateVideoSpec(spec).ok).toBe(true);
+  });
+
   it('keeps HUD toggles that are set and defaults the rest to on', () => {
     const result = validateVideoSpec({ ...validSpec(), hud: { storyClock: false } });
     expect(result.ok && result.spec.hud).toMatchObject({ storyClock: false, headline: true });
@@ -91,6 +97,11 @@ describe('validateVideoSpec: structure', () => {
       'an unknown topic class',
       (spec) => Object.assign(spec.meta, { topicClass: 'gossip' }),
       { path: '$.meta.topicClass', code: 'invalid_value' },
+    ],
+    [
+      'a beat source line with a line break',
+      (spec) => Object.assign(at(spec.script, 0), { source: 'Line one\nline two' }),
+      { path: '$.script[0].source', code: 'invalid_format' },
     ],
     [
       'a world scene (reserved for phase 2)',

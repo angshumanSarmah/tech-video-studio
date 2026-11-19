@@ -8,7 +8,7 @@ import type {
 } from '@explainer-studio/shared';
 import type { Registries } from '../catalog/registries.ts';
 import type { ElementEvent } from '../primitives/element-state.ts';
-import type { AnyPrimitiveDefinition } from '../primitives/types.ts';
+import type { AnyPrimitiveDefinition, PrimitiveLayer } from '../primitives/types.ts';
 import { anchorToTime, resolveEventFrames, type FramedEvent } from '../timing/frames.ts';
 
 /**
@@ -17,6 +17,10 @@ import { anchorToTime, resolveEventFrames, type FramedEvent } from '../timing/fr
  * that are not in a registry, or props that fail their schema, become error items: the scene
  * layer draws them as red markers that are clearly not content. Final renders refuse such specs
  * (`withRegistryChecks`), so markers only ever appear in Studio and drafts.
+ *
+ * Elements a container points to with a `contains` ref (an `inset_panel`'s children) are nested
+ * under it as `children` instead of standing on the board. The first container to claim an
+ * element keeps it; overlays are never nested (validation reports both).
  */
 
 export type WorldItem =
@@ -27,6 +31,9 @@ export type WorldItem =
       /** Parsed by the definition's schema. */
       props: unknown;
       events: ElementEvent[];
+      layer: PrimitiveLayer;
+      /** Contained elements, drawn inside this one. */
+      children: WorldItem[];
     }
   | { kind: 'error'; key: string; title: string; detail: string };
 
@@ -73,7 +80,33 @@ export function beatWorld(
     if (ctx.beat) events.push(...resolveEventFrames(scene, ctx.beat, ctx.narration, fps));
   }
   const ordered = events.sort((a, b) => a.frame - b.frame);
-  return [...drafts.values()].map((draft) => withEvents(draft, ordered));
+  return nestContained([...drafts.values()].map((draft) => withEvents(draft, ordered)));
+}
+
+/** Moves contained elements under their container (see the module comment). */
+export function nestContained(items: readonly WorldItem[]): WorldItem[] {
+  const byKey = new Map(items.map((item) => [item.key, item]));
+  const owner = new Map<string, string>();
+  for (const item of items) {
+    for (const id of containedIds(item)) {
+      const child = byKey.get(id);
+      const overlay = child?.kind === 'primitive' && child.layer === 'overlay';
+      if (child && !overlay && id !== item.key && !owner.has(id)) owner.set(id, item.key);
+    }
+  }
+  const nest = (item: WorldItem): WorldItem =>
+    item.kind === 'primitive'
+      ? { ...item, children: items.filter((c) => owner.get(c.key) === item.key).map(nest) }
+      : item;
+  return items.filter((item) => !owner.has(item.key)).map(nest);
+}
+
+function containedIds(item: WorldItem): string[] {
+  if (item.kind !== 'primitive' || !item.definition.elementRefs) return [];
+  return item.definition
+    .elementRefs(item.props)
+    .filter((ref) => ref.contains)
+    .map((ref) => ref.id);
 }
 
 /** The beat's scene, preceded by the scenes it continues (oldest first). */
@@ -166,5 +199,5 @@ function withEvents(draft: Draft, events: readonly FramedEvent[]): WorldItem {
       beatEndSec,
       ...(params ? { params } : {}),
     }));
-  return { ...item, events: mine };
+  return { ...item, events: mine, layer: item.definition.layer ?? 'board', children: [] };
 }

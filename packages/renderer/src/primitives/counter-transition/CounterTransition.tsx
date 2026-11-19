@@ -3,7 +3,7 @@ import { stateStyle, type PrimitiveComponentProps } from '../component-props.ts'
 import { formatCount } from '../counter/format.ts';
 import { emphasisShadow, markHostCss, markLevels } from '../../emphasis/emphasis.ts';
 import { BoxMark, FocusUnderline } from '../../emphasis/Mark.tsx';
-import { TRANSITION_ARROW, type CounterTransitionProps } from './definition.ts';
+import { fromText, TRANSITION_ARROW, type CounterTransitionProps } from './definition.ts';
 import { transitionView } from './transition.ts';
 
 /** How far `to` slides in from, in em of the metric text. */
@@ -39,7 +39,7 @@ export function CounterTransition({
       <div style={{ display: 'flex', alignItems: 'baseline', gap: theme.space.md }}>
         <span style={{ ...metric, color: fromTint.base, opacity: view.fromStrength }}>
           <FocusUnderline theme={theme} semantic={props.fromSemantic} highlight={state.highlight}>
-            {digits(props.from)}
+            {fromText(props, theme.numberLocale)}
           </FocusUnderline>
         </span>
         <span style={{ ...metric, color: theme.colours.ink.muted, opacity: view.arrow }}>

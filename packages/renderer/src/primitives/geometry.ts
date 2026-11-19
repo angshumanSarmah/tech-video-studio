@@ -65,6 +65,42 @@ export function partialPolyline(points: readonly Point[], t: number): Point[] {
   return out;
 }
 
+/**
+ * A smooth curve through `points` (uniform Catmull-Rom), sampled into a
+ * polyline with `samples` points per segment. The input points themselves (the same objects)
+ * stay on the curve, so callers can find where each one is reached.
+ */
+export function catmullRom(points: readonly Point[], samples = 16): Point[] {
+  if (points.length < 3) return [...points];
+  const out: Point[] = [];
+  for (let i = 0; i < points.length - 1; i += 1) {
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    if (!p1 || !p2) continue;
+    const p0 = points[i - 1] ?? p1;
+    const p3 = points[i + 2] ?? p2;
+    out.push(p1);
+    for (let k = 1; k < samples; k += 1) out.push(catmullRomAt(p0, p1, p2, p3, k / samples));
+  }
+  const last = points.at(-1);
+  if (last) out.push(last);
+  return out;
+}
+
+function catmullRomAt(p0: Point, p1: Point, p2: Point, p3: Point, t: number): Point {
+  const t2 = t * t;
+  const t3 = t2 * t;
+  const axis = (a: number, b: number, c: number, d: number) =>
+    0.5 * (2 * b + (c - a) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (3 * b - a - 3 * c + d) * t3);
+  return { x: axis(p0.x, p1.x, p2.x, p3.x), y: axis(p0.y, p1.y, p2.y, p3.y) };
+}
+
+/** The point at fraction `t` (0..1, clamped) of the straight line from `a` to `b`. */
+export function lerpPoint(a: Point, b: Point, t: number): Point {
+  const c = clamp01(t);
+  return { x: a.x + (b.x - a.x) * c, y: a.y + (b.y - a.y) * c };
+}
+
 /** SVG path data for a polyline. */
 export function pathD(points: readonly Point[]): string {
   return points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${round(p.x)} ${round(p.y)}`).join(' ');

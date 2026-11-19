@@ -1,5 +1,6 @@
+import type { ReactNode } from 'react';
 import type { Theme } from '../theme/index.ts';
-import type { ElementState } from './element-state.ts';
+import type { ElementState, PartState } from './element-state.ts';
 import type { Size } from './types.ts';
 
 /**
@@ -11,10 +12,15 @@ export type PrimitiveComponentProps<P> = {
   props: P;
   box: Size;
   state: ElementState;
+  /**
+   * Contained elements, already drawn (an `inset_panel`'s children; see `ElementRef.contains`).
+   * Only containers read it.
+   */
+  children?: ReactNode;
 };
 
 /** Opacity and scale shared by all primitives: presence, dimming and emphasis. */
-export function stateStyle(state: ElementState) {
+export function stateStyle(state: Pick<PartState, 'presence' | 'dimmed' | 'emphasis'>) {
   const opacity = state.presence * (1 - 0.7 * state.dimmed);
   const scale = (0.9 + 0.1 * state.presence) * (1 + 0.06 * state.emphasis);
   return { opacity, transform: `scale(${scale})` } as const;

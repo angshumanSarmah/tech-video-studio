@@ -1,0 +1,711 @@
+{
+  "schemaVersion": 1,
+  "meta": {
+    "id": "inset-reveal-board",
+    "series": "system-design",
+    "title": "Inset and reveal board",
+    "topicClass": "product-design",
+    "targetLengthSec": 72
+  },
+  "hud": {
+    "heroMetric": false,
+    "storyClock": false,
+    "headline": false
+  },
+  "story": {
+    "devices": [],
+    "ending": {
+      "kind": "summary"
+    },
+    "chapters": [
+      {
+        "id": "inset",
+        "title": "Inset"
+      },
+      {
+        "id": "reveal",
+        "title": "Reveal"
+      }
+    ],
+    "beats": [
+      {
+        "id": "inset-panel",
+        "chapterId": "inset",
+        "intent": "Show inset_panel with each of its events",
+        "targetSec": 12
+      },
+      {
+        "id": "bracket",
+        "chapterId": "inset",
+        "intent": "Show bracket with each of its events",
+        "targetSec": 12
+      },
+      {
+        "id": "callout",
+        "chapterId": "inset",
+        "intent": "Show callout with each of its events",
+        "targetSec": 12
+      },
+      {
+        "id": "device-frame",
+        "chapterId": "reveal",
+        "intent": "Show device_frame with each of its events",
+        "targetSec": 12
+      },
+      {
+        "id": "radius-ring",
+        "chapterId": "reveal",
+        "intent": "Show radius_ring with each of its events",
+        "targetSec": 12
+      },
+      {
+        "id": "statement-card",
+        "chapterId": "reveal",
+        "intent": "Show statement_card with each of its events",
+        "targetSec": 12
+      }
+    ]
+  },
+  "script": [
+    {
+      "beatId": "inset-panel",
+      "narration": "Zoom into the store and an inset panel opens over the scene. Inside, the order features type in, and the prediction flips from unknown to fourteen minutes. The panel lights up, pulses, dims, then shrinks back into the store."
+    },
+    {
+      "beatId": "bracket",
+      "narration": "Three replicas sit side by side, and a bracket draws under them: quorum. It lights up, pulses once, dims, and then lets go."
+    },
+    {
+      "beatId": "callout",
+      "narration": "A callout pops in beside the kitchen with a what if. It lights up, pulses, then the assumption is ruled out, it dims, and leaves.",
+      "source": "Example Eats delivery study, March 2025"
+    },
+    {
+      "beatId": "device-frame",
+      "narration": "A device frame shows a rider's phone. A third order slides in. The first order lights up and blinks. The second is declined, and the third drops off. The whole phone glows, pulses, and the button turns to accepted. Then it dims."
+    },
+    {
+      "beatId": "radius-ring",
+      "narration": "A radius ring grows out around the restaurant: two kilometres. The ring lights up, pulses, dims, and fades away."
+    },
+    {
+      "beatId": "statement-card",
+      "narration": "A statement card rises over the scene. Easy: find nearby riders. Hard: pick the right one. The hard line glows and throbs. The card lights up, pulses, dims, and the easy line leaves before the card goes."
+    }
+  ],
+  "scenes": [
+    {
+      "beatId": "inset-panel",
+      "kind": "board",
+      "layoutMode": "centered_focus",
+      "elements": [
+        {
+          "id": "store",
+          "primitive": "node_card",
+          "props": {
+            "title": "Store",
+            "subtitle": "kitchen 4",
+            "icon": "shopping_bag"
+          }
+        },
+        {
+          "id": "features",
+          "primitive": "data_block",
+          "props": {
+            "title": "order features",
+            "fields": [
+              {
+                "key": "items",
+                "value": 3
+              },
+              {
+                "key": "distance_km",
+                "value": 2.4
+              },
+              {
+                "key": "hour",
+                "value": 19
+              }
+            ]
+          }
+        },
+        {
+          "id": "prediction",
+          "primitive": "counter_transition",
+          "props": {
+            "from": null,
+            "to": 14,
+            "unit": "MIN",
+            "label": "PREDICTED PREP",
+            "fromSemantic": "neutral",
+            "toSemantic": "focus"
+          }
+        },
+        {
+          "id": "inset-panel",
+          "primitive": "inset_panel",
+          "props": {
+            "title": "ORDER 4127",
+            "anchor": "store",
+            "children": ["features", "prediction"]
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "opens"
+          },
+          "action": "enter",
+          "targets": ["inset-panel"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "type"
+          },
+          "action": "enter",
+          "targets": ["features"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "flips"
+          },
+          "action": "count",
+          "targets": ["prediction"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "lights"
+          },
+          "action": "highlight",
+          "targets": ["inset-panel"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "pulses"
+          },
+          "action": "pulse",
+          "targets": ["inset-panel"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "dims"
+          },
+          "action": "dim",
+          "targets": ["inset-panel"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "shrinks"
+          },
+          "action": "exit",
+          "targets": ["inset-panel"]
+        }
+      ],
+      "focus": ["inset-panel"]
+    },
+    {
+      "beatId": "bracket",
+      "kind": "board",
+      "layoutMode": "centered_focus",
+      "elements": [
+        {
+          "id": "replica-a",
+          "primitive": "node_card",
+          "props": {
+            "title": "Replica A",
+            "icon": "database"
+          }
+        },
+        {
+          "id": "replica-b",
+          "primitive": "node_card",
+          "props": {
+            "title": "Replica B",
+            "icon": "database"
+          }
+        },
+        {
+          "id": "replica-c",
+          "primitive": "node_card",
+          "props": {
+            "title": "Replica C",
+            "icon": "database"
+          }
+        },
+        {
+          "id": "bracket",
+          "primitive": "bracket",
+          "props": {
+            "targets": ["replica-a", "replica-b", "replica-c"],
+            "label": "QUORUM"
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "draws"
+          },
+          "action": "enter",
+          "targets": ["bracket"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "lights"
+          },
+          "action": "highlight",
+          "targets": ["bracket"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "pulses"
+          },
+          "action": "pulse",
+          "targets": ["bracket"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "dims"
+          },
+          "action": "dim",
+          "targets": ["bracket"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "lets"
+          },
+          "action": "exit",
+          "targets": ["bracket"]
+        }
+      ],
+      "focus": ["bracket"]
+    },
+    {
+      "beatId": "callout",
+      "kind": "board",
+      "layoutMode": "centered_focus",
+      "elements": [
+        {
+          "id": "kitchen",
+          "primitive": "node_card",
+          "props": {
+            "title": "Kitchen",
+            "subtitle": "prep 20 min",
+            "icon": "pizza"
+          }
+        },
+        {
+          "id": "callout",
+          "primitive": "callout",
+          "props": {
+            "title": "WHAT IF",
+            "text": "If prep takes 20 min: rider waits 17 min ✗",
+            "semantic": "problem"
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "pops"
+          },
+          "action": "enter",
+          "targets": ["callout"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "lights"
+          },
+          "action": "highlight",
+          "targets": ["callout"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "pulses"
+          },
+          "action": "pulse",
+          "targets": ["callout"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "ruled"
+          },
+          "action": "reject",
+          "targets": ["callout"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "dims"
+          },
+          "action": "dim",
+          "targets": ["callout"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "leaves"
+          },
+          "action": "exit",
+          "targets": ["callout"]
+        }
+      ],
+      "focus": ["callout"]
+    },
+    {
+      "beatId": "device-frame",
+      "kind": "board",
+      "layoutMode": "centered_focus",
+      "elements": [
+        {
+          "id": "device-frame",
+          "primitive": "device_frame",
+          "props": {
+            "status": "3 NEW ORDERS",
+            "rows": [
+              {
+                "id": "order-a",
+                "label": "Paneer wrap",
+                "detail": "2 KM",
+                "icon": "package"
+              },
+              {
+                "id": "order-b",
+                "label": "Masala dosa",
+                "detail": "4 KM",
+                "icon": "package"
+              },
+              {
+                "id": "order-c",
+                "label": "Cold coffee",
+                "detail": "1 KM",
+                "icon": "coffee"
+              }
+            ],
+            "button": {
+              "label": "Accept",
+              "semantic": "focus",
+              "then": {
+                "label": "Accepted ✓",
+                "semantic": "ok"
+              }
+            }
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "shows"
+          },
+          "action": "enter",
+          "targets": ["device-frame"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "slides"
+          },
+          "action": "enter",
+          "targets": ["device-frame"],
+          "params": {
+            "parts": ["order-c"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "lights"
+          },
+          "action": "highlight",
+          "targets": ["device-frame"],
+          "params": {
+            "parts": ["order-a"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "blinks"
+          },
+          "action": "pulse",
+          "targets": ["device-frame"],
+          "params": {
+            "parts": ["order-a"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "declined"
+          },
+          "action": "reject",
+          "targets": ["device-frame"],
+          "params": {
+            "parts": ["order-b"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "drops"
+          },
+          "action": "exit",
+          "targets": ["device-frame"],
+          "params": {
+            "parts": ["order-c"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "glows"
+          },
+          "action": "highlight",
+          "targets": ["device-frame"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "pulses"
+          },
+          "action": "pulse",
+          "targets": ["device-frame"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "turns"
+          },
+          "action": "morph",
+          "targets": ["device-frame"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "dims"
+          },
+          "action": "dim",
+          "targets": ["device-frame"]
+        }
+      ],
+      "focus": ["device-frame"]
+    },
+    {
+      "beatId": "radius-ring",
+      "kind": "board",
+      "layoutMode": "centered_focus",
+      "elements": [
+        {
+          "id": "restaurant",
+          "primitive": "node_card",
+          "props": {
+            "title": "Restaurant",
+            "icon": "map_pin"
+          }
+        },
+        {
+          "id": "radius-ring",
+          "primitive": "radius_ring",
+          "props": {
+            "around": "restaurant",
+            "label": "2 KM"
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "grows"
+          },
+          "action": "enter",
+          "targets": ["radius-ring"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "lights"
+          },
+          "action": "highlight",
+          "targets": ["radius-ring"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "pulses"
+          },
+          "action": "pulse",
+          "targets": ["radius-ring"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "dims"
+          },
+          "action": "dim",
+          "targets": ["radius-ring"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "fades"
+          },
+          "action": "exit",
+          "targets": ["radius-ring"]
+        }
+      ],
+      "focus": ["radius-ring"]
+    },
+    {
+      "beatId": "statement-card",
+      "kind": "board",
+      "layoutMode": "centered_focus",
+      "elements": [
+        {
+          "id": "riders",
+          "primitive": "node_card",
+          "props": {
+            "title": "Riders",
+            "subtitle": "12 nearby",
+            "icon": "bike"
+          }
+        },
+        {
+          "id": "statement-card",
+          "primitive": "statement_card",
+          "props": {
+            "lines": [
+              {
+                "id": "easy",
+                "text": "Easy: find nearby riders.",
+                "semantic": "ok"
+              },
+              {
+                "id": "hard",
+                "text": "Hard: pick the right one.",
+                "semantic": "problem"
+              }
+            ]
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "rises"
+          },
+          "action": "enter",
+          "targets": ["statement-card"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "Easy"
+          },
+          "action": "enter",
+          "targets": ["statement-card"],
+          "params": {
+            "parts": ["easy"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "Hard"
+          },
+          "action": "enter",
+          "targets": ["statement-card"],
+          "params": {
+            "parts": ["hard"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "glows"
+          },
+          "action": "highlight",
+          "targets": ["statement-card"],
+          "params": {
+            "parts": ["hard"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "throbs"
+          },
+          "action": "pulse",
+          "targets": ["statement-card"],
+          "params": {
+            "parts": ["hard"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "lights"
+          },
+          "action": "highlight",
+          "targets": ["statement-card"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "pulses"
+          },
+          "action": "pulse",
+          "targets": ["statement-card"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "dims"
+          },
+          "action": "dim",
+          "targets": ["statement-card"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "leaves"
+          },
+          "action": "exit",
+          "targets": ["statement-card"],
+          "params": {
+            "parts": ["easy"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "goes"
+          },
+          "action": "exit",
+          "targets": ["statement-card"]
+        }
+      ],
+      "focus": ["statement-card"]
+    }
+  ]
+}

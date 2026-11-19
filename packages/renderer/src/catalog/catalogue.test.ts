@@ -14,15 +14,20 @@ describe('buildCatalogue', () => {
   it('lists every registered primitive, ordered by family, with LLM-facing fields only', () => {
     const { primitives, patterns } = buildCatalogue();
     expect(primitives.map((p) => p.id)).toEqual([
+      'bracket',
+      'callout',
       'icon',
+      'inset_panel',
       'item_icon',
       'node_card',
+      'statement_card',
       'tag',
       'command_bubble',
       'data_block',
       'formula_card',
       'grid_overlay',
       'map_base',
+      'radius_ring',
       'route_path',
       'zone_polygon',
       'connector',
@@ -33,6 +38,7 @@ describe('buildCatalogue', () => {
       'segmented_time_bar',
       'stat_card',
       'timer_ring',
+      'device_frame',
       'slot_grid',
     ]);
     expect(patterns).toEqual([]);

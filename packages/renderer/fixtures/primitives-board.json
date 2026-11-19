@@ -107,7 +107,7 @@
     },
     {
       "beatId": "node-card",
-      "narration": "A node card is one component of the system. It lights up when it matters, pulses under load, locks while it holds a resource, crashes with a reject, and then dims."
+      "narration": "A node card is one component of the system. Its crown marks the leader; the crown steps away and returns. It lights up when it matters, pulses under load, locks while it holds a resource, crashes with a reject, and then dims."
     },
     {
       "beatId": "icon",
@@ -216,7 +216,8 @@
           "props": {
             "title": "API gateway",
             "subtitle": "routes requests",
-            "icon": "server"
+            "icon": "server",
+            "role": "crown"
           }
         }
       ],
@@ -268,6 +269,39 @@
           },
           "action": "dim",
           "targets": ["node-card"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "crown"
+          },
+          "action": "pulse",
+          "targets": ["node-card"],
+          "params": {
+            "parts": ["role"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "steps"
+          },
+          "action": "exit",
+          "targets": ["node-card"],
+          "params": {
+            "parts": ["role"]
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "returns"
+          },
+          "action": "enter",
+          "targets": ["node-card"],
+          "params": {
+            "parts": ["role"]
+          }
         }
       ],
       "focus": ["node-card"]

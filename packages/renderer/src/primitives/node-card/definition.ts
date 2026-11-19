@@ -8,9 +8,16 @@ export const NodeCardPropsSchema = z.strictObject({
   title: lineText(24, 'Name of the component, shown in uppercase.'),
   subtitle: lineText(40, 'Optional second line: its role or a detail.').optional(),
   icon: AssetIdSchema.optional(),
+  role: AssetIdSchema.optional().describe(
+    'Optional role badge (asset id, e.g. a crown for a leader) at the top centre. It is the ' +
+      'part "role": exit it on the old holder and enter it on the new one to move the role.',
+  ),
   semantic: semanticProp('neutral', 'Border and glow colour'),
 });
 export type NodeCardProps = z.output<typeof NodeCardPropsSchema>;
+
+/** The part id of the role badge. */
+export const ROLE_PART = 'role';
 
 /** Glyph side as a multiple of the title's line height. */
 const ICON_SCALE = 1.25;
@@ -38,12 +45,21 @@ export const nodeCardPrimitive = definePrimitive({
   propsSchema: NodeCardPropsSchema,
   actions: ['enter', 'exit', 'highlight', 'dim', 'pulse', 'lock', 'reject'],
   sizeHints: nodeCardSizeHints,
-  assetRefs: (props) => (props.icon ? [{ path: ['icon'], id: props.icon }] : []),
+  assetRefs: (props) => [
+    ...(props.icon ? [{ path: ['icon'], id: props.icon }] : []),
+    ...(props.role ? [{ path: ['role'], id: props.role }] : []),
+  ],
+  parts: {
+    actions: ['enter', 'exit', 'pulse'],
+    ids: (props) => (props.role ? [ROLE_PART] : []),
+  },
   description: {
     summary:
       'A titled card for one component of a system (a service, server, database, client or ' +
       'queue), with an optional subtitle and icon. `lock` adds a padlock badge; `reject` turns ' +
-      'it red with a cross and a shake.',
+      'it red with a cross and a shake. An optional `role` badge (a crown for the leader) sits ' +
+      'at the top centre as the part "role": `exit` it on the old holder and `enter` it on the ' +
+      'new one to hand the role over (a role whose first part event is `enter` starts hidden).',
     whenToUse:
       'The boxes of a system diagram: anything the story treats as a component that receives, ' +
       'holds or sends something.',
@@ -52,6 +68,6 @@ export const nodeCardPrimitive = definePrimitive({
       '`item_icon`); a bare symbol (use `icon`).',
   },
   example: {
-    props: { title: '<example-name>', subtitle: '<example-role>', icon: 'server' },
+    props: { title: '<example-name>', subtitle: '<example-role>', icon: 'server', role: 'crown' },
   },
 });

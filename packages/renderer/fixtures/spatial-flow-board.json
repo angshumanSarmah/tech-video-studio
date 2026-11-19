@@ -91,7 +91,7 @@
     },
     {
       "beatId": "route-path",
-      "narration": "A route path pins the store and the home, then draws the ride. The whole route glows and pulses. The crossing lights up, blinks, then closes. Finally it dims."
+      "narration": "A route path pins the store and the home. The bike hops to the crossing, hops home, then the route smooths into one curve. The whole route glows and pulses. The crossing lights up, blinks, then closes. Finally it dims."
     },
     {
       "beatId": "zone-polygon",
@@ -195,7 +195,9 @@
                 "label": "HOME"
               }
             ],
-            "distance": "4.2 KM"
+            "distance": "4.2 KM",
+            "mode": "jumpy",
+            "mover": "bike"
           }
         }
       ],
@@ -211,9 +213,26 @@
         {
           "at": {
             "type": "word_text",
-            "text": "draws"
+            "text": "hops"
           },
           "action": "move",
+          "targets": ["route-path"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "hops",
+            "occurrence": 2
+          },
+          "action": "move",
+          "targets": ["route-path"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "smooths"
+          },
+          "action": "morph",
           "targets": ["route-path"]
         },
         {

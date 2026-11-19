@@ -342,6 +342,129 @@ describe('element refs', () => {
   });
 });
 
+describe('containers, overlays and timeline warnings', () => {
+  type Json = Record<string, unknown>;
+  const word = (text: string) => ({ type: 'word_text', text });
+  const ev = (action: string, target: string, text: string, params?: Json) => ({
+    at: word(text),
+    action,
+    targets: [target],
+    ...(params ? { params } : {}),
+  });
+  /** The rate-limiter fixture with extra elements and events on its first beat ("hook"). */
+  const hook = (elements: Json[], events: Json[]) => {
+    const input = registryValidSpec();
+    const scene = input.scenes[0];
+    scene?.elements?.push(...elements);
+    scene?.events?.push(...(events as never[]));
+    return input;
+  };
+  const note = { id: 'note', primitive: 'tag', props: { text: '429' } };
+  const zoom = {
+    id: 'zoom',
+    primitive: 'inset_panel',
+    props: { anchor: 'api', children: ['note'] },
+  };
+  const question = {
+    id: 'question',
+    primitive: 'statement_card',
+    props: { lines: [{ id: 'ask', text: 'Why does it fall over?' }] },
+  };
+  const codes = (issues: { path: string; code: string }[]) => issues.map((i) => [i.path, i.code]);
+
+  it('accepts an inset holding beat elements, with children acting after it enters', () => {
+    const result = check(
+      hook([note, zoom], [ev('enter', 'zoom', 'user'), ev('pulse', 'note', 'error')]),
+    );
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('warns on child events before the container enters, one warning per event', () => {
+    const result = check(
+      hook([note, zoom], [ev('enter', 'zoom', 'user'), ev('pulse', 'note', 'sends')]),
+    );
+    expect(result.ok).toBe(true);
+    expect(codes(result.warnings)).toEqual([['$.scenes[0].events[6]', 'child_before_container']]);
+    expect(result.warnings[0]?.message).toMatch(
+      /"note" acts \(pulse\) before its container "zoom"/,
+    );
+  });
+
+  it('rejects an overlay inside a container and an element in two containers', () => {
+    const twice = { ...zoom, id: 'zoom2', props: { children: ['note', 'question'] } };
+    const errors = check(hook([note, question, zoom, twice], [])).errors;
+    expect(codes(errors)).toEqual([
+      ['$.scenes[0].elements[6].props.children[0]', 'invalid_element_ref'],
+      ['$.scenes[0].elements[6].props.children[1]', 'invalid_element_ref'],
+    ]);
+    expect(errors[0]?.message).toBe(
+      '"note" is already inside "zoom"; an element sits in one container.',
+    );
+    expect(errors[1]?.message).toMatch(/"question" is an overlay \(statement_card\)/);
+  });
+
+  it('rejects an anchor that is also a child', () => {
+    const self = { ...zoom, props: { anchor: 'note', children: ['note'] } };
+    expect(codes(check(hook([note, self], [])).errors)).toEqual([
+      ['$.scenes[0].elements[4].props.anchor', 'custom'],
+    ]);
+  });
+
+  it('checks bracket parts against its target', () => {
+    const leader = {
+      id: 'leader',
+      primitive: 'node_card',
+      props: { title: 'Leader', role: 'crown' },
+    };
+    const ok = {
+      id: 'brace',
+      primitive: 'bracket',
+      props: { targets: ['leader'], parts: ['role'], label: 'ROLE' },
+    };
+    expect(check(hook([leader, ok], [])).errors).toEqual([]);
+    const missing = { ...ok, props: { ...ok.props, parts: ['nope'] } };
+    const noParts = { ...ok, props: { ...ok.props, targets: ['api'] } };
+    const errors = check(hook([leader, missing], [])).errors;
+    expect(codes(errors)).toEqual([['$.scenes[0].elements[4].props.parts[0]', 'unknown_part']]);
+    expect(codes(check(hook([leader, noParts], [])).errors)).toEqual([
+      ['$.scenes[0].elements[4].props.parts', 'unknown_part'],
+    ]);
+  });
+
+  it('warns when two overlays are visible at the same time', () => {
+    const shown = [ev('enter', 'question', 'client'), ev('exit', 'question', 'falls')];
+    const overlapping = check(
+      hook([note, question, zoom], [...shown, ev('enter', 'zoom', 'slows')]),
+    );
+    expect(codes(overlapping.warnings)).toEqual([['$.scenes[0].elements[5]', 'overlay_overlap']]);
+    expect(overlapping.warnings[0]?.message).toMatch(
+      /"zoom" \(inset_panel\) shows while "question" \(statement_card\) is still visible/,
+    );
+    const inTurn = check(hook([note, question, zoom], [...shown, ev('enter', 'zoom', 'user')]));
+    expect(inTurn.warnings).toEqual([]);
+  });
+
+  it('warns when an overlay with no enter overlaps another for the whole beat', () => {
+    expect(codes(check(hook([note, question, zoom], [])).warnings)).toEqual([
+      ['$.scenes[0].elements[5]', 'overlay_overlap'],
+    ]);
+  });
+
+  it('warns when a jumpy route has more moves than hops', () => {
+    const route = {
+      id: 'route',
+      primitive: 'route_path',
+      props: { stops: [{ id: 'a' }, { id: 'b' }, { id: 'c' }], mode: 'jumpy', mover: 'bike' },
+    };
+    const moves = ['client', 'sends', 'slows'].map((w) => ev('move', 'route', w));
+    expect(check(hook([route], moves.slice(0, 2))).warnings).toEqual([]);
+    expect(codes(check(hook([route], moves)).warnings)).toEqual([
+      ['$.scenes[0].elements[3]', 'route_moves_exceed_stops'],
+    ]);
+  });
+});
+
 describe('findRegistryErrors', () => {
   it('is empty for a spec without scenes', () => {
     const input: Record<string, unknown> = registryValidSpec();

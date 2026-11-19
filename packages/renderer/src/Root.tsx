@@ -2,6 +2,7 @@ import { Composition, Still } from 'remotion';
 import {
   fixtureChannelHandle,
   fixtureSeries,
+  insetRevealBoardSpec,
   primitivesBoardSpec,
   rateLimiterSpec,
   spatialFlowBoardSpec,
@@ -33,6 +34,8 @@ const beatDefaults: BeatFromSpecProps = { ...videoDefaults, beatId: 'bucket-empt
 const boardDefaults: VideoFromSpecProps = { ...videoDefaults, spec: primitivesBoardSpec };
 
 const spatialFlowDefaults: VideoFromSpecProps = { ...videoDefaults, spec: spatialFlowBoardSpec };
+
+const insetRevealDefaults: VideoFromSpecProps = { ...videoDefaults, spec: insetRevealBoardSpec };
 
 /** Remotion root. Duration and fps of the spec compositions come from `calculateMetadata`. */
 export function Root() {
@@ -76,6 +79,16 @@ export function Root() {
         fps={FINAL_FPS}
         durationInFrames={1}
         defaultProps={spatialFlowDefaults}
+        calculateMetadata={calculateVideoMetadata}
+      />
+      <Composition
+        id="InsetRevealBoard"
+        component={VideoFromSpec}
+        width={canvas.width}
+        height={canvas.height}
+        fps={FINAL_FPS}
+        durationInFrames={1}
+        defaultProps={insetRevealDefaults}
         calculateMetadata={calculateVideoMetadata}
       />
       <Still

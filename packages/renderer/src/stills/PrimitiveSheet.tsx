@@ -5,10 +5,9 @@ import { primitiveBoardSpecs } from '../../fixtures/index.ts';
 import { Background } from '../background/Background.tsx';
 import { DEFAULT_REGISTRIES } from '../catalog/registries.ts';
 import { loadThemeFonts } from '../fonts/load-theme-fonts.ts';
-import { componentFor } from '../primitives/components.ts';
-import { elementState } from '../primitives/element-state.ts';
 import { getPrimitive } from '../primitives/registry.ts';
 import { beatWorld } from '../scene/beat-world.ts';
+import { itemBox, WorldItemView } from '../scene/WorldItemView.tsx';
 import { DEFAULT_THEME_ID, getTheme, textCss, type Theme } from '../theme/index.ts';
 import {
   panelInner,
@@ -116,12 +115,12 @@ type PanelProps = {
   inner: { width: number; height: number };
 };
 
-/** One moment: the component at its preferred size, scaled down to fit the panel. */
+/**
+ * One moment: the item at its preferred size (with any contained children inside it), scaled
+ * down to fit the panel.
+ */
 function Panel({ theme, panel, item, inner }: PanelProps) {
-  const Component = componentFor(item.definition.id);
-  const hints = item.definition.sizeHints(item.props, theme);
-  const box = { width: hints.preferredWidth, height: hints.preferredHeight };
-  const state = elementState(item.events, panel.frame, SHEET_FPS);
+  const box = itemBox(item, theme);
   return (
     <div
       style={{
@@ -144,7 +143,7 @@ function Panel({ theme, panel, item, inner }: PanelProps) {
         {panel.caption}
       </div>
       <FitBox theme={theme} width={box.width} height={box.height} inner={inner}>
-        {Component ? <Component theme={theme} props={item.props} box={box} state={state} /> : null}
+        <WorldItemView theme={theme} item={item} frame={panel.frame} fps={SHEET_FPS} />
       </FitBox>
     </div>
   );

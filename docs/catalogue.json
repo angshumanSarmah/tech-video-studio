@@ -1,6 +1,142 @@
 {
   "primitives": [
     {
+      "id": "bracket",
+      "family": "annotation",
+      "summary": "A curly brace that groups a run of sibling elements (`targets`), or some `parts` of one target, with a short `label` at its tip. `enter` draws the brace on, then the label fades in.",
+      "whenToUse": "Naming a group: the rows that are a model’s FEATURES, the three replicas that form a QUORUM, the slots that make one BATCH.",
+      "whenNotToUse": "A status on one element (use `tag`); an area on a map (use `zone_polygon`); a link between two elements (use `connector`).",
+      "actions": [
+        "enter",
+        "exit",
+        "highlight",
+        "dim",
+        "pulse"
+      ],
+      "props": {
+        "type": "object",
+        "properties": {
+          "targets": {
+            "minItems": 1,
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64,
+              "pattern": "^[a-z0-9][a-z0-9_-]*$"
+            },
+            "description": "Ids of the sibling elements the brace groups, in display order (a run next to each other)."
+          },
+          "parts": {
+            "description": "Optional: group only these parts (rows, slots) of a single target.",
+            "minItems": 1,
+            "maxItems": 12,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64,
+              "pattern": "^[a-z0-9][a-z0-9_-]*$",
+              "description": "Part id, unique in this element; events act on it with params.parts."
+            }
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 16,
+            "pattern": "^[^\\n\\r]*$",
+            "description": "Short label at the brace tip, e.g. FEATURES."
+          },
+          "semantic": {
+            "default": "neutral",
+            "description": "Brace and label colour: neutral, focus, ok, problem or concept.",
+            "type": "string",
+            "enum": [
+              "neutral",
+              "focus",
+              "ok",
+              "problem",
+              "concept"
+            ]
+          }
+        },
+        "required": [
+          "targets",
+          "label"
+        ],
+        "additionalProperties": false
+      },
+      "example": {
+        "id": "<example-bracket-id>",
+        "primitive": "bracket",
+        "props": {
+          "targets": [
+            "example-rows"
+          ],
+          "parts": [
+            "example-part"
+          ],
+          "label": "<example-group>"
+        }
+      }
+    },
+    {
+      "id": "callout",
+      "family": "annotation",
+      "summary": "A small card with one or two lines of text and an optional `title`, for a counterfactual or a warning: \"If prep takes 20 min: rider waits 17 min ✗\". Tinted by `semantic`: problem, focus or concept. `reject` turns it red with a cross and a shake (the assumption it states is ruled out).",
+      "whenToUse": "A what-if, a caveat or a consequence that sits beside the diagram: the cost of the naive choice, a warning about a failure mode, an aside that explains a term.",
+      "whenNotToUse": "A one-word status (use `tag`); a big statement over the whole scene (use `statement_card`); a number with a source (use `stat_card`).",
+      "actions": [
+        "enter",
+        "exit",
+        "highlight",
+        "dim",
+        "pulse",
+        "reject"
+      ],
+      "props": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20,
+            "pattern": "^[^\\n\\r]*$",
+            "description": "Optional short heading above the text, e.g. WHAT IF."
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[^\\n\\r]*$",
+            "description": "The counterfactual or warning; wraps to at most two lines."
+          },
+          "semantic": {
+            "default": "problem",
+            "description": "Colour meaning: problem (a warning), focus (the point) or concept (an aside).",
+            "type": "string",
+            "enum": [
+              "problem",
+              "focus",
+              "concept"
+            ]
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "additionalProperties": false
+      },
+      "example": {
+        "id": "<example-callout-id>",
+        "primitive": "callout",
+        "props": {
+          "title": "<example-heading>",
+          "text": "<example-what-if>",
+          "semantic": "problem"
+        }
+      }
+    },
+    {
       "id": "icon",
       "family": "annotation",
       "summary": "A single line-drawn symbol from the asset library (server, database, user, lock, cloud), in a semantic colour, with no text.",
@@ -46,6 +182,76 @@
         "props": {
           "asset": "database",
           "semantic": "concept"
+        }
+      }
+    },
+    {
+      "id": "inset_panel",
+      "family": "annotation",
+      "summary": "A framed detail card that zooms in over the scene while everything behind it dims. It holds other elements of the beat (`children`: e.g. a `data_block`, a `counter_transition`, a `slot_grid`, a `map_base` or a `segmented_time_bar`), drawn inside it and shown only while it is. `enter` zooms it out of its `anchor`; `exit` shrinks it back in. Children keep their own events (enter, count, highlight).",
+      "whenToUse": "A closer look at one part of the diagram: what is inside a cache entry, the features a model reads for one order, the shelf behind a store pin, the time budget of one ride.",
+      "whenNotToUse": "Text only (use `statement_card` or `callout`); a whole new scene (start a new beat). Show at most one overlay at a time, and never put an overlay inside it.",
+      "actions": [
+        "enter",
+        "exit",
+        "highlight",
+        "dim",
+        "pulse"
+      ],
+      "props": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 28,
+            "pattern": "^[^\\n\\r]*$",
+            "description": "Optional title in the panel header: what the detail shows."
+          },
+          "anchor": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "description": "Optional id of the element the panel zooms out of (and shrinks back into)."
+          },
+          "children": {
+            "minItems": 1,
+            "maxItems": 4,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64,
+              "pattern": "^[a-z0-9][a-z0-9_-]*$"
+            },
+            "description": "Ids of the elements in this beat drawn inside the panel; they show only while it does."
+          },
+          "semantic": {
+            "default": "neutral",
+            "description": "Frame colour: neutral, focus, ok, problem or concept.",
+            "type": "string",
+            "enum": [
+              "neutral",
+              "focus",
+              "ok",
+              "problem",
+              "concept"
+            ]
+          }
+        },
+        "required": [
+          "children"
+        ],
+        "additionalProperties": false
+      },
+      "example": {
+        "id": "<example-inset_panel-id>",
+        "primitive": "inset_panel",
+        "props": {
+          "title": "<example-detail>",
+          "anchor": "example-anchor",
+          "children": [
+            "example-child"
+          ]
         }
       }
     },
@@ -110,7 +316,7 @@
     {
       "id": "node_card",
       "family": "annotation",
-      "summary": "A titled card for one component of a system (a service, server, database, client or queue), with an optional subtitle and icon. `lock` adds a padlock badge; `reject` turns it red with a cross and a shake.",
+      "summary": "A titled card for one component of a system (a service, server, database, client or queue), with an optional subtitle and icon. `lock` adds a padlock badge; `reject` turns it red with a cross and a shake. An optional `role` badge (a crown for the leader) sits at the top centre as the part \"role\": `exit` it on the old holder and `enter` it on the new one to hand the role over (a role whose first part event is `enter` starts hidden).",
       "whenToUse": "The boxes of a system diagram: anything the story treats as a component that receives, holds or sends something.",
       "whenNotToUse": "A label or status (use `tag`); a quantity (use `counter`); an everyday object (use `item_icon`); a bare symbol (use `icon`).",
       "actions": [
@@ -121,6 +327,11 @@
         "pulse",
         "lock",
         "reject"
+      ],
+      "partActions": [
+        "enter",
+        "exit",
+        "pulse"
       ],
       "props": {
         "type": "object",
@@ -144,6 +355,12 @@
             "maxLength": 64,
             "pattern": "^[a-z0-9][a-z0-9_-]*$",
             "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+          },
+          "role": {
+            "description": "Optional role badge (asset id, e.g. a crown for a leader) at the top centre. It is the part \"role\": exit it on the old holder and enter it on the new one to move the role.",
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
           },
           "semantic": {
             "default": "neutral",
@@ -169,7 +386,96 @@
         "props": {
           "title": "<example-name>",
           "subtitle": "<example-role>",
-          "icon": "server"
+          "icon": "server",
+          "role": "crown"
+        }
+      }
+    },
+    {
+      "id": "statement_card",
+      "family": "annotation",
+      "summary": "One to three large `lines` on a card over the dimmed scene, each line in its own colour meaning. `enter` fades it in with a slight rise. Lines are parts: `enter` a line on its word to build the statement up, highlight or pulse the one that matters. It is an overlay: everything else on the board dims while it shows.",
+      "whenToUse": "A planted question (\"Why not just pick the nearest rider?\"), a two-line takeaway (\"Easy: find riders. Hard: pick the right one.\"), a verdict before the next chapter.",
+      "whenNotToUse": "A label next to a diagram part (use `tag` or `callout`); the beat headline (that is the HUD headline); a detail view with diagram parts in it (use `inset_panel`). Show at most one overlay at a time.",
+      "actions": [
+        "enter",
+        "exit",
+        "highlight",
+        "dim",
+        "pulse"
+      ],
+      "partActions": [
+        "enter",
+        "exit",
+        "highlight",
+        "pulse"
+      ],
+      "props": {
+        "type": "object",
+        "properties": {
+          "lines": {
+            "minItems": 1,
+            "maxItems": 3,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                  "description": "Part id, unique in this element; events act on it with params.parts."
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 32,
+                  "pattern": "^[^\\n\\r]*$",
+                  "description": "One large line; wraps if the stage is narrow."
+                },
+                "semantic": {
+                  "default": "neutral",
+                  "description": "Colour of this line: neutral, focus, ok, problem or concept.",
+                  "type": "string",
+                  "enum": [
+                    "neutral",
+                    "focus",
+                    "ok",
+                    "problem",
+                    "concept"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "text"
+              ],
+              "additionalProperties": false
+            },
+            "description": "One to three lines, top to bottom, each with its own colour meaning."
+          }
+        },
+        "required": [
+          "lines"
+        ],
+        "additionalProperties": false
+      },
+      "example": {
+        "id": "<example-statement_card-id>",
+        "primitive": "statement_card",
+        "props": {
+          "lines": [
+            {
+              "id": "easy",
+              "text": "<example-easy-part>",
+              "semantic": "ok"
+            },
+            {
+              "id": "hard",
+              "text": "<example-hard-part>",
+              "semantic": "problem"
+            }
+          ]
         }
       }
     },
@@ -583,15 +889,72 @@
       }
     },
     {
+      "id": "radius_ring",
+      "family": "spatial",
+      "summary": "A dashed search circle centred on the element `around`, with an optional `label` on its rim (the radius, or what is searched). `enter` grows it out from the centre.",
+      "whenToUse": "A search area or reach: riders within 2 km of a restaurant, servers within one network hop, the candidates a matcher considers around a target.",
+      "whenNotToUse": "A named area with edges (use `zone_polygon`); a grid of cells (use `grid_overlay`); a countdown (use `timer_ring`).",
+      "actions": [
+        "enter",
+        "exit",
+        "highlight",
+        "dim",
+        "pulse"
+      ],
+      "props": {
+        "type": "object",
+        "properties": {
+          "around": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "description": "Id of the element in this beat at the centre of the circle."
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 16,
+            "pattern": "^[^\\n\\r]*$",
+            "description": "Optional label on the ring, e.g. 2 KM."
+          },
+          "semantic": {
+            "default": "focus",
+            "description": "Ring colour: neutral, focus, ok, problem or concept.",
+            "type": "string",
+            "enum": [
+              "neutral",
+              "focus",
+              "ok",
+              "problem",
+              "concept"
+            ]
+          }
+        },
+        "required": [
+          "around"
+        ],
+        "additionalProperties": false
+      },
+      "example": {
+        "id": "<example-radius_ring-id>",
+        "primitive": "radius_ring",
+        "props": {
+          "around": "example-target",
+          "label": "<example-radius>"
+        }
+      }
+    },
+    {
       "id": "route_path",
       "family": "spatial",
-      "summary": "A glowing route through named `stops`, with a pin at the start and at the end and an optional `distance` tag. `enter` shows the pins; `move` draws the route from the first stop to the last (the tag lands when it arrives). Stops are parts: highlight one, or reject it (a red cross: closed, unreachable).",
-      "whenToUse": "A journey on a map: a driver to a pickup, a parcel from store to door, a packet hopping between regions. Put it over a `map_base`.",
+      "summary": "A glowing route through named `stops`, with a pin at the start and at the end and an optional `distance` tag. `enter` shows the pins; `move` draws the route from the first stop to the last (the tag lands when it arrives), with the optional `mover` riding its head. `mode` smooth draws a curve instead of street legs. `mode` jumpy shows raw position pings: each `move` hops the `mover` to the next stop (one `move` per stop after the first), then a `morph` draws a smooth curve through the stops and the mover glides along it. Stops are parts: highlight one, or reject it (a red cross: closed, unreachable).",
+      "whenToUse": "A journey on a map: a driver to a pickup, a parcel from store to door, a packet hopping between regions. Put it over a `map_base`. Jumpy then smooth: raw GPS pings vs an interpolated track.",
       "whenNotToUse": "A link between two components (use `connector`); traffic over time (use `packet_stream`); areas on a map (use `zone_polygon`).",
       "actions": [
         "enter",
         "exit",
         "move",
+        "morph",
         "highlight",
         "dim",
         "pulse"
@@ -639,6 +1002,20 @@
             "pattern": "^[^\\n\\r]*$",
             "description": "Optional distance or time tag shown at the end, e.g. 4.2 km."
           },
+          "mode": {
+            "description": "Optional: jumpy (the mover hops stop to stop, one per move, until a morph smooths the route) or smooth (move draws a curve through the stops). Omit for street-like legs.",
+            "type": "string",
+            "enum": [
+              "jumpy",
+              "smooth"
+            ]
+          },
+          "mover": {
+            "description": "Optional asset id of what travels the route (a bike, a car, a parcel).",
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
+          },
           "semantic": {
             "default": "focus",
             "description": "Route colour: neutral, focus, ok, problem or concept.",
@@ -671,7 +1048,9 @@
               "label": "<example-stop>"
             }
           ],
-          "distance": "<example-km>"
+          "distance": "<example-km>",
+          "mode": "jumpy",
+          "mover": "bike"
         }
       }
     },
@@ -1079,8 +1458,8 @@
     {
       "id": "counter_transition",
       "family": "metric",
-      "summary": "A big number changing to another, shown as \"10 → 9\": the old number in one colour, an arrow, the new number in another. Without a `count` event it shows the change as done. With one, the old number stands alone until the count, then the arrow and the new number come in and the old one fades back.",
-      "whenToUse": "One discrete change the story turns on: a stock of 10 seats dropping to 9, a version going from 1 to 2, a retry count ticking up. The colour change carries the meaning (e.g. neutral to problem).",
+      "summary": "A big number changing to another, shown as \"10 → 9\": the old number in one colour, an arrow, the new number in another. Without a `count` event it shows the change as done. With one, the old number stands alone until the count, then the arrow and the new number come in and the old one fades back. A null `from` shows \"?\": an unknown value revealed as a prediction or a measured result (\"? → 0.82\").",
+      "whenToUse": "One discrete change the story turns on: a stock of 10 seats dropping to 9, a version going from 1 to 2, a retry count ticking up. The colour change carries the meaning (e.g. neutral to problem). With `from` null: a prediction appearing, an unknown measured for the first time.",
       "whenNotToUse": "A quantity that counts smoothly up or down (use `counter`); a countdown in time; more than one change at once.",
       "actions": [
         "enter",
@@ -1094,8 +1473,11 @@
         "type": "object",
         "properties": {
           "from": {
-            "type": "number",
-            "description": "The number before the change."
+            "description": "The number before the change, or null when it is unknown (shown as \"?\").",
+            "type": [
+              "number",
+              "null"
+            ]
           },
           "to": {
             "type": "number",
@@ -1396,6 +1778,170 @@
         "props": {
           "durationSec": 600,
           "label": "<example-caption>"
+        }
+      }
+    },
+    {
+      "id": "device_frame",
+      "family": "object",
+      "summary": "A generic phone or tablet outline (`kind`) with a simple screen: a `status` line, list `rows`, and a `button`. `morph` changes the button to its \"then\" label and colour (Accept → Accepted ✓). Rows are parts: enter one as it arrives, highlight it, or reject it (red with a cross: declined, failed). Never a real app, screenshot or logo.",
+      "whenToUse": "What a user or a driver sees: an incoming order, a ride request to accept, a list of notifications, the status of a payment.",
+      "whenNotToUse": "A server or service (use `node_card`); a phone as an everyday object without a screen (use `item_icon`); data fields (use `data_block`).",
+      "actions": [
+        "enter",
+        "exit",
+        "highlight",
+        "dim",
+        "pulse",
+        "morph"
+      ],
+      "partActions": [
+        "enter",
+        "exit",
+        "highlight",
+        "pulse",
+        "reject"
+      ],
+      "props": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "default": "phone",
+            "description": "Outline: phone (tall) or tablet.",
+            "type": "string",
+            "enum": [
+              "phone",
+              "tablet"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 24,
+            "pattern": "^[^\\n\\r]*$",
+            "description": "Optional status line at the top of the screen."
+          },
+          "rows": {
+            "minItems": 1,
+            "maxItems": 5,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                  "description": "Part id, unique in this element; events act on it with params.parts."
+                },
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 22,
+                  "pattern": "^[^\\n\\r]*$",
+                  "description": "Row text: an order, a rider, a message."
+                },
+                "detail": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 12,
+                  "pattern": "^[^\\n\\r]*$",
+                  "description": "Optional short value at the right, e.g. 3 MIN."
+                },
+                "icon": {
+                  "type": "string",
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                  "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+                }
+              },
+              "required": [
+                "id",
+                "label"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Optional list rows, top to bottom."
+          },
+          "button": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 16,
+                "pattern": "^[^\\n\\r]*$",
+                "description": "Button text, e.g. Accept."
+              },
+              "semantic": {
+                "default": "focus",
+                "description": "Button colour: neutral, focus, ok, problem or concept.",
+                "type": "string",
+                "enum": [
+                  "neutral",
+                  "focus",
+                  "ok",
+                  "problem",
+                  "concept"
+                ]
+              },
+              "then": {
+                "description": "Optional label and colour the button changes to on morph.",
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 16,
+                    "pattern": "^[^\\n\\r]*$",
+                    "description": "Button text, e.g. Accepted ✓."
+                  },
+                  "semantic": {
+                    "default": "ok",
+                    "description": "Button colour: neutral, focus, ok, problem or concept.",
+                    "type": "string",
+                    "enum": [
+                      "neutral",
+                      "focus",
+                      "ok",
+                      "problem",
+                      "concept"
+                    ]
+                  }
+                },
+                "required": [
+                  "label"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "label"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "example": {
+        "id": "<example-device_frame-id>",
+        "primitive": "device_frame",
+        "props": {
+          "status": "<example-status>",
+          "rows": [
+            {
+              "id": "example-row",
+              "label": "<example-row>",
+              "detail": "<example-v>"
+            }
+          ],
+          "button": {
+            "label": "<example-action>",
+            "then": {
+              "label": "<example-done>",
+              "semantic": "ok"
+            }
+          }
         }
       }
     },

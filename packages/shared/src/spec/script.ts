@@ -43,6 +43,9 @@ export type FormulaCard = z.infer<typeof FormulaCardSchema>;
 export const CommandBubbleSchema = z.strictObject({ text: z.string().min(1) });
 export type CommandBubble = z.infer<typeof CommandBubbleSchema>;
 
+/** Longest beat source line, e.g. "<publisher> post-incident report, <date>". */
+export const SOURCE_MAX_LENGTH = 80;
+
 export const BeatScriptSchema = z.strictObject({
   beatId: SpecIdSchema,
   narration: z.string().trim().min(1),
@@ -52,6 +55,17 @@ export const BeatScriptSchema = z.strictObject({
   /** At most one per video. */
   formulaCard: FormulaCardSchema.optional(),
   commandBubble: CommandBubbleSchema.optional(),
+  /**
+   * Source line drawn small in the stage corner ("Source: " is added by the renderer). Required
+   * whenever the beat shows a real incident or a sourced number (enforced by the agent prompts).
+   */
+  source: z
+    .string()
+    .trim()
+    .min(1)
+    .max(SOURCE_MAX_LENGTH)
+    .regex(/^[^\n\r]*$/, 'One line, without line breaks.')
+    .optional(),
 });
 export type BeatScript = z.infer<typeof BeatScriptSchema>;
 

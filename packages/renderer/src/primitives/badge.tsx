@@ -16,20 +16,30 @@ type BadgeProps = {
   opacity: number;
   /** Top-left instead of top-right, so two badges never overlap. */
   left?: boolean;
+  /** Top-centre (a role badge), clear of both corner badges. Wins over `left`. */
+  centre?: boolean;
   /** Diameter in px; `BADGE` unless the card is small. */
   size?: number;
   children: ReactNode;
 };
 
 /** A round badge pinned to a top corner of its (relatively positioned) parent. */
-export function Badge({ theme, colour, opacity, left, size = BADGE, children }: BadgeProps) {
+export function Badge({
+  theme,
+  colour,
+  opacity,
+  left,
+  centre,
+  size = BADGE,
+  children,
+}: BadgeProps) {
   return (
     <div
       style={{
         ...textCss(theme, 'tag'),
         position: 'absolute',
         top: -size / 2,
-        ...(left ? { left: -size / 2 } : { right: -size / 2 }),
+        ...badgeSide(size, left, centre),
         width: size,
         height: size,
         fontSize: theme.text.tag.size * (size / BADGE),
@@ -40,10 +50,15 @@ export function Badge({ theme, colour, opacity, left, size = BADGE, children }: 
         background: colour,
         color: theme.colours.background,
         opacity,
-        transform: `scale(${0.6 + 0.4 * opacity})`,
+        transform: `${centre ? 'translateX(-50%) ' : ''}scale(${0.6 + 0.4 * opacity})`,
       }}
     >
       {children}
     </div>
   );
+}
+
+function badgeSide(size: number, left?: boolean, centre?: boolean) {
+  if (centre) return { left: '50%' };
+  return left ? { left: -size / 2 } : { right: -size / 2 };
 }

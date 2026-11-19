@@ -37,8 +37,8 @@ function elementEntry(element: BeatScene['elements'][number], registries: Regist
   const props = definition.propsSchema.safeParse(element.props);
   // Invalid props are reported as schema errors; their parts are unknown, not empty.
   if (!props.success) return { ...entry, actions: undefined };
-  return {
-    ...entry,
-    parts: { actions: definition.parts.actions, ids: definition.parts.ids(props.data) },
-  };
+  const ids = definition.parts.ids(props.data);
+  // A primitive whose parts are optional (a `node_card` without a role) has none to address.
+  if (ids.length === 0) return entry;
+  return { ...entry, parts: { actions: definition.parts.actions, ids } };
 }

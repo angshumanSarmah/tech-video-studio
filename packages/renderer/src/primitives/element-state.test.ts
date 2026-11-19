@@ -26,8 +26,17 @@ describe('elementState', () => {
       actions: {},
       elapsed: {},
       runSec: {},
+      starts: {},
       parts: {},
     });
+  });
+
+  it('counts started occurrences per action, 0 while the first is ahead', () => {
+    const events = [at('move', 30), at('move', 60), at('move', 90), at('enter', 0)];
+    expect(elementState(events, 0, FPS).starts).toEqual({ enter: 1, move: 0 });
+    expect(elementState(events, 30, FPS).starts.move).toBe(1);
+    expect(elementState(events, 75, FPS).starts.move).toBe(2);
+    expect(elementState(events, 400, FPS).starts.move).toBe(3);
   });
 
   it('is absent until its enter, ramps in, and ramps out on exit', () => {

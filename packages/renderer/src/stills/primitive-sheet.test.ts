@@ -4,6 +4,7 @@ import {
   validateRenderableVideoSpec,
 } from '@explainer-studio/shared';
 import { describe, expect, it } from 'vitest';
+import insetRevealBoardJson from '../../fixtures/inset-reveal-board.json';
 import primitivesBoardJson from '../../fixtures/primitives-board.json';
 import spatialFlowBoardJson from '../../fixtures/spatial-flow-board.json';
 import { DEFAULT_REGISTRIES } from '../catalog/registries.ts';
@@ -20,6 +21,7 @@ const FPS = 30;
 const boards = [
   ['primitives-board', primitivesBoardJson],
   ['spatial-flow-board', spatialFlowBoardJson],
+  ['inset-reveal-board', insetRevealBoardJson],
 ] as const;
 
 describe.each(boards)('%s fixture', (_name, json) => {
@@ -77,6 +79,9 @@ describe('planPrimitiveSheet', () => {
     expect(plan?.beatId).toBe('node-card');
     expect(plan?.panels.map((p) => p.caption)).toEqual([
       '@"node" · enter',
+      '@"crown" · pulse role',
+      '@"steps" · exit role',
+      '@"returns" · enter role',
       '@"lights" · highlight',
       '@"pulses" · pulse',
       '@"locks" · lock',

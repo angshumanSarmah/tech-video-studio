@@ -8,10 +8,11 @@ import { LineMark, PointMark } from '../../emphasis/Mark.tsx';
 import { semanticTint, textCss, type Theme, type Tint } from '../../theme/index.ts';
 import type { PrimitiveComponentProps } from '../component-props.ts';
 import { partState, type PartState } from '../element-state.ts';
-import { clamp01, partialPolyline, pathD, type Point } from '../geometry.ts';
+import { AssetGlyph } from '../../assets/AssetGlyph.tsx';
+import { clamp01, pathD, type Point } from '../geometry.ts';
 import { CrossMark, PinMark } from '../svg-marks.tsx';
 import { routeInset, type RoutePathProps } from './definition.ts';
-import { routeDraw, routeLayout } from './route.ts';
+import { routeLayout, routeView } from './route.ts';
 
 /** The distance tag fades in over the last stretch of the draw. */
 const TAG_FROM = 0.85;
@@ -19,16 +20,27 @@ const TAG_FROM = 0.85;
 /** End pin height in px; a label above the end stop clears it. */
 const PIN = 56;
 
-/** A glowing route between named stops, drawn progressively on `move`. */
+/** Mover disc diameter in px. */
+const MOVER = 64;
+
+/**
+ * A glowing route between named stops: drawn progressively on `move` (street legs or a smooth
+ * curve), or stepped stop to stop by a jumpy mover until `morph` smooths it (`routeView`).
+ */
 export function RoutePath({ theme, props, box, state }: PrimitiveComponentProps<RoutePathProps>) {
   const layout = routeLayout(props.stops.length, box, routeInset(theme));
   const tint = semanticTint(theme, props.semantic);
-  const draw = routeDraw(state.elapsed.move);
+  const view = routeView(layout, props.mode, {
+    moveElapsed: state.elapsed.move,
+    moves: state.starts.move ?? 0,
+    morphElapsed: (state.starts.morph ?? 0) > 0 ? state.elapsed.morph : undefined,
+  });
+  const draw = view.draw;
   const width = emphasisLineWidth(theme, state, {
     rest: theme.stroke.bold * 1.4,
     glow: theme.stroke.bold * (1.4 + 0.5 * state.emphasis),
   });
-  const routeD = pathD(partialPolyline(layout.path, draw));
+  const routeD = pathD(view.line);
   const end = layout.stops.at(-1);
   return (
     <div
@@ -44,6 +56,17 @@ export function RoutePath({ theme, props, box, state }: PrimitiveComponentProps<
         height={box.height}
         style={{ position: 'absolute', overflow: 'visible' }}
       >
+        {view.trail.length > 1 && view.trailOpacity > 0 ? (
+          <path
+            d={pathD(view.trail)}
+            fill="none"
+            stroke={tint.base}
+            strokeWidth={theme.stroke.regular}
+            strokeDasharray={`${theme.stroke.regular * 2} ${theme.stroke.regular * 3}`}
+            strokeLinecap="round"
+            opacity={view.trailOpacity}
+          />
+        ) : null}
         {draw > 0 ? (
           <LineMark theme={theme} levels={markLevels(state)} d={routeD} width={width} />
         ) : null}
@@ -65,7 +88,7 @@ export function RoutePath({ theme, props, box, state }: PrimitiveComponentProps<
             tint={tint}
             at={at}
             kind={i === 0 ? 'start' : i === layout.stops.length - 1 ? 'end' : 'via'}
-            reached={i === 0 || i === layout.stops.length - 1 || draw >= (layout.stopAt[i] ?? 1)}
+            reached={view.reached[i] ?? false}
             part={partState(state, props.stops[i]?.id ?? '')}
           />
         ))}
@@ -82,6 +105,9 @@ export function RoutePath({ theme, props, box, state }: PrimitiveComponentProps<
           />
         ) : null,
       )}
+      {props.mover && view.mover ? (
+        <Mover theme={theme} tint={tint} assetId={props.mover} at={view.mover} />
+      ) : null}
       {props.distance && end ? (
         <DistanceTag
           theme={theme}
@@ -203,6 +229,32 @@ function DistanceTag({ theme, tint, text, at, opacity }: DistanceTagProps) {
       }}
     >
       {text}
+    </div>
+  );
+}
+
+type MoverProps = { theme: Theme; tint: Tint; assetId: string; at: Point };
+
+/** What travels the route: its glyph on a disc, centred on the route. */
+function Mover({ theme, tint, assetId, at }: MoverProps) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: at.x - MOVER / 2,
+        top: at.y - MOVER / 2,
+        width: MOVER,
+        height: MOVER,
+        boxSizing: 'border-box',
+        borderRadius: theme.radius.pill,
+        border: `${theme.stroke.regular}px solid ${tint.base}`,
+        background: theme.colours.surface,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <AssetGlyph theme={theme} assetId={assetId} size={MOVER * 0.55} colour={tint.base} />
     </div>
   );
 }

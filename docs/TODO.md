@@ -161,6 +161,24 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       overlays on their `over` / `map_base` at the same box and a higher z, and may snap route
       stops and zones to places on the map. `BeatScene`'s wrap shows boards with these elements
       side by side until then.
+- [ ] **P1A.9 — Source footnote placement.** The beat source line (`BeatScript.source`) is
+      placed by `BeatScene` in the stage's bottom-left corner (`scene/source-footnote.ts`,
+      `footnoteRect`), clear of the avoid zones. Its position is owned by the layout engine:
+      move it there, and in the "card" format it must sit inside the diagram window.
+- [ ] **P1A.9 — Inset, ring and bracket geometry.** `inset_panel` zooms from its own centre;
+      `enter` should zoom out of its `anchor` element's placed box (transform origin from layout
+      output) and lay its children out in its own frame (nested layout) instead of the scaled
+      wrap in `WorldItemView`. `radius_ring` must be centred and sized on its `around` element;
+      `bracket` must span its `targets` (or the named parts) along their shared side, which
+      also decides its orientation (it draws below its group for now). `route_path`'s mover
+      sits on the end pin when it arrives; offset it once the layout gives the pin room.
+- [ ] **P1B / P1C — Source required.** A beat that shows a real incident or a sourced number must
+      carry `BeatScript.source`. Schema code cannot tell, so the Scriptwriter prompt states it
+      as a DO rule and the Curator checks it against the research notes (`stat_card` already
+      requires its own source).
+- [ ] **P1A.10 — Overlay focus.** The scrim behind `inset_panel` / `statement_card` is drawn by
+      `BeatScene` from the overlays' presence (`scene-layers.ts`). When P1A.10 adds focus and
+      dimming, fold the scrim into it (overlays as the focus set) so dimming has one source.
 - [ ] **P1A.10 — Part stagger.** An event naming several parts (`params.parts: [a, b, c]`)
       starts them together. P1A.10's group stagger should apply to parts too (in
       `elementState`, so components stay unchanged).

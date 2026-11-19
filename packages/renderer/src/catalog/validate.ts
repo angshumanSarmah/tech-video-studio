@@ -12,12 +12,15 @@ import type { z } from 'zod';
 import { DEFAULT_REGISTRIES, type Registries } from './registries.ts';
 import { elementRefErrors, partErrors } from './relation-checks.ts';
 import { sceneScopes, type Scope, type ScopeEntry } from './scope.ts';
+import { findTimelineWarnings } from './timeline-checks.ts';
 
 /**
  * Registry checks for a spec's scenes: primitive and pattern ids exist, props and params match
  * their schemas, events only use actions their targets (or the parts they name) support, props
  * only point to elements in the beat's scope (errors), and asset ids exist
- * (`unknown_asset` warnings: the scene layer draws a placeholder, agents repair it). Kept out of
+ * (`unknown_asset` warnings: the scene layer draws a placeholder, agents repair it). Timeline
+ * warnings (`timeline-checks.ts`): overlays shown at once, children acting before their
+ * container, and each primitive's own `eventWarnings`. Kept out of
  * `validateVideoSpec` because `packages/shared` cannot see the renderer's registries.
  */
 
@@ -70,11 +73,12 @@ export function findRegistryWarnings(
   spec: VideoSpec,
   registries: Registries = DEFAULT_REGISTRIES,
 ): SpecError[] {
-  return (spec.scenes ?? []).flatMap((scene, i) =>
+  const assets = (spec.scenes ?? []).flatMap((scene, i) =>
     scene.elements.flatMap((element, j) =>
       assetWarnings(element, ['scenes', i, 'elements', j, 'props'], registries),
     ),
   );
+  return [...assets, ...findTimelineWarnings(spec, registries)];
 }
 
 /** Asset ids in valid props that are not in the asset registry (bad props are errors already). */

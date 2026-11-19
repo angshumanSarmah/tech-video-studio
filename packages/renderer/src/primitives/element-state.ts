@@ -49,6 +49,11 @@ export type ElementState = {
    */
   runSec: Partial<Record<EventAction, number>>;
   /**
+   * How many occurrences of each action have started (0 while the first is ahead; absent when the
+   * element has none), for components that step once per occurrence (a jumpy `route_path` mover).
+   */
+  starts: Partial<Record<EventAction, number>>;
+  /**
    * State of each part named by an event's `params.parts`, from those events only (the same
    * rules as the whole element). Parts no event names are absent: read them with `partState`.
    */
@@ -67,6 +72,7 @@ export const IDLE_STATE: PartState = {
   actions: {},
   elapsed: {},
   runSec: {},
+  starts: {},
 };
 
 /** State of one part; `IDLE_STATE` when no event names it. */
@@ -132,6 +138,7 @@ function stateOf(events: readonly ElementEvent[], frame: number, fps: number): P
     actions: latestPerAction(events, started, progress),
     elapsed: latestPerAction(events, started, elapsed),
     runSec: runPerAction(events, started),
+    starts: startsPerAction(events, started),
   };
 }
 
@@ -146,6 +153,14 @@ export function actionRunSec(event: ElementEvent, events: readonly ElementEvent[
   if (reject) return reject.sec - event.sec;
   const exit = after.find((e) => e.action === 'exit');
   return Math.max(0, Math.min(exit?.sec ?? Infinity, event.beatEndSec) - event.sec);
+}
+
+/** Started occurrences per action; 0 for actions whose first event is ahead. */
+function startsPerAction(all: readonly ElementEvent[], started: readonly ElementEvent[]) {
+  const counts: Partial<Record<EventAction, number>> = {};
+  for (const event of all) counts[event.action] = 0;
+  for (const event of started) counts[event.action] = (counts[event.action] ?? 0) + 1;
+  return counts;
 }
 
 /** `actionRunSec` of the latest started occurrence per action, else of its first one ahead. */

@@ -298,7 +298,8 @@ primitive to `docs/primitives/<id>.png`.
 - Studio previews both compositions with `fixtures/rate-limiter.json` (no timing layer), and the
   primitive boards `PrimitivesBoard` and `SpatialFlowBoard` (`VideoFromSpec` over
   `fixtures/primitives-board.json` and `fixtures/spatial-flow-board.json`: one beat per primitive
-  with every action and part action it supports). Each board is a valid Short (≤ 90 s), so a new
+  with every action and part action it supports), plus `InsetRevealBoard`
+  (`fixtures/inset-reveal-board.json`). Each board is a valid Short (≤ 90 s), so a new
   batch of primitives gets a new board, listed in `primitiveBoardSpecs` (`fixtures/index.ts`).
 - **HUD** (`src/hud`): top bar, step tracker, hero metric pill, chapter header, story clock and
   headline. Slots come from `hudLayout(theme)` (derived from `safeAreas`); what each part shows at
@@ -309,9 +310,21 @@ primitive to `docs/primitives/<id>.png`.
   resolved from a word or beat-edge anchor (`headline.at`, chapter and beat starts).
 - **Scene layer** (`src/scene`): `beatWorld` (pure) collects a beat's elements, expanded
   patterns and everything inherited through `continuesPrevious`, each with the events that act on
-  it; `BeatScene` draws them with their registered components. Unknown ids and invalid props are
-  drawn as red, hatched error markers, never as content. Placement is a temporary centred wrap at
-  each element's preferred size until the layout engine (P1A.9).
+  it; `BeatScene` draws them with their registered components (through `WorldItemView`, which
+  the primitive sheets share). Unknown ids and invalid props are drawn as red, hatched error
+  markers, never as content. Placement is a temporary centred wrap at each element's preferred
+  size until the layout engine (P1A.9).
+  - **Overlays** (`layer: 'overlay'`: `inset_panel`, `statement_card`) are drawn centred over
+    the stage above a scrim that dims the board while one shows (`scene-layers.ts`:
+    `splitLayers`, `scrimLevel`). At most one should show at a time (`overlay_overlap`).
+  - **Containers:** elements a primitive points to with a `contains` element ref (an
+    `inset_panel`'s `children`) are nested under it by `beatWorld` and drawn inside it, above
+    the scrim. A child's presence is multiplied by its container's (`containedState`), so it
+    enters and exits with it; it keeps its own events.
+  - **Source footnote:** a beat's `script[].source` is drawn as "Source: …" in the footnote
+    style at the stage's bottom-left (`source-footnote.ts`), fading in 0.3 s after the beat
+    starts. Required whenever a beat shows a real incident or a sourced number (agent prompts
+    enforce it; the layout engine will own its position).
 - **`src/dev/` is temporary.** `DevSubtitles` is a stand-in until P1B.3 replaces it. Do not build
   on it or extend it. `src/dev/dev-layers.test.ts` fails once `src/subtitles/` exists and a
   composition still uses `DevSubtitles`.
@@ -335,7 +348,8 @@ primitive to `docs/primitives/<id>.png`.
 - **Shared pieces:** `common-props.ts` (semantic, asset id, one-line text, part list and element
   ref schemas), `surface.ts` (card surface), `badge.tsx` (corner badge; `SMALL_BADGE` on small
   cards), `motion.ts` (reject shake), `typing.ts` (typing rates), `geometry.ts` (polylines,
-  arrowheads, `smoothstep`), `reveal.ts` (lines that draw on `enter` instead of fading in) and
+  arrowheads, `smoothstep`, `catmullRom`), `overlay.ts` (`riseView`, `zoomView`, `growView`
+  entrances), `reveal.ts` (lines that draw on `enter` instead of fading in) and
   `svg-marks.tsx` (cross and pin marks). Prefer them over per-primitive copies.
 - **Emphasis goes through `src/emphasis`, never per primitive.** The theme picks
   `emphasis.style`: `glow` (blueprint-dark) or `mark` (drafting-paper: a highlighter swipe in the
@@ -362,7 +376,8 @@ primitive to `docs/primitives/<id>.png`.
   comes from `elementState(events, frame, fps)` (`primitives/element-state.ts`): `presence`,
   `emphasis` (held highlight or pulse bump), `highlight` (the held highlight alone), `dimmed`, per-action `actions[action]` progress and `elapsed[action]` seconds (both
   0 while the element's first such event is still ahead, absent when it has none),
-  `runSec[action]` (below) and `parts` (below). It is the single place events become state;
+  `runSec[action]` (below), `starts[action]` (how many occurrences have started, for components
+  that step once per occurrence) and `parts` (below). It is the single place events become state;
   P1A.10 upgrades it (easing, focus, stagger) without touching components. An element is present
   from the start unless its first `enter`/`exit` is an `enter`, so it can exit and re-enter.
 - **Parts.** A primitive with `parts: { actions, ids(props) }` (slots, cells, zones, queue
@@ -370,11 +385,15 @@ primitive to `docs/primitives/<id>.png`.
   with exactly one target. Those events drive only `state.parts[id]` (read it with
   `partState(state, id)`, `IDLE_STATE` when no event names the part), under the same rules as the
   whole element; the other events drive the element. Verbs map to existing actions, never new
-  ones: pick/take → `exit` on the part, put back → `enter`, claim → `lock`, turn red → `reject`.
-  The catalogue lists `partActions`.
+  ones: pick/take → `exit` on the part, put back → `enter`, claim → `lock`, turn red → `reject`,
+  change state (a button's label, a jumpy route smoothing) → `morph`. Optional parts work too: a
+  `node_card` with a `role` has the part `role` (move a role: `exit` it on the old holder, `enter`
+  it on the new one); a primitive whose `ids(props)` is empty has no parts to address. The
+  catalogue lists `partActions`.
 - **Element refs.** Props that point to other elements (`connector.from/to`,
   `packet_stream.along`, `grid_overlay.over`) are declared by `elementRefs(props)`, optionally
-  limited to certain primitives. Until the layout engine (P1A.9) supplies geometry, relational
+  limited to certain primitives, to some of the target's `parts` (`bracket.parts`), or marked
+  `contains` (drawn inside this element; see Containers). Until the layout engine (P1A.9) supplies geometry, relational
   primitives draw a standalone path across their own box (`standalonePath`) and overlays draw on
   their own; `BeatScene` does not connect or stack them yet.
 - **`elapsed` is measured on the global timeline**: `frame / fps` minus the event's unrounded
@@ -409,11 +428,16 @@ primitive to `docs/primitives/<id>.png`.
   target (including one inherited through `continuesPrevious`) does not support. For
   `params.parts`: `unknown_part` (unknown id, or a target without parts), `parts_need_one_target`,
   and `unsupported_action` at the event's `action` when the parts do not support it. For element
-  refs: `unknown_element` (not in the beat's scope) and `invalid_element_ref` (itself, or the
-  wrong primitive). It also adds
-  `unknown_asset` **warnings** for asset ids (from `assetRefs`) missing from the asset registry:
-  the spec stays valid and the placeholder is drawn, but agent output repairs them (warnings
-  count as failures there) and Studio shows them.
+  refs: `unknown_element` (not in the beat's scope), `invalid_element_ref` (itself, the wrong
+  primitive, an overlay put in a container, or an element already in another container) and
+  `unknown_part` (a ref's parts). It also adds **warnings** (the spec stays valid, Studio shows
+  them, agent output repairs them since warnings count as failures there): `unknown_asset` for
+  asset ids (from `assetRefs`) missing from the asset registry (a placeholder is drawn), and
+  timeline warnings (`catalog/timeline-checks.ts`, from real or estimated timing):
+  `overlay_overlap` (two overlays visible at once), `child_before_container` (a contained
+  child's event before its container enters) and each primitive's own `eventWarnings(props,
+events)` (`route_moves_exceed_stops`: a jumpy `route_path` with more `move`s than hops;
+  `morph_without_change`: a `device_frame` morph without `button.then`).
 - **LaTeX** (`formula_card`) is validated by rendering it with KaTeX in the props schema
   (`latexProblem`: parse errors, refused commands such as `\href`, `maxSize`, `maxExpand`, at
   most 80 characters), so a formula that passes validation always renders.

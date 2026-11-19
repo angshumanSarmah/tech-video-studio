@@ -96,6 +96,35 @@ describe('beatWorld', () => {
   });
 });
 
+describe('contained elements', () => {
+  function withInset() {
+    const input = registryValidSpec();
+    input.scenes[0]?.elements?.push(
+      { id: 'note', primitive: 'tag', props: { text: '429' } },
+      { id: 'zoom', primitive: 'inset_panel', props: { anchor: 'api', children: ['rps', 'note'] } },
+    );
+    return parseRenderableSpec(input);
+  }
+
+  it('nests children under their container instead of the board, in board order', () => {
+    const items = world(withInset(), 'hook');
+    expect(items.map((i) => i.key)).toEqual(['client', 'api', 'zoom']);
+    const zoom = items.find((i) => i.key === 'zoom');
+    expect(zoom).toMatchObject({ kind: 'primitive', layer: 'overlay' });
+    expect(zoom?.kind === 'primitive' && zoom.children.map((c) => c.key)).toEqual(['rps', 'note']);
+  });
+
+  it('keeps children with their own events, through continuesPrevious', () => {
+    const items = world(withInset(), 'bucket-intro');
+    const zoom = items.find((i) => i.key === 'zoom');
+    const rps = zoom?.kind === 'primitive' ? zoom.children.find((c) => c.key === 'rps') : undefined;
+    expect(rps?.kind === 'primitive' && rps.events.map((e) => e.action)).toEqual([
+      'enter',
+      'pulse',
+    ]);
+  });
+});
+
 describe('elapsed time across beats', () => {
   const spec = parseRenderableSpec(registryValidSpec());
   const timing = effectiveTiming(spec);

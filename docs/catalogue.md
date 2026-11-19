@@ -8,6 +8,79 @@ An event acts on its whole target. On primitives with **part actions**, an event
 
 ## Primitives
 
+### bracket
+
+**Family:** annotation · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`
+
+A curly brace that groups a run of sibling elements (`targets`), or some `parts` of one target, with a short `label` at its tip. `enter` draws the brace on, then the label fades in.
+
+**When to use:** Naming a group: the rows that are a model’s FEATURES, the three replicas that form a QUORUM, the slots that make one BATCH.
+
+**When not to:** A status on one element (use `tag`); an area on a map (use `zone_polygon`); a link between two elements (use `connector`).
+
+**Props:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `targets` | array | yes | Ids of the sibling elements the brace groups, in display order (a run next to each other). (min items 1, max items 8) |
+| `parts` | array | no | Optional: group only these parts (rows, slots) of a single target. (min items 1, max items 12) |
+| `label` | string | yes | Short label at the brace tip, e.g. FEATURES. (min length 1, max length 16) |
+| `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Brace and label colour: neutral, focus, ok, problem or concept. (default `"neutral"`) |
+
+**Size hint** (example, drafting-paper): 372 × 90 px (min 372 × 90).
+
+**Example:**
+
+```json
+{
+  "id": "<example-bracket-id>",
+  "primitive": "bracket",
+  "props": {
+    "targets": [
+      "example-rows"
+    ],
+    "parts": [
+      "example-part"
+    ],
+    "label": "<example-group>"
+  }
+}
+```
+
+### callout
+
+**Family:** annotation · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`, `reject`
+
+A small card with one or two lines of text and an optional `title`, for a counterfactual or a warning: "If prep takes 20 min: rider waits 17 min ✗". Tinted by `semantic`: problem, focus or concept. `reject` turns it red with a cross and a shake (the assumption it states is ruled out).
+
+**When to use:** A what-if, a caveat or a consequence that sits beside the diagram: the cost of the naive choice, a warning about a failure mode, an aside that explains a term.
+
+**When not to:** A one-word status (use `tag`); a big statement over the whole scene (use `statement_card`); a number with a source (use `stat_card`).
+
+**Props:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `title` | string | no | Optional short heading above the text, e.g. WHAT IF. (min length 1, max length 20) |
+| `text` | string | yes | The counterfactual or warning; wraps to at most two lines. (min length 1, max length 64) |
+| `semantic` | `problem` \| `focus` \| `concept` | no | Colour meaning: problem (a warning), focus (the point) or concept (an aside). (default `"problem"`) |
+
+**Size hint** (example, drafting-paper): 409 × 140 px (min 409 × 140).
+
+**Example:**
+
+```json
+{
+  "id": "<example-callout-id>",
+  "primitive": "callout",
+  "props": {
+    "title": "<example-heading>",
+    "text": "<example-what-if>",
+    "semantic": "problem"
+  }
+}
+```
+
 ### icon
 
 **Family:** annotation · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`
@@ -36,6 +109,43 @@ A single line-drawn symbol from the asset library (server, database, user, lock,
   "props": {
     "asset": "database",
     "semantic": "concept"
+  }
+}
+```
+
+### inset_panel
+
+**Family:** annotation · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`
+
+A framed detail card that zooms in over the scene while everything behind it dims. It holds other elements of the beat (`children`: e.g. a `data_block`, a `counter_transition`, a `slot_grid`, a `map_base` or a `segmented_time_bar`), drawn inside it and shown only while it is. `enter` zooms it out of its `anchor`; `exit` shrinks it back in. Children keep their own events (enter, count, highlight).
+
+**When to use:** A closer look at one part of the diagram: what is inside a cache entry, the features a model reads for one order, the shelf behind a store pin, the time budget of one ride.
+
+**When not to:** Text only (use `statement_card` or `callout`); a whole new scene (start a new beat). Show at most one overlay at a time, and never put an overlay inside it.
+
+**Props:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `title` | string | no | Optional title in the panel header: what the detail shows. (min length 1, max length 28) |
+| `anchor` | string | no | Optional id of the element the panel zooms out of (and shrinks back into). (max length 64) |
+| `children` | array | yes | Ids of the elements in this beat drawn inside the panel; they show only while it does. (min items 1, max items 4) |
+| `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Frame colour: neutral, focus, ok, problem or concept. (default `"neutral"`) |
+
+**Size hint** (example, drafting-paper): 860 × 900 px (min 600 × 541).
+
+**Example:**
+
+```json
+{
+  "id": "<example-inset_panel-id>",
+  "primitive": "inset_panel",
+  "props": {
+    "title": "<example-detail>",
+    "anchor": "example-anchor",
+    "children": [
+      "example-child"
+    ]
   }
 }
 ```
@@ -77,11 +187,13 @@ A flat everyday object from the asset library (phone, car, ticket, parcel, pizza
 
 **Family:** annotation · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`, `lock`, `reject`
 
-A titled card for one component of a system (a service, server, database, client or queue), with an optional subtitle and icon. `lock` adds a padlock badge; `reject` turns it red with a cross and a shake.
+A titled card for one component of a system (a service, server, database, client or queue), with an optional subtitle and icon. `lock` adds a padlock badge; `reject` turns it red with a cross and a shake. An optional `role` badge (a crown for the leader) sits at the top centre as the part "role": `exit` it on the old holder and `enter` it on the new one to hand the role over (a role whose first part event is `enter` starts hidden).
 
 **When to use:** The boxes of a system diagram: anything the story treats as a component that receives, holds or sends something.
 
 **When not to:** A label or status (use `tag`); a quantity (use `counter`); an everyday object (use `item_icon`); a bare symbol (use `icon`).
+
+**Part actions** (events with `params.parts`): `enter`, `exit`, `pulse`
 
 **Props:**
 
@@ -90,6 +202,7 @@ A titled card for one component of a system (a service, server, database, client
 | `title` | string | yes | Name of the component, shown in uppercase. (min length 1, max length 24) |
 | `subtitle` | string | no | Optional second line: its role or a detail. (min length 1, max length 40) |
 | `icon` | string | no | Asset id from the asset library (an unknown id is drawn as a placeholder and reported). (max length 64) |
+| `role` | string | no | Optional role badge (asset id, e.g. a crown for a leader) at the top centre. It is the part "role": exit it on the old holder and enter it on the new one to move the role. (max length 64) |
 | `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Border and glow colour: neutral, focus, ok, problem or concept. (default `"neutral"`) |
 
 **Size hint** (example, drafting-paper): 573 × 138 px (min 573 × 138).
@@ -103,7 +216,54 @@ A titled card for one component of a system (a service, server, database, client
   "props": {
     "title": "<example-name>",
     "subtitle": "<example-role>",
-    "icon": "server"
+    "icon": "server",
+    "role": "crown"
+  }
+}
+```
+
+### statement_card
+
+**Family:** annotation · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`
+
+One to three large `lines` on a card over the dimmed scene, each line in its own colour meaning. `enter` fades it in with a slight rise. Lines are parts: `enter` a line on its word to build the statement up, highlight or pulse the one that matters. It is an overlay: everything else on the board dims while it shows.
+
+**When to use:** A planted question ("Why not just pick the nearest rider?"), a two-line takeaway ("Easy: find riders. Hard: pick the right one."), a verdict before the next chapter.
+
+**When not to:** A label next to a diagram part (use `tag` or `callout`); the beat headline (that is the HUD headline); a detail view with diagram parts in it (use `inset_panel`). Show at most one overlay at a time.
+
+**Part actions** (events with `params.parts`): `enter`, `exit`, `highlight`, `pulse`
+
+**Props:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `lines` | array | yes | One to three lines, top to bottom, each with its own colour meaning. (min items 1, max items 3) |
+| `lines[].id` | string | yes | Part id, unique in this element; events act on it with params.parts. (max length 64) |
+| `lines[].text` | string | yes | One large line; wraps if the stage is narrow. (min length 1, max length 32) |
+| `lines[].semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Colour of this line: neutral, focus, ok, problem or concept. (default `"neutral"`) |
+
+**Size hint** (example, drafting-paper): 710 × 255 px (min 710 × 255).
+
+**Example:**
+
+```json
+{
+  "id": "<example-statement_card-id>",
+  "primitive": "statement_card",
+  "props": {
+    "lines": [
+      {
+        "id": "easy",
+        "text": "<example-easy-part>",
+        "semantic": "ok"
+      },
+      {
+        "id": "hard",
+        "text": "<example-hard-part>",
+        "semantic": "problem"
+      }
+    ]
   }
 }
 ```
@@ -329,13 +489,46 @@ A stylised top-down city: blocks, streets, avenues, parks and, in the riverside 
 }
 ```
 
+### radius_ring
+
+**Family:** spatial · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`
+
+A dashed search circle centred on the element `around`, with an optional `label` on its rim (the radius, or what is searched). `enter` grows it out from the centre.
+
+**When to use:** A search area or reach: riders within 2 km of a restaurant, servers within one network hop, the candidates a matcher considers around a target.
+
+**When not to:** A named area with edges (use `zone_polygon`); a grid of cells (use `grid_overlay`); a countdown (use `timer_ring`).
+
+**Props:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `around` | string | yes | Id of the element in this beat at the centre of the circle. (max length 64) |
+| `label` | string | no | Optional label on the ring, e.g. 2 KM. (min length 1, max length 16) |
+| `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Ring colour: neutral, focus, ok, problem or concept. (default `"focus"`) |
+
+**Size hint** (example, drafting-paper): 520 × 550 px (min 506 × 536).
+
+**Example:**
+
+```json
+{
+  "id": "<example-radius_ring-id>",
+  "primitive": "radius_ring",
+  "props": {
+    "around": "example-target",
+    "label": "<example-radius>"
+  }
+}
+```
+
 ### route_path
 
-**Family:** spatial · **Actions:** `enter`, `exit`, `move`, `highlight`, `dim`, `pulse`
+**Family:** spatial · **Actions:** `enter`, `exit`, `move`, `morph`, `highlight`, `dim`, `pulse`
 
-A glowing route through named `stops`, with a pin at the start and at the end and an optional `distance` tag. `enter` shows the pins; `move` draws the route from the first stop to the last (the tag lands when it arrives). Stops are parts: highlight one, or reject it (a red cross: closed, unreachable).
+A glowing route through named `stops`, with a pin at the start and at the end and an optional `distance` tag. `enter` shows the pins; `move` draws the route from the first stop to the last (the tag lands when it arrives), with the optional `mover` riding its head. `mode` smooth draws a curve instead of street legs. `mode` jumpy shows raw position pings: each `move` hops the `mover` to the next stop (one `move` per stop after the first), then a `morph` draws a smooth curve through the stops and the mover glides along it. Stops are parts: highlight one, or reject it (a red cross: closed, unreachable).
 
-**When to use:** A journey on a map: a driver to a pickup, a parcel from store to door, a packet hopping between regions. Put it over a `map_base`.
+**When to use:** A journey on a map: a driver to a pickup, a parcel from store to door, a packet hopping between regions. Put it over a `map_base`. Jumpy then smooth: raw GPS pings vs an interpolated track.
 
 **When not to:** A link between two components (use `connector`); traffic over time (use `packet_stream`); areas on a map (use `zone_polygon`).
 
@@ -349,6 +542,8 @@ A glowing route through named `stops`, with a pin at the start and at the end an
 | `stops[].id` | string | yes | Part id, unique in this element; events act on it with params.parts. (max length 64) |
 | `stops[].label` | string | no | Short name of the place, e.g. a pickup point. (min length 1, max length 14) |
 | `distance` | string | no | Optional distance or time tag shown at the end, e.g. 4.2 km. (min length 1, max length 12) |
+| `mode` | `jumpy` \| `smooth` | no | Optional: jumpy (the mover hops stop to stop, one per move, until a morph smooths the route) or smooth (move draws a curve through the stops). Omit for street-like legs. |
+| `mover` | string | no | Optional asset id of what travels the route (a bike, a car, a parcel). (max length 64) |
 | `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Route colour: neutral, focus, ok, problem or concept. (default `"focus"`) |
 
 **Size hint** (example, drafting-paper): 840 × 620 px (min 658 × 606).
@@ -370,7 +565,9 @@ A glowing route through named `stops`, with a pin at the start and at the end an
         "label": "<example-stop>"
       }
     ],
-    "distance": "<example-km>"
+    "distance": "<example-km>",
+    "mode": "jumpy",
+    "mover": "bike"
   }
 }
 ```
@@ -579,9 +776,9 @@ A big number with an optional unit and caption. Without a `count` event it shows
 
 **Family:** metric · **Actions:** `enter`, `exit`, `count`, `highlight`, `dim`, `pulse`
 
-A big number changing to another, shown as "10 → 9": the old number in one colour, an arrow, the new number in another. Without a `count` event it shows the change as done. With one, the old number stands alone until the count, then the arrow and the new number come in and the old one fades back.
+A big number changing to another, shown as "10 → 9": the old number in one colour, an arrow, the new number in another. Without a `count` event it shows the change as done. With one, the old number stands alone until the count, then the arrow and the new number come in and the old one fades back. A null `from` shows "?": an unknown value revealed as a prediction or a measured result ("? → 0.82").
 
-**When to use:** One discrete change the story turns on: a stock of 10 seats dropping to 9, a version going from 1 to 2, a retry count ticking up. The colour change carries the meaning (e.g. neutral to problem).
+**When to use:** One discrete change the story turns on: a stock of 10 seats dropping to 9, a version going from 1 to 2, a retry count ticking up. The colour change carries the meaning (e.g. neutral to problem). With `from` null: a prediction appearing, an unknown measured for the first time.
 
 **When not to:** A quantity that counts smoothly up or down (use `counter`); a countdown in time; more than one change at once.
 
@@ -589,7 +786,7 @@ A big number changing to another, shown as "10 → 9": the old number in one col
 
 | Name | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `from` | number | yes | The number before the change. |
+| `from` | number,null | yes | The number before the change, or null when it is unknown (shown as "?"). |
 | `to` | number | yes | The number after the change. |
 | `unit` | string | no | Short unit after the new number. (min length 1, max length 16) |
 | `label` | string | no | Caption under the numbers. (min length 1, max length 32) |
@@ -729,6 +926,59 @@ A countdown ring with the time left as mm:ss in the middle. It shows `durationSe
   "props": {
     "durationSec": 600,
     "label": "<example-caption>"
+  }
+}
+```
+
+### device_frame
+
+**Family:** object · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`, `morph`
+
+A generic phone or tablet outline (`kind`) with a simple screen: a `status` line, list `rows`, and a `button`. `morph` changes the button to its "then" label and colour (Accept → Accepted ✓). Rows are parts: enter one as it arrives, highlight it, or reject it (red with a cross: declined, failed). Never a real app, screenshot or logo.
+
+**When to use:** What a user or a driver sees: an incoming order, a ride request to accept, a list of notifications, the status of a payment.
+
+**When not to:** A server or service (use `node_card`); a phone as an everyday object without a screen (use `item_icon`); data fields (use `data_block`).
+
+**Part actions** (events with `params.parts`): `enter`, `exit`, `highlight`, `pulse`, `reject`
+
+**Props:**
+
+| Name | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `kind` | `phone` \| `tablet` | no | Outline: phone (tall) or tablet. (default `"phone"`) |
+| `status` | string | no | Optional status line at the top of the screen. (min length 1, max length 24) |
+| `rows` | array | no | Optional list rows, top to bottom. (min items 1, max items 5) |
+| `rows[].id` | string | yes | Part id, unique in this element; events act on it with params.parts. (max length 64) |
+| `rows[].label` | string | yes | Row text: an order, a rider, a message. (min length 1, max length 22) |
+| `rows[].detail` | string | no | Optional short value at the right, e.g. 3 MIN. (min length 1, max length 12) |
+| `rows[].icon` | string | no | Asset id from the asset library (an unknown id is drawn as a placeholder and reported). (max length 64) |
+| `button` | object | no |  |
+
+**Size hint** (example, drafting-paper): 549 × 808 px (min 549 × 808).
+
+**Example:**
+
+```json
+{
+  "id": "<example-device_frame-id>",
+  "primitive": "device_frame",
+  "props": {
+    "status": "<example-status>",
+    "rows": [
+      {
+        "id": "example-row",
+        "label": "<example-row>",
+        "detail": "<example-v>"
+      }
+    ],
+    "button": {
+      "label": "<example-action>",
+      "then": {
+        "label": "<example-done>",
+        "semantic": "ok"
+      }
+    }
   }
 }
 ```
