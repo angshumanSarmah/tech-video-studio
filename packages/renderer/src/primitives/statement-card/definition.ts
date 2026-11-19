@@ -1,12 +1,12 @@
 import { z } from 'zod';
-import type { Theme } from '../../theme/index.ts';
+import { safeAreas, type Theme } from '../../theme/index.ts';
 import { idsOf, lineText, PartIdSchema, partList, semanticProp } from '../common-props.ts';
-import { approxTextWidth, lineHeightPx } from '../measure.ts';
+import { lineHeightPx, widestWord, wrappedRows } from '../measure.ts';
 import { definePrimitive, type SizeHints } from '../types.ts';
 
 export const StatementLineSchema = z.strictObject({
   id: PartIdSchema,
-  text: lineText(32, 'One large line; wraps if the stage is narrow.'),
+  text: lineText(32, 'One large line at display size; wraps rather than shrinking.'),
   semantic: semanticProp('neutral', 'Colour of this line'),
 });
 
@@ -19,30 +19,46 @@ export const StatementCardPropsSchema = z.strictObject({
 });
 export type StatementCardProps = z.output<typeof StatementCardPropsSchema>;
 
-/** Widest the card grows (the stage is 936 px wide); longer lines wrap. */
-export const STATEMENT_MAX_WIDTH = 860;
-const MIN_WIDTH = 480;
+/** Text style of every line: the theme's largest display style; lines wrap, never shrink. */
+export const STATEMENT_STYLE = 'headline';
 
-/** Rows each line takes at the card's text width. */
-export function statementRows(
-  props: StatementCardProps,
-  theme: Theme,
-  textWidth: number,
-): number[] {
-  return props.lines.map((line) =>
-    Math.max(1, Math.ceil(approxTextWidth(theme, 'headline', line.text) / textWidth)),
-  );
+/** Padding inside the card's border: `x` left and right, `y` top and bottom. */
+export function statementPadding(theme: Theme): { x: number; y: number } {
+  return { x: theme.space.lg + theme.stroke.regular, y: theme.space.xl + theme.stroke.regular };
 }
 
+/** The card's full width: the stage less a `space.md` gutter on each side. */
+export function statementMaxWidth(theme: Theme): number {
+  return safeAreas(theme).stage.width - 2 * theme.space.md;
+}
+
+/** Card height at `width`, with every line word-wrapped at the headline size. */
+export function statementHeight(props: StatementCardProps, theme: Theme, width: number): number {
+  const pad = statementPadding(theme);
+  const textWidth = width - 2 * pad.x;
+  const rows = props.lines.reduce(
+    (sum, line) => sum + wrappedRows(theme, STATEMENT_STYLE, line.text, textWidth),
+    0,
+  );
+  const gaps = (props.lines.length - 1) * theme.space.md;
+  return rows * lineHeightPx(theme, STATEMENT_STYLE) + gaps + 2 * pad.y;
+}
+
+/**
+ * A big moment spans the stage: preferred width is the full stage less gutters. It may narrow to
+ * its widest word (lines wrap further, the text never shrinks).
+ */
 export function statementCardSizeHints(props: StatementCardProps, theme: Theme): SizeHints {
-  const { space, stroke } = theme;
-  const pad = space.xl + stroke.regular;
-  const widest = Math.max(...props.lines.map((l) => approxTextWidth(theme, 'headline', l.text)));
-  const width = Math.min(STATEMENT_MAX_WIDTH, Math.max(MIN_WIDTH, widest + 2 * pad));
-  const rows = statementRows(props, theme, width - 2 * pad).reduce((a, b) => a + b, 0);
-  const gaps = (props.lines.length - 1) * space.md;
-  const height = rows * lineHeightPx(theme, 'headline') + gaps + 2 * pad;
-  return { minWidth: width, minHeight: height, preferredWidth: width, preferredHeight: height };
+  const pad = statementPadding(theme);
+  const preferredWidth = statementMaxWidth(theme);
+  const words = props.lines.map((l) => widestWord(theme, STATEMENT_STYLE, l.text));
+  const minWidth = Math.min(preferredWidth, Math.max(...words) + 2 * pad.x);
+  return {
+    minWidth,
+    minHeight: statementHeight(props, theme, minWidth),
+    preferredWidth,
+    preferredHeight: statementHeight(props, theme, preferredWidth),
+  };
 }
 
 export const statementCardPrimitive = definePrimitive({
@@ -55,8 +71,9 @@ export const statementCardPrimitive = definePrimitive({
   parts: { actions: ['enter', 'exit', 'highlight', 'pulse'], ids: (props) => idsOf(props.lines) },
   description: {
     summary:
-      'One to three large `lines` on a card over the dimmed scene, each line in its own ' +
-      'colour meaning. `enter` fades it in with a slight rise. Lines are parts: `enter` a ' +
+      'One to three large `lines` at display size on a card that spans the stage, over the ' +
+      'dimmed scene, each line in its own colour meaning. Long lines wrap; the text never ' +
+      'shrinks. `enter` fades it in with a slight rise. Lines are parts: `enter` a ' +
       'line on its word to build the statement up, highlight or pulse the one that matters. ' +
       'It is an overlay: everything else on the board dims while it shows.',
     whenToUse:

@@ -226,7 +226,7 @@ A titled card for one component of a system (a service, server, database, client
 
 **Family:** annotation · **Actions:** `enter`, `exit`, `highlight`, `dim`, `pulse`
 
-One to three large `lines` on a card over the dimmed scene, each line in its own colour meaning. `enter` fades it in with a slight rise. Lines are parts: `enter` a line on its word to build the statement up, highlight or pulse the one that matters. It is an overlay: everything else on the board dims while it shows.
+One to three large `lines` at display size on a card that spans the stage, over the dimmed scene, each line in its own colour meaning. Long lines wrap; the text never shrinks. `enter` fades it in with a slight rise. Lines are parts: `enter` a line on its word to build the statement up, highlight or pulse the one that matters. It is an overlay: everything else on the board dims while it shows.
 
 **When to use:** A planted question ("Why not just pick the nearest rider?"), a two-line takeaway ("Easy: find riders. Hard: pick the right one."), a verdict before the next chapter.
 
@@ -240,10 +240,10 @@ One to three large `lines` on a card over the dimmed scene, each line in its own
 | --- | --- | --- | --- |
 | `lines` | array | yes | One to three lines, top to bottom, each with its own colour meaning. (min items 1, max items 3) |
 | `lines[].id` | string | yes | Part id, unique in this element; events act on it with params.parts. (max length 64) |
-| `lines[].text` | string | yes | One large line; wraps if the stage is narrow. (min length 1, max length 32) |
+| `lines[].text` | string | yes | One large line at display size; wraps rather than shrinking. (min length 1, max length 32) |
 | `lines[].semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Colour of this line: neutral, focus, ok, problem or concept. (default `"neutral"`) |
 
-**Size hint** (example, drafting-paper): 710 × 255 px (min 710 × 255).
+**Size hint** (example, drafting-paper): 888 × 255 px (min 662 × 255).
 
 **Example:**
 

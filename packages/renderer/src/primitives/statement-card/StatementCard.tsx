@@ -5,7 +5,7 @@ import type { PrimitiveComponentProps } from '../component-props.ts';
 import { partState, type PartState } from '../element-state.ts';
 import { riseView } from '../overlay.ts';
 import { cardSurfaceCss } from '../surface.ts';
-import type { StatementCardProps } from './definition.ts';
+import { STATEMENT_STYLE, statementPadding, type StatementCardProps } from './definition.ts';
 
 type Line = StatementCardProps['lines'][number];
 
@@ -17,6 +17,7 @@ export function StatementCard({
   state,
 }: PrimitiveComponentProps<StatementCardProps>) {
   const rise = riseView(state, theme.space.lg);
+  const pad = statementPadding(theme);
   return (
     <div
       style={{
@@ -31,7 +32,7 @@ export function StatementCard({
         flexDirection: 'column',
         justifyContent: 'center',
         gap: theme.space.md,
-        padding: theme.space.xl,
+        padding: `${pad.y - theme.stroke.regular}px ${pad.x - theme.stroke.regular}px`,
       }}
     >
       <BoxMark theme={theme} levels={markLevels(state)} radius={theme.radius.md} size={box} />
@@ -52,8 +53,9 @@ function StatementLine({ theme, line, part }: LineProps) {
     <div
       style={{
         ...markHostCss(theme),
-        ...textCss(theme, 'headline'),
+        ...textCss(theme, STATEMENT_STYLE),
         position: 'relative',
+        overflowWrap: 'break-word',
         color: colour,
         opacity: rise.opacity,
         transform: rise.transform,

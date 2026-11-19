@@ -100,6 +100,13 @@
       "layoutMode": "centered_focus",
       "elements": [
         {
+          "id": "city",
+          "primitive": "map_base",
+          "props": {
+            "variant": "downtown"
+          }
+        },
+        {
           "id": "store",
           "primitive": "node_card",
           "props": {
@@ -580,6 +587,13 @@
       "kind": "board",
       "layoutMode": "centered_focus",
       "elements": [
+        {
+          "id": "city",
+          "primitive": "map_base",
+          "props": {
+            "variant": "riverside"
+          }
+        },
         {
           "id": "riders",
           "primitive": "node_card",

@@ -394,7 +394,7 @@
     {
       "id": "statement_card",
       "family": "annotation",
-      "summary": "One to three large `lines` on a card over the dimmed scene, each line in its own colour meaning. `enter` fades it in with a slight rise. Lines are parts: `enter` a line on its word to build the statement up, highlight or pulse the one that matters. It is an overlay: everything else on the board dims while it shows.",
+      "summary": "One to three large `lines` at display size on a card that spans the stage, over the dimmed scene, each line in its own colour meaning. Long lines wrap; the text never shrinks. `enter` fades it in with a slight rise. Lines are parts: `enter` a line on its word to build the statement up, highlight or pulse the one that matters. It is an overlay: everything else on the board dims while it shows.",
       "whenToUse": "A planted question (\"Why not just pick the nearest rider?\"), a two-line takeaway (\"Easy: find riders. Hard: pick the right one.\"), a verdict before the next chapter.",
       "whenNotToUse": "A label next to a diagram part (use `tag` or `callout`); the beat headline (that is the HUD headline); a detail view with diagram parts in it (use `inset_panel`). Show at most one overlay at a time.",
       "actions": [
@@ -431,7 +431,7 @@
                   "minLength": 1,
                   "maxLength": 32,
                   "pattern": "^[^\\n\\r]*$",
-                  "description": "One large line; wraps if the stage is narrow."
+                  "description": "One large line at display size; wraps rather than shrinking."
                 },
                 "semantic": {
                   "default": "neutral",
