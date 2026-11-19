@@ -15,7 +15,9 @@ import {
   overlayToggles,
   type FocusKey,
 } from '../events/focus.ts';
+import { ZOOM_PUSH_SEC } from '../events/presets.ts';
 import { resolveElementEvents, type AnchoredEvent } from '../events/resolve.ts';
+import { incomingTransition } from '../events/transitions.ts';
 import type { ElementEvent } from '../primitives/element-state.ts';
 import type { AnyPrimitiveDefinition, PrimitiveLayer } from '../primitives/types.ts';
 import { anchorToTime } from '../timing/frames.ts';
@@ -101,7 +103,27 @@ export function beatWorld(
     }
     events.push(...anchored(scene.events, ctx, (t) => t));
   }
-  return nestContained(resolveWorld([...drafts.values()], events, beats, fps));
+  const push = zoomPushFocus(spec, timing, beatId);
+  return nestContained(
+    resolveWorld([...drafts.values()], events, push ? [...beats, push] : beats, fps),
+  );
+}
+
+/**
+ * When the next beat is a semantic zoom from this board, focus moves to its element as the camera
+ * pushes into it (`ZOOM_PUSH_SEC` before the next beat), like a beat of its own.
+ */
+function zoomPushFocus(
+  spec: RenderableVideoSpec,
+  timing: EffectiveTiming,
+  beatId: string,
+): { focus: readonly string[]; startSec: number } | undefined {
+  const index = spec.scenes.findIndex((s) => s.beatId === beatId);
+  const next = spec.scenes[index + 1];
+  const zoom = incomingTransition(next, index + 1);
+  const startSec = timing.beats.find((b) => b.beatId === next?.beatId)?.startSec;
+  if (!zoom?.semantic || !next?.zoomFrom || startSec === undefined) return undefined;
+  return { focus: [next.zoomFrom], startSec: Math.max(0, startSec - ZOOM_PUSH_SEC) };
 }
 
 /** Resolves the chain's events per element and gives every item its events and focus keys. */
@@ -121,7 +143,10 @@ function resolveWorld(
     fps,
     keysFor,
     partOrder: (key) => partOrder(drafts.find((d) => d.key === key)),
-    focusChanges: focusChangeSecs(events, (t) => keysFor(t).some((k) => overlays.has(k))),
+    focusChanges: [
+      ...focusChangeSecs(events, (t) => keysFor(t).some((k) => overlays.has(k))),
+      ...beats.slice(1).map((b) => b.startSec),
+    ],
   });
   const hosts = hostMap(drafts);
   const track = {

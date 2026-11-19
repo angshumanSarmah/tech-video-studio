@@ -1,0 +1,665 @@
+{
+  "schemaVersion": 1,
+  "meta": {
+    "id": "transitions-board",
+    "series": "system-design",
+    "title": "Transitions board",
+    "topicClass": "internals",
+    "targetLengthSec": 78
+  },
+  "hud": {
+    "heroMetric": false,
+    "storyClock": false,
+    "headline": false
+  },
+  "story": {
+    "devices": [],
+    "ending": {
+      "kind": "summary"
+    },
+    "chapters": [
+      {
+        "id": "cache",
+        "title": "Cache"
+      },
+      {
+        "id": "writes",
+        "title": "Writes"
+      },
+      {
+        "id": "scale",
+        "title": "Scale"
+      }
+    ],
+    "beats": [
+      {
+        "id": "cache-front",
+        "chapterId": "cache",
+        "intent": "Every read asks the cache first",
+        "targetSec": 13
+      },
+      {
+        "id": "hash-table",
+        "chapterId": "cache",
+        "intent": "Zoom into the server: a hash table",
+        "targetSec": 13
+      },
+      {
+        "id": "bucket-lock",
+        "chapterId": "writes",
+        "intent": "A write locks one bucket",
+        "targetSec": 13
+      },
+      {
+        "id": "memory",
+        "chapterId": "writes",
+        "intent": "Memory fills up",
+        "targetSec": 13
+      },
+      {
+        "id": "cluster",
+        "chapterId": "scale",
+        "intent": "One server is one node of a cluster",
+        "targetSec": 13
+      },
+      {
+        "id": "recap",
+        "chapterId": "scale",
+        "intent": "Back to the request path",
+        "targetSec": 13
+      }
+    ]
+  },
+  "script": [
+    {
+      "beatId": "cache-front",
+      "narration": "Every page load asks the Redis server first. It answers most reads from memory in well under a millisecond. When a key is missing, the focus moves to the database behind it, and the page waits."
+    },
+    {
+      "beatId": "hash-table",
+      "narration": "Inside the Redis server, every key lives in a hash table. A naive store would check each bucket in turn. Instead, the hash of the key points straight at bucket five, and that one stays marked."
+    },
+    {
+      "beatId": "bucket-lock",
+      "narration": "Slide over to a write. A writer grabs bucket five and locks it, so a second write has to wait its turn. The moment the first write finishes, the bucket is released and the second one goes through."
+    },
+    {
+      "beatId": "memory",
+      "narration": "Fade to memory. Usage climbs to ninety two percent. The gauge is marked and stays marked, while the eviction tag lights up only for a moment, then the focus shifts to the tag."
+    },
+    {
+      "beatId": "cluster",
+      "narration": "Zoom out, and one Redis server turns out to be one node of a cluster of three. Keys are split across the nodes. Then a question takes over the screen, and the cluster dims behind it."
+    },
+    {
+      "beatId": "recap",
+      "narration": "Cut back to the request path. The app asks the Redis server, the hash table finds the key in one step, and the database only hears about the rare miss."
+    }
+  ],
+  "scenes": [
+    {
+      "beatId": "cache-front",
+      "kind": "board",
+      "transitionIn": "cut",
+      "layoutMode": "pipeline",
+      "elements": [
+        {
+          "id": "app",
+          "primitive": "node_card",
+          "props": {
+            "title": "Web app",
+            "icon": "smartphone"
+          }
+        },
+        {
+          "id": "redis-server",
+          "primitive": "node_card",
+          "props": {
+            "title": "Redis server",
+            "subtitle": "in-memory cache",
+            "icon": "server"
+          }
+        },
+        {
+          "id": "database",
+          "primitive": "node_card",
+          "props": {
+            "title": "Database",
+            "icon": "database"
+          }
+        },
+        {
+          "id": "ask",
+          "primitive": "connector",
+          "props": {
+            "from": "app",
+            "to": "redis-server"
+          }
+        },
+        {
+          "id": "fallback",
+          "primitive": "connector",
+          "props": {
+            "from": "redis-server",
+            "to": "database",
+            "dashed": true
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "page"
+          },
+          "action": "enter",
+          "targets": ["app"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "redis"
+          },
+          "action": "enter",
+          "targets": ["redis-server"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "asks"
+          },
+          "action": "enter",
+          "targets": ["ask"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "memory"
+          },
+          "action": "highlight",
+          "targets": ["redis-server"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "missing"
+          },
+          "action": "enter",
+          "targets": ["database", "fallback"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "focus"
+          },
+          "action": "focus",
+          "targets": ["database", "fallback"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "waits"
+          },
+          "action": "pulse",
+          "targets": ["database"]
+        }
+      ],
+      "focus": ["redis-server"]
+    },
+    {
+      "beatId": "hash-table",
+      "kind": "board",
+      "transitionIn": "zoom-in",
+      "zoomFrom": "redis-server",
+      "layoutMode": "centered_focus",
+      "elements": [
+        {
+          "id": "buckets",
+          "primitive": "slot_grid",
+          "zone": "center",
+          "props": {
+            "kind": "documents",
+            "cols": 4,
+            "label": "hash table",
+            "slots": [
+              {
+                "id": "b0",
+                "label": "0"
+              },
+              {
+                "id": "b1",
+                "label": "1"
+              },
+              {
+                "id": "b2",
+                "label": "2"
+              },
+              {
+                "id": "b3",
+                "label": "3"
+              },
+              {
+                "id": "b4",
+                "label": "4"
+              },
+              {
+                "id": "b5",
+                "label": "5"
+              },
+              {
+                "id": "b6",
+                "label": "6"
+              },
+              {
+                "id": "b7",
+                "label": "7"
+              }
+            ]
+          }
+        },
+        {
+          "id": "hash-fn",
+          "primitive": "node_card",
+          "props": {
+            "title": "hash(key)",
+            "icon": "key"
+          }
+        },
+        {
+          "id": "jump",
+          "primitive": "connector",
+          "props": {
+            "from": "hash-fn",
+            "to": "buckets",
+            "label": "bucket 5",
+            "semantic": "focus"
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "check"
+          },
+          "action": "pulse",
+          "targets": ["buckets"],
+          "params": {
+            "parts": ["b0", "b1", "b2", "b3", "b4", "b5", "b6", "b7"],
+            "stagger": "scan"
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "instead"
+          },
+          "action": "enter",
+          "targets": ["hash-fn"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "points"
+          },
+          "action": "enter",
+          "targets": ["jump"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "points"
+          },
+          "action": "move",
+          "targets": ["jump"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "five"
+          },
+          "action": "highlight",
+          "targets": ["buckets"],
+          "params": {
+            "parts": ["b5"],
+            "hold": true
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "marked"
+          },
+          "action": "pulse",
+          "targets": ["buckets"],
+          "params": {
+            "parts": ["b5"]
+          }
+        }
+      ],
+      "focus": ["buckets"]
+    },
+    {
+      "beatId": "bucket-lock",
+      "kind": "board",
+      "transitionIn": "slide",
+      "layoutMode": "hub_spoke",
+      "elements": [
+        {
+          "id": "writer",
+          "primitive": "node_card",
+          "props": {
+            "title": "Writer",
+            "icon": "user"
+          }
+        },
+        {
+          "id": "bucket-five",
+          "primitive": "node_card",
+          "props": {
+            "title": "Bucket 5",
+            "icon": "layers"
+          }
+        },
+        {
+          "id": "second",
+          "primitive": "node_card",
+          "props": {
+            "title": "Second write",
+            "icon": "users"
+          }
+        },
+        {
+          "id": "grab",
+          "primitive": "connector",
+          "props": {
+            "from": "writer",
+            "to": "bucket-five",
+            "semantic": "focus"
+          }
+        },
+        {
+          "id": "queued",
+          "primitive": "connector",
+          "props": {
+            "from": "second",
+            "to": "bucket-five",
+            "dashed": true
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "grabs"
+          },
+          "action": "enter",
+          "targets": ["grab"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "grabs"
+          },
+          "action": "move",
+          "targets": ["grab"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "locks"
+          },
+          "action": "lock",
+          "targets": ["bucket-five"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "second"
+          },
+          "action": "enter",
+          "targets": ["second", "queued"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "released"
+          },
+          "action": "release",
+          "targets": ["bucket-five"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "through"
+          },
+          "action": "move",
+          "targets": ["queued"]
+        }
+      ],
+      "focus": ["bucket-five"]
+    },
+    {
+      "beatId": "memory",
+      "kind": "board",
+      "transitionIn": "fade",
+      "layoutMode": "centered_focus",
+      "elements": [
+        {
+          "id": "used",
+          "primitive": "counter",
+          "props": {
+            "value": 92,
+            "unit": "%",
+            "label": "MEMORY USED"
+          }
+        },
+        {
+          "id": "evict",
+          "primitive": "tag",
+          "props": {
+            "text": "EVICTING OLD KEYS",
+            "semantic": "problem"
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "climbs"
+          },
+          "action": "count",
+          "targets": ["used"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "marked"
+          },
+          "action": "highlight",
+          "targets": ["used"],
+          "params": {
+            "hold": true
+          }
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "eviction"
+          },
+          "action": "enter",
+          "targets": ["evict"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "lights"
+          },
+          "action": "highlight",
+          "targets": ["evict"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "shifts"
+          },
+          "action": "focus",
+          "targets": ["evict"]
+        }
+      ],
+      "focus": ["used"]
+    },
+    {
+      "beatId": "cluster",
+      "kind": "board",
+      "transitionIn": "zoom-out",
+      "layoutMode": "grid",
+      "elements": [
+        {
+          "id": "node-a",
+          "primitive": "node_card",
+          "props": {
+            "title": "Node A",
+            "icon": "server"
+          }
+        },
+        {
+          "id": "node-b",
+          "primitive": "node_card",
+          "props": {
+            "title": "Node B",
+            "icon": "server"
+          }
+        },
+        {
+          "id": "node-c",
+          "primitive": "node_card",
+          "props": {
+            "title": "Node C",
+            "icon": "server"
+          }
+        },
+        {
+          "id": "split",
+          "primitive": "tag",
+          "props": {
+            "text": "KEYS SPLIT 3 WAYS",
+            "semantic": "concept"
+          }
+        },
+        {
+          "id": "question",
+          "primitive": "statement_card",
+          "props": {
+            "lines": [
+              {
+                "id": "ask",
+                "text": "What if a node dies?",
+                "semantic": "focus"
+              }
+            ]
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "split"
+          },
+          "action": "enter",
+          "targets": ["split"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "question"
+          },
+          "action": "enter",
+          "targets": ["question"]
+        }
+      ],
+      "focus": []
+    },
+    {
+      "beatId": "recap",
+      "kind": "board",
+      "transitionIn": "cut",
+      "layoutMode": "pipeline",
+      "elements": [
+        {
+          "id": "app",
+          "primitive": "node_card",
+          "props": {
+            "title": "Web app",
+            "icon": "smartphone"
+          }
+        },
+        {
+          "id": "redis-server",
+          "primitive": "node_card",
+          "props": {
+            "title": "Redis server",
+            "subtitle": "in-memory cache",
+            "icon": "server"
+          }
+        },
+        {
+          "id": "database",
+          "primitive": "node_card",
+          "props": {
+            "title": "Database",
+            "icon": "database"
+          }
+        },
+        {
+          "id": "ask",
+          "primitive": "connector",
+          "props": {
+            "from": "app",
+            "to": "redis-server",
+            "semantic": "focus"
+          }
+        },
+        {
+          "id": "fallback",
+          "primitive": "connector",
+          "props": {
+            "from": "redis-server",
+            "to": "database",
+            "dashed": true
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": {
+            "type": "word_text",
+            "text": "asks"
+          },
+          "action": "move",
+          "targets": ["ask"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "step"
+          },
+          "action": "pulse",
+          "targets": ["redis-server"]
+        },
+        {
+          "at": {
+            "type": "word_text",
+            "text": "miss"
+          },
+          "action": "pulse",
+          "targets": ["database"]
+        }
+      ],
+      "focus": ["app", "redis-server", "ask"]
+    }
+  ]
+}

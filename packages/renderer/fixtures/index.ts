@@ -8,6 +8,7 @@ import patternFlowBoardJson from './pattern-flow-board.json';
 import primitivesBoardJson from './primitives-board.json';
 import rateLimiterJson from './rate-limiter.json';
 import spatialFlowBoardJson from './spatial-flow-board.json';
+import transitionsBoardJson from './transitions-board.json';
 
 /**
  * Renderable fixture without a timing layer, so Studio previews it with estimated timing (as a
@@ -71,12 +72,21 @@ export const layoutModesBoardSpec = parseRenderableSpec(layoutModesBoardJson);
 
 export const layoutModesBoardCardSpec = withFormat(layoutModesBoardSpec, 'card');
 
+/**
+ * Transitions board (P1A.10): one beat per beat transition (cut, fade, slide, zoom-out, and a
+ * semantic zoom from the "Redis server" into its "hash table"), with a focus event mid-beat, a
+ * default highlight beside a held one, a scan over parts, a lock and release, and an overlay
+ * taking focus. Studio previews it as `TransitionsBoard`.
+ */
+export const transitionsBoardSpec = parseRenderableSpec(transitionsBoardJson);
+
 /** Every fixture spec with scenes, for checks that run over all of them. */
 export const allFixtureSpecs = [
   rateLimiterSpec,
   ...primitiveBoardSpecs,
   ...patternBoardSpecs,
   layoutModesBoardSpec,
+  transitionsBoardSpec,
 ];
 
 /** Example series data; real values come from the DB `series` row at render time. */

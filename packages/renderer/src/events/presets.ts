@@ -99,3 +99,9 @@ export const TRANSITION_SEC = 0.4;
 
 /** A semantic zoom pushes into its element over the last this-long of the previous beat. */
 export const ZOOM_PUSH_SEC = 0.5;
+
+/**
+ * How far a semantic-zoom push goes: until its element is this many times the size that fills
+ * the frame (into it, not just up to it), right before the cut.
+ */
+export const ZOOM_PUSH_FILL = 2.5;

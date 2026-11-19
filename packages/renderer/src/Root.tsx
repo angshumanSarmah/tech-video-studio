@@ -10,6 +10,7 @@ import {
   primitivesBoardSpec,
   rateLimiterSpec,
   spatialFlowBoardSpec,
+  transitionsBoardSpec,
 } from '../fixtures/index.ts';
 import { BeatFromSpec } from './compositions/BeatFromSpec.tsx';
 import { calculateBeatMetadata, calculateVideoMetadata } from './compositions/metadata.ts';
@@ -50,6 +51,7 @@ const patternDecisionDefaults: VideoFromSpecProps = {
 };
 
 const layoutModesDefaults: VideoFromSpecProps = { ...videoDefaults, spec: layoutModesBoardSpec };
+const transitionsDefaults: VideoFromSpecProps = { ...videoDefaults, spec: transitionsBoardSpec };
 
 const layoutModesCardDefaults: VideoFromSpecProps = {
   ...videoDefaults,
@@ -88,6 +90,16 @@ export function Root() {
         fps={FINAL_FPS}
         durationInFrames={1}
         defaultProps={layoutModesDefaults}
+        calculateMetadata={calculateVideoMetadata}
+      />
+      <Composition
+        id="TransitionsBoard"
+        component={VideoFromSpec}
+        width={canvas.width}
+        height={canvas.height}
+        fps={FINAL_FPS}
+        durationInFrames={1}
+        defaultProps={transitionsDefaults}
         calculateMetadata={calculateVideoMetadata}
       />
       <Composition

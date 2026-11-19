@@ -1,6 +1,16 @@
-import { validateRenderableVideoSpec, type VideoFormat } from '@explainer-studio/shared';
+import {
+  effectiveTiming,
+  validateRenderableVideoSpec,
+  type VideoFormat,
+} from '@explainer-studio/shared';
 import { describe, expect, it } from 'vitest';
-import { allFixtureSpecs, layoutModesBoardSpec, withFormat } from '../../fixtures/index.ts';
+import {
+  allFixtureSpecs,
+  layoutModesBoardSpec,
+  transitionsBoardSpec,
+  withFormat,
+} from '../../fixtures/index.ts';
+import { CAMERA_EASE_SEC, ZOOM_PUSH_FILL, ZOOM_PUSH_SEC } from '../events/presets.ts';
 import layoutModesBoardJson from '../../fixtures/layout-modes-board.json';
 import { withRegistryChecks } from '../catalog/validate.ts';
 import { exclusionZones, getTheme, listThemes, safeAreas } from '../theme/index.ts';
@@ -91,8 +101,12 @@ describe.each(FORMATS)('every fixture board, %s format', (format) => {
       for (const chain of result.chains) {
         expectValidBoard(chain.board, { rect: chain.board.frame, avoidZones });
       }
-      for (const beat of result.beats.values()) {
-        const { scale } = beat.camera;
+      const cameras = [
+        ...[...result.beats.values()].map((beat) => beat.camera),
+        // Semantic-zoom pushes deliberately fill the frame with one element.
+        ...result.chains.flatMap((c) => c.cameras.filter((k) => !k.push).map((k) => k.camera)),
+      ];
+      for (const { scale } of cameras) {
         expect(scale).toBeGreaterThanOrEqual(1);
         expect(scale).toBeLessThanOrEqual(MAX_ZOOM + 1e-9);
       }
@@ -121,6 +135,40 @@ describe('specLayout', () => {
     expect(first?.camera).not.toEqual(second?.camera);
     // The first beat shows fewer elements, so its camera is closer.
     expect(first?.camera.scale).toBeGreaterThan(second?.camera.scale ?? Infinity);
+  });
+
+  it('gives a chain a camera track: settled first, easing into each later beat', () => {
+    const result = specLayout(layoutModesBoardSpec, theme);
+    const chain = result.beats.get('pipeline')?.chain;
+    expect(chain?.cameras.map((k) => k.durationSec)).toEqual([0, CAMERA_EASE_SEC]);
+    expect(chain?.cameras[1]?.camera).toEqual(result.beats.get('pipeline-more')?.camera);
+  });
+
+  it('reframes the camera at a focus event, easing toward its targets', () => {
+    const chain = specLayout(transitionsBoardSpec, theme).beats.get('cache-front')?.chain;
+    const scene = transitionsBoardSpec.scenes.find((s) => s.beatId === 'cache-front');
+    expect(scene?.events.some((e) => e.action === 'focus')).toBe(true);
+    const keys = chain?.cameras.filter((k) => !k.push) ?? [];
+    expect(keys.map((k) => k.durationSec)).toEqual([0, CAMERA_EASE_SEC]);
+    expect(keys[1]?.camera).not.toEqual(keys[0]?.camera);
+  });
+
+  it('pushes the previous board into the element a semantic zoom starts from', () => {
+    const spec = transitionsBoardSpec;
+    const result = specLayout(spec, theme);
+    const zooming = spec.scenes.find((s) => s.zoomFrom);
+    if (!zooming?.zoomFrom) throw new Error('the transitions board has a semantic zoom');
+    const index = spec.scenes.indexOf(zooming);
+    const previous = result.beats.get(spec.scenes[index - 1]?.beatId ?? '');
+    const push = previous?.chain.cameras.find((k) => k.push);
+    const start = effectiveTiming(spec).beats[index]?.startSec ?? 0;
+    expect(push?.sec).toBeCloseTo(start - ZOOM_PUSH_SEC);
+    const target = previous?.chain.board.items.find((i) => i.key === zooming.zoomFrom);
+    if (!push || !target || !previous) throw new Error('missing push or target');
+    const onScreen = applyRect(push.camera, target.rect);
+    const frame = previous.chain.board.frame;
+    const fill = Math.max(onScreen.width / frame.width, onScreen.height / frame.height);
+    expect(fill).toBeCloseTo(ZOOM_PUSH_FILL);
   });
 
   it('frames the visible elements inside the board and clear of the avoid zones', () => {

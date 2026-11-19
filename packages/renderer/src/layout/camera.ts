@@ -9,8 +9,8 @@ import type { PlacedItem } from './types.ts';
  * The per-beat camera: positions are fixed for a whole `continuesPrevious` chain, and each beat
  * frames the elements it shows with one uniform zoom and a translation of the board layer, biased
  * towards its focus. Never below the fitted layout (zoom ≥ 1), never above `MAX_ZOOM`, every
- * visible element inside the frame and clear of the avoid zones. Beats snap from one camera to the
- * next (P1A.10 eases between them). Pure.
+ * visible element inside the frame and clear of the avoid zones. `camera-track.ts` eases between
+ * these framings over time. Pure.
  */
 
 export const MAX_ZOOM = 1.6;

@@ -107,11 +107,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **P3.4 — Number locale per channel.** `numberLocale` lives on the theme (`en-IN` in
       `blueprint-dark`). When channels get their own settings, let a channel override it (passed
       through composition props) instead of forking a theme.
-- [ ] **P1A.10 — Beat transitions.** P1A.10 owns `transitionIn` (cut, fade, slide, zoom-in,
-      zoom-out), semantic zoom, focus dimming and the board camera. Until then beats hard-cut:
-      `SpecLayers` tiles beat `<Sequence>`s with no overlap and ignores `transitionIn` and
-      `focus`. Transitions that overlap two beats must keep `BeatFromSpec` frame-identical to
-      `VideoFromSpec` (P1A.12 drafts show transitions into a beat as cuts).
 - [ ] **P1D.8 — Accent contrast warning.** Renders adapt low-contrast accents (`accentFor`), so
       Settings should show the adapted value next to the stored one per theme (as the swatch board
       does) and warn when they differ, using `accentFor`/`checkAccentContrast` (from
@@ -221,9 +216,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
   - `split_brain` (versus_split): `link`, `cut` and `restored` should share one path.
   - A pattern's mode is static per definition; a pattern that wants a different mode by params
     would move `layoutMode` into the expansion.
-- [ ] **P1A.10 — Camera easing.** `specLayout` gives each beat a camera (zoom and pan of the
-      board layer); beats snap from one to the next. Ease between cameras at beat boundaries
-      (and keep `BeatFromSpec` frame-identical to `VideoFromSpec`), and fold focus dimming in.
 - [ ] **Layout — Routing limits.** Routes avoid elements and pins, not each other: two routed
       connectors may overlap along a shared channel, and several ports on one side all leave from
       the side's centre line. Spread ports and penalise shared runs if boards get busy. Routes

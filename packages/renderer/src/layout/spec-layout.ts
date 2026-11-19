@@ -1,5 +1,7 @@
 import {
   effectiveTiming,
+  narrationWords,
+  resolveAnchorSec,
   toJsonPath,
   type BeatScene,
   type EffectiveTiming,
@@ -12,8 +14,11 @@ import { lineHeightPx } from '../primitives/measure.ts';
 import { beatWorld } from '../scene/beat-world.ts';
 import { footnoteRect } from '../scene/source-footnote.ts';
 import type { Rect, Theme } from '../theme/index.ts';
+import { CAMERA_EASE_SEC, ZOOM_PUSH_SEC } from '../events/presets.ts';
 import { beatCamera, visibleDuring } from './camera.ts';
+import { zoomCamera, type CameraKey } from './camera-track.ts';
 import type { Transform } from './fit.ts';
+import { union } from './rect.ts';
 import { formatAreas, type FormatAreas } from './format.ts';
 import { layout } from './layout.ts';
 import { beatLayoutMode } from './modes.ts';
@@ -21,8 +26,10 @@ import type { BoardLayout, LayoutFrame, LayoutWarning } from './types.ts';
 
 /**
  * A whole spec laid out: one board per `continuesPrevious` chain (so continuing beats keep every
- * position), and a camera per beat that frames what that beat shows. Computed once per spec
- * object and theme (memoised), never per frame. Pure and deterministic.
+ * position), and a camera track per chain (`camera-track.ts`): each beat frames what it shows,
+ * biased to its focus, and reframes at each `focus` event; a semantic zoom (`zoomFrom`) pushes
+ * the previous chain's camera into its element. Computed once per spec object and theme
+ * (memoised), never per frame. Pure and deterministic.
  */
 
 export type ChainLayout = {
@@ -32,8 +39,11 @@ export type ChainLayout = {
   board: BoardLayout;
   /** The beat source line's rect, reserved for the whole chain when any beat has a source. */
   footnote: Rect | null;
+  /** The chain's camera keys in time order (read with `cameraAt`). */
+  cameras: readonly CameraKey[];
 };
 
+/** `camera`: the beat's own framing at its start (where its first camera key eases to). */
 export type BeatLayout = { beatId: string; chain: ChainLayout; camera: Transform };
 
 export type SpecLayout = {
@@ -69,18 +79,24 @@ function computeSpecLayout(
 ): SpecLayout {
   const areas = formatAreas(theme, spec.meta.format);
   const timing = effectiveTiming(spec);
-  const chains = sceneChains(spec.scenes).map((c) =>
-    chainLayout(spec, c, { theme, timing, areas, registries }),
-  );
+  const ctx = { theme, timing, areas, registries };
+  const boards = sceneChains(spec.scenes).map((c) => chainLayout(spec, c, ctx));
+  const starts = new Map<string, Transform>();
+  const tracks = boards.map((chain) => chainCameras(spec, chain, ctx, starts));
+  addZoomPushes(spec, boards, tracks, timing);
+  const chains = boards.map((chain, i) => ({ ...chain, cameras: tracks[i] ?? [] }));
   const beats = new Map<string, BeatLayout>();
   for (const chain of chains) {
     for (const beatId of chain.beatIds) {
-      const camera = cameraFor(spec, chain, beatId, { theme, timing, areas, registries });
-      beats.set(beatId, { beatId, chain, camera });
+      beats.set(beatId, { beatId, chain, camera: starts.get(beatId) ?? IDENTITY_CAMERA });
     }
   }
   return { areas, chains, beats };
 }
+
+const IDENTITY_CAMERA: Transform = { scale: 1, dx: 0, dy: 0 };
+
+type Board = Omit<ChainLayout, 'cameras'>;
 
 type Ctx = { theme: Theme; timing: EffectiveTiming; areas: FormatAreas; registries: Registries };
 
@@ -97,7 +113,7 @@ export function sceneChains(scenes: readonly BeatScene[]): Chain[] {
   return chains;
 }
 
-function chainLayout(spec: RenderableVideoSpec, chain: Chain, ctx: Ctx): ChainLayout {
+function chainLayout(spec: RenderableVideoSpec, chain: Chain, ctx: Ctx): Board {
   const { theme, timing, areas, registries } = ctx;
   const [first] = chain.scenes;
   const lastBeat = chain.scenes.at(-1)?.beatId ?? '';
@@ -139,11 +155,59 @@ function chainFrame(
   return { frame: { rect: board, avoidZones: areas.avoidZones }, footnote };
 }
 
-function cameraFor(spec: RenderableVideoSpec, chain: ChainLayout, beatId: string, ctx: Ctx) {
-  const { theme, timing, registries } = ctx;
-  const beat = timing.beats.find((b) => b.beatId === beatId);
-  const world = beatWorld(spec, timing, beatId, LAYOUT_FPS, registries);
-  const visible = new Set(
+/**
+ * A chain's camera keys: each beat's framing at its start (the first settled, later ones easing
+ * from the previous beat), then a reframing at each of its `focus` events. `starts` collects each
+ * beat's own start framing.
+ */
+function chainCameras(
+  spec: RenderableVideoSpec,
+  chain: Board,
+  ctx: Ctx,
+  starts: Map<string, Transform>,
+): CameraKey[] {
+  return chain.beatIds.flatMap((beatId, j) => {
+    const beat = ctx.timing.beats.find((b) => b.beatId === beatId);
+    const scene = spec.scenes.find((s) => s.beatId === beatId);
+    const visible = visibleKeys(spec, beatId, ctx);
+    const frame = (focus: readonly string[]) => cameraFor(chain, visible, focus, ctx);
+    const start = frame(scene?.focus ?? []);
+    starts.set(beatId, start);
+    const first = {
+      sec: beat?.startSec ?? 0,
+      camera: start,
+      durationSec: j === 0 ? 0 : CAMERA_EASE_SEC,
+    };
+    return [first, ...focusEventCameras(spec, beatId, ctx, frame)];
+  });
+}
+
+/** One camera key per `focus` event of the beat, framed for its targets. */
+function focusEventCameras(
+  spec: RenderableVideoSpec,
+  beatId: string,
+  ctx: Ctx,
+  frame: (focus: readonly string[]) => Transform,
+): CameraKey[] {
+  const beat = ctx.timing.beats.find((b) => b.beatId === beatId);
+  const scene = spec.scenes.find((s) => s.beatId === beatId);
+  if (!beat || !scene) return [];
+  const words = narrationWords(spec.script.find((s) => s.beatId === beatId)?.narration ?? '');
+  return scene.events
+    .flatMap((event) => {
+      if (event.action !== 'focus') return [];
+      const sec = resolveAnchorSec(event.at, beat, words);
+      if (sec === undefined) return [];
+      return [{ sec, camera: frame(event.targets), durationSec: CAMERA_EASE_SEC }];
+    })
+    .sort((a, b) => a.sec - b.sec);
+}
+
+/** Keys of the items a beat shows at some point (error items always count). */
+function visibleKeys(spec: RenderableVideoSpec, beatId: string, ctx: Ctx): Set<string> {
+  const beat = ctx.timing.beats.find((b) => b.beatId === beatId);
+  const world = beatWorld(spec, ctx.timing, beatId, LAYOUT_FPS, ctx.registries);
+  return new Set(
     world
       .filter(
         (item) =>
@@ -151,8 +215,15 @@ function cameraFor(spec: RenderableVideoSpec, chain: ChainLayout, beatId: string
       )
       .map((item) => item.key),
   );
-  const scene = spec.scenes.find((s) => s.beatId === beatId);
-  const focus = (scene?.focus ?? []).flatMap((id) =>
+}
+
+function cameraFor(
+  chain: Board,
+  visible: ReadonlySet<string>,
+  focusIds: readonly string[],
+  ctx: Ctx,
+): Transform {
+  const focus = focusIds.flatMap((id) =>
     [...visible].filter((key) => key === id || key.startsWith(`${id}/`)),
   );
   return beatCamera({
@@ -161,8 +232,45 @@ function cameraFor(spec: RenderableVideoSpec, chain: ChainLayout, beatId: string
     focus,
     frame: chain.board.frame,
     avoidZones: ctx.areas.avoidZones,
-    margin: theme.space.md,
+    margin: ctx.theme.space.md,
   });
+}
+
+/**
+ * Semantic zoom: before a beat that zooms from an element of the previous board, that board's
+ * camera pushes into the element over the last `ZOOM_PUSH_SEC` before the beat starts.
+ */
+function addZoomPushes(
+  spec: RenderableVideoSpec,
+  boards: readonly Board[],
+  tracks: CameraKey[][],
+  timing: EffectiveTiming,
+): void {
+  spec.scenes.forEach((scene, i) => {
+    const from = scene.zoomFrom;
+    if (!from || i === 0 || scene.continuesPrevious || scene.transitionIn !== 'zoom-in') return;
+    const previous = spec.scenes[i - 1]?.beatId;
+    const c = boards.findIndex((b) => previous !== undefined && b.beatIds.includes(previous));
+    const board = boards[c];
+    const start = timing.beats.find((b) => b.beatId === scene.beatId)?.startSec;
+    const target = board ? zoomTarget(board, from) : undefined;
+    if (!board || !target || start === undefined) return;
+    const push: CameraKey = {
+      sec: Math.max(0, start - ZOOM_PUSH_SEC),
+      camera: zoomCamera(target, board.board.frame),
+      durationSec: Math.min(ZOOM_PUSH_SEC, start),
+      push: true,
+    };
+    tracks[c] = [...(tracks[c] ?? []), push].sort((a, b) => a.sec - b.sec);
+  });
+}
+
+/** The rect of an element (or every element of a pattern instance) on a placed board. */
+function zoomTarget(board: Board, id: string): Rect | undefined {
+  const rects = board.board.items
+    .filter((item) => item.key === id || item.key.startsWith(`${id}/`))
+    .map((item) => item.rect);
+  return union(rects);
 }
 
 function modeIgnored(scene: BeatScene, mode: string): LayoutWarning {

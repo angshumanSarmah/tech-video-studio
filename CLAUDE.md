@@ -296,7 +296,8 @@ its lease in card). The per-anchor sheets stay the record of timing.
 ### Spec compositions
 
 - **`VideoFromSpec`** renders a whole `RenderableVideoSpec`; **`BeatFromSpec`** renders one beat
-  (`beatId`), cut from the same global timeline, so its frames match the full video. Props are
+  (`beatId`), cut from the same global timeline, so its frames match the full video, except that
+  a transition into the beat is shown as a cut (the previous board is not drawn). Props are
   plain JSON (`src/compositions/props.ts`): `spec`, `series` (label + accent), `channelHandle`,
   `audioSrc`, `fps`.
   Remotion's `schema` prop is not used (Zod 3 vs 4); `calculateMetadata` validates the spec with
@@ -308,7 +309,12 @@ its lease in card). The per-anchor sheets stay the record of timing.
   converts to frames at the composition's fps (final 30, draft 15). Without `spec.timing`, timing
   is estimated at 2.6 words/sec. Event frames are always recomputed from word timings; the
   `timing.events` cache is never read.
-- Beat `<Sequence>`s tile the video with no gaps (each runs until the next beat starts).
+- Beat `<Sequence>`s tile the video with no gaps (each runs until the next beat starts). A beat
+  transition (`events/transitions.ts`: `sceneSpans`, `transitionView`) overlaps the outgoing
+  scene's span by `TRANSITION_SEC` (fade, slide, zoom-in, zoom-out); `BeatScene` draws the scene
+  through the view, clipped to the board area (HUD, subtitles and audio are untouched). A
+  semantic zoom does not overlap: the outgoing camera pushes into `zoomFrom` (focus moves to it)
+  over its last `ZOOM_PUSH_SEC`, then it cuts and the new board settles.
 - Studio previews both compositions with `fixtures/rate-limiter.json` (no timing layer), and the
   primitive boards `PrimitivesBoard` and `SpatialFlowBoard` (`VideoFromSpec` over
   `fixtures/primitives-board.json` and `fixtures/spatial-flow-board.json`: one beat per primitive
@@ -319,7 +325,10 @@ its lease in card). The per-anchor sheets stay the record of timing.
   per pattern with every anchor, and no scene `layoutMode` (each beat takes its pattern's).
   `LayoutModesBoard` / `LayoutModesBoardCard` (`fixtures/layout-modes-board.json`, the second
   via `withFormat`) have one beat per layout mode, with pins, a ring, a bracket, an inset, a
-  footnote and one `continuesPrevious` chain. `allFixtureSpecs` lists every fixture spec.
+  footnote and one `continuesPrevious` chain. `TransitionsBoard`
+  (`fixtures/transitions-board.json`) has one beat per transition, including the semantic zoom
+  from "Redis server" into its "hash table", plus a focus event, held and default highlights, a
+  scan, a lock / release and an overlay taking focus. `allFixtureSpecs` lists every fixture spec.
 - **HUD** (`src/hud`): top bar, step tracker, hero metric pill, chapter header, story clock and
   headline. Slots come from `hudLayout(theme)` (derived from `safeAreas`); what each part shows at
   a frame comes from pure functions in `hud-state.ts`. Parts are toggled per video in `spec.hud`
@@ -364,9 +373,12 @@ theme)` lays out a whole spec, memoised per spec object and theme (never per fra
   `separate` → followers (`relations.ts`) → `fit` (one board scale ≤ 1, centred).
   - **One placement per `continuesPrevious` chain** (over all its elements), so continuing beats
     keep every position; mode and focus come from the chain (a continuing scene's own mode is
-    ignored with `layout_mode_ignored`). **Each beat gets a camera** (`camera.ts`): a uniform zoom
-    (1 to `MAX_ZOOM` 1.6) and pan of the board layer framing the elements visible in that beat,
-    biased to its focus, kept in frame and clear of avoid zones. Beats snap between cameras.
+    ignored with `layout_mode_ignored`). **Each chain gets a camera track** (`camera.ts`,
+    `camera-track.ts`): a uniform zoom (1 to `MAX_ZOOM` 1.6) and pan of the board layer framing
+    the elements visible in each beat, biased to its focus, kept in frame and clear of avoid
+    zones; a key at each beat start (the chain's first settled, later ones easing over
+    `CAMERA_EASE_SEC`) and at each `focus` event, plus a semantic-zoom push (`zoomCamera`, past
+    filling the frame). `BeatScene` reads `cameraAt(track, sec)` in global seconds.
   - **Frames are parameters** (`formatAreas(theme, format)`): `full` = the stage (or
     `stageWithHeadline`); `card` = a 16:9 window under the header region, clear of every
     exclusion zone (narrowed if needed). Avoid zones are hard: a board that hits one is slid out

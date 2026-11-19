@@ -1,13 +1,15 @@
 import type { EffectiveTiming, RenderableVideoSpec } from '@explainer-studio/shared';
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { useCurrentFrame, useVideoConfig } from 'remotion';
 import { DEFAULT_REGISTRIES } from '../catalog/registries.ts';
 import { rectCss } from '../layers/rect-css.ts';
 import type { Transform } from '../layout/fit.ts';
-import { inflate } from '../layout/rect.ts';
+import { inflate, union } from '../layout/rect.ts';
 import { specLayout } from '../layout/spec-layout.ts';
 import { boxOf, type Guide, type PlacedItem } from '../layout/types.ts';
 import { dimOpacity } from '../events/presets.ts';
+import { activeView, type ActiveTransition, type TransitionView } from '../events/transitions.ts';
+import { cameraAt } from '../layout/camera-track.ts';
 import { elementState } from '../primitives/element-state.ts';
 import { textCss, type Rect, type Theme } from '../theme/index.ts';
 import { beatWorld, type WorldItem } from './beat-world.ts';
@@ -18,10 +20,11 @@ import { WorldItemView } from './WorldItemView.tsx';
 /**
  * One beat's board, placed by the layout engine (`specLayout`: one placement per
  * `continuesPrevious` chain, computed once per spec). Board items are drawn back to front at their
- * placed rects under the beat's camera (a uniform zoom and pan of the board layer, clipped to the
- * board frame); overlays are drawn at their own rects above it, with their contained children
+ * placed rects under the chain's camera at this frame (`cameraAt`: a uniform zoom and pan of the
+ * board layer, clipped to the board frame, easing between beats and focus changes); overlays are drawn at their own rects above it, with their contained children
  * where the nested layout put them (while one shows, the board dims through its elements' focus
- * track); the source footnote sits where the layout reserved it.
+ * track); the source footnote sits where the layout reserved it. During a beat transition the
+ * whole scene is drawn through its view (opacity, scale, slide), clipped to the board area.
  */
 
 type Props = {
@@ -31,9 +34,11 @@ type Props = {
   beatId: string;
   /** Global frame the beat's `<Sequence>` starts at. */
   beatFrom: number;
+  /** Transitions this scene plays (in at its start, out under the next beat's start). */
+  transitions?: readonly ActiveTransition[];
 };
 
-export function BeatScene({ theme, spec, timing, beatId, beatFrom }: Props) {
+export function BeatScene({ theme, spec, timing, beatId, beatFrom, transitions = [] }: Props) {
   const frame = useCurrentFrame() + beatFrom;
   const { fps } = useVideoConfig();
   const layers = useMemo(
@@ -48,12 +53,17 @@ export function BeatScene({ theme, spec, timing, beatId, beatFrom }: Props) {
   );
   const footnoteLine = footnoteText(spec, beatId);
   const beatStartSec = timing.beats.find((b) => b.beatId === beatId)?.startSec ?? 0;
+  const clip = inflate(board.frame, theme.space.sm);
   return (
-    <>
+    <TransitionFrame
+      theme={theme}
+      clip={union([clip, ...(footnote ? [footnote] : [])]) ?? clip}
+      view={activeView(transitions, frame)}
+    >
       <Board
         theme={theme}
-        clip={inflate(board.frame, theme.space.sm)}
-        camera={beat.camera}
+        clip={clip}
+        camera={cameraAt(beat.chain.cameras, frame / fps)}
         guides={board.guides}
         guideOpacity={dimOpacity(overlays)}
         items={layers.board}
@@ -79,7 +89,42 @@ export function BeatScene({ theme, spec, timing, beatId, beatFrom }: Props) {
           opacity={footnoteOpacity(frame / fps, beatStartSec)}
         />
       ) : null}
-    </>
+    </TransitionFrame>
+  );
+}
+
+type TransitionFrameProps = {
+  theme: Theme;
+  clip: Rect;
+  view: TransitionView | undefined;
+  children: ReactNode;
+};
+
+/**
+ * Draws the scene through a transition view, clipped to the board area (so a slide never runs
+ * over the HUD or out of the card window); outside a transition, the scene as is.
+ */
+function TransitionFrame({ theme, clip, view, children }: TransitionFrameProps) {
+  if (!view) return <>{children}</>;
+  const originX = clip.x + clip.width / 2;
+  const originY = clip.y + clip.height / 2;
+  return (
+    <div style={{ ...rectCss(clip), overflow: 'hidden' }}>
+      <div
+        style={{
+          position: 'absolute',
+          left: -clip.x,
+          top: -clip.y,
+          width: theme.canvas.width,
+          height: theme.canvas.height,
+          opacity: view.opacity,
+          transform: `translateX(${view.shift * clip.width}px) scale(${view.scale})`,
+          transformOrigin: `${originX}px ${originY}px`,
+        }}
+      >
+        {children}
+      </div>
+    </div>
   );
 }
 
