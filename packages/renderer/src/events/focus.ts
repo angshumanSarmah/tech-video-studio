@@ -11,7 +11,8 @@ import { ACTION_DURATION_SEC, ACTION_EASING } from './presets.ts';
  * - a beat's `focus` applies from its start (the chain's first beat starts settled);
  * - a `focus` event replaces the set from its word (an empty set focuses everything);
  * - while an overlay is present (`statement_card`, `inset_panel`), focus moves to it and its
- *   children: the whole board dims as the overlay enters and returns as it leaves.
+ *   children: the whole board dims as the overlay enters and returns as it leaves. This is a
+ *   separate track (`FocusTrack.overlay`): a highlight lifts the focus dim, never the overlay dim.
  * An id focuses its element, every element of a pattern instance (`<id>/…`), and the elements
  * pinned to or contained in a focused one. Overlays and their children are never focus-dimmed.
  * Pure.
@@ -22,6 +23,15 @@ export type FocusChange = { sec: number; ids: readonly string[]; animate: boolea
 
 /** A change of one element's focus dim: from `sec`, it moves to `dim` over `durationSec`. */
 export type FocusKey = { sec: number; dim: 0 | 1; durationSec: number; action: EventAction };
+
+/**
+ * An element's two dim tracks: `focus` (the beat's focus and `focus` events; a highlight lifts it
+ * while it shows) and `overlay` (the board behind an overlay; nothing lifts it).
+ */
+export type FocusTrack = { focus: readonly FocusKey[]; overlay: readonly FocusKey[] };
+
+/** Never dimmed for focus: overlays, their children, and elements on sheets. */
+export const NO_FOCUS: FocusTrack = { focus: [], overlay: [] };
 
 /** A chain's scenes with where each beat starts (global seconds), oldest first. */
 export type ChainBeat = { focus: readonly string[]; startSec: number };
@@ -91,6 +101,18 @@ export type FocusTrackInput = {
 type Moment =
   | { sec: number; kind: 'set'; change: FocusChange }
   | { sec: number; kind: 'overlay'; toggle: OverlayToggle };
+
+/**
+ * One element's focus track: its focus keys from the focus changes alone, and its overlay keys
+ * from the overlays alone (settled at the chain's start, so the first overlay animates in).
+ */
+export function focusTrack(key: string, input: FocusTrackInput): FocusTrack {
+  const start = input.changes[0]?.sec ?? 0;
+  return {
+    focus: focusKeys(key, { ...input, overlays: [] }),
+    overlay: focusKeys(key, { ...input, changes: [{ sec: start, ids: [], animate: false }] }),
+  };
+}
 
 /** One element's focus keys: a key wherever its dim changes (the first one settled). */
 export function focusKeys(key: string, input: FocusTrackInput): FocusKey[] {

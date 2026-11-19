@@ -289,6 +289,23 @@ describe('beatWorld: event engine', () => {
     expect(stateOf(held, 'client', overlay).highlight).toBe(1);
   });
 
+  it('keeps a highlighted board element dimmed behind an overlay; lifts an out-of-focus one', () => {
+    const card = {
+      id: 'ask',
+      primitive: 'statement_card',
+      props: { lines: [{ id: 'q', text: 'Why does it fall over?' }] },
+    };
+    const behind = hook(
+      [card],
+      [ev('enter', ['ask'], 'slows'), ev('highlight', ['client'], 'falls')],
+    );
+    const later = wordFrame(behind, 15);
+    expect(stateOf(behind, 'client', later)).toMatchObject({ highlight: 1, dimmed: 1 });
+    const unfocused = hook([], [ev('highlight', ['client'], 'falls')], ['api']);
+    expect(stateOf(unfocused, 'client', wordFrame(unfocused, 8)).dimmed).toBe(1);
+    expect(stateOf(unfocused, 'client', later)).toMatchObject({ highlight: 1, dimmed: 0 });
+  });
+
   it('sweeps the brute-force scan one item at a time', () => {
     const spec = parseRenderableSpec(patternDecisionBoardJson);
     const items = beatWorld(

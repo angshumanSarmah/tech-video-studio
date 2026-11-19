@@ -479,7 +479,8 @@ message }` for the Curator): `too_many_elements` (mode `maxUnits`), `text_too_sm
   event), a highlight 0.2 s before its word that clears by its beat's end or the next focus
   change (`untilSec`) unless `params.hold`. `focus.ts` is the focus track: the beat's `focus`,
   `focus` events (an engine action, valid on any target; never delivered to elements) and
-  overlays give each element focus keys; out of focus means `dimmed` (lifted while highlighted).
+  overlays give each element a focus track (`focus` and `overlay` keys); out of focus means
+  `dimmed`, lifted while the element is highlighted, but the overlay dim is never lifted.
   Followers (pinned, contained) share their host's focus. `params.ts` reads and validates
   `hold` / `stagger` (`invalid_event_param`: `hold` off a highlight).
 - **Fail → recover.** A `reject` is held until a later `recover` on the same element or part;
@@ -574,7 +575,9 @@ message }` for the Curator): `too_many_elements` (mode `maxUnits`), `text_too_sm
   timeline warnings (`catalog/timeline-checks.ts`, from real or estimated timing):
   `overlay_overlap` (two overlays visible at once), `child_before_container` (a contained
   child's event before its container enters), `recover_without_reject` /
-  `release_without_lock` (an ending with no reject / lock held on that element or part) and
+  `release_without_lock` (an ending with no reject / lock held on that element or part),
+  `scan_too_short` (a scan's resolved step below `SCAN_MIN_STEP_SEC`, squeezed by the beat's
+  next event: `catalog/scan-checks.ts`) and
   each primitive's own `eventWarnings(props,
 events)` (`route_moves_exceed_stops`: a jumpy `route_path` with more `move`s than hops;
   `morph_without_change`: a `device_frame` morph without `button.then`).

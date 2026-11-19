@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { FocusKey } from '../events/focus.ts';
+import type { FocusKey, FocusTrack } from '../events/focus.ts';
 import { ACTION_DURATION_SEC } from '../events/presets.ts';
 import {
   actionProgress,
@@ -349,10 +349,12 @@ describe('highlight clear', () => {
 });
 
 describe('focus dim', () => {
-  const unfocused: FocusKey[] = [
+  const keys: FocusKey[] = [
     { sec: 0, dim: 1, durationSec: 0, action: 'focus' },
     { sec: 2, dim: 0, durationSec: 0.3, action: 'focus' },
   ];
+  const unfocused: FocusTrack = { focus: keys, overlay: [] };
+  const behindOverlay: FocusTrack = { focus: [], overlay: keys };
 
   it('dims the whole element through dimmed while it is out of focus', () => {
     expect(elementState([], 30, FPS, unfocused).dimmed).toBe(1);
@@ -368,5 +370,11 @@ describe('focus dim', () => {
     const state = elementState(events, 30, FPS, unfocused);
     expect(state.dimmed).toBe(0);
     expect(partState(state, 'a').dimmed).toBe(0);
+  });
+
+  it('is not lifted by a highlight while the element is behind an overlay', () => {
+    const state = elementState([at('highlight', 0)], 30, FPS, behindOverlay);
+    expect(state).toMatchObject({ highlight: 1, dimmed: 1 });
+    expect(elementState([at('highlight', 0)], 90, FPS, behindOverlay).dimmed).toBe(0);
   });
 });

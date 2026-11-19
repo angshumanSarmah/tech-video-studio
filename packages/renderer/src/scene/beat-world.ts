@@ -11,9 +11,10 @@ import type { Registries } from '../catalog/registries.ts';
 import {
   focusChangeSecs,
   focusChanges,
-  focusKeys,
+  focusTrack,
+  NO_FOCUS,
   overlayToggles,
-  type FocusKey,
+  type FocusTrack,
 } from '../events/focus.ts';
 import { ZOOM_PUSH_SEC } from '../events/presets.ts';
 import { resolveElementEvents, type AnchoredEvent } from '../events/resolve.ts';
@@ -43,8 +44,8 @@ export type WorldItem =
       /** Parsed by the definition's schema. */
       props: unknown;
       events: ElementEvent[];
-      /** Focus dim over the chain (`events/focus.ts`); empty for overlays and their children. */
-      focus: FocusKey[];
+      /** Focus and overlay dim over the chain (`events/focus.ts`); none for overlays and children. */
+      focus: FocusTrack;
       layer: PrimitiveLayer;
       /** Zone of the beat's layout mode the element asked for (input to the layout engine). */
       zone?: string;
@@ -166,7 +167,7 @@ function resolveWorld(
     withEvents(
       draft,
       byKey.get(draft.key) ?? [],
-      exempt(draft.key) ? [] : focusKeys(draft.key, track),
+      exempt(draft.key) ? NO_FOCUS : focusTrack(draft.key, track),
     ),
   );
 }
@@ -331,7 +332,7 @@ function setAtPath(target: unknown, path: readonly (string | number)[], value: s
   if (last !== undefined) (node as Record<string | number, unknown>)[last] = value;
 }
 
-function withEvents(draft: Draft, events: ElementEvent[], focus: FocusKey[]): WorldItem {
+function withEvents(draft: Draft, events: ElementEvent[], focus: FocusTrack): WorldItem {
   if (draft.kind === 'error') return draft;
   const { kind, key, definition, props, zone } = draft;
   const layer = definition.layer ?? 'board';

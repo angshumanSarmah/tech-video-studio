@@ -1,3 +1,4 @@
+import { NO_FOCUS } from '../events/focus.ts';
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_REGISTRIES } from '../catalog/registries.ts';
 import { elementState, type ElementEvent } from '../primitives/element-state.ts';
@@ -22,7 +23,7 @@ function item(id: string, primitive: string, props: unknown, events: ElementEven
     definition,
     props: parsed,
     events,
-    focus: [],
+    focus: NO_FOCUS,
     layer: definition.layer ?? 'board',
     children: [],
   };

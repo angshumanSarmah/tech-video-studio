@@ -12,12 +12,14 @@ import { ACTION_DURATION_SEC } from '../events/presets.ts';
 import { eventParts } from '../primitives/parts.ts';
 import type { AnyPrimitiveDefinition } from '../primitives/types.ts';
 import type { Registries } from './registries.ts';
+import { scanWarnings } from './scan-checks.ts';
 
 /**
  * Warnings that need each element's events in time order across its `continuesPrevious` chain:
  * a primitive's own `eventWarnings`, overlays that show at the same time (`overlay_overlap`),
  * contained children that act before their container enters (`child_before_container`), and
- * endings with nothing held to end (`recover_without_reject`, `release_without_lock`). Times
+ * endings with nothing held to end (`recover_without_reject`, `release_without_lock`), and scans
+ * squeezed below a readable step (`scan_too_short`, `scan-checks.ts`). Times
  * come from the timing layer, or are estimated from the script; without a script only the
  * primitives' own checks run.
  */
@@ -53,6 +55,7 @@ export function findTimelineWarnings(spec: VideoSpec, registries: Registries): S
     ...overlayOverlapWarnings(placed),
     ...placed.flatMap((p) => childBeforeContainerWarnings(p, placed)),
     ...placed.flatMap(endingWarnings),
+    ...scanWarnings(spec, specBeats(spec), registries),
   ];
 }
 

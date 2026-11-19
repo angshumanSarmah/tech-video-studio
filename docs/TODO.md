@@ -258,5 +258,5 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       (focus events, `hold`, `stagger: "scan"`, transitions, `zoomFrom`). Add them to the
       Generator's DO / COMMON MISTAKES: focus what the beat is about (a highlight lifts the
       focus dim only while it shows), leave `transitionIn` at `cut` on continuing beats, keep
-      `scan` for deliberate sweeps, and use `hold` sparingly (a held highlight shows through an
-      overlay's dim).
+      `scan` for deliberate sweeps with room before the next event (`scan_too_short`), and use
+      `hold` sparingly.

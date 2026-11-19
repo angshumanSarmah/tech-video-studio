@@ -1,5 +1,5 @@
 import type { EventAction } from '@explainer-studio/shared';
-import { focusLevel, type FocusKey } from '../events/focus.ts';
+import { focusLevel, NO_FOCUS, type FocusTrack } from '../events/focus.ts';
 import { ACTION_DURATION_SEC, ACTION_EASING } from '../events/presets.ts';
 import { eventParts } from './parts.ts';
 
@@ -34,7 +34,8 @@ export type ElementState = {
   highlight: number;
   /**
    * 0..1: ramps up after `dim`, back down after a later `highlight` or `enter`; also out of
-   * focus, or on the board behind an overlay (the focus track; a highlight lifts that part).
+   * focus (a highlight lifts that while it shows), or on the board behind an overlay (nothing
+   * lifts that).
    */
   dimmed: number;
   /**
@@ -108,23 +109,24 @@ const SETTLE_PEAK = 0.6;
 /**
  * State at global `frame`; elapsed times use `frame / fps` as the absolute video time. Events that
  * name parts (`params.parts`) drive only those parts; the rest drive the whole element. `focus`
- * (the element's focus keys) dims the whole element.
+ * (the element's focus track) dims the whole element.
  */
 export function elementState(
   events: readonly ElementEvent[],
   frame: number,
   fps: number,
-  focus: readonly FocusKey[] = [],
+  focus: FocusTrack = NO_FOCUS,
 ): ElementState {
   const whole = stateOf(
     events.filter((e) => !eventParts(e.params)),
     frame,
     fps,
   );
-  const unfocused = focusLevel(focus, frame / fps) * (1 - whole.highlight);
+  const sec = frame / fps;
+  const unfocused = focusLevel(focus.focus, sec) * (1 - whole.highlight);
   return {
     ...whole,
-    dimmed: Math.max(whole.dimmed, unfocused),
+    dimmed: Math.max(whole.dimmed, unfocused, focusLevel(focus.overlay, sec)),
     parts: partStates(events, frame, fps),
   };
 }

@@ -88,6 +88,9 @@ export const STAGGER_MAX_SEC = 0.3;
 export const SCAN_STEP_SEC = 0.15;
 export const SCAN_MAX_SEC = 2;
 
+/** Below this step a scan no longer reads as one by one (`scan_too_short`). */
+export const SCAN_MIN_STEP_SEC = 0.08;
+
 /** A highlight starts this long before its anchor word (never before its beat starts). */
 export const HIGHLIGHT_LEAD_SEC = 0.2;
 

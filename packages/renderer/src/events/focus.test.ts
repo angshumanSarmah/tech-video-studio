@@ -5,6 +5,7 @@ import {
   focusChangeSecs,
   focusKeys,
   focusLevel,
+  focusTrack,
   inFocus,
   overlayToggles,
   type FocusTrackInput,
@@ -143,5 +144,20 @@ describe('focusKeys and focusLevel', () => {
 
   it('is 0 before its first key', () => {
     expect(focusLevel([], 3)).toBe(0);
+  });
+});
+
+describe('focusTrack', () => {
+  it('keeps the focus and the overlay dims apart, the first overlay entrance animated', () => {
+    const track = focusTrack('client', {
+      changes: [{ sec: 0, ids: ['api'], animate: false }],
+      overlays: overlayToggles([element('enter', 2)], 0),
+      hostOf: noHosts,
+    });
+    expect(track.focus.map((k) => [k.sec, k.dim])).toEqual([[0, 1]]);
+    expect(track.overlay.map((k) => [k.sec, k.dim, k.durationSec])).toEqual([
+      [0, 0, 0],
+      [2, 1, ACTION_DURATION_SEC.enter],
+    ]);
   });
 });

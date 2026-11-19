@@ -79,8 +79,11 @@ function splitEvent(
   const mode = eventStagger(event.params);
   const { items, count } = itemsOf(event, keys, mode, ctx);
   const staggers = mode === 'scan' || STAGGERED_ACTIONS.has(event.action);
-  const room = mode === 'scan' ? Math.min(SCAN_MAX_SEC, nextEventSec(event, all) - event.sec) : 0;
-  const step = staggers ? staggerStep(count, mode, room) : 0;
+  const step = !staggers
+    ? 0
+    : mode === 'scan'
+      ? scanStep(event, all, count)
+      : staggerStep(count, mode, 0);
   const start = startSec(event);
   return items.map((item) => {
     const sec = start + item.position * step;
@@ -130,8 +133,17 @@ export function staggerStep(count: number, mode: StaggerMode | 'default', roomSe
   return Math.min(STAGGER_STEP_SEC, STAGGER_MAX_SEC / (count - 1));
 }
 
+/**
+ * Seconds between the items of a scan over `count` items: its step, squeezed so the sweep ends by
+ * `SCAN_MAX_SEC` and by the beat's next event (`all`: every event of the chain).
+ */
+export function scanStep(event: AnchoredEvent, all: readonly AnchoredEvent[], count: number) {
+  const room = Math.min(SCAN_MAX_SEC, nextEventSec(event, all) - event.sec);
+  return staggerStep(count, 'scan', room);
+}
+
 /** The next event anchored later in the same beat, else the beat's end. */
-function nextEventSec(event: AnchoredEvent, all: readonly AnchoredEvent[]): number {
+export function nextEventSec(event: AnchoredEvent, all: readonly AnchoredEvent[]): number {
   const later = all
     .filter((e) => e.beatStartSec === event.beatStartSec && e.sec > event.sec + SIMULTANEOUS_SEC)
     .map((e) => e.sec);

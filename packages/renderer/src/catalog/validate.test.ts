@@ -513,6 +513,24 @@ describe('containers, overlays and timeline warnings', () => {
     ]);
   });
 
+  it('warns when a scan is squeezed below a readable step by the next event', () => {
+    const ids = Array.from({ length: 24 }, (_, i) => `s${i}`);
+    const seats = {
+      id: 'seats',
+      primitive: 'slot_grid',
+      props: { kind: 'seats', slots: ids.map((id) => ({ id, label: id })) },
+    };
+    const sweep = ev('pulse', 'seats', 'slows', { parts: ids, stagger: 'scan' });
+    const squeezed = check(hook([seats], [sweep, ev('pulse', 'api', 'then')]));
+    expect(codes(squeezed.warnings)).toEqual([
+      ['$.scenes[0].events[5].params.stagger', 'scan_too_short'],
+    ]);
+    expect(squeezed.warnings[0]?.message).toMatch(/A scan over 24 items gets 0\.\d\d s per item/);
+    const four = { ...seats, props: { kind: 'seats', slots: seats.props.slots.slice(0, 4) } };
+    const roomy = ev('pulse', 'seats', 'slows', { parts: ['s0', 's3'], stagger: 'scan' });
+    expect(check(hook([four], [roomy, ev('pulse', 'api', 'error')])).warnings).toEqual([]);
+  });
+
   it('warns on a recover with no reject held before it, on the element or the part', () => {
     const fine = check(
       hook([], [ev('reject', 'client', 'slows'), ev('recover', 'client', 'error')]),

@@ -1,3 +1,4 @@
+import { NO_FOCUS } from '../events/focus.ts';
 import { expect } from 'vitest';
 import { PRIMITIVES } from '../primitives/registry.ts';
 import type { PrimitiveItem } from '../scene/scene-layers.ts';
@@ -39,7 +40,7 @@ export function item(
     definition,
     props: definition.propsSchema.parse(props),
     events: [],
-    focus: [],
+    focus: NO_FOCUS,
     layer: definition.layer ?? 'board',
     ...(zone ? { zone } : {}),
     children: [],
