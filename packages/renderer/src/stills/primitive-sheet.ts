@@ -4,7 +4,7 @@ import {
   type EventAnchor,
   type RenderableVideoSpec,
 } from '@explainer-studio/shared';
-import { ACTION_DURATION_SEC } from '../events/presets.ts';
+import { ACTION_DURATION_SEC, HIGHLIGHT_LEAD_SEC } from '../events/presets.ts';
 import { eventParts } from '../primitives/parts.ts';
 import { anchorToTime, secToFrame } from '../timing/frames.ts';
 
@@ -43,6 +43,19 @@ export type SheetPlan = { beatId: string; elementId: string; panels: SheetPanel[
 /** Longest wait after the last event, so a long beat tail does not hide a short effect. */
 const LAST_PANEL_MAX_SEC = 2;
 
+/**
+ * The last frame a sheet's final panel may sample: before highlights start to clear for the end of
+ * the beat (`events/resolve.ts`), so a payoff highlight still shows.
+ */
+export function lastPanelEnd(beatEndSec: number, fps: number): number {
+  return secToFrame(beatEndSec - ACTION_DURATION_SEC.highlight, fps);
+}
+
+/** A panel's settled frame: before the next moment, and before a highlight there leads it. */
+export function beforeNext(nextFrame: number, fps: number): number {
+  return nextFrame - 1 - secToFrame(HIGHLIGHT_LEAD_SEC, fps);
+}
+
 /** Where a pulse's bump peaks, as a fraction of its duration (its easing is linear). */
 const PULSE_PEAK = 0.5;
 
@@ -66,11 +79,11 @@ export function planPrimitiveSheet(
       return time ? [{ frame: time.frame, action: e.action, caption }] : [];
     })
     .sort((a, b) => a.frame - b.frame);
-  const beatEnd = secToFrame(beat.endSec, fps);
+  const beatEnd = lastPanelEnd(beat.endSec, fps);
   const pulsePeak = Math.round(PULSE_PEAK * ACTION_DURATION_SEC.pulse * fps);
   const panels = events.map((event, i) => {
     const next = events[i + 1]?.frame ?? Math.min(beatEnd, event.frame + LAST_PANEL_MAX_SEC * fps);
-    const settled = Math.max(event.frame, next - 1);
+    const settled = Math.max(event.frame, beforeNext(next, fps));
     const frame = event.action === 'pulse' ? Math.min(settled, event.frame + pulsePeak) : settled;
     return { caption: event.caption, frame };
   });

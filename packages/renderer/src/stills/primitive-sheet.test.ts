@@ -14,7 +14,14 @@ import { beatWorld } from '../scene/beat-world.ts';
 import { primitiveBoardSpecs, primitivesBoardSpec } from '../../fixtures/index.ts';
 import { eventParts } from '../primitives/parts.ts';
 import { listPrimitives } from '../primitives/registry.ts';
-import { actionCaption, anchorCaption, panelInner, planPrimitiveSheet } from './primitive-sheet.ts';
+import {
+  actionCaption,
+  anchorCaption,
+  beforeNext,
+  lastPanelEnd,
+  panelInner,
+  planPrimitiveSheet,
+} from './primitive-sheet.ts';
 
 const FPS = 30;
 
@@ -191,5 +198,12 @@ describe('panelInner', () => {
     expect(panelInner(8).height).toBeLessThan(400);
     expect(panelInner(10).height).toBeLessThan(panelInner(8).height);
     expect(panelInner(10).height).toBeGreaterThan(150);
+  });
+});
+
+describe('panel sampling', () => {
+  it('samples before a highlight that leads the next moment, and before end-of-beat clears', () => {
+    expect(beforeNext(100, 30)).toBe(100 - 1 - 6);
+    expect(lastPanelEnd(10, 30)).toBe(300 - 9);
   });
 });

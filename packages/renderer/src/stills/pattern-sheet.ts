@@ -7,8 +7,8 @@ import {
 import type { Registries } from '../catalog/registries.ts';
 import { LAYOUT_MODES } from '../layout/modes.ts';
 import type { Size } from '../primitives/types.ts';
-import { anchorToTime, secToFrame } from '../timing/frames.ts';
-import { anchorCaption, type SheetPanel } from './primitive-sheet.ts';
+import { anchorToTime } from '../timing/frames.ts';
+import { anchorCaption, beforeNext, lastPanelEnd, type SheetPanel } from './primitive-sheet.ts';
 
 /**
  * Which moments a pattern sheet shows and how it groups the beat's elements. Pure: the still and
@@ -52,11 +52,11 @@ export function planPatternSheet(
       ];
     })
     .sort((a, b) => a.frame - b.frame);
-  const beatEnd = secToFrame(beat.endSec, fps);
+  const beatEnd = lastPanelEnd(beat.endSec, fps);
   const panels = moments.map((moment, i) => {
     const next =
       moments[i + 1]?.frame ?? Math.min(beatEnd, moment.frame + LAST_PANEL_MAX_SEC * fps);
-    return { caption: moment.caption, frame: Math.max(moment.frame, next - 1) };
+    return { caption: moment.caption, frame: Math.max(moment.frame, beforeNext(next, fps)) };
   });
   return {
     beatId: scene.beatId,
