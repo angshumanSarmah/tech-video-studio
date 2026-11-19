@@ -370,6 +370,13 @@ theme)` lays out a whole spec, memoised per spec object and theme (never per fra
     `contentInset` (containers size from their children and lay them out in their own box:
     `PlacedItem.children`). Relational components get `path` (box px, layout output) and draw
     `standalonePath` only on sheets.
+  - **Connector routing** (`routing.ts`): a connector stays a straight edge-to-edge line when it
+    crosses no element or pin box; otherwise it takes the shortest orthogonal candidate that
+    crosses nothing (straight orthogonal, two L-shapes, Z-shapes through every channel between box
+    edges and around the outside; each bend costs 40 px, ties keep candidate order), with rounded
+    corners. Followers are placed twice so routes also avoid midpoint pins. `packet_stream` reuses
+    the route; midpoint pins sit beside the middle of the segment holding its midpoint (the free
+    side). `connector_crosses` means no candidate cleared.
   - **Pins:** `tag`, `counter`, `timer_ring` and `callout` take `pin: { to, side }` (`top`,
     `bottom`, `left`, `right`, or `middle` of a connector: beside its midpoint). The layout keeps
     them on that side of their host wherever it goes; unresolved pins get `pin_unresolved`.

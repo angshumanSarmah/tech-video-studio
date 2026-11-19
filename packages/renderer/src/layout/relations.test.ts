@@ -200,11 +200,56 @@ describe('relational items', () => {
     expectValidBoard(result, fullFrame());
   });
 
-  it('warns when a connector passes through another element', () => {
-    const items = [node('a', 'row'), node('b', 'row'), node('c', 'row'), link('ac', 'a', 'c')];
+  it('routes a connector around an element in its way, and streams follow the route', () => {
+    const items = [
+      node('a', 'row'),
+      node('b', 'row'),
+      node('c', 'row'),
+      link('ac', 'a', 'c'),
+      item('flow', 'packet_stream', { along: 'ac' }),
+    ];
     const result = layout({ items, mode: 'stacked_list', focus: [] }, theme, fullFrame());
+    const path = canvasPath(byKey(result, 'ac'));
+    expect(path.length).toBeGreaterThan(2);
+    expect(pathCrossesRect(path, byKey(result, 'b').rect)).toBe(false);
+    expect(canvasPath(byKey(result, 'flow'))).toEqual(path);
+    expect(result.warnings.map((w) => w.code)).not.toContain('connector_crosses');
+    expectValidBoard(result, fullFrame());
+  });
+
+  it('keeps a connector straight when nothing is in its way', () => {
+    const items = [node('a', 'source'), node('b', 'sink'), link('ab', 'a', 'b')];
+    const result = layout({ items, mode: 'pipeline', focus: [] }, theme, fullFrame());
+    expect(canvasPath(byKey(result, 'ab'))).toHaveLength(2);
+  });
+
+  it('puts a midpoint pin beside the middle of a routed connector, clear of it', () => {
+    const items = [
+      node('a', 'row'),
+      node('b', 'row'),
+      node('c', 'row'),
+      link('ac', 'a', 'c'),
+      pinned('via', 'ac', 'middle'),
+    ];
+    const result = layout({ items, mode: 'stacked_list', focus: [] }, theme, fullFrame());
+    const path = canvasPath(byKey(result, 'ac'));
+    expect(pathCrossesRect(path, byKey(result, 'via').rect)).toBe(false);
+    expectValidBoard(result, fullFrame());
+  });
+
+  it('warns only when no route clears: a target walled in by its own pins', () => {
+    const items = [
+      node('a', 'source'),
+      node('b', 'sink'),
+      ...(['top', 'bottom', 'left', 'right'] as const).map((side) =>
+        pinned(`wall-${side}`, 'b', side),
+      ),
+      link('ab', 'a', 'b'),
+    ];
+    const result = layout({ items, mode: 'pipeline', focus: [] }, theme, fullFrame());
     const crossing = result.warnings.filter((w) => w.code === 'connector_crosses');
-    expect(crossing).toEqual([expect.objectContaining({ keys: ['ac', 'b'] })]);
+    expect(crossing.length).toBeGreaterThan(0);
+    expect(crossing.every((w) => w.keys[0] === 'ab')).toBe(true);
   });
 });
 

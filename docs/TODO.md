@@ -221,13 +221,9 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       heroMetric, storyClock, headline) is user-set and not in the LLM JSON schemas. Expose the
       toggles at the scene gate (form view), and show "estimated timing" in the preview UI (the
       temporary in-frame badge went away with `DevHud`).
-- [ ] **Layout — Pattern fits and crossing connectors.** `atomic_lock`, `cache_hit_miss` and
-      `worker_pool` now pin what belongs to another element. Still loose (`specLayoutWarnings`
-      reports `connector_crosses` for most of them on the fixture boards):
-  - Elbow routing: connectors are straight, so a bypass (`flood_then_funnel` `direct`, the
-    rate-limiter fixture's flood) runs through the middle stage. Route around solids.
-  - Wrapped pipeline tiers (`fan_out` with three wide targets): links to the second row cross
-    the first. Stagger rows or route around.
+- [ ] **Layout — Pattern fits.** `atomic_lock`, `cache_hit_miss` and `worker_pool` pin what
+      belongs to another element, and connectors route around elements (P1A.9b), so no fixture
+      board reports `connector_crosses`. Still loose:
   - `reject_duplicate` (pipeline): the two id tags sit in `stage`; they travel the link.
   - `inference_card` (pipeline): the comparison row sits in `aside`; it is a parallel lane.
   - `failover` (pipeline): leader and followers share `sink` and replicate inside it.
@@ -239,6 +235,10 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **P1A.10 — Camera easing.** `specLayout` gives each beat a camera (zoom and pan of the
       board layer); beats snap from one to the next. Ease between cameras at beat boundaries
       (and keep `BeatFromSpec` frame-identical to `VideoFromSpec`), and fold focus dimming in.
+- [ ] **Layout — Routing limits.** Routes avoid elements and pins, not each other: two routed
+      connectors may overlap along a shared channel, and several ports on one side all leave from
+      the side's centre line. Spread ports and penalise shared runs if boards get busy. Routes
+      through narrow gaps get no reserved room (the mode's gaps are for straight links).
 - [ ] **Layout — Board clip.** The board layer is clipped to its frame plus `space.sm` (so guides
       never leak into the HUD); an emphasis mark or glow on an element at the frame edge loses
       what overhangs further.

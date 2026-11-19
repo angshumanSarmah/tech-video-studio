@@ -100,6 +100,16 @@ describe.each(FORMATS)('every fixture board, %s format', (format) => {
   );
 });
 
+describe.each(FORMATS)('connector routing, %s format', (format) => {
+  it.each(allFixtureSpecs.map((s) => [s.meta.id, s] as const))(
+    '%s: no connector crosses an element',
+    (_id, base) => {
+      const warnings = specLayoutWarnings(withFormat(base, format), theme);
+      expect(warnings.filter((w) => w.code === 'connector_crosses')).toEqual([]);
+    },
+  );
+});
+
 describe('specLayout', () => {
   it('keeps one placement per continuesPrevious chain, with a camera per beat', () => {
     const result = specLayout(layoutModesBoardSpec, theme);

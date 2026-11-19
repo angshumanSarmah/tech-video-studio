@@ -48,6 +48,8 @@ export function arrange(
   placeFollowers(analysis.items, rects, paths, {
     pinGap: theme.space.xs,
     portGap: theme.space.xs,
+    clearance: theme.space.xs,
+    cornerRadius: theme.radius.md,
     labelBand: ctx.labelBand,
     ringPad: theme.space.md,
   });
