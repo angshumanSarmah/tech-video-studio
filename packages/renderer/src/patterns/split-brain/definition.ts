@@ -57,7 +57,8 @@ export const splitBrainPattern = definePattern({
     at: anchorsSchema(ANCHORS),
   }),
   actions: ['exit', 'highlight', 'dim', 'pulse'],
-  formats: ['full'],
+  formats: ['full', 'card'],
+  formatRule: { when: 'the lease timer', formats: ['full'], applies: (p) => p.lease !== undefined },
   anchors: ANCHORS,
   targets: [
     { id: 'leader', description: 'The leader.' },

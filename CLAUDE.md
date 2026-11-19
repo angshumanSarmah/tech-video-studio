@@ -234,7 +234,9 @@ to `docs/patterns/<id>.png` (a panel per narration anchor, elements in one row p
 `… still:layouts` renders `docs/layouts/<mode>-<format>.png` from the layout board;
 `… still:pattern-layouts [ids…]` renders `docs/patterns/<id>-layout-<format>.png`: each pattern's
 beat through the real layout engine (placement, camera, routing) at its settled moment
-(`settledPatternFrame`), in both formats. The per-anchor sheets stay the record of timing.
+(`settledPatternFrame`), in both formats; a pattern whose board params do not suit a format is
+drawn with its lighter variant from the script's `FORMAT_VARIANTS` (e.g. `split_brain` without
+its lease in card). The per-anchor sheets stay the record of timing.
 
 - **Themes** live in `src/theme` and are registered by id (`getTheme`, `listThemes`;
   default `drafting-paper`, a light engineering-drawing look). Each is validated against

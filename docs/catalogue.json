@@ -7541,8 +7541,15 @@
       ],
       "layoutMode": "versus_split",
       "formats": [
-        "full"
+        "full",
+        "card"
       ],
+      "formatRule": {
+        "when": "the lease timer",
+        "formats": [
+          "full"
+        ]
+      },
       "targets": [
         {
           "id": "leader",

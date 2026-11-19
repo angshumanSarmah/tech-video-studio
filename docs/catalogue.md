@@ -1999,7 +1999,7 @@ Two regions with a leader and a replica. The link breaks (red, then dashed) and 
 
 **Layout mode:** `versus_split`
 
-**Formats:** `full`
+**Formats:** `full`, `card` (`full` only with the lease timer)
 
 **Narration anchors** (`params.at`):
 

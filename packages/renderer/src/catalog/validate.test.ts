@@ -682,6 +682,17 @@ describe('pattern formats', () => {
     expect(patternFormats(pool, three)).toEqual(['full']);
   });
 
+  it('allows split_brain in the card format only without its lease timer', () => {
+    const split = DEFAULT_REGISTRIES.patterns.get('split_brain');
+    if (!split) throw new Error('split_brain is registered');
+    const withLease = split.paramsSchema.parse(split.example.params) as Record<string, unknown>;
+    expect(withLease.lease).toBeDefined();
+    expect(patternFormats(split, withLease)).toEqual(['full']);
+    const withoutLease = { ...withLease };
+    delete withoutLease.lease;
+    expect(patternFormats(split, withoutLease)).toEqual(['full', 'card']);
+  });
+
   it('every pattern declares the formats it suits', () => {
     for (const p of listPatterns()) expect(p.formats.length).toBeGreaterThan(0);
   });
