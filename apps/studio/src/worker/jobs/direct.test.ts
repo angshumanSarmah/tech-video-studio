@@ -2,6 +2,7 @@ import { join } from 'node:path';
 import {
   deviceLayoutCombo,
   DirectorPlanSchema,
+  TOPIC_CLASS_CATALOGUE,
   SettingsSchema,
   type DirectorPlan,
   type RunSettingsInput,
@@ -279,10 +280,15 @@ describe('direct job (rate-limiter fixture, dry run)', () => {
 
     // The good plan reuses both: one repair moves those beats to another layout, then it passes.
     const reused = new Set(recent.slice(0, 2));
+    // Each reused beat moves to a mode of its topic class that no scene uses yet, so the fix
+    // also keeps the per-video layout variety rules.
     const fixed = answer((p) => {
+      const allowed = TOPIC_CLASS_CATALOGUE.entries.find((c) => c.id === p.meta.topicClass)!;
+      const used = new Set(p.story.beats.flatMap((b) => (b.layoutMode ? [b.layoutMode] : [])));
+      const spare = allowed.allowedLayoutModes.filter((m) => !used.has(m));
       for (const beat of p.story.beats) {
         const combo = deviceLayoutCombo(beat);
-        if (combo && reused.has(combo)) beat.layoutMode = 'two_column';
+        if (combo && reused.has(combo)) beat.layoutMode = spare.shift()!;
       }
     });
     const length = plan.meta.targetLengthSec!;

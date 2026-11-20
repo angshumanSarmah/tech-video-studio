@@ -4,7 +4,12 @@ import type { ResearchNotes } from '../research/notes.ts';
 import { normalizeNumber, quantityTokens } from '../research/numbers.ts';
 import { TARGET_LENGTH_TOLERANCE } from '../spec/integrity/warnings.ts';
 import { toJsonPath } from '../spec/validate.ts';
-import { MAX_HOOK_NUMBERS } from '../spec/story.ts';
+import {
+  MAX_BEATS_PER_PATTERN,
+  MAX_BEATS_PER_SCENE,
+  MAX_HOOK_NUMBERS,
+  MAX_SCENES_PER_LAYOUT_MODE,
+} from '../spec/story.ts';
 import type { DirectorPlan } from './plan.ts';
 
 /**
@@ -57,6 +62,11 @@ export const DIRECTOR_PROBLEM_CODES = [
   'cliffhanger_missing',
   'recap_missing',
   'recent_combo_reused',
+  'continues_without_previous',
+  'scene_too_long',
+  'layout_mode_overused',
+  'layout_mode_repeated',
+  'pattern_overused',
 ] as const;
 export type DirectorProblemCode = (typeof DIRECTOR_PROBLEM_CODES)[number];
 
@@ -150,6 +160,7 @@ export function directorPlanProblems(
     ...ctaProblems(plan, ctx.series),
     ...proseNumberProblems(plan, ctx.notes),
     ...varietyProblems(plan, ctx.recentCombos),
+    ...videos.flatMap((video) => sceneVarietyProblems(plan, video)),
   ];
 }
 
@@ -860,5 +871,138 @@ function varietyProblems(plan: DirectorPlan, recentCombos: readonly string[]): D
       `Beat "${beat.id}" repeats the recently used device/layout "${combo}"; ` +
         `${reused.length} beats do, at most ${MAX_RECENT_COMBO_REUSE} may. Change its device or layout mode.`,
     ),
+  );
+}
+
+/** One scene of a video: a beat that starts a board and the beats that continue it. */
+interface PlannedScene {
+  /** Index into `story.beats` of the scene's first beat. */
+  readonly first: number;
+  /** Its layout mode: the first beat's (continuing beats keep the board's). */
+  readonly layoutMode: string | undefined;
+  /** Indices into `story.beats` of all its beats, in order. */
+  readonly beats: number[];
+}
+
+/** A video's scenes, `continuesPrevious` chains counted as one. Its first beat always starts one. */
+function scenesOf(plan: DirectorPlan, video: PlannedVideo): PlannedScene[] {
+  const scenes: PlannedScene[] = [];
+  video.beats.forEach((i, k) => {
+    const beat = plan.story.beats[i];
+    if (!beat) return;
+    const current = scenes.at(-1);
+    if (k > 0 && beat.continuesPrevious && current) current.beats.push(i);
+    else scenes.push({ first: i, layoutMode: beat.layoutMode, beats: [i] });
+  });
+  return scenes;
+}
+
+/**
+ * Per video: no beat continues across the video's start; a layout mode lays out at most
+ * `MAX_SCENES_PER_LAYOUT_MODE` scenes and never two scenes in a row; a pattern is suggested on at
+ * most `MAX_BEATS_PER_PATTERN` beats.
+ */
+function sceneVarietyProblems(plan: DirectorPlan, video: PlannedVideo): DirectorProblem[] {
+  const scenes = scenesOf(plan, video);
+  return [
+    ...firstBeatContinuesProblems(plan, video),
+    ...sceneLengthProblems(plan, scenes),
+    ...layoutOveruseProblems(plan, video, scenes),
+    ...layoutRepeatProblems(plan, scenes),
+    ...patternOveruseProblems(plan, video),
+  ];
+}
+
+function firstBeatContinuesProblems(plan: DirectorPlan, video: PlannedVideo): DirectorProblem[] {
+  const first = video.beats[0];
+  const beat = first === undefined ? undefined : plan.story.beats[first];
+  if (!beat?.continuesPrevious) return [];
+  return [
+    problem(
+      ['story', 'beats', first!, 'continuesPrevious'],
+      'continues_without_previous',
+      `Beat "${beat.id}" opens ${video.label.toLowerCase()}: it starts a board, so continuesPrevious is false.`,
+    ),
+  ];
+}
+
+/** A scene spans at most `MAX_BEATS_PER_SCENE` beats: one board cannot carry a whole video. */
+function sceneLengthProblems(
+  plan: DirectorPlan,
+  scenes: readonly PlannedScene[],
+): DirectorProblem[] {
+  return scenes.flatMap((scene) => {
+    const extra = scene.beats.slice(MAX_BEATS_PER_SCENE);
+    const first = plan.story.beats[scene.first]?.id;
+    return extra.map((i) =>
+      problem(
+        ['story', 'beats', i, 'continuesPrevious'],
+        'scene_too_long',
+        `Beat "${plan.story.beats[i]?.id}" would make the scene that starts at "${first}" span ` +
+          `${scene.beats.length} beats; a scene spans at most ${MAX_BEATS_PER_SCENE}. Start a new ` +
+          'scene here (continuesPrevious false, with its own layout mode).',
+      ),
+    );
+  });
+}
+
+function layoutOveruseProblems(
+  plan: DirectorPlan,
+  video: PlannedVideo,
+  scenes: readonly PlannedScene[],
+): DirectorProblem[] {
+  const seen = new Map<string, number>();
+  return scenes.flatMap((scene) => {
+    if (!scene.layoutMode) return [];
+    const count = (seen.get(scene.layoutMode) ?? 0) + 1;
+    seen.set(scene.layoutMode, count);
+    if (count <= MAX_SCENES_PER_LAYOUT_MODE) return [];
+    return [
+      problem(
+        ['story', 'beats', scene.first, 'layoutMode'],
+        'layout_mode_overused',
+        `${video.label} already lays out ${MAX_SCENES_PER_LAYOUT_MODE} scenes with ` +
+          `"${scene.layoutMode}"; pick another mode for beat "${plan.story.beats[scene.first]?.id}", ` +
+          'or continue the previous scene (continuesPrevious).',
+      ),
+    ];
+  });
+}
+
+function layoutRepeatProblems(
+  plan: DirectorPlan,
+  scenes: readonly PlannedScene[],
+): DirectorProblem[] {
+  return scenes.flatMap((scene, k) => {
+    const previous = scenes[k - 1];
+    if (!scene.layoutMode || previous?.layoutMode !== scene.layoutMode) return [];
+    return [
+      problem(
+        ['story', 'beats', scene.first, 'layoutMode'],
+        'layout_mode_repeated',
+        `Beat "${plan.story.beats[scene.first]?.id}" starts a new scene in "${scene.layoutMode}", ` +
+          'the mode of the scene before it: pick another mode, or continue that scene ' +
+          '(continuesPrevious).',
+      ),
+    ];
+  });
+}
+
+function patternOveruseProblems(plan: DirectorPlan, video: PlannedVideo): DirectorProblem[] {
+  const seen = new Map<string, number>();
+  return video.beats.flatMap((i) =>
+    (plan.story.beats[i]?.suggestedPatternIds ?? []).flatMap((pattern, j) => {
+      const count = (seen.get(pattern) ?? 0) + 1;
+      seen.set(pattern, count);
+      if (count <= MAX_BEATS_PER_PATTERN) return [];
+      return [
+        problem(
+          ['story', 'beats', i, 'suggestedPatternIds', j],
+          'pattern_overused',
+          `${video.label} already suggests "${pattern}" on ${MAX_BEATS_PER_PATTERN} beats; ` +
+            'show this beat another way.',
+        ),
+      ];
+    }),
   );
 }

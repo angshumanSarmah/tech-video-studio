@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { VideoSettingsSchema, type VideoSettings } from '../config/video.ts';
 import { ResearchNotesSchema, type ResearchNotes } from '../research/notes.ts';
-import { MAX_HOOK_NUMBERS } from '../spec/story.ts';
+import {
+  MAX_BEATS_PER_PATTERN,
+  MAX_BEATS_PER_SCENE,
+  MAX_HOOK_NUMBERS,
+  MAX_SCENES_PER_LAYOUT_MODE,
+} from '../spec/story.ts';
 import { validateVideoSpec } from '../spec/validate.ts';
 import {
   directorPlanProblems,
@@ -571,6 +576,81 @@ describe('directorPlanProblems', () => {
         ['$.story.ending.specCard.lines[1]', 'number_not_in_notes'],
         ['$.story.ending.specCard.lines[1]', 'number_not_in_notes'],
       ]);
+    });
+  });
+
+  describe('layout and pattern variety per video', () => {
+    const modes = (p: DirectorPlan, list: (string | undefined)[]) =>
+      list.forEach((mode, i) => (p.story.beats[i]!.layoutMode = mode));
+
+    it(`lays out at most ${MAX_SCENES_PER_LAYOUT_MODE} scenes with one mode, a chain counting once`, () => {
+      const three = (p: DirectorPlan) =>
+        modes(p, ['centered_focus', 'pipeline', 'centered_focus', 'pipeline', 'centered_focus']);
+      expect(problemsAfter(three)).toEqual([
+        ['$.story.beats[4].layoutMode', 'layout_mode_overused'],
+      ]);
+      // "end" continues "shed": the third centered_focus beat is the second scene's tail.
+      expect(
+        problemsAfter((p) => {
+          modes(p, ['centered_focus', 'pipeline', 'centered_focus', 'centered_focus', undefined]);
+          p.story.beats[3]!.continuesPrevious = true;
+          p.story.beats[4]!.continuesPrevious = true;
+        }),
+      ).toEqual([]);
+    });
+
+    it('never repeats the previous scene’s mode unless it continues that scene', () => {
+      expect(problemsAfter((p) => modes(p, ['centered_focus', 'centered_focus']))).toEqual([
+        ['$.story.beats[1].layoutMode', 'layout_mode_repeated'],
+      ]);
+      expect(
+        problemsAfter((p) => {
+          modes(p, ['centered_focus', 'centered_focus']);
+          p.story.beats[1]!.continuesPrevious = true;
+        }),
+      ).toEqual([]);
+      // A mode-less scene between two scenes of one mode does not make them consecutive.
+      expect(problemsAfter((p) => modes(p, ['pipeline', undefined, 'pipeline']))).toEqual([]);
+    });
+
+    it(`suggests one pattern on at most ${MAX_BEATS_PER_PATTERN} beats`, () => {
+      expect(
+        problemsAfter((p) => {
+          for (const i of [1, 2, 3]) p.story.beats[i]!.suggestedPatternIds = ['fan_out'];
+        }),
+      ).toEqual([['$.story.beats[3].suggestedPatternIds[0]', 'pattern_overused']]);
+    });
+
+    it(`lets a scene span at most ${MAX_BEATS_PER_SCENE} beats`, () => {
+      const chain = (n: number) => (p: DirectorPlan) => {
+        for (let i = 1; i < n; i += 1) p.story.beats[i]!.continuesPrevious = true;
+      };
+      expect(problemsAfter(chain(MAX_BEATS_PER_SCENE))).toEqual([]);
+      expect(problemsAfter(chain(5))).toEqual([
+        ['$.story.beats[3].continuesPrevious', 'scene_too_long'],
+        ['$.story.beats[4].continuesPrevious', 'scene_too_long'],
+      ]);
+    });
+
+    it('starts every video and part on a new board', () => {
+      expect(problemsAfter((p) => (p.story.beats[0]!.continuesPrevious = true))).toEqual([
+        ['$.story.beats[0].continuesPrevious', 'continues_without_previous'],
+      ]);
+      expect(
+        problemsAfter((p) => {
+          twoParts(p);
+          p.story.beats[2]!.continuesPrevious = true;
+        }),
+      ).toEqual([['$.story.beats[2].continuesPrevious', 'continues_without_previous']]);
+    });
+
+    it('counts per video: each part has its own budget', () => {
+      expect(
+        problemsAfter((p) => {
+          twoParts(p);
+          modes(p, ['pipeline', 'centered_focus', 'pipeline', 'centered_focus', 'pipeline']);
+        }),
+      ).toEqual([]);
     });
   });
 

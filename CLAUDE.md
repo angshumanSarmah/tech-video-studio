@@ -468,7 +468,8 @@ stepId?, aliases?, check?, signal?, log? })`** is the only way to call a model (
   `mainIdea`, `beatIds`, `targetLengthSec`). `specFromPlan(plan, { id, series, formatOverride,
 seriesNumber })` makes the spec; with parts its `targetLengthSec` is the parts' total within the
   hard limits. Plan lengths carry no hard cap in the schema (prompts state only the range).
-- **Story fields the Director fills:** `runningExample` (one sentence), `beats[].newTerms`
+- **Story fields the Director fills:** `runningExample` (one sentence), `beats[].continuesPrevious`
+  (a suggestion for the Generator: the beat keeps the previous board), `beats[].newTerms`
   (glossary terms introduced), `beats[].source` (real-incident footnote, carried into the
   script), `rejectedAlternative.chosenBeatId`, `ending.specCard` (3 lines of at most 40 chars).
 - **Checks** (`directorPlanProblems`, shared, pure; `directorCheck` adds the spec and registry
@@ -497,7 +498,13 @@ seriesNumber })` makes the spec; with parts its `targetLengthSec` is the parts' 
   `cliffhanger_ending` and its `ENDING_REQUIREMENTS` (spec card: `specCard` and `cta`; callback
   and real-world closure: `cta`); earlier parts end on a `cliffhanger_ending` beat, parts 2+ open
   on a `recap_opening` beat; more than `MAX_RECENT_COMBO_REUSE` (1) beats reusing a recent
-  `<device>/<layout>` combo (usage kind `device_layout`) flags each. The spec's
+  `<device>/<layout>` combo (usage kind `device_layout`) flags each. Per video (or part), with a
+  `continuesPrevious` chain counted as one scene (its mode is its first beat's): a layout mode
+  lays out at most `MAX_SCENES_PER_LAYOUT_MODE` (2) scenes (`layout_mode_overused`), two scenes
+  in a row never share a mode (`layout_mode_repeated`), a pattern is suggested on at most
+  `MAX_BEATS_PER_PATTERN` (2) beats (`pattern_overused`), and a video's first beat never
+  continues (`continues_without_previous`); a scene spans at most `MAX_BEATS_PER_SCENE` (3) beats
+  (`scene_too_long`), so chains cannot carry the whole video. The spec's
   `target_length_mismatch` is dropped (the plan checks length per video or part).
 - **Fixture:** `agents/director/fixtures/rate-limiter/responses/director.json`, the dry-run plan
   `jobs/direct.test.ts` replays after ingesting the Researcher's sources and replaying its recorded

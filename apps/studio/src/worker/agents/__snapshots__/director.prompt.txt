@@ -305,15 +305,20 @@ Common mistakes to avoid
                   "pattern": "^num-[1-9]\\d*$"
                 }
               },
+              "continuesPrevious": {
+                "default": false,
+                "description": "true: this beat keeps the previous beat's board and adds to it (one scene). Never on a video's or part's first beat; a scene spans at most 3 beats.",
+                "type": "boolean"
+              },
               "layoutMode": {
-                "description": "A layout mode id allowed for the video's topic class.",
+                "description": "A layout mode id allowed for the video's topic class, on the scene's first beat (continuing beats leave it unset). One mode lays out at most 2 scenes per video, and the next scene never repeats the previous scene's mode.",
                 "type": "string",
                 "maxLength": 64,
                 "pattern": "^[a-z0-9][a-z0-9_-]*$"
               },
               "suggestedPatternIds": {
                 "default": [],
-                "description": "Pattern ids from the catalogue that show this beat; the Generator decides.",
+                "description": "Pattern ids from the catalogue that show this beat; the Generator decides. One pattern on at most 2 beats per video.",
                 "type": "array",
                 "items": {
                   "type": "string",

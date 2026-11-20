@@ -149,6 +149,7 @@ function printPlan(plan: DirectorPlan, notes: ResearchNotes): void {
   console.log('  beats:');
   for (const b of story.beats) {
     const extras = [
+      ...(b.continuesPrevious ? ['continues'] : []),
       b.device ?? '-',
       b.layoutMode ?? '-',
       b.suggestedPatternIds.join('+') || '-',

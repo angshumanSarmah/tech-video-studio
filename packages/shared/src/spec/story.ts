@@ -77,6 +77,15 @@ export const ChapterSchema = z.strictObject({
 });
 export type Chapter = z.infer<typeof ChapterSchema>;
 
+/** Scenes (a beat plus the beats that continue it) one layout mode may lay out, per video. */
+export const MAX_SCENES_PER_LAYOUT_MODE = 2;
+
+/** Beats one scene (a beat and the beats that continue it) may span. */
+export const MAX_BEATS_PER_SCENE = 3;
+
+/** Beats one pattern may be suggested on, per video. */
+export const MAX_BEATS_PER_PATTERN = 2;
+
 /** Research numbers a hook may cite (`hookNumberIds`): one or two make the problem, not a list. */
 export const MAX_HOOK_NUMBERS = 2;
 
@@ -106,15 +115,27 @@ export const StoryBeatSchema = z.strictObject({
     .describe(
       'Hook beat only: the one or two research numbers ("num-<n>") that make the engineer\'s problem. The hook\'s factIds then list no "num-<n>" ids.',
     ),
+  /**
+   * Suggestion for the Generator: this beat keeps the previous beat's board and adds to it (one
+   * scene). Never on a video's (or part's) first beat.
+   */
+  continuesPrevious: z
+    .boolean()
+    .default(false)
+    .describe(
+      `true: this beat keeps the previous beat's board and adds to it (one scene). Never on a video's or part's first beat; a scene spans at most ${MAX_BEATS_PER_SCENE} beats.`,
+    ),
   /** Suggestion for the Generator, which makes the final choice in the scene layer. */
   layoutMode: SpecIdSchema.optional().describe(
-    "A layout mode id allowed for the video's topic class.",
+    `A layout mode id allowed for the video's topic class, on the scene's first beat (continuing beats leave it unset). One mode lays out at most ${MAX_SCENES_PER_LAYOUT_MODE} scenes per video, and the next scene never repeats the previous scene's mode.`,
   ),
   /** Suggestions for the Generator, which makes the final choice in the scene layer. */
   suggestedPatternIds: z
     .array(SpecIdSchema)
     .default([])
-    .describe('Pattern ids from the catalogue that show this beat; the Generator decides.'),
+    .describe(
+      `Pattern ids from the catalogue that show this beat; the Generator decides. One pattern on at most ${MAX_BEATS_PER_PATTERN} beats per video.`,
+    ),
   /** Glossary terms this beat introduces (the first time the video names them). */
   newTerms: z
     .array(z.string().trim().min(1))
