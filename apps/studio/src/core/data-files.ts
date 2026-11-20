@@ -56,6 +56,11 @@ export function beatStillPath(runId: number, beatId: string): string {
   return posix.join(runDir(runId), 'stills', `${beatId}.png`);
 }
 
+/** The stills' sidecar: their spec version and key frames (`render_stills`). */
+export function stillsManifestPath(runId: number): string {
+  return posix.join(runDir(runId), 'stills', 'stills.json');
+}
+
 /** The final video (`render_final`). */
 export function exportVideoPath(runId: number, slug: string): string {
   return posix.join('exports', String(runId), `${slug}.mp4`);

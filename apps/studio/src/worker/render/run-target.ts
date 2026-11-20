@@ -11,13 +11,14 @@ import { prepareRenderAssets } from '#core/assets/render-assets.ts';
 import { readDataJson, resolveDataPath } from '#core/data-files.ts';
 import type { Db } from '#core/db/client.ts';
 import { getRunRenderContext, type RunRenderContext } from '#core/db/repositories/run-render.ts';
-import { getLatestSpecVersion } from '#core/db/repositories/spec-versions.ts';
+import { getSpecVersion, type SpecVersion } from '#core/db/repositories/spec-versions.ts';
 import { NotFoundError } from '#core/errors.ts';
 import type { RenderTarget } from './target.ts';
 
-/** A run's latest spec, resolved for rendering, with what a final render must refuse. */
+/** One spec version of a run, resolved for rendering, with what a final render must refuse. */
 export interface RunRenderInput {
   readonly context: RunRenderContext;
+  /** The version rendered; `target.source` carries the same, for output sidecars. */
   readonly specVersion: number;
   readonly target: RenderTarget;
   /** Placeholders the render will draw (unknown ids, unfilled logo slots). */
@@ -29,16 +30,22 @@ export interface RunRenderInput {
 }
 
 /**
- * Loads a run's newest spec version and resolves everything a render takes: series and handle
- * from the DB, assets and logos (`prepareRenderAssets`), and the narration file. Throws with
- * every structured error when the spec is not renderable, and when it has timing but its
- * narration file is missing (a timed spec never renders silently).
+ * Loads exactly the spec version a job was queued with (`specVersionId`, a `spec_versions` row
+ * of this run; newer versions saved since are ignored) and resolves everything a render takes:
+ * series and handle from the DB, assets and logos (`prepareRenderAssets`), and the narration
+ * file. Throws when the version is unknown or belongs to another run, with every structured
+ * error when the spec is not renderable, and when it has timing but its narration file is
+ * missing (a timed spec never renders silently).
  */
-export function loadRunRenderInput(db: Db, dataDir: string, runId: number): RunRenderInput {
+export function loadRunRenderInput(
+  db: Db,
+  dataDir: string,
+  runId: number,
+  specVersionId: number,
+): RunRenderInput {
   const context = getRunRenderContext(db, runId);
   if (!context) throw new NotFoundError('run', runId);
-  const version = getLatestSpecVersion(db, runId);
-  if (!version) throw new Error(`Run ${runId} has no spec yet; nothing to render.`);
+  const version = pinnedVersion(db, runId, specVersionId);
   const raw = readDataJson(dataDir, version.jsonPath);
   const spec = parseSpec(raw, version.version);
   const registry = withRegistryChecks(validateRenderableVideoSpec(raw), raw);
@@ -47,6 +54,7 @@ export function loadRunRenderInput(db: Db, dataDir: string, runId: number): RunR
     spec,
     props: { series: context.series, channelHandle: context.channelHandle, assets: assets.assets },
     audioPath: narrationPath(dataDir, spec),
+    source: { specVersionId: version.id, version: version.version },
   };
   return {
     context,
@@ -56,6 +64,17 @@ export function loadRunRenderInput(db: Db, dataDir: string, runId: number): RunR
     problems: assets.problems,
     registry: { errors: registry.errors, warnings: registry.warnings },
   };
+}
+
+function pinnedVersion(db: Db, runId: number, specVersionId: number): SpecVersion {
+  const version = getSpecVersion(db, specVersionId);
+  if (!version) throw new Error(`Spec version ${specVersionId} does not exist.`);
+  if (version.runId !== runId) {
+    throw new Error(
+      `Spec version ${specVersionId} belongs to run ${version.runId}, not run ${runId}.`,
+    );
+  }
+  return version;
 }
 
 function parseSpec(raw: unknown, version: number): RenderableVideoSpec {

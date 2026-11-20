@@ -3,6 +3,7 @@ import { totalFrames } from '@explainer-studio/renderer/catalog';
 import { effectiveTiming } from '@explainer-studio/shared';
 import { mux } from './draft.ts';
 import { withSession } from './engine.ts';
+import { manifestPathFor, writeManifest, type FinalManifest } from './manifests.ts';
 import {
   compositionProps,
   siblingPath,
@@ -18,7 +19,8 @@ const RENDER_SHARE = 0.97;
 /**
  * One full pass of `VideoFromSpec` at the final preset (cross-beat transitions play as
  * designed), then the whole narration laid under it from 0 s: H.264 yuv420p from Remotion, AAC
- * 48 kHz and `+faststart` from the mux. Returns the frame count.
+ * 48 kHz and `+faststart` from the mux. A sidecar (`<name>.json`) records the spec version.
+ * Returns the frame count.
  */
 export async function renderFinal(
   target: RenderTarget,
@@ -50,6 +52,8 @@ export async function renderFinal(
   } finally {
     rmSync(silent, { force: true });
   }
+  const manifest: FinalManifest = { source: target.source ?? null, fps: preset.fps, frames };
+  writeManifest(manifestPathFor(outPath), manifest);
   run.onProgress(1);
   return { frames };
 }

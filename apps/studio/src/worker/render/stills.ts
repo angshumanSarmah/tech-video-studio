@@ -1,6 +1,7 @@
 import { beatFrameSpans, beatKeyFrame } from '@explainer-studio/renderer/catalog';
 import { effectiveTiming } from '@explainer-studio/shared';
 import { withSession } from './engine.ts';
+import { writeManifest, type StillsManifest } from './manifests.ts';
 import {
   compositionProps,
   writeAtomically,
@@ -8,6 +9,13 @@ import {
   type RenderTarget,
   type RenderTools,
 } from './target.ts';
+
+/** Where stills go (absolute paths). */
+export interface StillPaths {
+  readonly still: (beatId: string) => string;
+  /** Sidecar with the spec version and each beat's key frame (`StillsManifestSchema`). */
+  readonly manifest: string;
+}
 
 /**
  * One PNG per beat at its key frame (`beatKeyFrame`: the board settled), from `BeatFromSpec` at
@@ -17,7 +25,7 @@ export async function renderStills(
   target: RenderTarget,
   tools: RenderTools,
   run: RenderRun,
-  stillPath: (beatId: string) => string,
+  paths: StillPaths,
 ): Promise<Record<string, number>> {
   const preset = tools.settings.presets.draft;
   const beatIds = beatFrameSpans(effectiveTiming(target.spec), preset.fps).map((s) => s.beatId);
@@ -25,7 +33,7 @@ export async function renderStills(
   await withSession(tools.engine, async (session) => {
     for (const [i, beatId] of beatIds.entries()) {
       const frame = beatKeyFrame(target.spec, beatId, preset.fps, keyFrameOptions(target));
-      await writeAtomically(stillPath(beatId), (out) =>
+      await writeAtomically(paths.still(beatId), (out) =>
         session.renderStill({
           compositionId: 'BeatFromSpec',
           inputProps: compositionProps(target, preset, { beatId }),
@@ -39,6 +47,8 @@ export async function renderStills(
       run.onProgress((i + 1) / beatIds.length, `still ${beatId}`);
     }
   });
+  const manifest: StillsManifest = { source: target.source ?? null, fps: preset.fps, frames };
+  writeManifest(paths.manifest, manifest);
   return frames;
 }
 

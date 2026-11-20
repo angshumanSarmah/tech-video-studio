@@ -119,7 +119,7 @@ describe('renderDraft', () => {
     expect(joinedMux[joinedMux.indexOf('-ss') + 1]).toBe('0');
     expect(joinedMux[joinedMux.indexOf('-t') + 1]).toBe(ffSec(total / 15));
     // No intermediates are left behind.
-    expect(readdirSync(dir).sort()).toEqual(['beats', 'draft.mp4', 'narration.wav']);
+    expect(readdirSync(dir).sort()).toEqual(['beats', 'draft.json', 'draft.mp4', 'narration.wav']);
   });
 
   it("muxes each clip with its own narration slice (its span's offsets)", async () => {

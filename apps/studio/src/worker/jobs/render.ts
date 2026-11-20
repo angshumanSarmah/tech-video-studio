@@ -8,6 +8,7 @@ import {
   exportVideoPath,
   resolveDataPath,
   runDraftPath,
+  stillsManifestPath,
 } from '#core/data-files.ts';
 import type { Db } from '#core/db/client.ts';
 import type { Job } from '#core/db/repositories/jobs.ts';
@@ -42,11 +43,17 @@ export interface RenderJobDeps {
   readonly tools: RenderTools;
 }
 
-const BeatDraftPayloadSchema = z.strictObject({ beatId: SpecIdSchema });
-const RunPayloadSchema = z.strictObject({});
+/**
+ * Every render job is pinned to one `spec_versions` row of its run (`specVersionId`, the row id),
+ * queued by whoever approved or requested that version: it renders exactly that version, even if
+ * a newer one is saved before the job runs.
+ */
+const PinnedPayloadSchema = z.strictObject({ specVersionId: z.number().int().positive() });
+const BeatDraftPayloadSchema = PinnedPayloadSchema.extend({ beatId: SpecIdSchema });
+const RunPayloadSchema = PinnedPayloadSchema;
 
 /**
- * The four render jobs. Each reads the run's newest spec version; `job.run_id` names the run.
+ * The four render jobs. `job.run_id` names the run and `payload.specVersionId` the version.
  * Every output is written atomically and cached clips are reused, so a rerun after a crash or a
  * shutdown is safe (delivery is at-least-once).
  */
@@ -130,8 +137,12 @@ function stillsJob(deps: RenderJobDeps) {
     failsRun: false,
     async run(ctx) {
       const { runId, input } = load(deps, ctx);
-      const path = (beatId: string) => resolveDataPath(deps.dataDir, beatStillPath(runId, beatId));
-      const frames = await renderStills(input.target, deps.tools, toRun(ctx), path);
+      const abs = (rel: string) => resolveDataPath(deps.dataDir, rel);
+      const paths = {
+        still: (beatId: string) => abs(beatStillPath(runId, beatId)),
+        manifest: abs(stillsManifestPath(runId)),
+      };
+      const frames = await renderStills(input.target, deps.tools, toRun(ctx), paths);
       ctx.log(
         'info',
         `Stills for spec v${input.specVersion}: ${Object.keys(frames).length} beats.`,
@@ -140,9 +151,9 @@ function stillsJob(deps: RenderJobDeps) {
   });
 }
 
-function load(deps: RenderJobDeps, ctx: JobContext<unknown>) {
+function load(deps: RenderJobDeps, ctx: JobContext<{ specVersionId: number }>) {
   const runId = requireRunId(ctx.job);
-  const input = loadRunRenderInput(deps.db, deps.dataDir, runId);
+  const input = loadRunRenderInput(deps.db, deps.dataDir, runId, ctx.payload.specVersionId);
   for (const problem of input.problems) {
     ctx.log('warn', `Asset ${problem.id} failed to load: ${problem.message}`);
   }

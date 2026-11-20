@@ -33,3 +33,7 @@ export function getLatestSpecVersion(db: Executor, runId: number): SpecVersion |
     .limit(1)
     .get();
 }
+
+export function getSpecVersion(db: Executor, id: number): SpecVersion | undefined {
+  return db.select().from(specVersions).where(eq(specVersions.id, id)).get();
+}

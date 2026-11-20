@@ -120,9 +120,10 @@ await phase('final', async (run) => {
 });
 
 await phase('stills', async (run) => {
-  const frames = await renderStills(target(editedSpec()), tools, run, (b) =>
-    join(outDir, 'stills', `${b}.png`),
-  );
+  const frames = await renderStills(target(editedSpec()), tools, run, {
+    still: (b) => join(outDir, 'stills', `${b}.png`),
+    manifest: join(outDir, 'stills', 'stills.json'),
+  });
   return `${Object.keys(frames).length} PNGs`;
 });
 

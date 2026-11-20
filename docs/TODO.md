@@ -52,10 +52,19 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       the SRT next to it (P1B.3), then insert the `exports` row (`srt_path` is required; duration
       and cost from the run). The row makes the run undeletable, so insert it only for a
       finished export.
-- [ ] **P1C.9 / P1D — Queueing render jobs.** Nothing queues `render_beat_draft`,
-      `render_draft`, `render_final` or `render_stills` yet (the orchestrator and the gate UI
-      will). Jobs read the run's newest spec version when they run; add `specVersion` to the
-      payload if a gate must render exactly the version that was reviewed.
+- [ ] **P1C.9 / P1D — Queueing render jobs; gates store the version they approved.** Nothing
+      queues `render_beat_draft`, `render_draft`, `render_final` or `render_stills` yet (the
+      orchestrator and the gate UI will). Every render payload requires `specVersionId` (a
+      `spec_versions` row id of the job's run) and renders exactly that version.
+  - Gate approvals must store the spec version they approved: add `spec_version_id` (FK to
+    `spec_versions`) to `gates`, set in the same transaction as the decision.
+  - The orchestrator queues renders with that id: drafts after the scenes gate with the version
+    approved there, `render_final` with the version approved at the draft gate (never "the
+    latest"), so an edit saved while a job waits cannot reach the export unreviewed.
+  - Outputs record what they were made from: `runs/<id>/draft.json`, `<slug>.json` next to the
+    export and `runs/<id>/stills/stills.json` (`render/manifests.ts`); each clip's
+    `.draft.json` keeps the version it was rendered from while later versions reuse it. The
+    gate UI can compare these with the version under review.
 - [ ] **Worker — Bundle cache on disk.** The Remotion bundle is built once per worker process
       (`render/bundle.ts`), so every `tsx watch` restart rebuilds it on the next render. If that
       gets slow, keep it under the data dir keyed by `rendererSourceHash()`.

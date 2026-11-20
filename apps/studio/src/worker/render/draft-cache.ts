@@ -4,16 +4,21 @@ import { beatRenderInputs, specAssetUses } from '@explainer-studio/renderer/cata
 import type { RenderPreset } from '@explainer-studio/shared';
 import { z } from 'zod';
 import { encodingFor } from './encoding.ts';
-import type { RenderTarget } from './target.ts';
+import { SpecSourceSchema, type RenderTarget } from './target.ts';
 
 /** Bump when the key's meaning changes (e.g. a new input), so every cached clip re-renders. */
 export const DRAFT_KEY_VERSION = 1;
 
-/** Sidecar next to each beat clip: what it was rendered from, and how many frames it has. */
+/**
+ * Sidecar next to each beat clip: its cache key, how many frames it has, and the spec version it
+ * was made from (`source`; kept while the clip is reused by later versions). A sidecar that does
+ * not parse (e.g. from before a field was added) makes the clip stale.
+ */
 export const DraftClipMetaSchema = z.strictObject({
   key: z.string().regex(/^[0-9a-f]{64}$/),
   frames: z.number().int().positive(),
   fps: z.number().int().positive(),
+  source: SpecSourceSchema.nullable(),
 });
 export type DraftClipMeta = z.infer<typeof DraftClipMetaSchema>;
 

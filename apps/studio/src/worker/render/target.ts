@@ -8,6 +8,7 @@ import type {
   RenderSettings,
   ResolvedAsset,
 } from '@explainer-studio/shared';
+import { z } from 'zod';
 import type { RenderEngine } from './engine.ts';
 
 /**
@@ -24,7 +25,20 @@ export interface RenderTarget {
   };
   /** Absolute path of the narration WAV (0 s = frame 0), or null to render silently. */
   readonly audioPath: string | null;
+  /**
+   * The spec version this target was loaded from, recorded in every output's sidecar. Not part
+   * of draft cache keys: a clip whose inputs did not change is reused across versions and keeps
+   * the version it was made from. Omitted outside runs (the benchmark's fixture).
+   */
+  readonly source?: SpecSource;
 }
+
+/** A `spec_versions` row: its id and its per-run version number. */
+export const SpecSourceSchema = z.strictObject({
+  specVersionId: z.number().int().positive(),
+  version: z.number().int().positive(),
+});
+export type SpecSource = z.infer<typeof SpecSourceSchema>;
 
 /** How renders run: Remotion, ffmpeg and the configured presets and concurrency. */
 export interface RenderTools {

@@ -174,12 +174,17 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
 
 ### Render service (`src/worker/render`, jobs in `jobs/render.ts`)
 
-- **Jobs:** `render_beat_draft` (`{ beatId }`), `render_draft`, `render_final`, `render_stills`
-  (`failsRun: false`). The run is `job.run_id`; each reads the run's newest spec version
-  (`loadRunRenderInput`: series and handle from the DB, assets via `prepareRenderAssets`,
-  narration at `timing.audioFile`, relative to the data dir). Outputs: `runs/<id>/beats/<beat>.draft.mp4`
-  (+ `.draft.json` cache key), `runs/<id>/draft.mp4`, `runs/<id>/stills/<beat>.png`,
-  `exports/<id>/<topic-slug>.mp4`.
+- **Jobs:** `render_beat_draft` (`{ specVersionId, beatId }`), `render_draft`, `render_final`,
+  `render_stills` (`failsRun: false`), all `{ specVersionId }`. The run is `job.run_id`; each
+  renders exactly the pinned `spec_versions` row (it must belong to that run; newer versions are
+  ignored). `loadRunRenderInput` resolves series and handle from the DB, assets via
+  `prepareRenderAssets` and narration at `timing.audioFile` (relative to the data dir).
+  Outputs: `runs/<id>/beats/<beat>.draft.mp4`, `runs/<id>/draft.mp4`,
+  `runs/<id>/stills/<beat>.png`, `exports/<id>/<topic-slug>.mp4`.
+- **Every output records its spec version** (`{ specVersionId, version }`) in a JSON sidecar
+  (`render/manifests.ts`): a clip's `.draft.json` (with its cache key), `draft.json`,
+  `stills/stills.json` and `<slug>.json`. The version is not part of the cache key: a reused
+  clip keeps the version it was made from, and `draft.json` lists each clip's.
 - **Remotion renders silently; ffmpeg muxes narration.** Each beat clip gets its own slice (its
   frame span's offsets), the joined draft and the final get the whole WAV from 0 s. Video is
   always stream-copied (H.264 yuv420p from Remotion); audio is AAC 48 kHz, `+faststart`.

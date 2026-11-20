@@ -9,6 +9,7 @@ import { audioSliceHash } from './audio.ts';
 import { draftClipKey, readClipMeta, type DraftClipMeta } from './draft-cache.ts';
 import { withSession, type RenderSession } from './engine.ts';
 import { concatArgs, concatListText, muxArgs } from './ffmpeg-args.ts';
+import { manifestPathFor, writeManifest, type DraftManifest } from './manifests.ts';
 import {
   compositionProps,
   siblingPath,
@@ -185,8 +186,9 @@ async function renderClip(
     key: plan.key,
     frames: plan.span.durationInFrames,
     fps: preset.fps,
+    source: target.source ?? null,
   };
-  writeFileSync(paths.meta(beatId), `${JSON.stringify(meta, null, 2)}\n`);
+  writeManifest(paths.meta(beatId), meta);
 }
 
 async function joinClips(
@@ -211,6 +213,29 @@ async function joinClips(
     rmSync(silent, { force: true });
     rmSync(listPath, { force: true });
   }
+  writeManifest(
+    manifestPathFor(paths.joined),
+    draftManifest(target, plans, paths, total, fps(tools)),
+  );
+}
+
+/** The joined draft's sidecar: its version, and the version each clip was made from. */
+function draftManifest(
+  target: RenderTarget,
+  plans: readonly ClipPlan[],
+  paths: DraftPaths,
+  frames: number,
+  fps: number,
+): DraftManifest {
+  const clips = plans.map(({ span: { beatId } }) => ({
+    beatId,
+    source: readClipMeta(paths.clip(beatId), paths.meta(beatId))?.source ?? null,
+  }));
+  return { source: target.source ?? null, fps, frames, clips };
+}
+
+function fps(tools: RenderTools): number {
+  return tools.settings.presets.draft.fps;
 }
 
 /** Muxes narration under a silent video into `outPath`, atomically. */

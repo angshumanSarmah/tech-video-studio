@@ -7,6 +7,7 @@ import { effectiveTiming } from '@explainer-studio/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ffSec } from './ffmpeg-args.ts';
 import { renderFinal } from './final.ts';
+import { readManifest, StillsManifestSchema } from './manifests.ts';
 import { renderStills } from './stills.ts';
 import type { RenderRun, RenderTarget } from './target.ts';
 import { fakeTools, makeWav } from './testing.ts';
@@ -61,7 +62,7 @@ describe('renderFinal', () => {
     expect(value('-movflags')).toBe('+faststart');
     expect(value('-t')).toBe(ffSec(frames / 30));
     expect(existsSync(out)).toBe(true);
-    expect(readdirSync(dir).sort()).toEqual(['narration.wav', 'out.mp4']);
+    expect(readdirSync(dir).sort()).toEqual(['narration.wav', 'out.json', 'out.mp4']);
   });
 });
 
@@ -69,7 +70,8 @@ describe('renderStills', () => {
   it('renders one still per beat at its key frame, at the draft size', async () => {
     const { tools, engine } = fakeTools();
     const path = (beatId: string) => join(dir, 'stills', `${beatId}.png`);
-    const frames = await renderStills(target(null), tools, run, path);
+    const manifest = join(dir, 'stills', 'stills.json');
+    const frames = await renderStills(target(null), tools, run, { still: path, manifest });
 
     expect(Object.keys(frames)).toEqual(['hook', 'bucket-intro', 'bucket-empty', 'payoff']);
     expect(engine.stills.map((s) => [s.inputProps.beatId, s.frame])).toEqual(
@@ -80,6 +82,7 @@ describe('renderStills', () => {
       expect(still.inputProps).not.toHaveProperty('draft');
       expect(still.preset.width).toBe(540);
     }
-    expect(readdirSync(join(dir, 'stills'))).toHaveLength(4);
+    expect(readdirSync(join(dir, 'stills'))).toHaveLength(5);
+    expect(readManifest(StillsManifestSchema, manifest)).toEqual({ source: null, fps: 15, frames });
   });
 });

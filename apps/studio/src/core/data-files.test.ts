@@ -19,6 +19,7 @@ import {
   runLogosDir,
   sourceTextPath,
   specVersionPath,
+  stillsManifestPath,
   writeDataJson,
   writeDataText,
 } from './data-files.ts';
@@ -41,6 +42,7 @@ describe('data file paths', () => {
     expect(beatDraftMetaPath(4, 'hook')).toBe('runs/4/beats/hook.draft.json');
     expect(runDraftPath(4)).toBe('runs/4/draft.mp4');
     expect(beatStillPath(4, 'hook')).toBe('runs/4/stills/hook.png');
+    expect(stillsManifestPath(4)).toBe('runs/4/stills/stills.json');
     expect(exportVideoPath(4, 'rate-limiter')).toBe('exports/4/rate-limiter.mp4');
   });
 
