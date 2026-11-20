@@ -220,7 +220,7 @@ export const StoryLayerSchema = z.strictObject({
     .max(RUNNING_EXAMPLE_MAX)
     .optional()
     .describe(
-      'One sentence: the concrete example followed all the way through (one user, one request).',
+      'One sentence: the concrete example followed all the way through (one user, one request): a concrete situation in plain words; no ids, keys or numbers unless they are research numbers.',
     ),
   chapters: z.array(ChapterSchema).min(1),
   beats: z.array(StoryBeatSchema).min(1),

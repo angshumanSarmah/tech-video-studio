@@ -748,8 +748,9 @@ channelHandle })` measures the same strings (`subjectText`, `chapterHeaderText`,
     `CHAPTER_TITLE_MAX_CHARS` (shared; in the chapter title's schema description) is what the
     narrowest chapter-title slot of the default theme holds (the card viewport label); a test
     recomputes it. `HERO_METRIC_MAX_CHARS` (label and value together; in their schema
-    descriptions) is what the default theme's metric row holds beside a 5-step marker, also
-    recomputed by a test.
+    descriptions) is what the default theme's metric row holds beside a 5-step marker, and
+    `TITLE_MAX_CHARS` (in the Director's `meta.title` description) what its subject line holds
+    after the longest seeded series label; tests recompute both.
 - **Subtitles** (`src/subtitles`): word-by-word karaoke captions in the format's
   `subtitleBand` (`formatAreas`; card has its own). `buildSubtitleCues(spec, theme)` (pure,
   exported through `catalog`) is the single source for the burned-in captions and the SRT.

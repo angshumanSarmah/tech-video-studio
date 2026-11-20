@@ -86,7 +86,7 @@ Common mistakes to avoid
         "title": {
           "type": "string",
           "minLength": 1,
-          "description": "The video title: short, concrete, no hype."
+          "description": "The video title: short, concrete, no hype; at most about 44 characters, or the HUD cuts it off."
         },
         "topicClass": {
           "type": "string",
@@ -219,7 +219,7 @@ Common mistakes to avoid
           "additionalProperties": false
         },
         "runningExample": {
-          "description": "One sentence: the concrete example followed all the way through (one user, one request).",
+          "description": "One sentence: the concrete example followed all the way through (one user, one request): a concrete situation in plain words; no ids, keys or numbers unless they are research numbers.",
           "type": "string",
           "minLength": 1,
           "maxLength": 200

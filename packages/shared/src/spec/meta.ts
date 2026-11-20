@@ -16,6 +16,15 @@ export const VIDEO_FORMATS = ['full', 'card'] as const;
 export const VideoFormatSchema = z.enum(VIDEO_FORMATS);
 export type VideoFormat = z.infer<typeof VideoFormatSchema>;
 
+/**
+ * About how many characters of a video title the HUD shows without cutting it, in the default
+ * theme: the narrowest place it appears, the title block's subject line after the longest seeded
+ * series label ("SYSTEM DESIGN · "); the card header's two display lines hold more. A renderer
+ * test recomputes it (`roomInChars`). A hint for prompts: `hudTextWarnings` measures the real
+ * text with the run's series label.
+ */
+export const TITLE_MAX_CHARS = 44;
+
 export const MetaSchema = z.strictObject({
   id: SpecIdSchema,
   /** Series tag (`series.tag`). */
