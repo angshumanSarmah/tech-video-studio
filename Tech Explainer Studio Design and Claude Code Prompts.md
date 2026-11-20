@@ -11,7 +11,7 @@ This is a rebuild: the previous app produced monotonous videos (the same 3–4 b
 | Rebuild | The old app is discarded. New repo from scratch; prompts never reference the old code |
 | Content | System design + AI topics, for engineers |
 | Channel | One channel, two series (System Design, AI) with a series tag and accent colour; data model ready for more channels |
-| Format | YouTube Shorts / Reels, 9:16, 45–90 s (Director decides; override per run). Two layouts: full-screen, or card (persistent title header + 16:9 diagram window + captions) |
+| Format | YouTube Shorts / Reels, 9:16, length is a setting, not a fixed rule: defaults 45–150 s, a one-line reason above 90 s, hard cap 170 s (under both platforms' 3-minute limit). The Director decides within the range; override per run. Parts (Part 1/N, each its own video) are a setting too: on by default, up to 4. Two layouts: full-screen, or card (persistent title header + 16:9 diagram window + captions) |
 | Visual style, phase 1 | 2D "board" scenes in our own drafting-paper look: an engineering drawing on warm paper, ink line work, highlighter marks for focus, IBM Plex fonts (see Originality) |
 | Visual style, phase 2+ | 3D "world" scenes (React Three Fiber) for hooks and establishing shots; low-poly characters |
 | Originality | Borrow storytelling techniques, never another creator's look, wording, art or characters. Own theme, own hook style and own ending (see Originality) |
@@ -21,7 +21,7 @@ This is a rebuild: the previous app produced monotonous videos (the same 3–4 b
 | Characters (phase 2) | Low-poly 3D characters on one shared skeleton, pre-made animation clips, props and effects (speech bubbles, siren head) |
 | Trigger | Manual. You start each run; nothing runs on a schedule |
 | Review | Per-gate auto-approve checkbox or manual review |
-| Narration | English, local Kokoro TTS (Python) with word timestamps; Hinglish later |
+| Narration | English, local Kokoro TTS (Python) with word timestamps; Hinglish later. Pace is configurable: defaults Kokoro speed 1.0 (about 2.7 words/s) and no added pauses; TTS speed, beat gap, landing hold and the Scriptwriter's words per second are settings, overridable per run |
 | On-screen text | English in phase 1; Hinglish headlines/captions later |
 | Subtitles | Burned in, word-by-word |
 | Music | Later phase |
@@ -635,7 +635,7 @@ Acceptance: fixture video shows synced captions; SRT validates and matches the a
 
 ## Agent system prompts (v1)
 
-These are the system prompts the in-app agents run with: the channel's taste, written down. The look is not here, because colours, fonts, positions and timing come from code; these prompts steer facts, story, words and visual choices. Claude Code copies them verbatim in Phase 1C; change them here first, then bump the version.
+These are the system prompts the in-app agents run with: the channel's taste, written down. The look is not here, because colours, fonts, positions and timing come from code; these prompts steer facts, story, words and visual choices. Claude Code copies them verbatim in Phase 1C; change them here first, then bump the version. Values in {{double braces}} are settings filled in at run time (P1C.1), so length, parts and pace can be tuned without editing a prompt.
 
 **How a prompt is assembled** (static parts first, so DeepSeek's prompt cache hits):
 
@@ -651,8 +651,9 @@ Each prompt is a file, `apps/studio/src/worker/agents/prompts/<role>.v1.md`, and
 **Shared preamble (every agent)**
 
 ```text
-You are part of Tech Explainer Studio, a pipeline that turns one engineering topic into a 45-90 s
-vertical explainer video for YouTube Shorts and Instagram Reels.
+You are part of Tech Explainer Studio, a pipeline that turns one engineering topic into a
+vertical explainer video for YouTube Shorts and Instagram Reels ({{lengthMinSec}}-{{lengthMaxSec}} s, or a short series of
+parts for bigger topics when parts are allowed).
 
 Audience: working software engineers. They know what a server, a database and an API are. They want
 the mechanism, the numbers and the trade-off, not motivation or hype.
@@ -725,6 +726,11 @@ House voice
 - End with a 3-line spec card summarising the design, the series number, then a share or follow
   line in our own words.
 - meta.format: "card" for a short single-concept or real-incident video, "full" for a multi-step build.
+- Length: {{lengthMinSec}}-{{lengthMaxSec}} s by topic depth; over {{lengthReasonAboveSec}} s only with a
+  one-line reason in the plan. If parts are allowed ({{allowParts}}) and the topic
+  needs more than about {{lengthMaxSec}} s, split it into 2-{{maxParts}} parts: each part has one main idea, its own hook
+  and beats; earlier parts end on a cliffhanger, and only the last part ends with the spec card
+  for the whole topic.
 
 DO
 - Choose devices, patterns, layout modes and metaphor worlds only from the catalogue. If you need
@@ -756,7 +762,10 @@ Role: Scriptwriter. You write the spoken narration and the short on-screen text 
 Director's plan.
 
 Narration
-- About 2.6 words per second of the beat's target seconds (within 15%).
+- About {{wordsPerSec}} words per second of the beat's narration time: its target
+  seconds minus its pauses (beat gap, landing hold), within 15%.
+- In a multi-part video: from part 2 on, open with a recap of at most 2 sentences; every part but
+  the last ends on a cliffhanger line that names the next part's question.
 - Short sentences (under 15 words), one idea each, at most one number per sentence.
 - Say numbers as a person would ("ten thousand requests a second"); spell out what text-to-speech
   misreads ("p99" -> "p ninety-nine").
@@ -892,6 +901,11 @@ and key from config) with:
   them in the order that section gives (static first); every llm_calls row records the role and
   the preamble and role prompt versions; snapshot tests render each assembled prompt with fixture
   inputs so a prompt can't change unnoticed;
+- prompt variables: {{lengthMinSec}}, {{lengthMaxSec}}, {{lengthReasonAboveSec}}, {{allowParts}},
+  {{maxParts}} and {{wordsPerSec}} are filled from settings (run override -> app settings ->
+  defaults 45, 150, 90, true, 4, 2.7); an unknown or unfilled variable fails the build of the
+  prompt; the 170 s hard cap is enforced by validation, not by the prompt; snapshot tests render
+  the prompts with the defaults;
 - a dry-run mode that returns recorded fixtures for tests.
 Acceptance: unit tests with a mocked HTTP layer for validation, repair and cost maths.
 ```
@@ -944,7 +958,8 @@ Acceptance: schema tests; the prompt block is deterministic.
 **P1C.5 Director agent**
 
 ```text
-Implement the Director. Input: research notes, topic, series, target length (or "decide 45–90 s"),
+Implement the Director. Input: research notes, topic, series, target length (or "decide within the configured range"; a series of parts when parts are allowed and the topic
+needs more),
 catalogue prompt block, 2–3 retrieved reference videos (P1C.11), memory context (style rules,
 recently used devices/layouts/patterns to avoid, past topics).
 Output (Story layer of VideoSpec): topic class, metaphor world (optional), devices, hero metric,
@@ -954,6 +969,8 @@ its payoff beat, at least one rejected alternative shown before the chosen desig
 and missing_primitive_requests (what it wanted but the catalogue lacks; it must still choose an
 available fallback).
 System prompt: the shared preamble + the Director prompt from "Agent system prompts (v1)".
+For a multi-part topic, output parts: [{ part, title, mainIdea, beatIds }] sharing one set of
+research notes; each part becomes its own run (P1C.9). The configured length range applies to each part.
 Use the role's stronger model. Enforce variety: penalise reuse of the last 5 videos' device/layout combos.
 House voice (see Originality): the hook states an engineer's problem with real numbers ("10 million
 requests, one Redis box. What breaks first?"), not "how does this app work?". The ending is a
@@ -970,7 +987,7 @@ payoff and beat seconds summing to the target ±10%.
 
 ```text
 Implement the Scriptwriter. Input: story layer, research notes, style rules.
-Output per beat: narration (word budget = target seconds × 2.6 words/sec, ±15%), headline
+Output per beat: narration (word budget = (target seconds − the beat's pauses) × wordsPerSec (setting, default 2.7), ±15%), headline
 ("X = plain meaning" for concept beats), tags, stat cards (each linked to a research number id),
 optional formula card, optional command bubble.
 Tone for engineers: real terms with a one-line gloss, concrete numbers, no filler, no hype, short
@@ -1038,6 +1055,10 @@ render final -> export.
 - Regenerate beat N with feedback: re-runs Scriptwriter and/or Generator for that beat only, then
   TTS/timing for changed narration, then curate, keeping other beats untouched.
 - Every step writes a new spec_version; runs are resumable after a crash.
+- After generate, re-run timing (landing holds) before curate; the Curator checks the re-timed spec.
+- Multi-part topics: gate 2 approves the parts plan; each part becomes a linked run (parent run
+  id + part index n/N) that shares the research notes and continues from script onward on its
+  own. The title block shows PART n/N in the cell that now reads REV A.
 API endpoints for gate decisions and beat regeneration.
 Acceptance: an end-to-end test with the LLM in dry-run mode goes from topic to draft render with
 all gates on auto, and another that pauses at gate 2 and resumes.
@@ -1184,7 +1205,9 @@ Goal: you can start a run, watch it, review and edit at every gate, preview, and
 
 ```text
 Build the New Run page: topic title, series (System Design | AI), free-text angle/notes, source URLs
-(multi-line) and file uploads (.md .txt .pdf), target length (auto or 45–90 s), per-gate
+(multi-line) and file uploads (.md .txt .pdf), target length (auto, or a range within the configured limits), "allow parts" (default from
+settings), an optional pace override
+(TTS speed, beat gap), per-gate
 auto-approve checkboxes with an "auto-approve all" toggle, and an estimated cost range from recent
 runs. Submitting creates the topic, sources and run, then navigates to the run page.
 Endpoints: POST /api/topics, POST /api/topics/:id/sources (URLs + multipart upload), POST /api/runs,
@@ -1197,7 +1220,8 @@ Acceptance: creating a run enqueues ingestion and shows it on the dashboard.
 ```text
 Build the Run page: a vertical stage timeline (ingest … export) with live status via SSE, elapsed
 time per stage, a cost meter (total and per agent), expandable step logs including LLM prompt and
-response viewers, and a banner when a gate is waiting. Include source status (fetched, failed + retry).
+response viewers, and a banner when a gate is waiting. Include source status (fetched, failed + retry). Linked part runs show as one group (Part 1/N …)
+with each part's own status and gates.
 Endpoints: GET /api/runs/:id (stages, steps, costs), GET /api/runs/:id/llm-calls,
 GET /api/llm-calls/:id (prompt and response files), POST /api/sources/:id/retry, SSE /api/events.
 Acceptance: a dry-run pipeline updates the page live without reloads.
@@ -1284,13 +1308,18 @@ Acceptance: adding a reference creates backlog entries for its missing primitive
 Build Memory: proposed style rules (accept, edit, reject), active rules by scope (toggle, delete),
 usage history charts (devices/layouts/patterns over the last N videos).
 Build Settings: LLM base URL/key (masked), model per role, price table, TTS voice and speed with a
-"test voice" button, pronunciation dictionary editor, render concurrency and presets, channel handle,
-series names, tags and accent colours.
+"test voice" button, pacing (beat gap, landing hold, end tail, Scriptwriter words per second),
+video length (min, max, the "needs a reason" threshold; the 170 s hard cap shown read-only), parts
+(allowed, max parts), pronunciation dictionary editor, render concurrency and presets, channel handle,
+series names, tags and accent colours. Validate the channel handle and series labels against
+their HUD cell widths on save (text_truncated), so they can never be cut off in a video.
 Endpoints: GET /api/memory/rules, PATCH /api/memory/rules/:id, GET /api/memory/usage,
 GET/PUT /api/settings (API key never returned: masked in GET, a masked value in PUT means unchanged;
 show when DEEPSEEK_API_KEY in .env overrides it), POST /api/settings/test-voice,
 GET/PUT /api/pronunciations, GET/PUT /api/series/:id (label, tag, accent colour).
-Acceptance: changing the model for a role takes effect on the next run; test voice plays audio.
+Acceptance: changing the model for a role takes effect on the next run; changing pace, length or
+parts defaults changes the next run's prompts (their filled-in values) without editing a prompt;
+test voice plays audio.
 ```
 
 **P1D.9 Exports**
