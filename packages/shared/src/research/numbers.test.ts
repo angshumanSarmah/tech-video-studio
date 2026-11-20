@@ -61,4 +61,14 @@ describe('numberWordTokens', () => {
   it('skips "one", vague plurals and words that only contain a number word', () => {
     expect(numberWordTokens('One shared jar; hundreds of beans, often, at a tenth.')).toEqual([]);
   });
+
+  it('allows the everyday "one", "two" and "three" on their own', () => {
+    expect(numberWordTokens('One cook, two tills and Three ovens.')).toEqual([]);
+  });
+
+  it('still finds larger number words, including ones built on "two" or "three"', () => {
+    expect(
+      numberWordTokens('Four tills, twenty-two cooks, three-hundred seats, two thousand plates.'),
+    ).toEqual(['Four', 'twenty-two', 'three-hundred', 'thousand']);
+  });
 });

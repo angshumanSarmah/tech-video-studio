@@ -62,11 +62,13 @@ export function foldText(text: string): string {
 }
 
 /**
- * Cardinal number words. "one" is left out: it is as often a pronoun or an article ("one shared
- * store") as a count. Vague plurals ("hundreds of") are not counts either.
+ * Cardinal number words. Vague plurals ("hundreds of") are not counts. "one", "two" and "three"
+ * are listed but allowed (`EVERYDAY_NUMBER_WORDS`): they read as everyday words ("one shared
+ * store", "two tills") more often than as quantities.
  */
 const NUMBER_WORDS = new Set([
   'zero',
+  'one',
   'two',
   'three',
   'four',
@@ -100,14 +102,22 @@ const NUMBER_WORDS = new Set([
   'trillion',
   'dozen',
 ]);
+
+/** Number words texts without a source may still use, alone ("two tills", not "twenty-two"). */
+export const EVERYDAY_NUMBER_WORDS: ReadonlySet<string> = new Set(['one', 'two', 'three']);
+
 const WORD = /\p{L}+(?:-\p{L}+)*/gu;
 
-/** Numbers written as words ("Twenty-four", "ten"), as written, for texts that carry none. */
+/**
+ * Numbers written as words ("Twenty-four", "ten"), as written, for texts that carry none. A word
+ * counts when any hyphenated part is a number word other than the everyday ones, so "two" and
+ * "three" pass while "twenty-two" and "three-hundred" do not.
+ */
 export function numberWordTokens(text: string): string[] {
   return Array.from(text.matchAll(WORD), (m) => m[0]).filter((word) =>
     word
       .toLowerCase()
       .split('-')
-      .some((part) => NUMBER_WORDS.has(part)),
+      .some((part) => NUMBER_WORDS.has(part) && !EVERYDAY_NUMBER_WORDS.has(part)),
   );
 }

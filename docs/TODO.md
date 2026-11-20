@@ -4,11 +4,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 
 ## Open
 
-- [ ] **Researcher prompt drifted from the design doc (failing on `main`).** The doc's
-      Researcher prompt gained the "everyday one/two/three" number-word exception and the
-      intermediate / expert summary line, but `prompts/researcher.v1.md` was not updated, so
-      `verbatim.test.ts` fails. Add `researcher.v2.md`, bump `PROMPT_VERSIONS`, refresh the
-      snapshot.
 - [ ] **P1C.5 — Validate story ids against the catalogues.** `story.devices`,
       `story.beats[].device`, `story.metaphorWorld` and story / scene layout modes outside the
       topic class's `allowedLayoutModes` are free slugs today; add `unknown_reference` errors
@@ -44,9 +39,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       branch list if that matters.
 - [ ] **P1C.2 — Scanned PDFs.** A PDF without a text layer fails as `empty` (upload its text
       instead); there is no OCR.
-- [ ] **P1C.3 — Record the Researcher fixture.** `responses/researcher.json` is hand-written (its
-      `servedModel` says so): no API key was available. Run `research:fixture --record` with a
-      key, check the deterministic checks pass, review the diff and commit it.
 - [ ] **P1C.9 — Gate 1 row.** The `research` job ends after saving its step; the orchestrator
       creates the `gates` row (`research`), sets the run `awaiting_review` unless auto-approved,
       and reads `latestResearch` for the gate.

@@ -412,8 +412,10 @@ stepId?, aliases?, check?, signal?, log? })`** is the only way to call a model (
   `unknown_chunk` (a citation not among the chunks sent), `number_not_in_source`
   (a number's value not in its chunk: digit tokens compared, words matched as text),
   `unsourced_number` (a quantity in any text that none of the item's own cited chunks states;
-  a number's `asOf` may come from any chunk of its source; analogies also carry no number
-  written as a word, `numberWordTokens`, "one" excepted) and `duplicate_id`. Numbers are digit runs with `.`/`,` groups, grouping commas ignored,
+  a number's `asOf` and an incident's `date` may come from any chunk of the cited source;
+  analogies and open questions that cite nothing also carry no number written as a word,
+  `numberWordTokens`, everyday "one", "two" and "three" excepted, so "twenty-two" still fails)
+  and `duplicate_id`. Numbers are digit runs with `.`/`,` groups, grouping commas ignored,
   whole tokens only (`numbers.ts`). **Digits glued to letters are identifiers and skipped**
   (`IPv4`, `L7`, `p99`, `SHA-256`, `HTTP/2`, `UTF-8`, `O(1)`), and so is a status code (100-599)
   after "HTTP", "status" or "error" (`HTTP 429`); digits followed by letters stay quantities

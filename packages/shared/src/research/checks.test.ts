@@ -233,6 +233,95 @@ describe('researchNotesProblems', () => {
     ]);
   });
 
+  it('allows "two" and "three" in analogies, but not larger number words', () => {
+    const problems = researchNotesProblems(
+      notes({
+        analogies: [
+          {
+            analogy: 'Two tills share three ledgers.',
+            matches: 'Each till writes to two of the three ledgers.',
+            breaksDown: 'Four ledgers would need a clerk.',
+          },
+        ],
+      }),
+      CHUNKS,
+    );
+    expect(problems.map((p) => [p.path, p.message.split(' ')[0]])).toEqual([
+      ['$.analogies[0].breaksDown', '"Four"'],
+    ]);
+  });
+
+  it('flags number words in open questions that cite nothing, not in cited ones', () => {
+    const problems = researchNotesProblems(
+      notes({
+        openQuestions: [
+          {
+            question: 'Do twelve regions share one bucket?',
+            reason: 'not_covered',
+            sourceChunkIds: [],
+          },
+          {
+            question: 'Are two or three buckets enough?',
+            reason: 'not_covered',
+            sourceChunkIds: [],
+          },
+          { question: 'Is a million keys too many?', reason: 'disagreement', sourceChunkIds: [C2] },
+        ],
+      }),
+      CHUNKS,
+    );
+    expect(problems).toEqual([
+      {
+        path: '$.openQuestions[0].question',
+        code: 'unsourced_number',
+        message: expect.stringContaining(
+          '"twelve" is a number written as a word. Open questions that cite no chunk',
+        ) as string,
+      },
+    ]);
+  });
+
+  it('still flags digits in an open question that cites nothing', () => {
+    const openQuestions = [
+      { question: 'Is 100 enough?', reason: 'not_covered' as const, sourceChunkIds: [] },
+    ];
+    expect(
+      researchNotesProblems(notes({ openQuestions }), CHUNKS).map((p) => [p.path, p.code]),
+    ).toEqual([['$.openQuestions[0].question', 'unsourced_number']]);
+  });
+
+  it('takes an incident’s date from any chunk of its source, never another source', () => {
+    const incident = (sourceChunkIds: string[]) => ({
+      kind: 'incident' as const,
+      description: 'The bucket store went down.',
+      incident: { date: '3 May 2025', publisher: 'An invented platform team' },
+      sourceChunkIds,
+    });
+    const problems = researchNotesProblems(
+      notes({ failureModes: [incident([C1]), incident([C2])] }),
+      CHUNKS,
+    );
+    // The first cites source 1, whose header (C1B) gives the date; source 2 gives none.
+    expect(problems.map((p) => [p.path, p.message.split(' ')[0]])).toEqual([
+      ['$.failureModes[1].incident.date', '"3"'],
+      ['$.failureModes[1].incident.date', '"2025"'],
+    ]);
+  });
+
+  it('checks the rest of an incident against its own cited chunks only', () => {
+    const failureModes = [
+      {
+        kind: 'incident' as const,
+        description: 'Down for 2025 seconds.',
+        incident: { date: '3 May 2025' },
+        sourceChunkIds: [C1],
+      },
+    ];
+    expect(
+      researchNotesProblems(notes({ failureModes }), CHUNKS).map((p) => [p.path, p.code]),
+    ).toEqual([['$.failureModes[0].description', 'unsourced_number']]);
+  });
+
   it('treats HTTP status codes after "HTTP", "status" or "error" as identifiers', () => {
     const plainSummary = 'An empty bucket answers HTTP 429; a slow store gives error 503.';
     expect(researchNotesProblems(notes({ plainSummary }), CHUNKS)).toEqual([]);

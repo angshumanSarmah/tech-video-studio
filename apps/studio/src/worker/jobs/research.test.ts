@@ -119,7 +119,7 @@ describe('research job (rate-limiter fixture, dry run)', () => {
     expect(researchNotesProblems(result.notes, citableChunks(result.input))).toEqual([]);
     expect(result.notes.numbers.length).toBeGreaterThan(10);
     expect(result.notes.plainSummary).not.toMatch(/\d/);
-    expect(result.notes.analogies).toHaveLength(2);
+    expect(result.notes.analogies.length).toBeGreaterThan(0); // 1-2 by schema
     expect(result.notes.glossary.map((g) => g.term)).toContain('Token bucket');
     expect(result.step).toMatchObject({ stage: 'research', status: 'done', error: null });
     expect(result.input.omittedChunks).toEqual([]);
@@ -149,7 +149,10 @@ describe('research job (rate-limiter fixture, dry run)', () => {
     expect(prompt.messages[0]!.content).toContain('(explanation level: beginner)');
     expect(prompt.messages[1]!.content).toContain('"id": "source-3#chunk-2"');
     expect(prompt.messages[1]!.content).not.toContain('omittedChunks');
-    expect(logs(runId).at(-1)?.message).toMatch(/^Research notes: 11 facts, 16 numbers/);
+    const { facts, numbers } = result.notes;
+    expect(logs(runId).at(-1)?.message).toMatch(
+      new RegExp(`^Research notes: ${facts.length} facts, ${numbers.length} numbers`),
+    );
   });
 
   it('repairs an unsourced number through the LLM client', async () => {

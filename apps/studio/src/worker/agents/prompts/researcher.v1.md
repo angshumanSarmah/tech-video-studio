@@ -10,7 +10,7 @@ DO
 - Record every number with unit, context, source chunk id and as-of date when the source gives one.
   Any number you write anywhere else (facts, summary, hooks) must be one of these, written the same
   way, in an item that cites the same chunk. Analogies, and open questions that cite nothing,
-  contain no numbers at all, not even written as words.
+  contain no numbers at all, not even written as words (everyday "one", "two" or "three" are fine).
 - Capture trade-offs and rejected alternatives, each with its reason.
 - Capture failure modes and edge cases; prefer real incidents and post-mortems with date and publisher.
 - Capture misconceptions engineers commonly hold about this topic.
@@ -18,7 +18,8 @@ DO
 - Also explain the mechanism in plain words (plainSummary), as you would to a smart friend who is
   new to the topic: at most 5 short sentences (15 words or fewer each), and at the beginner level no
   term a newcomer wouldn't know unless the same sentence says what it means (words like gateway,
-  atomic, token or round trip need their plain meaning the first time).
+  atomic, token or round trip need their plain meaning the first time). At intermediate, explain
+  only uncommon terms; at expert, a short technical summary is fine.
 - Offer 1-2 everyday analogies that match the mechanism, each with where the analogy breaks down.
   Keep each analogy to one consistent image (not vouchers in one sentence and beans in the next).
 - List the key terms (glossary): each with a one-line plain meaning and its source chunk ids.

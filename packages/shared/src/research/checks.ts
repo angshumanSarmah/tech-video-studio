@@ -59,10 +59,11 @@ const NOT_PROSE = new Set(['id', 'sourceChunkIds', 'sourceChunkId', 'value', 'pl
  * - `number_not_in_source`: a `numbers[]` value its cited chunk does not state;
  * - `unsourced_number`: a quantity in any text that none of the item's cited chunks states
  *   (identifiers such as `IPv4` or `p99` are skipped: `quantityTokens`). Texts that cite
- *   nothing (analogies, open questions without chunks) may carry no number, and analogies no
- *   number written as a word either; `plainSummary` may reuse a number listed in `numbers[]` and
- *   no other; a number's `asOf` may come from any chunk of its source (a report's date sits in
- *   its header, not next to every number);
+ *   nothing (analogies, open questions without chunks) may carry no number, in digits or in
+ *   words ("one", "two" and "three" excepted: `numberWordTokens`); `plainSummary` may reuse a
+ *   number listed in `numbers[]` and no other; a number's `asOf` and an incident's `date` may
+ *   come from any chunk of the cited source (a report's date sits in its header, not next to
+ *   every number);
  * - `duplicate_id`: two facts or two numbers with one id.
  * Agent output repairs these; gate edits and imports run the same check. It accepts any JSON
  * value and checks what it can find, so the LLM client can run it on an answer that still fails
@@ -82,6 +83,7 @@ export function researchNotesProblems(
   return [
     ...walkIssues(root, [], [], index),
     ...analogyWordIssues(asList(root.analogies)),
+    ...openQuestionWordIssues(asList(root.openQuestions)),
     ...plainSummaryIssues(asString(root.plainSummary), numbers),
     ...numbers.flatMap((n, i) => numberValueIssues(n, ['numbers', i, 'value'], index)),
     ...duplicateIds(asList(root.facts), 'facts'),
@@ -120,10 +122,15 @@ function walkIssues(
   const scope = own ?? cited;
   for (const [key, child] of Object.entries(value)) {
     if (NOT_PROSE.has(key)) continue;
-    const childScope = key === 'asOf' ? sameSourceChunks(scope, index) : scope;
+    const childScope = isSourceDate(path, key) ? sameSourceChunks(scope, index) : scope;
     issues.push(...walkIssues(child, [...path, key], childScope, index));
   }
   return issues;
+}
+
+/** Dates checked against the whole cited source: `numbers[].asOf`, `failureModes[].incident.date`. */
+function isSourceDate(path: Path, key: string): boolean {
+  return key === 'asOf' || (key === 'date' && path.at(-1) === 'incident');
 }
 
 /** Every input chunk of the sources the given chunks belong to, in input order. */
@@ -193,13 +200,30 @@ function proseIssues(
 function analogyWordIssues(analogies: readonly unknown[]): ResearchIssue[] {
   return analogies.flatMap((analogy, i) =>
     Object.entries(asObject(analogy) ?? {}).flatMap(([key, text]) =>
-      [...new Set(numberWordTokens(asString(text) ?? ''))].map((word) =>
-        issue(
-          ['analogies', i, key],
-          'unsourced_number',
-          `"${word}" is a number written as a word. Analogies carry no numbers, in digits or words: describe the idea without the count.`,
-        ),
-      ),
+      numberWordIssues(asString(text), ['analogies', i, key], 'Analogies'),
+    ),
+  );
+}
+
+/** An open question that cites nothing carries no number in words either. */
+function openQuestionWordIssues(questions: readonly unknown[]): ResearchIssue[] {
+  return questions.flatMap((question, i) => {
+    const item = asObject(question);
+    if (!item || (ownCitations(item)?.length ?? 0) > 0) return [];
+    return numberWordIssues(
+      asString(item.question),
+      ['openQuestions', i, 'question'],
+      'Open questions that cite no chunk',
+    );
+  });
+}
+
+function numberWordIssues(text: string | null, path: Path, subject: string): ResearchIssue[] {
+  return [...new Set(numberWordTokens(text ?? ''))].map((word) =>
+    issue(
+      path,
+      'unsourced_number',
+      `"${word}" is a number written as a word. ${subject} carry no numbers, in digits or words ("one", "two" and "three" are fine): describe the idea without the count.`,
     ),
   );
 }
