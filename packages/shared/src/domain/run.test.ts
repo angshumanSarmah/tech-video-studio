@@ -30,6 +30,15 @@ describe('RunSettingsSchema', () => {
     expect(RunSettingsSchema.safeParse({ lengthOverrideSec }).success).toBe(false);
   });
 
+  it('keeps a per-run TTS speed override', () => {
+    expect(RunSettingsSchema.parse({ tts: { speed: 1.15 } }).tts).toEqual({ speed: 1.15 });
+    expect(RunSettingsSchema.parse({ tts: {} }).tts).toEqual({});
+  });
+
+  it.each([0.4, 2.1])('rejects TTS speed %s', (speed) => {
+    expect(RunSettingsSchema.safeParse({ tts: { speed } }).success).toBe(false);
+  });
+
   it('rejects unknown gates', () => {
     expect(RunSettingsSchema.safeParse({ autoApprove: { publish: true } }).success).toBe(false);
   });

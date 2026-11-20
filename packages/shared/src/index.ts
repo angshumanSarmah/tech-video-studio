@@ -8,6 +8,7 @@ export * from './api/series.ts';
 export * from './api/topics.ts';
 export * from './config/env.ts';
 export * from './config/llm.ts';
+export * from './config/pronunciations.ts';
 export * from './config/settings.ts';
 export * from './domain/assets.ts';
 export * from './domain/events.ts';

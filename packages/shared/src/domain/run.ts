@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { TtsSpeedSchema } from '../config/settings.ts';
 
 /** Pipeline stages, in execution order. Exhaustive. */
 export const STAGES = [
@@ -71,6 +72,8 @@ export const RunSettingsSchema = z.strictObject({
     .min(SHORT_LENGTH_SEC.min)
     .max(SHORT_LENGTH_SEC.max)
     .optional(),
+  /** Per-run TTS overrides; anything omitted falls back to the app's `settings.tts`. */
+  tts: z.strictObject({ speed: TtsSpeedSchema.optional() }).optional(),
 });
 export type RunSettings = z.infer<typeof RunSettingsSchema>;
 export type RunSettingsInput = z.input<typeof RunSettingsSchema>;

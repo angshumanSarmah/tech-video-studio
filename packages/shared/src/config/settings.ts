@@ -1,11 +1,15 @@
 import { z } from 'zod';
 import { LlmSettingsSchema } from './llm.ts';
 
+/** Kokoro's speed multiplier (1 = the voice's natural pace). */
+export const TtsSpeedSchema = z.number().min(0.5).max(2);
+
 export const TtsSettingsSchema = z.strictObject({
   /** Python interpreter of the Kokoro env. Relative paths resolve from the repo root. */
   binaryPath: z.string().trim().min(1).default('apps/studio/tts-python/.venv/bin/python'),
   voice: z.string().trim().min(1).default('af_heart'),
-  speed: z.number().min(0.5).max(2).default(1),
+  /** Default narration pace; a run's `settings.tts.speed` overrides it. */
+  speed: TtsSpeedSchema.default(1),
 });
 
 export type TtsSettings = z.infer<typeof TtsSettingsSchema>;
