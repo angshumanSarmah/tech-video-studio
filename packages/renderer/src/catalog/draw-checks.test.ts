@@ -4,7 +4,7 @@ import { allFixtureSpecs } from '../../fixtures/index.ts';
 import { getTheme } from '../theme/index.ts';
 import { drawCutShortWarnings } from './draw-checks.ts';
 import { DEFAULT_REGISTRIES } from './registries.ts';
-import { fixtureSpec } from './test-specs.ts';
+import { fixtureSpec, withHoldAfter } from './test-specs.ts';
 
 type Json = Record<string, unknown>;
 const note = { id: 'note', primitive: 'node_card', props: { title: 'Late arrival' } };
@@ -31,6 +31,16 @@ describe('draw_cut_short', () => {
       ['$.scenes[2].events[4]', 'draw_cut_short'],
     ]);
     expect(warnings[0]?.message).toMatch(/"note" enters at .* cut off \d\.\d\ds early/);
+  });
+
+  it('accepts the same late enter when a landing hold keeps the scene on screen', () => {
+    const input = withHoldAfter(fixtureSpec(), 'bucket-empty', 1);
+    const scene = input.scenes[2] as Json & { elements: Json[]; events: Json[] };
+    scene.elements.push(note);
+    scene.events.push({ at: beforeEnd(0.1), action: 'enter', targets: ['note'] });
+    const result = validateVideoSpec(input);
+    if (!result.ok) throw new Error(JSON.stringify(result.errors));
+    expect(drawCutShortWarnings(result.spec, DEFAULT_REGISTRIES)).toEqual([]);
   });
 
   it('accepts an enter with time to finish', () => {

@@ -1,11 +1,12 @@
 import { effectiveTiming, type RenderableVideoSpec } from '@explainer-studio/shared';
-import { ACTION_DURATION_SEC, ZOOM_PUSH_SEC } from '../events/presets.ts';
+import { ZOOM_PUSH_SEC } from '../events/presets.ts';
 import type { ElementEvent } from '../primitives/element-state.ts';
 import type { WorldItem } from '../scene/beat-world.ts';
 import { renderedWorld } from '../scene/rendered-world.ts';
 import { getTheme } from '../theme/index.ts';
 import { beatFrameSpans, secToFrame, type BeatFrameSpan } from '../timing/frames.ts';
 import { DEFAULT_REGISTRIES, type Registries } from './registries.ts';
+import { flattenWorld, settledSec } from './settled.ts';
 
 export type KeyFrameOptions = { themeId?: string; registries?: Registries };
 
@@ -40,22 +41,7 @@ export function beatKeyFrame(
 function beatEvents(items: readonly WorldItem[], span: BeatFrameSpan, fps: number): ElementEvent[] {
   const fromSec = span.from / fps;
   const endSec = (span.from + span.durationInFrames) / fps;
-  return flatten(items).flatMap((item) =>
+  return flattenWorld(items).flatMap((item) =>
     item.kind === 'primitive' ? item.events.filter((e) => e.sec >= fromSec && e.sec < endSec) : [],
   );
-}
-
-function flatten(items: readonly WorldItem[]): WorldItem[] {
-  return items.flatMap((item) => [
-    item,
-    ...(item.kind === 'primitive' ? flatten(item.children) : []),
-  ]);
-}
-
-/** When the latest non-exit event has played out; undefined when there is none. */
-function settledSec(events: readonly ElementEvent[]): number | undefined {
-  const ends = events
-    .filter((e) => e.action !== 'exit')
-    .map((e) => e.sec + Math.max(ACTION_DURATION_SEC[e.action], e.drawSec ?? 0));
-  return ends.length > 0 ? Math.max(...ends) : undefined;
 }

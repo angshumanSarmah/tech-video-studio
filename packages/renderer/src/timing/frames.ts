@@ -21,6 +21,15 @@ export function totalFrames(timing: EffectiveTiming, fps: number): number {
   return Math.max(1, Math.ceil(timing.endSec * fps));
 }
 
+/**
+ * When a beat's scene leaves the screen (global seconds): the next beat's start, or the end of the
+ * video for the last beat. Silences after a beat's narration (gaps, landing holds) keep its scene.
+ */
+export function sceneEndSec(timing: EffectiveTiming, beatId: string): number {
+  const index = timing.beats.findIndex((b) => b.beatId === beatId);
+  return timing.beats[index + 1]?.startSec ?? timing.endSec;
+}
+
 export type BeatFrameSpan = { beatId: string; from: number; durationInFrames: number };
 
 /**

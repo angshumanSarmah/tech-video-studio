@@ -2,7 +2,8 @@ import { effectiveTiming, type RenderableVideoSpec } from '@explainer-studio/sha
 import { describe, expect, it } from 'vitest';
 import { parseRenderableSpec } from '../compositions/metadata.ts';
 import { DEFAULT_REGISTRIES, type Registries } from '../catalog/registries.ts';
-import { fixtureSpec } from '../catalog/test-specs.ts';
+import { fixtureSpec, withHoldAfter } from '../catalog/test-specs.ts';
+import { ACTION_DURATION_SEC } from '../events/presets.ts';
 import { buildPatternRegistry } from '../patterns/registry.ts';
 import { bouncePattern } from '../patterns/test-pattern.ts';
 import { elementState } from '../primitives/element-state.ts';
@@ -192,6 +193,47 @@ describe('elapsed time across beats', () => {
       rpsState(30).state.elapsed.enter ?? NaN,
       9,
     );
+  });
+});
+
+describe('highlight clear', () => {
+  /** A highlight on `empty` in bucket-empty, on its last word ("refill"). */
+  function lastHighlight(input: ReturnType<typeof fixtureSpec>) {
+    const scene = input.scenes[2] as { events: unknown[] };
+    scene.events.push({
+      at: { type: 'word_text', text: 'refill' },
+      action: 'highlight',
+      targets: ['empty'],
+    });
+    const spec = parseRenderableSpec(input);
+    const timing = effectiveTiming(spec);
+    const empty = beatWorld(spec, timing, 'bucket-empty', FPS, DEFAULT_REGISTRIES).find(
+      (i) => i.key === 'empty',
+    );
+    if (empty?.kind !== 'primitive') throw new Error('empty');
+    const highlight = empty.events.filter((e) => e.action === 'highlight').at(-1);
+    const beat = timing.beats.find((b) => b.beatId === 'bucket-empty');
+    const next = timing.beats.find((b) => b.beatId === 'payoff');
+    return {
+      untilSec: highlight?.untilSec ?? NaN,
+      beatEnd: beat?.endSec ?? NaN,
+      next: next?.startSec ?? NaN,
+    };
+  }
+  const fade = ACTION_DURATION_SEC.highlight;
+
+  it('clears by the next beat start when there is no landing hold', () => {
+    const { untilSec, next } = lastHighlight(withHoldAfter(fixtureSpec(), 'bucket-empty', 0));
+    expect(untilSec).toBeCloseTo(next - fade);
+  });
+
+  it('stays on through a landing hold and clears when the scene leaves the screen', () => {
+    const { untilSec, beatEnd, next } = lastHighlight(
+      withHoldAfter(fixtureSpec(), 'bucket-empty', 1.2),
+    );
+    expect(next - beatEnd).toBeGreaterThanOrEqual(1.2); // the estimate's gap plus the hold
+    expect(untilSec).toBeCloseTo(next - fade);
+    expect(untilSec).toBeGreaterThan(beatEnd);
   });
 });
 

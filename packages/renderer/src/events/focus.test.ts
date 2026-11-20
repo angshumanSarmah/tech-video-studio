@@ -13,7 +13,7 @@ import {
 import { ACTION_DURATION_SEC } from './presets.ts';
 import type { AnchoredEvent } from './resolve.ts';
 
-const beat = { beatStartSec: 0, beatEndSec: 10 };
+const beat = { beatStartSec: 0, beatEndSec: 10, sceneEndSec: 10 };
 const anchored = (action: AnchoredEvent['action'], sec: number, targets: string[]) => ({
   action,
   sec,

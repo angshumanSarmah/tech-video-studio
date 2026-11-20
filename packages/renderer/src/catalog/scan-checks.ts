@@ -74,6 +74,8 @@ function locate(
     sec,
     beatStartSec: beat.startSec,
     beatEndSec: beat.endSec,
+    // Only highlight clears read it; the scan step does not.
+    sceneEndSec: beat.endSec,
   };
   const scan = eventStagger(event.params) === 'scan';
   return [{ event: anchored, path, count: itemCount(targets, event.params, scope), scan }];

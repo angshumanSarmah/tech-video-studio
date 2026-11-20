@@ -20,8 +20,10 @@ import {
  *   a little apart (`STAGGERED_ACTIONS`), or as a deliberate sweep with `params.stagger: 'scan'`
  *   (any action; parts in the element's own order, so two scans on one element share a sweep);
  * - highlight lead: a highlight starts `HIGHLIGHT_LEAD_SEC` before its word, never before its beat;
- * - highlight clear: without `params.hold`, a highlight fades out so it is gone by the end of its
- *   beat or the next focus change, whichever comes first (`ElementEvent.untilSec`).
+ * - highlight clear: without `params.hold`, a highlight fades out so it is gone when its scene
+ *   leaves the screen (`sceneEndSec`: the next beat's start or the video's end, so a gap or
+ *   landing hold after the narration keeps it) or at the next focus change, whichever comes first
+ *   (`ElementEvent.untilSec`).
  * `focus` events are not delivered to elements: the focus track handles them (`focus.ts`).
  * Pure.
  */
@@ -37,6 +39,8 @@ export type AnchoredEvent = {
   /** The beat the event is anchored in (global seconds). */
   beatStartSec: number;
   beatEndSec: number;
+  /** When the beat's scene leaves the screen (`sceneEndSec`): next beat start or video end. */
+  sceneEndSec: number;
 };
 
 export type ResolveContext = {
@@ -157,8 +161,8 @@ function startSec(event: AnchoredEvent): number {
 }
 
 /**
- * When a highlight starting at `sec` begins to fade, so it is gone by the end of its beat or the
- * next focus change after its word; never before it has fully come on. Undefined for other
+ * When a highlight starting at `sec` begins to fade, so it is gone when its scene leaves the
+ * screen or at the next focus change after its word; never before it has fully come on. Undefined for other
  * actions and for held highlights.
  */
 function clearSec(
@@ -169,6 +173,6 @@ function clearSec(
   if (event.action !== 'highlight' || eventHolds(event.params)) return undefined;
   const duration = ACTION_DURATION_SEC.highlight;
   const nextChange = focusChanges.filter((c) => c > event.sec + SIMULTANEOUS_SEC);
-  const boundary = Math.min(event.beatEndSec, ...nextChange);
+  const boundary = Math.min(event.sceneEndSec, ...nextChange);
   return Math.max(sec + duration, boundary - duration);
 }

@@ -14,7 +14,7 @@ import {
   type ResolveContext,
 } from './resolve.ts';
 
-const beat = { beatStartSec: 10, beatEndSec: 20 };
+const beat = { beatStartSec: 10, beatEndSec: 20, sceneEndSec: 20 };
 const ev = (
   action: AnchoredEvent['action'],
   sec: number,
@@ -114,10 +114,16 @@ describe('resolveElementEvents', () => {
     expect(secs(out, 'b')).toEqual([10]);
   });
 
-  it('clears a highlight by the end of its beat, or by the next focus change', () => {
+  it('clears a highlight when its scene leaves the screen, or by the next focus change', () => {
     const duration = ACTION_DURATION_SEC.highlight;
     const byBeat = resolveElementEvents([ev('highlight', 12, ['a'])], ctx());
     expect(byBeat.get('a')?.[0]?.untilSec).toBeCloseTo(20 - duration);
+    // A landing hold or gap keeps the scene past its narration (beat end 20, next beat at 21.5).
+    const held = resolveElementEvents(
+      [{ ...ev('highlight', 12, ['a']), sceneEndSec: 21.5 }],
+      ctx(),
+    );
+    expect(held.get('a')?.[0]?.untilSec).toBeCloseTo(21.5 - duration);
     const byFocus = resolveElementEvents(
       [ev('highlight', 12, ['a'])],
       ctx({ focusChanges: [11, 12, 15] }),

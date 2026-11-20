@@ -26,7 +26,7 @@ import { resolveElementEvents, type AnchoredEvent } from '../events/resolve.ts';
 import { incomingTransition } from '../events/transitions.ts';
 import type { ElementEvent } from '../primitives/element-state.ts';
 import type { AnyPrimitiveDefinition, PrimitiveLayer } from '../primitives/types.ts';
-import { anchorToTime } from '../timing/frames.ts';
+import { anchorToTime, sceneEndSec } from '../timing/frames.ts';
 
 /**
  * What a beat shows: its own elements and expanded patterns, plus everything inherited through
@@ -75,6 +75,8 @@ type Placed = { draft: Draft; sinceSec: number };
 
 type Context = {
   beat: BeatTiming | undefined;
+  /** When the beat's scene leaves the screen (`sceneEndSec`). */
+  sceneEndSec: number;
   narration: string;
   fps: number;
   registries: Registries;
@@ -101,6 +103,7 @@ export function beatWorld(
   for (const scene of sceneChain(spec.scenes, beatId)) {
     const ctx: Context = {
       beat: timing.beats.find((b) => b.beatId === scene.beatId),
+      sceneEndSec: sceneEndSec(timing, scene.beatId),
       narration: spec.script.find((s) => s.beatId === scene.beatId)?.narration ?? '',
       fps,
       registries,
@@ -277,6 +280,7 @@ function anchored(
         sec: time.sec,
         beatStartSec: beat.startSec,
         beatEndSec: beat.endSec,
+        sceneEndSec: ctx.sceneEndSec,
       },
     ];
   });

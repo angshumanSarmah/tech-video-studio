@@ -12,6 +12,7 @@ import { eventParts } from '../primitives/parts.ts';
 import type { WorldItem } from '../scene/beat-world.ts';
 import { renderedWorld } from '../scene/rendered-world.ts';
 import { getTheme, type Theme } from '../theme/index.ts';
+import { sceneEndSec } from '../timing/frames.ts';
 import type { Registries } from './registries.ts';
 
 /**
@@ -42,8 +43,7 @@ export function drawCutShortWarnings(
   return scenes.flatMap((scene, i) => {
     const beat = timing.beats.find((b) => b.beatId === scene.beatId);
     if (!beat) return [];
-    const index = timing.beats.indexOf(beat);
-    const shownUntil = timing.beats[index + 1]?.startSec ?? timing.endSec;
+    const shownUntil = sceneEndSec(timing, beat.beatId);
     const continued = scenes[i + 1]?.continuesPrevious === true;
     const world = renderedWorld(renderable, timing, scene.beatId, CHECK_FPS, registries, theme);
     return flat(world).flatMap((item) =>
