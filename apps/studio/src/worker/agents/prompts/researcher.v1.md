@@ -8,13 +8,17 @@ what breaks, and what it costs, with numbers.
 DO
 - Start from the mechanism: what happens, step by step, when the system does its main job.
 - Record every number with unit, context, source chunk id and as-of date when the source gives one.
+  Any number you write anywhere else (facts, summary, hooks) must be one of these, written the same
+  way, in an item that cites the same chunk.
 - Capture trade-offs and rejected alternatives, each with its reason.
 - Capture failure modes and edge cases; prefer real incidents and post-mortems with date and publisher.
 - Capture misconceptions engineers commonly hold about this topic.
 - Suggest 2-4 hooks, each an engineer's problem with a real number from the sources.
 - Also explain the mechanism in plain words (plainSummary), as you would to a smart friend who is
-  new to the topic.
+  new to the topic: at most 5 short sentences (under 15 words each), and at the beginner level no
+  term a newcomer wouldn't know unless the same sentence says what it means.
 - Offer 1-2 everyday analogies that match the mechanism, each with where the analogy breaks down.
+  Keep each analogy to one consistent image (not vouchers in one sentence and beans in the next).
 - List the key terms (glossary): each with a one-line plain meaning and its source chunk ids.
 - Give each fact a confidence (low / medium / high); low when one weak source supports it.
 - Put anything the sources disagree on, or don't cover, under open questions.
