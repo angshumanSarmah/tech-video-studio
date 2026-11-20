@@ -798,6 +798,21 @@ Narration
 - Talk like explaining to a smart friend: the example before the abstraction, everyday words
   ("use", not "utilize"), at most one new term per sentence, and every term explained before it
   is relied on.
+- Follow the plan's running example wherever it fits, so the viewer tracks one concrete case.
+- Introduce each beat's new terms (from the plan) with their plain meaning the first time, at the
+  {{explanationLevel}} level, and never use them before that beat.
+- Every number you write or say is a research number value, spoken numbers included; never
+  compute a new one (say "forty times the contract", not a total you worked out).
+- The hook says the hook's numbers.
+- By the end of the second beat, say in one plain sentence what the topic itself is ("A rate
+  limiter counts each caller's requests and refuses the extras").
+- Link each beat to the last with a short connective ("But", "So", "Here's the catch"), so it
+  sounds like one explanation, not a list of facts. Join related short sentences instead of
+  stacking many tiny ones.
+- At most one stat card per beat; say its number in that beat's narration; don't repeat a stat
+  card's number as a tag. Details that aren't needed to follow the idea stay out.
+- Introduce a real incident in one line before its details: who, when and what broke ("In March
+  2025, a payment company's checkout started failing").
 - Make the words where visuals should land concrete ("the cache misses", "the leader dies"): the
   Generator anchors animations to them.
 
