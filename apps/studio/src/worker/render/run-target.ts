@@ -11,8 +11,8 @@ import { prepareRenderAssets } from '#core/assets/render-assets.ts';
 import { readDataJson, resolveDataPath } from '#core/data-files.ts';
 import type { Db } from '#core/db/client.ts';
 import { getRunRenderContext, type RunRenderContext } from '#core/db/repositories/run-render.ts';
-import { getSpecVersion, type SpecVersion } from '#core/db/repositories/spec-versions.ts';
 import { NotFoundError } from '#core/errors.ts';
+import { pinnedSpecVersion } from '#core/services/spec-versions.ts';
 import type { RenderTarget } from './target.ts';
 
 /** One spec version of a run, resolved for rendering, with what a final render must refuse. */
@@ -45,7 +45,7 @@ export function loadRunRenderInput(
 ): RunRenderInput {
   const context = getRunRenderContext(db, runId);
   if (!context) throw new NotFoundError('run', runId);
-  const version = pinnedVersion(db, runId, specVersionId);
+  const version = pinnedSpecVersion(db, runId, specVersionId);
   const raw = readDataJson(dataDir, version.jsonPath);
   const spec = parseSpec(raw, version.version);
   const registry = withRegistryChecks(validateRenderableVideoSpec(raw), raw);
@@ -64,17 +64,6 @@ export function loadRunRenderInput(
     problems: assets.problems,
     registry: { errors: registry.errors, warnings: registry.warnings },
   };
-}
-
-function pinnedVersion(db: Db, runId: number, specVersionId: number): SpecVersion {
-  const version = getSpecVersion(db, specVersionId);
-  if (!version) throw new Error(`Spec version ${specVersionId} does not exist.`);
-  if (version.runId !== runId) {
-    throw new Error(
-      `Spec version ${specVersionId} belongs to run ${version.runId}, not run ${runId}.`,
-    );
-  }
-  return version;
 }
 
 function parseSpec(raw: unknown, version: number): RenderableVideoSpec {

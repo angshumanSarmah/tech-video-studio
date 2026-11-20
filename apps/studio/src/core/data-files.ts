@@ -31,6 +31,11 @@ export function specVersionPath(runId: number, version: number): string {
   return posix.join(runDir(runId), 'specs', `v${version}.json`);
 }
 
+/** A run's narration track (`timing.audioFile`), named by its content so reruns write the same file. */
+export function narrationTrackPath(runId: number, contentHash: string): string {
+  return posix.join(runDir(runId), 'audio', `narration-${contentHash.slice(0, 16)}.wav`);
+}
+
 /** Per-beat draft clips and their cache sidecars. */
 export function runBeatsDir(runId: number): string {
   return posix.join(runDir(runId), 'beats');

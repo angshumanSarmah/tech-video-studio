@@ -8,6 +8,7 @@ import {
   type RenderSettings,
   type Settings,
   type SettingsInput,
+  type TimingSettings,
   type TtsSettings,
 } from '@explainer-studio/shared';
 import { z } from 'zod';
@@ -30,6 +31,8 @@ export interface AppConfig {
   readonly llm: LlmSettings;
   /** `binaryPath` is absolute. */
   readonly tts: TtsSettings;
+  /** Narration pauses (gap, landing hold, tail); a run's `settings.timing` overrides them. */
+  readonly timing: TimingSettings;
   readonly render: RenderSettings;
 }
 
@@ -83,6 +86,7 @@ export function resolveConfig(env: Env, settings: Settings, workspaceRoot: strin
     port: env.PORT,
     llm: { ...settings.llm, apiKey: env.DEEPSEEK_API_KEY ?? settings.llm.apiKey },
     tts: { ...settings.tts, binaryPath: resolveFromRoot(workspaceRoot, settings.tts.binaryPath) },
+    timing: settings.timing,
     render: settings.render,
   };
 }

@@ -8,6 +8,7 @@ import { startPollLoop } from '#worker/poll-loop.ts';
 import { runFfmpeg } from '#worker/render/ffmpeg.ts';
 import { createRemotionEngine } from '#worker/render/remotion-engine.ts';
 import { drainQueue } from '#worker/runner.ts';
+import { createKokoroTts } from '#worker/tts/kokoro.ts';
 
 const POLL_INTERVAL_MS = 1_000;
 
@@ -16,7 +17,17 @@ ensureDataDirs(config.dataDir);
 const db = openDatabase(dbPathFor(config.dataDir));
 // The Remotion bundle is built on the first render job and reused by every later one.
 const tools = { engine: createRemotionEngine(), ffmpeg: runFfmpeg, settings: config.render };
-const registry = createJobRegistry(createJobHandlers({ db, dataDir: config.dataDir, tools }));
+// Kokoro starts on the first cache miss and is reused; closed on shutdown.
+const { provider: tts } = createKokoroTts({
+  workspaceRoot: config.workspaceRoot,
+  dataDir: config.dataDir,
+  python: config.tts.binaryPath,
+  log: (message) => console.warn(`[worker] ${message}`),
+});
+const settings = { tts: config.tts, timing: config.timing };
+const registry = createJobRegistry(
+  createJobHandlers({ db, dataDir: config.dataDir, tools, tts, settings }),
+);
 const workerId = `${hostname()}:${process.pid}`;
 const shutdownController = new AbortController();
 
@@ -47,6 +58,7 @@ console.log(`[worker] ${workerId} ready (data dir: ${config.dataDir})`);
 async function shutdown(): Promise<void> {
   shutdownController.abort(new Error('worker shutting down'));
   await loop.stop();
+  await tts.close();
   closeDatabase(db);
   process.exit(0);
 }

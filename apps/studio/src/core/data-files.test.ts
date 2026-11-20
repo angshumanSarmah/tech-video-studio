@@ -10,6 +10,7 @@ import {
   contentHash,
   exportVideoPath,
   missingAssetsPath,
+  narrationTrackPath,
   pronunciationsPath,
   readDataJson,
   readDataText,
@@ -54,6 +55,9 @@ describe('data file paths', () => {
     expect(ttsCachePath('ab12', 'wav')).toBe('tts/cache/ab12.wav');
     expect(ttsCachePath('ab12', 'json')).toBe('tts/cache/ab12.json');
     expect(ttsVoiceSamplesDir()).toBe('tts/voice-samples');
+    expect(narrationTrackPath(4, 'abcdef0123456789ffff')).toBe(
+      'runs/4/audio/narration-abcdef0123456789.wav',
+    );
   });
 
   it('hashes text as sha256 hex', () => {
