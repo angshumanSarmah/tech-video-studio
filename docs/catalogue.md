@@ -2185,19 +2185,19 @@ A queue of waiting jobs feeds a pool of workers: on the assign word each worker 
 
 Ids are exhaustive. Elements may name a zone of their beat’s layout mode.
 
-| Mode | Zones | Description |
-| --- | --- | --- |
-| `map` | `base`, `overlay`, `marker`, `aside` | A map base filling the stage, overlays sharing its frame, markers on top. |
-| `two_column` | `left`, `right`, `aside` | Two columns of elements, read left then right. |
-| `grid` | `cell`, `aside` | Equal elements in a grid of cells. |
-| `stacked_list` | `row`, `aside` | Elements stacked top to bottom as rows. |
-| `centered_focus` | `center`, `around`, `aside` | One focus element in the middle, the rest smaller around it. |
-| `pipeline` | `source`, `stage`, `sink`, `aside` | Stages in flow order (top-down or left-right): sources, middle stages, sinks. |
-| `cycle` | `ring`, `center`, `aside` | Steps on a ring that loops back to the start, an optional element in the middle. |
-| `swimlane` | `lane-1`, `lane-2`, `lane-3`, `lane-4`, `message`, `aside` | Vertical lanes, one per actor, with ordered messages between them. |
-| `versus_split` | `left`, `right`, `shared` | Two halves side by side for the same situation; shared elements span both. |
-| `near_far` | `origin`, `near`, `far`, `aside` | An origin with a near and a far destination, the distance drawn to scale. |
-| `hub_spoke` | `hub`, `spoke`, `aside` | One hub in the middle with spokes around it. |
+| Mode | Zones | Max elements | Description | When to use |
+| --- | --- | --- | --- | --- |
+| `map` | `base`, `overlay`, `marker`, `aside` | 6 | A map base filling the stage, overlays sharing its frame, markers on top. | Places, distance or territory matter: riders, zones, regions, data centres. |
+| `two_column` | `left`, `right`, `aside` | 8 | Two columns of elements, read left then right. | Two related groups read in order, such as inputs then outputs. |
+| `grid` | `cell`, `aside` | 12 | Equal elements in a grid of cells. | Many equal items: shards, buckets, slots, replicas. |
+| `stacked_list` | `row`, `aside` | 6 | Elements stacked top to bottom as rows. | An ordered list or stack: layers, log entries, ranked results. |
+| `centered_focus` | `center`, `around`, `aside` | 7 | One focus element in the middle, the rest smaller around it. | One thing is the subject and the rest is context. The default when nothing fits. |
+| `pipeline` | `source`, `stage`, `sink`, `aside` | 10 | Stages in flow order (top-down or left-right): sources, middle stages, sinks. | Something moves through stages in order: a request path, a data or model pipeline. |
+| `cycle` | `ring`, `center`, `aside` | 8 | Steps on a ring that loops back to the start, an optional element in the middle. | A loop that repeats: retries, a training step, an agent calling tools in turn. |
+| `swimlane` | `lane-1`, `lane-2`, `lane-3`, `lane-4`, `message`, `aside` | 12 | Vertical lanes, one per actor, with ordered messages between them. | Two to four actors exchange messages over time: a handshake, a protocol, a race. |
+| `versus_split` | `left`, `right`, `shared` | 8 | Two halves side by side for the same situation; shared elements span both. | Two options or two outcomes for the same input, compared side by side. |
+| `near_far` | `origin`, `near`, `far`, `aside` | 5 | An origin with a near and a far destination, the distance drawn to scale. | The cost is distance or latency: a nearby cache versus a far database. |
+| `hub_spoke` | `hub`, `spoke`, `aside` | 9 | One hub in the middle with spokes around it. | One central thing serves or coordinates many: a broker, a coordinator, a lock. |
 
 ## Assets
 

@@ -21,6 +21,7 @@ export * from './asset-uses.ts';
 export * from './registries.ts';
 export * from './validate.ts';
 export * from './catalogue.ts';
+export * from './prompt-block.ts';
 // Render service helpers (P1A.12): cache-key inputs, still key frames and frame spans.
 export * from './render-inputs.ts';
 export * from './key-frame.ts';

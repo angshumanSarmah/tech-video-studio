@@ -1,6 +1,10 @@
-import { ASSET_FAMILIES, type AssetFamily } from '@explainer-studio/shared';
+import {
+  ASSET_FAMILIES,
+  LAYOUT_MODE_CATALOGUE,
+  type AssetFamily,
+  type LayoutModeEntry,
+} from '@explainer-studio/shared';
 import { z } from 'zod';
-import { LAYOUT_MODE_DEFINITIONS } from '../layout/modes.ts';
 import { INNER_TARGET_ACTIONS, type AnyPatternDefinition } from '../patterns/types.ts';
 import { PRIMITIVE_FAMILIES, type AnyPrimitiveDefinition } from '../primitives/types.ts';
 import { getTheme, type Theme } from '../theme/index.ts';
@@ -48,7 +52,8 @@ export type PatternCatalogueEntry = {
   example: { id: string; pattern: string; params: unknown };
 };
 
-export type LayoutModeCatalogueEntry = { id: string; zones: string[]; description: string };
+/** The shared catalogue entry (P1C.4), as is. */
+export type LayoutModeCatalogueEntry = LayoutModeEntry;
 
 export type AssetCatalogueGroup = {
   family: AssetFamily;
@@ -73,19 +78,18 @@ export function inputJsonSchema(schema: z.ZodType): JsonSchema {
   return jsonSchema;
 }
 
+/** Code-unit order, not `localeCompare`: the prompt block must not depend on the host locale. */
+const byCodeUnits = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
+
 const byFamilyThenId = <T extends { family: string; id: string }>(a: T, b: T) =>
   PRIMITIVE_FAMILIES.indexOf(a.family as never) - PRIMITIVE_FAMILIES.indexOf(b.family as never) ||
-  a.id.localeCompare(b.id);
+  byCodeUnits(a.id, b.id);
 
 export function buildCatalogue(registries: Registries = DEFAULT_REGISTRIES): Catalogue {
   return {
     primitives: [...registries.primitives.values()].map(primitiveEntry).sort(byFamilyThenId),
     patterns: [...registries.patterns.values()].map(patternEntry).sort(byFamilyThenId),
-    layoutModes: LAYOUT_MODE_DEFINITIONS.map((m) => ({
-      id: m.id,
-      zones: [...m.zones],
-      description: m.description,
-    })),
+    layoutModes: LAYOUT_MODE_CATALOGUE.entries.map((m) => ({ ...m, zones: [...m.zones] })),
     assets: assetGroups(registries),
   };
 }
@@ -203,9 +207,12 @@ export function catalogueMarkdown(
     '',
     'Ids are exhaustive. Elements may name a zone of their beat’s layout mode.',
     '',
-    '| Mode | Zones | Description |',
-    '| --- | --- | --- |',
-    ...layoutModes.map((m) => `| \`${m.id}\` | ${codeList(m.zones)} | ${m.description} |`),
+    '| Mode | Zones | Max elements | Description | When to use |',
+    '| --- | --- | --- | --- | --- |',
+    ...layoutModes.map(
+      (m) =>
+        `| \`${m.id}\` | ${codeList(m.zones)} | ${m.maxUnits} | ${m.summary} | ${m.whenToUse} |`,
+    ),
     '',
     ...assetSection(assets),
   ];

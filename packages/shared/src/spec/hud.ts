@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { DeviceId } from '../catalogues/devices.ts';
 
 /**
  * Story devices that decide how chapters are shown. These are device catalogue ids (P1C.4); the
@@ -7,7 +8,7 @@ import { z } from 'zod';
 export const CHAPTER_DISPLAY_DEVICES = {
   questionChapters: 'question_chapters',
   roadmap: 'roadmap',
-} as const;
+} as const satisfies Record<string, DeviceId>;
 
 /** `auto` lets the story devices decide; true/false is a user override at a gate and wins. */
 export const AutoToggleSchema = z.union([z.boolean(), z.literal('auto')]);

@@ -8669,7 +8669,9 @@
         "marker",
         "aside"
       ],
-      "description": "A map base filling the stage, overlays sharing its frame, markers on top."
+      "maxUnits": 6,
+      "summary": "A map base filling the stage, overlays sharing its frame, markers on top.",
+      "whenToUse": "Places, distance or territory matter: riders, zones, regions, data centres."
     },
     {
       "id": "two_column",
@@ -8678,7 +8680,9 @@
         "right",
         "aside"
       ],
-      "description": "Two columns of elements, read left then right."
+      "maxUnits": 8,
+      "summary": "Two columns of elements, read left then right.",
+      "whenToUse": "Two related groups read in order, such as inputs then outputs."
     },
     {
       "id": "grid",
@@ -8686,7 +8690,9 @@
         "cell",
         "aside"
       ],
-      "description": "Equal elements in a grid of cells."
+      "maxUnits": 12,
+      "summary": "Equal elements in a grid of cells.",
+      "whenToUse": "Many equal items: shards, buckets, slots, replicas."
     },
     {
       "id": "stacked_list",
@@ -8694,7 +8700,9 @@
         "row",
         "aside"
       ],
-      "description": "Elements stacked top to bottom as rows."
+      "maxUnits": 6,
+      "summary": "Elements stacked top to bottom as rows.",
+      "whenToUse": "An ordered list or stack: layers, log entries, ranked results."
     },
     {
       "id": "centered_focus",
@@ -8703,7 +8711,9 @@
         "around",
         "aside"
       ],
-      "description": "One focus element in the middle, the rest smaller around it."
+      "maxUnits": 7,
+      "summary": "One focus element in the middle, the rest smaller around it.",
+      "whenToUse": "One thing is the subject and the rest is context. The default when nothing fits."
     },
     {
       "id": "pipeline",
@@ -8713,7 +8723,9 @@
         "sink",
         "aside"
       ],
-      "description": "Stages in flow order (top-down or left-right): sources, middle stages, sinks."
+      "maxUnits": 10,
+      "summary": "Stages in flow order (top-down or left-right): sources, middle stages, sinks.",
+      "whenToUse": "Something moves through stages in order: a request path, a data or model pipeline."
     },
     {
       "id": "cycle",
@@ -8722,7 +8734,9 @@
         "center",
         "aside"
       ],
-      "description": "Steps on a ring that loops back to the start, an optional element in the middle."
+      "maxUnits": 8,
+      "summary": "Steps on a ring that loops back to the start, an optional element in the middle.",
+      "whenToUse": "A loop that repeats: retries, a training step, an agent calling tools in turn."
     },
     {
       "id": "swimlane",
@@ -8734,7 +8748,9 @@
         "message",
         "aside"
       ],
-      "description": "Vertical lanes, one per actor, with ordered messages between them."
+      "maxUnits": 12,
+      "summary": "Vertical lanes, one per actor, with ordered messages between them.",
+      "whenToUse": "Two to four actors exchange messages over time: a handshake, a protocol, a race."
     },
     {
       "id": "versus_split",
@@ -8743,7 +8759,9 @@
         "right",
         "shared"
       ],
-      "description": "Two halves side by side for the same situation; shared elements span both."
+      "maxUnits": 8,
+      "summary": "Two halves side by side for the same situation; shared elements span both.",
+      "whenToUse": "Two options or two outcomes for the same input, compared side by side."
     },
     {
       "id": "near_far",
@@ -8753,7 +8771,9 @@
         "far",
         "aside"
       ],
-      "description": "An origin with a near and a far destination, the distance drawn to scale."
+      "maxUnits": 5,
+      "summary": "An origin with a near and a far destination, the distance drawn to scale.",
+      "whenToUse": "The cost is distance or latency: a nearby cache versus a far database."
     },
     {
       "id": "hub_spoke",
@@ -8762,7 +8782,9 @@
         "spoke",
         "aside"
       ],
-      "description": "One hub in the middle with spokes around it."
+      "maxUnits": 9,
+      "summary": "One hub in the middle with spokes around it.",
+      "whenToUse": "One central thing serves or coordinates many: a broker, a coordinator, a lock."
     }
   ],
   "assets": [

@@ -130,6 +130,29 @@ Dev ports: the UI is on http://localhost:4310 (`WEB_PORT`, Vite, `strictPort`) a
   (`transition_on_continuing_beat`). `zoomFrom` (with `zoom-in` only, never on a continuing or
   first beat; `invalid_zoom_from`) names an element of the previous board: a semantic zoom.
 
+## Story catalogues
+
+`packages/shared/src/catalogues` (P1C.4): versioned data files with LLM-facing text, the closed
+lists for the story layer. `topic-classes` (one entry per `TOPIC_CLASSES`: summary, invented
+example topics, `allowedLayoutModes` most typical first, `preferredDevices`), `devices` (25
+narrative devices: `DEVICE_IDS`, `DeviceId`), `layout-modes` (ids, zones, `maxUnits`, text) and
+`metaphor-worlds` (7 worlds with `{ concept, metaphor }` mappings).
+
+- Each file lists its ids once (`as const`), its entry schema takes `id` from that list and
+  `defineCatalogue` validates it at import: entries must be exactly the ids, in order; text is one
+  line. **Bump the catalogue's `version` when an entry changes.**
+- **Layout mode data lives only here.** The renderer's `layout/modes.ts` joins each entry with
+  its placement behaviour (`Record<LayoutModeId, …>`, so a mode without a placer fails
+  typecheck); `LAYOUT_MODE_IDS` is re-exported from there.
+- Ids the code relies on are typed against the catalogue (`CHAPTER_DISPLAY_DEVICES` satisfies
+  `DeviceId`).
+- **Prompt block:** `renderStoryCatalogues()` (shared, pure) writes a `CATALOGUE VERSIONS` line
+  and one closed list per catalogue; `catalogueBlock(registries?)`
+  (`@explainer-studio/renderer/catalog`) appends every primitive and pattern as compact JSON,
+  one per line, in `buildCatalogue` order (code-unit sort, never `localeCompare`). It is
+  deterministic for any registry insertion order and leaves assets out (per-beat list, P1C.7).
+  `catalogues/__snapshots__/story-catalogues.txt` holds the story part: review its diff.
+
 ## Database
 
 - SQLite via Drizzle + better-sqlite3. Schema: `apps/studio/src/core/db/schema.ts`; DB file:

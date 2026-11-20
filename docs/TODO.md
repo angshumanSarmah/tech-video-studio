@@ -4,6 +4,27 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 
 ## Open
 
+- [ ] **Researcher prompt drifted from the design doc (failing on `main`).** The doc's
+      Researcher prompt gained the "everyday one/two/three" number-word exception and the
+      intermediate / expert summary line, but `prompts/researcher.v1.md` was not updated, so
+      `verbatim.test.ts` fails. Add `researcher.v2.md`, bump `PROMPT_VERSIONS`, refresh the
+      snapshot.
+- [ ] **P1C.5 — Validate story ids against the catalogues.** `story.devices`,
+      `story.beats[].device`, `story.metaphorWorld` and story / scene layout modes outside the
+      topic class's `allowedLayoutModes` are free slugs today; add `unknown_reference` errors
+      (and a warning for a mode the class does not allow) in `withRegistryChecks`.
+- [ ] **P1C.5 — A smaller catalogue block for the Director.** `catalogueBlock()` is about 38k
+      tokens (chars/4): story catalogues 3.5k, primitives 12k, patterns 22k, mostly props and
+      params JSON Schemas the Director never fills. A summaries-only variant (ids, text, pattern
+      layout mode, formats, anchor names) is about 10k. The Generator needs the full block.
+- [ ] **P1C.5 — Record catalogue versions per call.** The block's `CATALOGUE VERSIONS` line
+      lands in the prompt file; a column on `llm_calls` would make it queryable.
+- [ ] **P1C.5 — Ending kinds vs devices.** `story.ending.kind` is a free slug (fixtures use
+      `summary`, `callback`); consider tying it to `spec_card_ending` / `callback_ending` /
+      `cliffhanger_ending`.
+- [ ] **P1C.4 — Device → pattern hints.** Devices do not suggest patterns (e.g.
+      `brute_force_first` → `brute_force_then_index`); add an optional, registry-checked list if
+      the Director picks poorly.
 - [ ] **P1D.3 — Source fetch dates at gate 1.** Show each source's `extracted_at` (fetch date)
       next to its facts in the research gate, so stale sources stand out (a stale-source check).
 - [ ] **P1D.2 — Retry one source.** `POST /api/sources/:id/retry` needs a job that re-ingests one
