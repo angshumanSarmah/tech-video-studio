@@ -240,11 +240,27 @@ settings, settings.tts)`: speed is the run's `tts.speed`, else `settings.tts.spe
   `uv.lock` and `models.lock.json`, so a hit never starts Python; the running server must report
   the same identity. Only checked results are cached. Bump `TTS_PIPELINE_VERSION` when mapping,
   trimming or the server output changes.
+- **Timing step** (`src/worker/timing`, P1B.2) and the **`tts` job** (`jobs/tts.ts`, payload
+  `{ specVersionId }`): the job synthesises each beat (passing `ctx.signal`), `timeNarration`
+  places the beats on one track and the job saves the timed spec as the run's next version
+  (`saveSpecVersion`, skipped when identical, so reruns are safe) with the track at
+  `runs/<id>/audio/narration-<hash>.wav`. Pauses come from one block, `settings.timing`
+  (`beatGapSec` 0, `landingSec` 0, `endTailSec` 0.5), overridden per run by `settings.timing`
+  on the run (`resolveTimingOptions`); nothing is hard-coded. A beat's scene ends at
+  `max(narration end, settled + landingSec)` (landing only when > 0; `settled` is
+  `beatSettledOffsets`: its own last non-exit event played out, draws included, default theme),
+  the next beat starts `beatGapSec` later, and the track ends `endTailSec` after the last scene.
+  Settled offsets are measured on a first pass and do not depend on where a beat sits, so a
+  second pass adds the holds. The track is the beats' PCM with silence of exactly those lengths
+  (`buildNarrationTrack`); `timing.pauses` records the values. Without scenes (TTS before the
+  Generator) there are no landing holds: re-run the job once scenes exist (TTS is cached).
+  Anchors that match no word fail with the closest word.
 - `pnpm tts:doctor` checks uv, Python, `uv sync --check`, model checksums, the bundled espeak-ng
   (it reads words missing from misaki's dictionary; the server refuses to start without it), a
-  test synthesis and the real-time factor. `… tts:fixture` synthesises the rate-limiter fixture
+  test synthesis and the real-time factor. `… tts:fixture [--no-render]` synthesises the rate-limiter fixture
   per beat into `<DATA_DIR>/tts/fixture/rate-limiter/` (WAV, words, Audacity label track for
-  spot checks) and one sentence per sample voice into `<DATA_DIR>/tts/voice-samples/`.
+  spot checks), times it with `settings.timing` (`narration.wav`, `timed-spec.json`) and renders
+  `draft.mp4` with the narration and one sentence per sample voice into `<DATA_DIR>/tts/voice-samples/`.
 - Tests never need Python: `testing/fake-tts-server.ts` speaks the same protocol (Node runs it
   with type stripping) and can crash, hang, fail at startup or drop a word.
 
@@ -393,7 +409,11 @@ its lease in card). The per-anchor sheets stay the record of timing.
   `resolveAnchorSec` live in `packages/shared` (the worker needs them too); `src/timing/frames.ts`
   converts to frames at the composition's fps (final 30, draft 15). Without `spec.timing`, timing
   is estimated at 2.6 words/sec. Event frames are always recomputed from word timings; the
-  `timing.events` cache is never read.
+  `timing.events` cache is never read. A beat's `endSec` is the end of its narration; silence
+  before the next beat's `startSec` (gap, landing hold) keeps its scene on screen, and the video
+  ends at `timing.endSec` (else `END_TAIL_SEC` after the last beat). `sceneEndSec(timing, beat)`
+  (next beat start or video end) is when a scene leaves the screen: highlights clear by it and
+  `draw_cut_short` measures against it.
 - Beat `<Sequence>`s tile the video with no gaps (each runs until the next beat starts). A beat
   transition (`events/transitions.ts`: `sceneSpans`, `transitionView`) overlaps the outgoing
   scene's span by `TRANSITION_SEC` (fade, slide, zoom-in, zoom-out); `BeatScene` draws the scene
@@ -618,7 +638,8 @@ message }` for the Curator): `too_many_elements` (mode `maxUnits`), `text_too_sm
   events into per-element events: a default stagger for groups (several targets, an instance,
   several parts; enter, exit, highlight, dim, pulse), `params.stagger: 'scan'` for a one-by-one
   sweep (any action; parts in the element's own order; ≤ 2 s and never past the beat's next
-  event), a highlight 0.2 s before its word that clears by its beat's end or the next focus
+  event), a highlight 0.2 s before its word that clears by the time its scene leaves the screen
+  (`AnchoredEvent.sceneEndSec`, so it stays on through a gap or landing hold) or the next focus
   change (`untilSec`) unless `params.hold`. `focus.ts` is the focus track: the beat's `focus`,
   `focus` events (an engine action, valid on any target; never delivered to elements) and
   overlays give each element a focus track (`focus` and `overlay` keys); out of focus means

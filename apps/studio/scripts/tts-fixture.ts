@@ -1,18 +1,34 @@
 /**
- * `pnpm --filter @explainer-studio/studio tts:fixture`: synthesises the rate-limiter fixture's
- * narration, one WAV per beat, through the real provider (cache included), and checks every word
- * list. For each beat it writes, under <DATA_DIR>/tts/fixture/rate-limiter/:
+ * `pnpm --filter @explainer-studio/studio tts:fixture [--no-render]`: narrates the rate-limiter
+ * fixture through the real provider (cache included) and the timing step, then renders a draft
+ * with the narration to check sync by eye. Under <DATA_DIR>/tts/fixture/rate-limiter/:
  *   <beat>.wav, <beat>.words.json and <beat>.labels.txt (an Audacity label track: File > Import >
- *   Labels, for spot-checking that words land on audible speech).
+ *   Labels, for spot-checking that words land on audible speech);
+ *   narration.wav, narration.labels.txt (every word on the whole track) and timed-spec.json, timed
+ *   with `settings.timing` (gap, landing hold, tail);
+ *   draft.mp4 (skipped with --no-render).
  * Then it renders one sentence in each sample voice to <DATA_DIR>/tts/voice-samples/<voice>.wav.
  * Run it twice: the second run is served from the cache without starting Python.
  */
-import { copyFileSync, mkdirSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import { rateLimiterSpec } from '@explainer-studio/renderer/fixtures';
-import type { TimedWord } from '@explainer-studio/shared';
-import { loadConfig } from '#core/config.ts';
+import {
+  fixtureChannelHandle,
+  fixtureSeries,
+  rateLimiterSpec,
+} from '@explainer-studio/renderer/fixtures';
+import {
+  validateRenderableVideoSpec,
+  type TimedWord,
+  type TimingSettings,
+} from '@explainer-studio/shared';
+import { loadConfig, type AppConfig } from '#core/config.ts';
 import { ttsVoiceSamplesDir } from '#core/data-files.ts';
+import { renderDraft } from '#worker/render/draft.ts';
+import { runFfmpeg } from '#worker/render/ffmpeg.ts';
+import { createRemotionEngine } from '#worker/render/remotion-engine.ts';
+import { resolveTimingOptions } from '#worker/timing/assemble.ts';
+import { timeNarration, type NarratedBeat } from '#worker/timing/step.ts';
 import { createKokoroTts } from '#worker/tts/kokoro.ts';
 import { resolveTtsOptions } from '#worker/tts/options.ts';
 import type { TtsProvider } from '#worker/tts/provider.ts';
@@ -36,11 +52,18 @@ function audacityLabels(words: readonly TimedWord[]): string {
   return words.map((w) => `${w.startSec.toFixed(4)}\t${w.endSec.toFixed(4)}\t${w.text}\n`).join('');
 }
 
+interface FixtureNarration {
+  readonly beats: NarratedBeat[];
+  readonly hits: number;
+  readonly failures: number;
+}
+
 async function synthesizeFixture(
   provider: TtsProvider,
   outDir: string,
   options: { voice: string; speed: number },
-): Promise<{ hits: number; failures: number }> {
+): Promise<FixtureNarration> {
+  const beats: NarratedBeat[] = [];
   let hits = 0;
   let failures = 0;
   mkdirSync(outDir, { recursive: true });
@@ -57,13 +80,61 @@ async function synthesizeFixture(
       `${JSON.stringify(result.words, null, 2)}\n`,
     );
     writeFileSync(join(outDir, `${beat.beatId}.labels.txt`), audacityLabels(result.words));
+    beats.push({ ...result, beatId: beat.beatId, wav: readFileSync(result.wavPath) });
     const status = problems.length ? `FAIL ${problems.join('; ')}` : 'ok';
     console.log(
       `  ${beat.beatId.padEnd(14)} ${result.cached ? 'hit ' : 'miss'} ${String(result.words.length).padStart(3)} words` +
         `  ${result.durationSec.toFixed(2).padStart(6)} s audio  ${String(ms).padStart(5)} ms  ${status}`,
     );
   }
-  return { hits, failures };
+  return { beats, hits, failures };
+}
+
+/** Times the fixture with `pauses`; writes the track, its labels and the timed spec. */
+function timeFixture(beats: readonly NarratedBeat[], pauses: TimingSettings, outDir: string) {
+  const { timing, track } = timeNarration(rateLimiterSpec, beats, pauses);
+  const narrationPath = join(outDir, 'narration.wav');
+  writeFileSync(narrationPath, track);
+  const spec = { ...rateLimiterSpec, timing: { audioFile: 'narration.wav', ...timing } };
+  const result = validateRenderableVideoSpec(spec);
+  if (!result.ok) throw new Error(`Timed fixture is invalid: ${JSON.stringify(result.errors)}`);
+  writeFileSync(join(outDir, 'timed-spec.json'), `${JSON.stringify(result.spec, null, 2)}\n`);
+  writeFileSync(
+    join(outDir, 'narration.labels.txt'),
+    audacityLabels(timing.beats.flatMap((b) => b.words)),
+  );
+  for (const [i, beat] of timing.beats.entries()) {
+    const next = timing.beats[i + 1]?.startSec ?? timing.endSec ?? beat.endSec;
+    const hold = (next - beat.endSec).toFixed(2);
+    console.log(
+      `  ${beat.beatId.padEnd(14)} ${beat.startSec.toFixed(2).padStart(6)}-${beat.endSec.toFixed(2)} s, then ${hold} s held`,
+    );
+  }
+  return { spec: result.spec, narrationPath };
+}
+
+async function renderFixtureDraft(
+  config: AppConfig,
+  timed: ReturnType<typeof timeFixture>,
+  outDir: string,
+): Promise<string> {
+  const tools = { engine: createRemotionEngine(), ffmpeg: runFfmpeg, settings: config.render };
+  const joined = join(outDir, 'draft.mp4');
+  await renderDraft(
+    {
+      spec: timed.spec,
+      props: { series: fixtureSeries, channelHandle: fixtureChannelHandle },
+      audioPath: timed.narrationPath,
+    },
+    tools,
+    { signal: new AbortController().signal, onProgress: () => undefined },
+    {
+      clip: (beatId) => join(outDir, 'beats', `${beatId}.draft.mp4`),
+      meta: (beatId) => join(outDir, 'beats', `${beatId}.draft.json`),
+      joined,
+    },
+  );
+  return joined;
 }
 
 async function renderVoiceSamples(provider: TtsProvider, outDir: string, speed: number) {
@@ -77,7 +148,9 @@ async function renderVoiceSamples(provider: TtsProvider, outDir: string, speed: 
 
 async function main(): Promise<number> {
   const config = loadConfig();
+  const render = !process.argv.includes('--no-render');
   const { voice, speed } = resolveTtsOptions(undefined, config.tts);
+  const pauses = resolveTimingOptions(undefined, config.timing);
   const tts = createKokoroTts({
     workspaceRoot: config.workspaceRoot,
     dataDir: config.dataDir,
@@ -86,17 +159,23 @@ async function main(): Promise<number> {
   });
   const fixtureDir = join(config.dataDir, 'tts', 'fixture', 'rate-limiter');
   const samplesDir = join(config.dataDir, ttsVoiceSamplesDir());
+  const shown = (path: string) => relative(config.workspaceRoot, path);
   try {
     console.log(`rate-limiter fixture (voice ${voice}, speed ${speed})`);
-    const beats = rateLimiterSpec.script.length;
-    const { hits, failures } = await synthesizeFixture(tts.provider, fixtureDir, { voice, speed });
+    const narration = await synthesizeFixture(tts.provider, fixtureDir, { voice, speed });
+    const count = rateLimiterSpec.script.length;
+    console.log(`  ${narration.hits}/${count} beats from cache -> ${shown(fixtureDir)}`);
     console.log(
-      `  ${hits}/${beats} beats from cache -> ${relative(config.workspaceRoot, fixtureDir)}`,
+      `timing (gap ${pauses.beatGapSec} s, landing ${pauses.landingSec} s, tail ${pauses.endTailSec} s)`,
     );
+    const timed = timeFixture(narration.beats, pauses, fixtureDir);
+    console.log(`  -> ${shown(timed.narrationPath)}, ${timed.spec.timing?.endSec ?? 0} s`);
+    if (render)
+      console.log(`  draft -> ${shown(await renderFixtureDraft(config, timed, fixtureDir))}`);
     console.log(`voice samples (speed ${speed}): "${SAMPLE_SENTENCE}"`);
     await renderVoiceSamples(tts.provider, samplesDir, speed);
-    console.log(`  -> ${relative(config.workspaceRoot, samplesDir)}`);
-    return failures ? 1 : 0;
+    console.log(`  -> ${shown(samplesDir)}`);
+    return narration.failures ? 1 : 0;
   } finally {
     await tts.provider.close();
   }

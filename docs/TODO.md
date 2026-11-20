@@ -67,11 +67,13 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       then the worker only moves a run to `failed` when one of its jobs fails (unless the handler
       sets `failsRun: false`); `queued → running`, gate pauses and `done` belong to the
       orchestrator, as does resuming a run from its last finished `run_steps` row.
-- [ ] **P1B.2 / P1C.9 — TTS job handler.** P1B.1 ships the provider (`createKokoroTts`) and
-      scripts, no job. The timing step's handler synthesises each beat with
-      `resolveTtsOptions(run.settings, config.tts)` and must pass `ctx.signal` (the provider
-      kills the Kokoro process on abort, so a dev restart does not use up an attempt). Create the
-      provider once per worker process and `close()` it on shutdown.
+- [ ] **P1C.9 — Pipeline order with re-timing.** The orchestrator runs
+      `tts -> generator -> re-time (landing holds) -> curator -> render`. The first `tts` job
+      times the script alone (no scenes, so no landing holds); after the Generator, queue `tts`
+      again on the new version: every beat is a cache hit, and the timing step adds the landing
+      holds from the scenes. The Curator checks the re-timed spec (its layout, `draw_cut_short`
+      and highlight timing depend on the holds). Gate edits that change narration or scenes
+      re-time the same way before the next render.
 - [ ] **P1B.1 — Pronunciation editing.** `readPronunciations` only reads. Settings (GET/PUT
       `/api/pronunciations`) needs a `savePronunciations` (atomic, validated) in core. Keys are
       single tokens; multi-word keys ("Kafka Streams") and misaki's inline IPA override
@@ -80,6 +82,10 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       folds `$10` into "ten dollars"; check how `₹500` is read). Dictionary keys must start and
       end with a letter or digit, so symbols cannot be respelled yet; the Scriptwriter should
       write amounts as words where it matters.
+- [ ] **P1B.2 — Estimated gap.** Previews before TTS still estimate beats 0.15 s apart
+      (`ESTIMATED_BEAT_GAP_SEC`) while real timing defaults to no gap. Read the run's
+      `settings.timing` into the estimate if previews should match; it shifts every fixture and
+      golden still, so refresh them in the same change.
 - [ ] **P1B.1 — TTS cache growth.** `<DATA_DIR>/tts/cache` is never pruned (~0.5 MB per beat).
       Add a cleanup (entries no spec version references) if it grows.
 - [ ] **P1B.3 / P1C.9 — Exports row.** `render_final` writes `exports/<id>/<slug>.mp4` only. Write
@@ -209,6 +215,13 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **P1C.6 — Dashes in narration.** The Scriptwriter puts spaces around dashes (`fast — cheap`)
       so each side is its own word and can be an anchor. Add it to the Scriptwriter's DO rules
       and have the normalizer or a deterministic check flag unspaced dashes.
+- [ ] **P1C.5 / P1C.6 — Narration word budget.** A beat's narration budget is
+      `(target seconds - its gap/landing) x words per second`: the Director's per-beat target
+      and the Scriptwriter's word count leave room for `settings.timing` pauses (the run's
+      resolved `beatGapSec`, and `landingSec` for a beat whose last event lands near its end),
+      so the timed video still lands on the target length. Words per second comes from the
+      voice and speed (measure it from cached syntheses; Kokoro `af_heart` at 1.0 reads about
+      2.7 words/s on the rate-limiter fixture: 118 words in 43.2 s).
 - [ ] **P1C.5 / P1C.6 — Research note references.** Check that `story.beats[].factIds` and
       `script[].statCards[].sourceRef` resolve to ids in the run's research notes. These are the
       only spec checks that need research notes; everything else is in `validateVideoSpec`.
