@@ -10,6 +10,7 @@ import {
   contentHash,
   exportVideoPath,
   missingAssetsPath,
+  pronunciationsPath,
   readDataJson,
   readDataText,
   resolveDataPath,
@@ -20,6 +21,8 @@ import {
   sourceTextPath,
   specVersionPath,
   stillsManifestPath,
+  ttsCachePath,
+  ttsVoiceSamplesDir,
   writeDataJson,
   writeDataText,
 } from './data-files.ts';
@@ -44,6 +47,13 @@ describe('data file paths', () => {
     expect(beatStillPath(4, 'hook')).toBe('runs/4/stills/hook.png');
     expect(stillsManifestPath(4)).toBe('runs/4/stills/stills.json');
     expect(exportVideoPath(4, 'rate-limiter')).toBe('exports/4/rate-limiter.mp4');
+  });
+
+  it('builds TTS paths', () => {
+    expect(pronunciationsPath()).toBe('config/pronunciations.json');
+    expect(ttsCachePath('ab12', 'wav')).toBe('tts/cache/ab12.wav');
+    expect(ttsCachePath('ab12', 'json')).toBe('tts/cache/ab12.json');
+    expect(ttsVoiceSamplesDir()).toBe('tts/voice-samples');
   });
 
   it('hashes text as sha256 hex', () => {

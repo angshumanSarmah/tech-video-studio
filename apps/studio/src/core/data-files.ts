@@ -66,6 +66,21 @@ export function exportVideoPath(runId: number, slug: string): string {
   return posix.join('exports', String(runId), `${slug}.mp4`);
 }
 
+/** The pronunciation dictionary (`PronunciationsSchema`), applied before every synthesis. */
+export function pronunciationsPath(): string {
+  return posix.join('config', 'pronunciations.json');
+}
+
+/** TTS output shared by every run, content-addressed by the synthesis cache key. */
+export function ttsCachePath(key: string, extension: 'wav' | 'json'): string {
+  return posix.join('tts', 'cache', `${key}.${extension}`);
+}
+
+/** Voice comparison samples written by `tts:fixture`. */
+export function ttsVoiceSamplesDir(): string {
+  return posix.join('tts', 'voice-samples');
+}
+
 /** Extracted source text is content-addressed so re-fetching never overwrites an older version. */
 export function sourceTextPath(topicId: number, sourceId: number, contentHash: string): string {
   return posix.join('topics', String(topicId), 'sources', String(sourceId), `${contentHash}.txt`);
