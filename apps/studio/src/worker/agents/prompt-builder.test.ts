@@ -72,8 +72,8 @@ describe('buildPrompt', () => {
     );
     expect(order.every((i) => i >= 0)).toBe(true);
     expect(order).toEqual([...order].sort((a, b) => a - b));
-    const scriptwriter = buildPrompt(templates, parts('scriptwriter')).messages[0]!.content;
-    expect(scriptwriter).not.toContain('## OUTPUT SHAPE');
+    const generator = buildPrompt(templates, parts('generator')).messages[0]!.content;
+    expect(generator).not.toContain('## OUTPUT SHAPE');
   });
 
   it('keeps the system message identical across runs with different input (cache prefix)', () => {
@@ -85,7 +85,7 @@ describe('buildPrompt', () => {
   it('records the preamble and role prompt versions', () => {
     expect(buildPrompt(templates, parts('scriptwriter')).versions).toEqual({
       preamble: 'preamble@v1',
-      role: 'scriptwriter@v1',
+      role: 'scriptwriter@v2',
     });
   });
 

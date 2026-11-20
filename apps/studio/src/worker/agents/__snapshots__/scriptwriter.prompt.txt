@@ -42,6 +42,21 @@ Narration
 - Talk like explaining to a smart friend: the example before the abstraction, everyday words
   ("use", not "utilize"), at most one new term per sentence, and every term explained before it
   is relied on.
+- Follow the plan's running example wherever it fits, so the viewer tracks one concrete case.
+- Introduce each beat's new terms (from the plan) with their plain meaning the first time, at the
+  beginner level, and never use them before that beat.
+- Every number you write or say is a research number value, spoken numbers included; never
+  compute a new one (say "forty times the contract", not a total you worked out).
+- The hook says the hook's numbers.
+- By the end of the second beat, say in one plain sentence what the topic itself is ("A rate
+  limiter counts each caller's requests and refuses the extras").
+- Link each beat to the last with a short connective ("But", "So", "Here's the catch"), so it
+  sounds like one explanation, not a list of facts. Join related short sentences instead of
+  stacking many tiny ones.
+- At most one stat card per beat; say its number in that beat's narration; don't repeat a stat
+  card's number as a tag. Details that aren't needed to follow the idea stay out.
+- Introduce a real incident in one line before its details: who, when and what broke ("In March
+  2025, a payment company's checkout started failing").
 - Make the words where visuals should land concrete ("the cache misses", "the leader dies"): the
   Generator anchors animations to them.
 
@@ -63,6 +78,163 @@ Common mistakes to avoid
 4. Vague trigger words ("this", "it") where a visual should land.
 5. A stat card without a research number id.
 6. Symbols or acronyms that text-to-speech will read badly.
+
+## OUTPUT SHAPE (JSON Schema: return one JSON object that matches it)
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "script": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "beatId": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "description": "The plan beat's id; one entry per beat, in the plan's order."
+          },
+          "narration": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The spoken words of the beat, within its word budget: short sentences, numbers spelled as spoken."
+          },
+          "headline": {
+            "type": "object",
+            "properties": {
+              "text": {
+                "type": "string",
+                "minLength": 1,
+                "description": "About 5 words stating the takeaway, not repeating the narration; for concept beats \"<example-term> = <example-plain-meaning>\"."
+              },
+              "semantic": {
+                "type": "string",
+                "enum": [
+                  "concept",
+                  "decision",
+                  "problem",
+                  "resolution"
+                ],
+                "description": "concept (a term or idea), decision (a design choice), problem (what breaks) or resolution (the fix)."
+              }
+            },
+            "required": [
+              "text",
+              "semantic"
+            ],
+            "additionalProperties": false
+          },
+          "tags": {
+            "default": [],
+            "description": "Short on-screen labels for states, outcomes or the key term; never a stat card's number.",
+            "maxItems": 3,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32,
+              "pattern": "^[^\\n\\r]*$",
+              "description": "A boxed label of two or three words."
+            }
+          },
+          "statCards": {
+            "default": [],
+            "description": "Cards for research numbers only, each citing its number id: at most 1 per beat and 4 per video, each number also said in the beat's narration.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 12,
+                  "pattern": "^[^\\n\\r]*$",
+                  "description": "The research number as displayed, units included, e.g. \"<example-value><example-unit>\"."
+                },
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 32,
+                  "pattern": "^[^\\n\\r]*$",
+                  "description": "What the figure measures, short."
+                },
+                "sourceRef": {
+                  "type": "string",
+                  "pattern": "^num-[1-9]\\d*$",
+                  "description": "The research number id (\"num-<n>\") it shows."
+                }
+              },
+              "required": [
+                "value",
+                "label",
+                "sourceRef"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "formulaCard": {
+            "description": "At most one per video, only when the narration walks through the formula.",
+            "type": "object",
+            "properties": {
+              "latex": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80,
+                "description": "One formula in LaTeX math mode, without $ delimiters."
+              },
+              "caption": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 48,
+                "pattern": "^[^\\n\\r]*$",
+                "description": "The formula read in plain words."
+              }
+            },
+            "required": [
+              "latex"
+            ],
+            "additionalProperties": false
+          },
+          "commandBubble": {
+            "description": "One command a component sends another, when the command itself teaches.",
+            "type": "object",
+            "properties": {
+              "text": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 48,
+                "pattern": "^[^\\n\\r]*$",
+                "description": "The command exactly as typed, on one line."
+              }
+            },
+            "required": [
+              "text"
+            ],
+            "additionalProperties": false
+          },
+          "source": {
+            "description": "Footnote (\"Source: \" is added) for a beat that shows a real incident or a sourced number: the plan beat's source, else the research source of its stat cards.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 58,
+            "pattern": "^[^\\n\\r]*$"
+          }
+        },
+        "required": [
+          "beatId",
+          "narration"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "script"
+  ],
+  "additionalProperties": false
+}
 
 ## ALLOWED PATTERNS (exhaustive: use only these ids)
 - <example-pattern-id>: <example description>

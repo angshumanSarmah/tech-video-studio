@@ -4,6 +4,7 @@ import { ingestJobHandler, type IngestJobDeps } from './ingest.ts';
 import { noopJob } from './noop.ts';
 import { renderJobHandlers, type RenderJobDeps } from './render.ts';
 import { researchJobHandler, type ResearchJobDeps } from './research.ts';
+import { scriptJobHandler, type ScriptJobDeps } from './script.ts';
 import { ttsJobHandler, type TtsJobDeps } from './tts.ts';
 
 export interface JobRegistry {
@@ -29,7 +30,8 @@ export type WorkerDeps = RenderJobDeps &
   TtsJobDeps &
   IngestJobDeps &
   ResearchJobDeps &
-  DirectJobDeps;
+  DirectJobDeps &
+  ScriptJobDeps;
 
 /** Every job type the worker runs. Add a handler here; nothing else changes. */
 export function createJobHandlers(deps: WorkerDeps): JobHandler[] {
@@ -38,6 +40,7 @@ export function createJobHandlers(deps: WorkerDeps): JobHandler[] {
     ingestJobHandler(deps),
     researchJobHandler(deps),
     directJobHandler(deps),
+    scriptJobHandler(deps),
     ...renderJobHandlers(deps),
     ttsJobHandler(deps),
   ];

@@ -1,4 +1,5 @@
 import type { DirectorInput, ResearchNotes } from '@explainer-studio/shared';
+import { notesWithoutChunks } from '../sections.ts';
 
 /**
  * The Director's run input (the user message) and its style-rules section. Static parts (role
@@ -27,7 +28,7 @@ export function directorUserMessage(input: DirectorInput, notes: ResearchNotes):
       deviceLayoutCombos: recent.combos,
     },
     pastTopics: input.memory.pastTopics,
-    researchNotes: notesForDirector(notes),
+    researchNotes: notesWithoutChunks(notes),
   };
   return `${INTRO}\n\n${JSON.stringify(payload, null, 2)}`;
 }
@@ -55,21 +56,4 @@ function formatInstruction({ formatOverride }: DirectorInput): string {
   return formatOverride
     ? `Fixed by this run: "${formatOverride}". Set meta.format to it.`
     : 'Recommend one in meta.format.';
-}
-
-/** Chunk citations stay with gate 1: the Director cites fact and number ids, never chunks. */
-export function notesForDirector(notes: ResearchNotes): unknown {
-  return JSON.parse(
-    JSON.stringify(notes, (key, value: unknown) =>
-      key === 'sourceChunkIds' || key === 'sourceChunkId' ? undefined : value,
-    ),
-  );
-}
-
-/** The person's accepted rules (P1C.10), as prompt section 5; undefined when there are none. */
-export function styleRulesSection(rules: readonly string[]): string | undefined {
-  if (rules.length === 0) return undefined;
-  return ['## STYLE RULES (from your reviews; follow them)', ...rules.map((r) => `- ${r}`)].join(
-    '\n',
-  );
 }

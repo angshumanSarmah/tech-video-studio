@@ -1,3 +1,4 @@
+import { ON_SCREEN_TEXT_LIMITS } from '@explainer-studio/shared';
 import { borderOutline } from '../../draw/outline.ts';
 import { z } from 'zod';
 import { PinSchema, pinRefs } from '../common-props.ts';
@@ -5,7 +6,7 @@ import { SEMANTIC_COLOURS, semanticTint, type Theme } from '../../theme/index.ts
 import { approxTextWidth, lineHeightPx } from '../measure.ts';
 import { definePrimitive, type SizeHints } from '../types.ts';
 
-export const TAG_MAX_LENGTH = 32;
+export const TAG_MAX_LENGTH = ON_SCREEN_TEXT_LIMITS.tag;
 
 export const TagPropsSchema = z.strictObject({
   pin: PinSchema.optional(),

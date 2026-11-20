@@ -1,3 +1,4 @@
+import { ON_SCREEN_TEXT_LIMITS } from '@explainer-studio/shared';
 import katex, { type KatexOptions } from 'katex';
 
 /**
@@ -5,7 +6,7 @@ import katex, { type KatexOptions } from 'katex';
  * formula that passes validation always renders. React-free.
  */
 
-export const LATEX_MAX_LENGTH = 80;
+export const LATEX_MAX_LENGTH = ON_SCREEN_TEXT_LIMITS.latex;
 
 /** Untrusted input from the LLM: no `\href`/`\url`/HTML, bounded sizes and macro expansion. */
 export const KATEX_OPTIONS = {

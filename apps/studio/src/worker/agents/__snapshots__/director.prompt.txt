@@ -287,7 +287,7 @@ Common mistakes to avoid
               },
               "factIds": {
                 "default": [],
-                "description": "Ids of the research facts (\"fact-<n>\") and numbers (\"num-<n>\") this beat uses.",
+                "description": "Ids of the research facts (\"fact-<n>\") and numbers (\"num-<n>\") this beat uses. At the beginner level at most 3 \"fact-<n>\" ids and 2 research numbers per beat (its \"num-<n>\" ids, hookNumberIds and any number its intent states, together): one idea, not everything the notes say.",
                 "type": "array",
                 "items": {
                   "type": "string",

@@ -1,7 +1,8 @@
 import type { DirectorMemory, UsageKind } from '@explainer-studio/shared';
-import { and, asc, countDistinct, desc, eq, inArray, max, ne } from 'drizzle-orm';
+import { countDistinct, desc, eq, inArray, max, ne } from 'drizzle-orm';
 import type { Executor } from '../db/client.ts';
-import { exports, memoryRules, runs, topics, usageHistory } from '../db/schema.ts';
+import { activeStyleRules } from './style-rules.ts';
+import { exports, runs, topics, usageHistory } from '../db/schema.ts';
 
 /** Exported videos whose usage the Director avoids repeating. */
 export const RECENT_VIDEOS = 5;
@@ -19,7 +20,7 @@ export function directorMemory(db: Executor, runId: number): DirectorMemory {
   const recentRunIds = exportedRuns(db, runId, RECENT_VIDEOS).map((r) => r.runId);
   const usage = usageValues(db, recentRunIds);
   return {
-    styleRules: directorStyleRules(db),
+    styleRules: activeStyleRules(db, 'director'),
     recent: {
       videos: recentRunIds.length,
       devices: usage('device'),
@@ -29,17 +30,6 @@ export function directorMemory(db: Executor, runId: number): DirectorMemory {
     },
     pastTopics: pastTopics(db, runId),
   };
-}
-
-/** Active rules scoped to the director or to every agent, oldest first. */
-function directorStyleRules(db: Executor): string[] {
-  return db
-    .select({ text: memoryRules.text })
-    .from(memoryRules)
-    .where(and(eq(memoryRules.status, 'active'), inArray(memoryRules.scope, ['director', 'all'])))
-    .orderBy(asc(memoryRules.id))
-    .all()
-    .map((r) => r.text);
 }
 
 /** Runs with an export other than `runId`, newest export first. */

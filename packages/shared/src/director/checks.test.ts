@@ -216,6 +216,68 @@ describe('directorPlanProblems', () => {
     ]);
   });
 
+  it('caps the facts one beat cites at the beginner level, numbers aside', () => {
+    const facts = [1, 2, 3, 4].map((n) => ({
+      id: `fact-${n}`,
+      statement: `Fact ${n}.`,
+      sourceChunkIds: C,
+      confidence: 'high' as const,
+    }));
+    const context = (level: VideoSettings['explanationLevel']) =>
+      ctx({ notes: notes({ facts }), video: { ...video(), explanationLevel: level } });
+    const cite = (ids: string[]) => (p: DirectorPlan) => (p.story.beats[1]!.factIds = ids);
+    const three = cite(['fact-1', 'fact-2', 'fact-3', 'num-1', 'num-2']);
+    const four = cite(['fact-1', 'fact-2', 'fact-3', 'fact-4']);
+    expect(problemsAfter(three, context('beginner'))).toEqual([]);
+    expect(problemsAfter(four, context('beginner'))).toEqual([
+      ['$.story.beats[1].factIds', 'too_many_facts_in_beat'],
+    ]);
+    expect(problemsAfter(four, context('intermediate'))).toEqual([]);
+  });
+
+  it('caps the research numbers one beat uses at the beginner level, hook numbers included', () => {
+    const numbers = [1, 2, 3].map((n) => ({
+      id: `num-${n}`,
+      value: String(n * 100),
+      unit: 'requests',
+      context: 'load',
+      sourceChunkId: C[0]!,
+    }));
+    const context = (level: VideoSettings['explanationLevel']) =>
+      ctx({ notes: notes({ numbers }), video: { ...video(), explanationLevel: level } });
+    const three = (p: DirectorPlan) => p.story.beats[1]!.factIds.push('num-1', 'num-2', 'num-3');
+    const twice = (p: DirectorPlan) => p.story.beats[1]!.factIds.push('num-1', 'num-2', 'num-1');
+    expect(problemsAfter(twice, context('beginner'))).toEqual([]);
+    expect(problemsAfter(three, context('beginner'))).toEqual([
+      ['$.story.beats[1].factIds', 'too_many_numbers_in_beat'],
+    ]);
+    expect(problemsAfter(three, context('expert'))).toEqual([]);
+  });
+
+  it('counts the research numbers a beat’s intent states, by value, dates aside', () => {
+    const numbers = [1, 2, 3].map((n) => ({
+      id: `num-${n}`,
+      value: String(n * 100),
+      unit: 'requests',
+      context: 'load',
+      sourceChunkId: C[0]!,
+      asOf: '9 May 2031',
+    }));
+    const context = ctx({ notes: notes({ numbers }) });
+    const intent = (text: string, ids: string[]) => (p: DirectorPlan) => {
+      p.story.beats[1]!.intent = text;
+      p.story.beats[1]!.factIds = ids;
+    };
+    const stated = intent('On 9 May 2031 one queue took 100 requests, then two hundred.', [
+      'num-1',
+    ]);
+    expect(problemsAfter(stated, context)).toEqual([]);
+    const extra = intent('A queue took 100, then 200, then 300 requests.', ['num-1']);
+    expect(problemsAfter(extra, context)).toEqual([
+      ['$.story.beats[1].factIds', 'too_many_numbers_in_beat'],
+    ]);
+  });
+
   describe('clarity', () => {
     it('matches new terms against the glossary, ignoring case', () => {
       expect(problemsAfter((p) => (p.story.beats[3]!.newTerms = ['DRAIN  rate']))).toEqual([]);

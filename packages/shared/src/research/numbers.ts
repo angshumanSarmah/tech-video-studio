@@ -34,7 +34,8 @@ function isStatusCode(text: string, index: number, token: string): boolean {
   return STATUS_CODE.test(token) && STATUS_LEAD.test(text.slice(Math.max(0, index - 16), index));
 }
 
-function isIdentifierAt(text: string, index: number, token: string): boolean {
+/** Whether the digits `token` at `index` name something (`p99`, `HTTP 429`) rather than measure it. */
+export function isIdentifierAt(text: string, index: number, token: string): boolean {
   return isGluedIdentifier(text, index) || isStatusCode(text, index, token);
 }
 

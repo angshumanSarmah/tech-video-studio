@@ -389,3 +389,12 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       `segmented_time_bar`, `slot_grid` and `conveyor_queue` (slots and blocks are parts, which
       keep the fade). Add outlines (circles, polylines) when they should draw. Connectors draw with
       the enter's ease-out over a length-based duration, not a strictly constant pen.
+- [ ] **P1C.9 — Script into the spec.** The `script` job writes no spec version, like the
+      Director. P1C.9 assembles plan + script into the run's spec (and splits parts into runs),
+      then queues TTS.
+- [ ] **P1C.6 — Headline anchors.** `ScriptwriterOutputSchema` leaves `headline.at` out, so
+      every headline lands at `DEFAULT_HEADLINE_ANCHOR`. Let the Scriptwriter (or the Generator)
+      anchor it to its word once timing needs it.
+- [ ] **P1C.6 — Ordinals.** `numberMentions` does not read ordinals ("fourteenth", "the
+      ninth"), so a date spoken that way is not checked against the notes. "second" and "first"
+      are ordinary words too often to read blindly.

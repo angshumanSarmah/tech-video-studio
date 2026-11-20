@@ -1,10 +1,11 @@
+import { ON_SCREEN_TEXT_LIMITS } from '@explainer-studio/shared';
 import { z } from 'zod';
 import type { Theme } from '../../theme/index.ts';
 import { lineText, semanticProp } from '../common-props.ts';
 import { approxTextWidth, lineHeightPx } from '../measure.ts';
 import { definePrimitive, type SizeHints } from '../types.ts';
 
-export const COMMAND_MAX_LENGTH = 48;
+export const COMMAND_MAX_LENGTH = ON_SCREEN_TEXT_LIMITS.command;
 
 export const CommandBubblePropsSchema = z.strictObject({
   text: lineText(COMMAND_MAX_LENGTH, 'The command exactly as typed, on one line.'),

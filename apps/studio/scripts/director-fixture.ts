@@ -11,21 +11,13 @@
  * With --record, the run's Director responses (every attempt, repairs included) replace the
  * dry-run fixture that `direct.test.ts` replays. Review the diff before committing.
  */
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { rmSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import {
-  ExplanationLevelSchema,
-  type DirectorPlan,
-  type ExplanationLevel,
-  type ResearchNotes,
-} from '@explainer-studio/shared';
+import type { DirectorPlan, ExplanationLevel, ResearchNotes } from '@explainer-studio/shared';
 import { loadConfig, type AppConfig } from '#core/config.ts';
-import { readDataJson, resolveDataPath } from '#core/data-files.ts';
 import { closeDatabase, migrationsDirFor, openDatabase, type Db } from '#core/db/client.ts';
 import { prepareDatabase } from '#core/db/prepare.ts';
-import { listEventsSince } from '#core/db/repositories/events.ts';
-import { enqueueJob, getJob, listRunJobs } from '#core/db/repositories/jobs.ts';
-import { listRunLlmCalls, type LlmCallRow } from '#core/db/repositories/llm-calls.ts';
+import { enqueueJob, listRunJobs } from '#core/db/repositories/jobs.ts';
 import { latestDirection } from '#core/services/direction.ts';
 import { latestResearch } from '#core/services/research-notes.ts';
 import { DIRECTOR_RESPONSES_DIR } from '#worker/agents/director/testing.ts';
@@ -45,10 +37,20 @@ import {
   createLlmTransport,
   dryRunTransport,
   loadDryRunFixtures,
-  type DryRunResponse,
   type LlmTransport,
 } from '#worker/llm/index.ts';
-import { runNextJob } from '#worker/runner.ts';
+import {
+  callsCostUsd,
+  levelArg,
+  printAttempts,
+  printLog,
+  recordResponses,
+  roleCalls,
+  runJob as runAgentJob,
+} from './agent-fixture.ts';
+
+const runJob = (db: Db, registry: JobRegistry, jobId: number) =>
+  runAgentJob(db, registry, jobId, 'director-fixture');
 
 /** The recorded Researcher answer for the researcher role, the real API for the Director. */
 function transport(config: AppConfig): LlmTransport {
@@ -73,48 +75,6 @@ function registryFor(config: AppConfig, db: Db, dataDir: string): JobRegistry {
     researchJobHandler(deps),
     directJobHandler(deps),
   ]);
-}
-
-async function runJob(db: Db, registry: JobRegistry, jobId: number): Promise<boolean> {
-  await runNextJob({
-    db,
-    registry,
-    workerId: 'director-fixture',
-    signal: new AbortController().signal,
-  });
-  const job = getJob(db, jobId);
-  if (job?.status === 'done') return true;
-  console.error(`  ${job?.type ?? 'job'} ${job?.status ?? 'missing'}: ${job?.error ?? ''}`);
-  return false;
-}
-
-function printLog(db: Db, runId: number): void {
-  for (const event of listEventsSince(db, { runId, afterId: 0, limit: 1_000 })) {
-    if (event.type !== 'log') continue;
-    const { level, message } = event.payload as { level: string; message: string };
-    console.log(`  [${level}] ${message}`);
-  }
-}
-
-function directorCalls(db: Db, runId: number): LlmCallRow[] {
-  return listRunLlmCalls(db, runId).filter((call) => call.role === 'director');
-}
-
-/** Each failed attempt's issues, as the next attempt's repair message lists them. */
-function printAttempts(dataDir: string, calls: readonly LlmCallRow[]): void {
-  calls.forEach((call, i) => {
-    const tokens = `${call.tokensInCached} cached + ${call.tokensInUncached} uncached in, ${call.tokensOut} out`;
-    console.log(
-      `  attempt ${i + 1}: ${call.error ?? 'passed'} (${tokens}, $${call.costUsd.toFixed(4)})`,
-    );
-    const next = calls[i + 1];
-    if (!call.error || !next) return;
-    const prompt = readDataJson(dataDir, next.promptPath) as { messages: { content: string }[] };
-    const issues = (prompt.messages.at(-1)?.content ?? '')
-      .split('\n')
-      .filter((l) => l.startsWith('- '));
-    for (const issue of issues) console.log(`    ${issue}`);
-  });
 }
 
 function printPlan(plan: DirectorPlan, notes: ResearchNotes): void {
@@ -168,44 +128,6 @@ function printPlan(plan: DirectorPlan, notes: ResearchNotes): void {
   }
 }
 
-/** The response file the LLM client writes next to each call's prompt. */
-interface RecordedResponseFile {
-  readonly content: string | null;
-  readonly servedModel: string | null;
-  readonly finishReason: string | null;
-  readonly usage: DryRunResponse['usage'];
-}
-
-/** The run's Director responses in call order, as `loadDryRunFixtures` reads them. */
-function recordResponses(dataDir: string, calls: readonly LlmCallRow[]): number {
-  const responses: DryRunResponse[] = calls
-    .filter((call) => call.responsePath)
-    .map((call) => {
-      const file = JSON.parse(
-        readFileSync(resolveDataPath(dataDir, call.responsePath!), 'utf8'),
-      ) as RecordedResponseFile;
-      // Reasoning text is left out: replay never reads it, and it is large.
-      return {
-        content: file.content,
-        servedModel: file.servedModel ?? 'recorded',
-        finishReason: file.finishReason ?? 'stop',
-        usage: file.usage ?? null,
-      };
-    });
-  mkdirSync(DIRECTOR_RESPONSES_DIR, { recursive: true });
-  writeFileSync(
-    join(DIRECTOR_RESPONSES_DIR, 'director.json'),
-    `${JSON.stringify(responses, null, 2)}\n`,
-  );
-  return responses.length;
-}
-
-/** `--level <level>`, validated; undefined when not given. */
-function levelArg(argv: readonly string[]): ExplanationLevel | undefined {
-  const i = argv.indexOf('--level');
-  return i < 0 ? undefined : ExplanationLevelSchema.parse(argv[i + 1]);
-}
-
 async function prepareRun(
   db: Db,
   registry: JobRegistry,
@@ -239,9 +161,9 @@ async function main(): Promise<number> {
     const directed =
       ready && (await runJob(db, registry, enqueueJob(db, { type: DIRECT_JOB_TYPE, runId }).id));
     printLog(db, runId);
-    const calls = directorCalls(db, runId);
+    const calls = roleCalls(db, runId, 'director');
     printAttempts(dataDir, calls);
-    const cost = calls.reduce((sum, c) => sum + c.costUsd, 0);
+    const cost = callsCostUsd(calls);
     console.log(`  director cost: $${cost.toFixed(4)}; files -> ${shown(dataDir)}`);
     if (!directed) return 1;
 
@@ -249,7 +171,7 @@ async function main(): Promise<number> {
     printPlan(plan, latestResearch(db, dataDir, runId)!.notes);
     console.log(`\n  checks: pass after ${calls.length - 1} repair(s)`);
     if (record) {
-      const n = recordResponses(dataDir, calls);
+      const n = recordResponses(dataDir, calls, DIRECTOR_RESPONSES_DIR, 'director');
       console.log(`  recorded ${n} response(s) -> ${shown(DIRECTOR_RESPONSES_DIR)}/director.json`);
     }
     return 0;

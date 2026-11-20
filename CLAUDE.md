@@ -475,7 +475,11 @@ seriesNumber })` makes the spec; with parts its `targetLengthSec` is the parts' 
 - **Checks** (`directorPlanProblems`, shared, pure; `directorCheck` adds the spec and registry
   checks and `hudTextWarnings` on a placeholder renderable spec, also when the spec has reference
   errors (its shape is checked), so one repair covers both; paths pointing into the plan):
-  research ids exist (`unknown_fact`); new terms match the glossary case-insensitively
+  research ids exist (`unknown_fact`); at beginner a beat cites at most
+  `BEGINNER_MAX_FACTS_PER_BEAT` (3) `fact-*` ids, numbers aside (`too_many_facts_in_beat`), and
+  `BEGINNER_MAX_NUMBERS_PER_BEAT` (2) distinct research values: its `num-*` ids,
+  `hookNumberIds` and the research values its intent states, compared by value
+  (`numberMentions`, `script/note-values.ts`; dates aside) (`too_many_numbers_in_beat`; both limits are hinted in `factIds`' schema description); new terms match the glossary case-insensitively
   (`unknown_term`), at most 1 per beat and `NEW_TERM_LIMITS` distinct per level (3 / 5 / no
   limit); `runningExample` at beginner; each video or part plans the override or a length in the
   range, beats sum to it ±10%, a `lengthReason` above `lengthReasonAboveSec`; parts are allowed,
@@ -514,6 +518,70 @@ seriesNumber })` makes the spec; with parts its `targetLengthSec` is the parts' 
   Director model (the Researcher is replayed, never called) in
   `<DATA_DIR>/director/fixture/rate-limiter/`, prints each attempt's issues, the Director's cost
   and the plan, and with `--record` replaces the dry-run answer.
+
+### Scriptwriter (`src/worker/agents/scriptwriter`, job in `jobs/script.ts`)
+
+- **`script` job** (payload `{}`): reads the run's latest plan (`latestDirection`; none fails the
+  job) and the notes of the research step that plan was made from (`researchOfStep(input.
+researchStepId)`, not the newest research), the run's level and pace (`resolvePromptVariables`)
+  and pauses (`resolveTimingOptions`), and style rules (`activeStyleRules(db, 'scriptwriter')`,
+  `#core/services/style-rules.ts`, shared with the Director), then calls `callJson` with
+  `ScriptwriterOutputSchema` and `check: scriptwriterCheck(...)`. No catalogue section. The user
+  message (`scriptwriterUserMessage`) resolves everything per beat: word budget, new terms with
+  their glossary `plainMeaning`, hook numbers, facts and numbers, `source`; every number carries
+  its source title (for source lines). Notes go without chunk ids (`agents/sections.ts`).
+- **Steps and files** like the Director: stage `script`, `runs/<id>/script/input-<step>.json`
+  (`ScriptwriterInputSchema`: the direct and research step ids, level, pace, pauses, budgets,
+  style rules) and `script-<step>.json`. `latestScript(db, dataDir, runId)`
+  (`#core/services/script.ts`) reads the newest. The job writes no spec version (P1C.9).
+- **`ScriptwriterOutput`** (`packages/shared/src/script`) is `{ script: [...] }`, the spec's
+  Script layer with stricter limits: on-screen text takes `ON_SCREEN_TEXT_LIMITS`, which the
+  `tag`, `stat_card`, `command_bubble` and `formula_card` props schemas also read (one source),
+  at most `MAX_TAGS_PER_BEAT` (3) tags, stat cards cite `num-<n>` (their counts are checks,
+  not schema limits, so a repair never lists one twice), and `headline.at` is left to its
+  default.
+- **Word budget** (`wordBudgets`): `(targetSec − landingSec − beatGapSec) × wordsPerSec`, ±15%
+  (`WORD_BUDGET_TOLERANCE`), rounded; a video's (or part's) last beat has no gap, and the end
+  tail is not taken. Words are `narrationWords`.
+- **Checks** (`scriptProblems`, shared, pure, on any script layer): `narration_over_budget` /
+  `_under_budget`, `sentence_too_long` (over `MAX_SENTENCE_WORDS`, 20), `numbers_per_sentence`
+  (beginner only), `numbers_per_beat` (beginner: at most `MAX_NUMBERS_PER_BEAT` distinct values
+  in a narration; both density checks leave out lone everyday words and values the notes give
+  only as dates), `number_not_in_notes` (narration, headline, tags, stat card labels, formula
+  caption, command; not sources or LaTeX), `stat_card_not_a_number`, `stat_card_value_mismatch`,
+  `hook_number_missing` (the beat with `hookNumberIds` says each), `new_term_missing` /
+  `new_term_too_early` (`mentionsTerm`, `script/terms.ts`: whole words, any case, each word
+  singular or with `s|es|ed|ing`), `topic_not_defined` (beginner: the first
+  `TOPIC_DEFINED_BY_BEAT` (2) beats of each video name `mainTerm`, the longest of the topic title
+  and glossary terms that `meta.title` names, else the topic title; skipped when a later beat's
+  `newTerms` introduce it) `source_missing` (a planned `source`, or stat cards) and `source_changed` (a planned
+  `source` is kept word for word). Budget and per-sentence messages name the rule a fix tends to
+  break (one number per sentence; the beat's words left), so repairs do not oscillate. On-screen
+  checks (`script/screen-checks.ts`): `stat_cards_per_beat` (`MAX_STAT_CARDS_PER_BEAT`, 1),
+  `stat_cards_per_video` (`MAX_STAT_CARDS_PER_VIDEO`, 4, per part), `stat_card_not_spoken`
+  (the card's number is said in its beat), `tag_repeats_stat_card`, `headline_not_concept` (a
+  beat with `newTerms` has a `concept` headline "<term> = ...") and `headline_repeated` (two
+  headlines share more than half the content words of the shorter, stopwords dropped). Codes,
+  context and `planVideos` live in `script/context.ts`. `scriptwriterCheck` adds spec validation
+  of plan + script, `hudTextWarnings` (headlines), `subtitleWarnings` and the layout's
+  `text_truncated` (sources) on `previewSpec` (`agents/preview-spec.ts`: empty boards, estimated
+  timing; the Director uses it too) and each on-screen item against its primitive's props
+  schema (LaTeX via `latexProblem`), keeping only issues under `$.script`. An answer that fails
+  only the output schema's limits is still checked against the spec's looser Script layer, so
+  one repair covers both (the primitive checks then wait).
+- **Numbers by value** (`numberMentions`, `script/number-mentions.ts`): digits (grouping commas,
+  `10k`, `2M`, `2 million`) and spoken numbers ("ten thousand", "two point one", "twenty-four",
+  "a hundred", pairs as years or codes: "twenty twenty-five", "four twenty-nine"), compared with
+  the notes' values, `asOf` dates and incident dates by `numberKey`. A lone "one", "two" or
+  "three" is everyday (never counted); identifiers are skipped as in `quantityTokens` (`p99`,
+  "p ninety-nine", "HTTP four twenty-nine"). Ordinals are not read.
+- **Fixture:** `agents/scriptwriter/fixtures/rate-limiter/responses/scriptwriter.json`, the
+  recorded answer (repairs included) that `jobs/script.test.ts` replays after the Researcher
+  and Director fixtures; the tests derive their expectations from it. `pnpm --filter @explainer-studio/studio scriptwriter:fixture [--level
+beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others replayed) in
+  `<DATA_DIR>/scriptwriter/fixture/rate-limiter/` and prints each attempt's issues, the cost and
+  each beat's budget vs words, headline, narration, tags, stat cards and source. The fixture
+  scripts share `scripts/agent-fixture.ts`.
 
 API conventions: routes under `/api`, inputs validated with the `validate()` helper against schemas
 from `packages/shared/src/api`, list responses wrapped as `{ items }`, and every error is

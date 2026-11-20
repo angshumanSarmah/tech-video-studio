@@ -27,7 +27,8 @@
     "tts:doctor": "tsx scripts/tts-doctor.ts",
     "tts:fixture": "tsx scripts/tts-fixture.ts",
     "research:fixture": "tsx scripts/research-fixture.ts",
-    "director:fixture": "tsx scripts/director-fixture.ts"
+    "director:fixture": "tsx scripts/director-fixture.ts",
+    "scriptwriter:fixture": "tsx scripts/scriptwriter-fixture.ts"
   },
   "dependencies": {
     "@explainer-studio/renderer": "workspace:*",

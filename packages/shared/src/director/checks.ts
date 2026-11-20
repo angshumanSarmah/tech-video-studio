@@ -2,9 +2,13 @@ import { ENDING_DEVICES, type EndingDevice } from '../catalogues/devices.ts';
 import type { ExplanationLevel, VideoSettings } from '../config/video.ts';
 import type { ResearchNotes } from '../research/notes.ts';
 import { normalizeNumber, quantityTokens } from '../research/numbers.ts';
+import { numberValueKeys } from '../script/note-values.ts';
+import { numberKey, numberMentions } from '../script/number-mentions.ts';
 import { TARGET_LENGTH_TOLERANCE } from '../spec/integrity/warnings.ts';
 import { toJsonPath } from '../spec/validate.ts';
 import {
+  BEGINNER_MAX_FACTS_PER_BEAT,
+  BEGINNER_MAX_NUMBERS_PER_BEAT,
   MAX_BEATS_PER_PATTERN,
   MAX_BEATS_PER_SCENE,
   MAX_HOOK_NUMBERS,
@@ -22,6 +26,8 @@ import type { DirectorPlan } from './plan.ts';
 
 export const DIRECTOR_PROBLEM_CODES = [
   'unknown_fact',
+  'too_many_facts_in_beat',
+  'too_many_numbers_in_beat',
   'unknown_term',
   'too_many_new_terms_in_beat',
   'too_many_new_terms',
@@ -96,6 +102,20 @@ export const NEW_TERM_LIMITS: Readonly<Record<ExplanationLevel, number>> = {
   expert: Number.POSITIVE_INFINITY,
 };
 
+/** Research facts (`fact-<n>`) one beat may cite, per explanation level. */
+export const MAX_FACTS_PER_BEAT: Readonly<Record<ExplanationLevel, number>> = {
+  beginner: BEGINNER_MAX_FACTS_PER_BEAT,
+  intermediate: Number.POSITIVE_INFINITY,
+  expert: Number.POSITIVE_INFINITY,
+};
+
+/** Research numbers (`num-<n>`, hook numbers included) one beat may use, per explanation level. */
+export const MAX_NUMBERS_PER_BEAT: Readonly<Record<ExplanationLevel, number>> = {
+  beginner: BEGINNER_MAX_NUMBERS_PER_BEAT,
+  intermediate: Number.POSITIVE_INFINITY,
+  expert: Number.POSITIVE_INFINITY,
+};
+
 /** Beats per plan that may reuse a recent device/layout combo before it is a problem. */
 export const MAX_RECENT_COMBO_REUSE = 1;
 
@@ -144,6 +164,8 @@ export function directorPlanProblems(
   const videos = plannedVideos(plan);
   return [
     ...factIdProblems(plan, ctx.notes),
+    ...factCountProblems(plan, ctx.video.explanationLevel),
+    ...numberCountProblems(plan, ctx.notes, ctx.video.explanationLevel),
     ...newTermProblems(plan, ctx),
     ...runningExampleProblems(plan, ctx.video.explanationLevel),
     ...partStructureProblems(plan, ctx.video),
@@ -217,6 +239,66 @@ function factIdProblems(plan: DirectorPlan, notes: ResearchNotes): DirectorProbl
       unknown(['story', 'beats', i, 'hookNumberIds', j], id),
     ),
   ]);
+}
+
+/** One idea per beat: a beat cites at most the level's number of facts (numbers aside). */
+function factCountProblems(plan: DirectorPlan, level: ExplanationLevel): DirectorProblem[] {
+  const limit = MAX_FACTS_PER_BEAT[level];
+  return plan.story.beats.flatMap((beat, i) => {
+    const facts = beat.factIds.filter((id) => id.startsWith('fact-'));
+    if (facts.length <= limit) return [];
+    return [
+      problem(
+        ['story', 'beats', i, 'factIds'],
+        'too_many_facts_in_beat',
+        `Beat "${beat.id}" cites ${facts.length} facts (${facts.join(', ')}); at the ${level} ` +
+          `level a beat cites at most ${limit}, so its narration explains one idea. Keep the ` +
+          'facts the beat needs, or split it into two beats.',
+      ),
+    ];
+  });
+}
+
+/**
+ * A beat uses at most the level's number of distinct research numbers: the values of its
+ * `num-*` ids (hook numbers included) and the research values its intent states, compared by
+ * value (a number the intent states without citing it counts too; dates do not). The intent is
+ * what the Scriptwriter narrates, so a number there is a number on screen.
+ */
+function numberCountProblems(
+  plan: DirectorPlan,
+  notes: ResearchNotes,
+  level: ExplanationLevel,
+): DirectorProblem[] {
+  const limit = MAX_NUMBERS_PER_BEAT[level];
+  if (!Number.isFinite(limit)) return [];
+  const values = new Map(notes.numbers.map((n) => [n.id, n.value]));
+  const research = numberValueKeys(notes);
+  return plan.story.beats.flatMap((beat, i) => {
+    const ids = [
+      ...(beat.hookNumberIds ?? []),
+      ...beat.factIds.filter((id) => id.startsWith('num-')),
+    ];
+    const used = new Map<string, string>();
+    for (const id of ids) {
+      for (const m of numberMentions(values.get(id) ?? '')) used.set(numberKey(m.value), id);
+    }
+    for (const m of numberMentions(beat.intent)) {
+      const key = numberKey(m.value);
+      if (!m.everyday && research.has(key) && !used.has(key)) used.set(key, `"${m.text}"`);
+    }
+    if (used.size <= limit) return [];
+    return [
+      problem(
+        ['story', 'beats', i, 'factIds'],
+        'too_many_numbers_in_beat',
+        `Beat "${beat.id}" uses ${used.size} research numbers (${[...used.values()].join(', ')}, ` +
+          `from its ids and its intent); at the ${level} level a beat uses at most ${limit}, so ` +
+          'the viewer can hold them. Keep the numbers the beat turns on, and drop the rest from ' +
+          'its ids and its intent.',
+      ),
+    ];
+  });
 }
 
 /** Case and spacing do not matter when a beat names a glossary term. */

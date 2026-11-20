@@ -86,6 +86,15 @@ export const MAX_BEATS_PER_SCENE = 3;
 /** Beats one pattern may be suggested on, per video. */
 export const MAX_BEATS_PER_PATTERN = 2;
 
+/** Research facts (`fact-<n>` ids) one beat may cite at the beginner level: one idea per beat. */
+export const BEGINNER_MAX_FACTS_PER_BEAT = 3;
+
+/**
+ * Research numbers one beat may use at the beginner level (distinct values of its `num-<n>` ids,
+ * `hookNumberIds` and the numbers its intent states): a viewer holds two per beat, not four.
+ */
+export const BEGINNER_MAX_NUMBERS_PER_BEAT = 2;
+
 /** Research numbers a hook may cite (`hookNumberIds`): one or two make the problem, not a list. */
 export const MAX_HOOK_NUMBERS = 2;
 
@@ -102,7 +111,9 @@ export const StoryBeatSchema = z.strictObject({
   factIds: z
     .array(SpecIdSchema)
     .default([])
-    .describe('Ids of the research facts ("fact-<n>") and numbers ("num-<n>") this beat uses.'),
+    .describe(
+      `Ids of the research facts ("fact-<n>") and numbers ("num-<n>") this beat uses. At the beginner level at most ${BEGINNER_MAX_FACTS_PER_BEAT} "fact-<n>" ids and ${BEGINNER_MAX_NUMBERS_PER_BEAT} research numbers per beat (its "num-<n>" ids, hookNumberIds and any number its intent states, together): one idea, not everything the notes say.`,
+    ),
   /**
    * The hook beat only (a video's first beat after any recap): the research numbers that make
    * the problem. Its `factIds` then hold no `num-*` ids, so the cap cannot be bypassed.

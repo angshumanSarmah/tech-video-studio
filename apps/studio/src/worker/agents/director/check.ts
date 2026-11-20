@@ -12,11 +12,11 @@ import {
   VideoSpecShapeSchema,
   type DirectorCheckContext,
   type PlanSpecContext,
-  type RenderableVideoSpec,
   type SpecError,
   type VideoSpec,
 } from '@explainer-studio/shared';
 import type { OutputIssue } from '#worker/llm/types.ts';
+import { previewSpec } from '../preview-spec.ts';
 
 export interface DirectorCheckDeps extends DirectorCheckContext {
   /** What turns the plan into a spec (id, series, run format, series number). */
@@ -72,30 +72,8 @@ function specShape(spec: unknown): VideoSpec | undefined {
 function hudIssues(spec: VideoSpec | undefined, hud: HudContext): SpecError[] {
   if (!spec) return [];
   try {
-    return hudTextWarnings(hudPreviewSpec(spec), getTheme(), hud);
+    return hudTextWarnings(previewSpec(spec), getTheme(), hud);
   } catch {
     return [];
   }
-}
-
-/**
- * The spec with one placeholder narration word and an empty board per beat: enough for the HUD
- * checks, which read the title, chapters and which beats each chapter spans (no headlines yet).
- */
-export function hudPreviewSpec(spec: VideoSpec): RenderableVideoSpec {
-  const beats = spec.story.beats;
-  return {
-    ...spec,
-    script: beats.map((b) => ({ beatId: b.id, narration: 'placeholder', tags: [], statCards: [] })),
-    scenes: beats.map((b) => ({
-      beatId: b.id,
-      kind: 'board',
-      elements: [],
-      patterns: [],
-      events: [],
-      focus: [],
-      transitionIn: 'cut',
-      continuesPrevious: false,
-    })),
-  };
 }

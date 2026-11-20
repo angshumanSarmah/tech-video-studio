@@ -1,3 +1,4 @@
+import { ON_SCREEN_TEXT_LIMITS } from '@explainer-studio/shared';
 import { cardOutline } from '../surface.ts';
 import { z } from 'zod';
 import type { Theme } from '../../theme/index.ts';
@@ -6,8 +7,8 @@ import { approxTextWidth, lineHeightPx } from '../measure.ts';
 import { definePrimitive, type SizeHints } from '../types.ts';
 
 export const StatCardPropsSchema = z.strictObject({
-  value: lineText(12, 'The figure as displayed, units included.'),
-  label: lineText(32, 'What the figure measures.'),
+  value: lineText(ON_SCREEN_TEXT_LIMITS.statValue, 'The figure as displayed, units included.'),
+  label: lineText(ON_SCREEN_TEXT_LIMITS.statLabel, 'What the figure measures.'),
   source: lineText(60, 'Where the figure comes from, shown as a footnote. Required.'),
   semantic: semanticProp('focus', 'Colour of the value'),
 });

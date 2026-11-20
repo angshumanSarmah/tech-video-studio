@@ -165,7 +165,7 @@ describe('direct job (rate-limiter fixture, dry run)', () => {
   it('repairs failed checks through the LLM client', async () => {
     const bad = answer((plan) => {
       delete plan.story.beats[0]!.hookNumberIds;
-      plan.story.beats[1]!.factIds.push('fact-99');
+      plan.story.beats[1]!.factIds.push('num-99');
       plan.story.beats[2]!.newTerms = ['leaky bucket'];
       plan.story.beats[3]!.suggestedPatternIds = ['token_drip'];
       plan.story.beats[4]!.layoutMode = 'map';

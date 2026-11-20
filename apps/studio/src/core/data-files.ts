@@ -56,6 +56,16 @@ export function directPlanPath(runId: number, stepId: number): string {
   return posix.join(runDir(runId), 'direct', `plan-${stepId}.json`);
 }
 
+/** What one Scriptwriter step read (`ScriptwriterInputSchema`), besides the plan and notes. */
+export function scriptInputPath(runId: number, stepId: number): string {
+  return posix.join(runDir(runId), 'script', `input-${stepId}.json`);
+}
+
+/** One Scriptwriter step's script (`ScriptwriterOutputSchema`). */
+export function scriptOutputPath(runId: number, stepId: number): string {
+  return posix.join(runDir(runId), 'script', `script-${stepId}.json`);
+}
+
 /** Per-beat draft clips and their cache sidecars. */
 export function runBeatsDir(runId: number): string {
   return posix.join(runDir(runId), 'beats');

@@ -1,3 +1,4 @@
+import { ON_SCREEN_TEXT_LIMITS } from '@explainer-studio/shared';
 import { cardOutline } from '../surface.ts';
 import { z } from 'zod';
 import type { Theme } from '../../theme/index.ts';
@@ -18,7 +19,10 @@ export const FormulaCardPropsSchema = z.strictObject({
       if (problem) ctx.addIssue({ code: 'custom', message: `Invalid LaTeX: ${problem}` });
     })
     .describe('One formula in LaTeX math mode, without $ delimiters. Rendered by KaTeX.'),
-  caption: lineText(48, 'Optional plain-words reading of the formula, shown under it.').optional(),
+  caption: lineText(
+    ON_SCREEN_TEXT_LIMITS.formulaCaption,
+    'Optional plain-words reading of the formula, shown under it.',
+  ).optional(),
   semantic: semanticProp('concept', 'Border and glow colour'),
 });
 export type FormulaCardProps = z.output<typeof FormulaCardPropsSchema>;
