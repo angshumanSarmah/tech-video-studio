@@ -7,6 +7,7 @@ import { Background } from '../background/Background.tsx';
 import { DevSubtitles } from '../dev/DevSubtitles.tsx';
 import { loadThemeFonts } from '../fonts/load-theme-fonts.ts';
 import { Hud } from '../hud/Hud.tsx';
+import { DraftBadge } from '../layers/DraftBadge.tsx';
 import { NarrationAudio } from '../layers/NarrationAudio.tsx';
 import { BeatScene } from '../scene/BeatScene.tsx';
 import { sceneSpans } from '../events/transitions.ts';
@@ -25,10 +26,10 @@ type Props = Omit<VideoFromSpecProps, 'fps'> & {
 /**
  * Every layer of a spec on the global timeline (frame 0 = start of the narration track):
  * background, one scene per beat in a `<Sequence>` (an outgoing scene runs on under an
- * overlapping transition), HUD, subtitles, audio.
+ * overlapping transition), HUD, subtitles, the draft badge (drafts only), audio.
  */
 export function SpecLayers(props: Props) {
-  const { spec, series, audioSrc, channelHandle, themeId, assets, onlyBeatId } = props;
+  const { spec, series, audioSrc, channelHandle, themeId, assets, draft, onlyBeatId } = props;
   const theme = getTheme(themeId ?? DEFAULT_THEME_ID);
   loadThemeFonts(theme);
   const { fps } = useVideoConfig();
@@ -74,6 +75,7 @@ export function SpecLayers(props: Props) {
           channelHandle={channelHandle}
         />
         <DevSubtitles theme={theme} spec={spec} timing={timing} spans={spans} accent={accent} />
+        {draft ? <DraftBadge theme={theme} /> : null}
         {audioSrc ? <NarrationAudio src={audioSrc} /> : null}
       </AbsoluteFill>
     </AssetProvider>

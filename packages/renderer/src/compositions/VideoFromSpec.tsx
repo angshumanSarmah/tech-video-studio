@@ -9,6 +9,7 @@ export function VideoFromSpec({
   channelHandle,
   themeId,
   assets,
+  draft,
 }: VideoFromSpecProps) {
   return (
     <SpecLayers
@@ -18,6 +19,7 @@ export function VideoFromSpec({
       channelHandle={channelHandle}
       themeId={themeId}
       assets={assets}
+      draft={draft}
     />
   );
 }

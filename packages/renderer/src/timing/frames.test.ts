@@ -1,5 +1,11 @@
-import type { BeatScene, BeatTiming, EffectiveTiming } from '@explainer-studio/shared';
+import {
+  effectiveTiming,
+  type BeatScene,
+  type BeatTiming,
+  type EffectiveTiming,
+} from '@explainer-studio/shared';
 import { describe, expect, it } from 'vitest';
+import { allFixtureSpecs } from '../../fixtures/index.ts';
 import {
   anchorToFrame,
   beatFrameSpans,
@@ -110,5 +116,22 @@ describe('resolveEventFrames', () => {
       { action: 'enter', targets: ['x'], frame: 60, sec: 2, beatEndSec: 6 },
       { action: 'dim', targets: ['x'], frame: 180, sec: 6, beatEndSec: 6 },
     ]);
+  });
+});
+
+describe('beat spans tile the video (beat clips join without drift)', () => {
+  it('are contiguous and sum to the total frames, for every fixture at both presets', () => {
+    for (const spec of allFixtureSpecs) {
+      const t = effectiveTiming(spec);
+      for (const fps of [15, 30]) {
+        const spans = beatFrameSpans(t, fps);
+        spans.forEach((span, i) => {
+          const previous = spans[i - 1];
+          expect(span.from).toBe(previous ? previous.from + previous.durationInFrames : 0);
+        });
+        const sum = spans.reduce((n, s) => n + s.durationInFrames, 0);
+        expect(sum).toBe(totalFrames(t, fps));
+      }
+    }
   });
 });

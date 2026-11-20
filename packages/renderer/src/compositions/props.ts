@@ -31,6 +31,8 @@ export type VideoFromSpecProps = {
    * stills). Ids missing here are drawn as labelled placeholders.
    */
   assets?: ResolvedAsset[];
+  /** Draws a small "DRAFT" badge in a corner (draft renders only). Omitted or false: no badge. */
+  draft?: boolean;
 };
 
 export type BeatFromSpecProps = VideoFromSpecProps & { beatId: string };
