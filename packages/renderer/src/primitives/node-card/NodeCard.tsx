@@ -7,7 +7,7 @@ import { stateStyle, type PrimitiveComponentProps } from '../component-props.ts'
 import { partState, type PartState } from '../element-state.ts';
 import { shakeOffset } from '../motion.ts';
 import { cardSurfaceCss } from '../surface.ts';
-import { nodeCardIconSize, ROLE_PART, type NodeCardProps } from './definition.ts';
+import { nodeCardIconSize, nodeCardTextRoom, ROLE_PART, type NodeCardProps } from './definition.ts';
 
 /**
  * Component card. `lock` shows a padlock badge; `reject` turns it red, shakes and shows ✗; a
@@ -45,7 +45,15 @@ export function NodeCard({ theme, props, box, state }: PrimitiveComponentProps<N
           filter={emphasisFilter(theme, tint, state.emphasis)}
         />
       ) : null}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space.xs, minWidth: 0 }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: theme.space.xs,
+          minWidth: 0,
+          maxWidth: nodeCardTextRoom(theme, props, box),
+        }}
+      >
         <div style={{ ...textCss(theme, 'title'), color: theme.colours.ink.primary }}>
           {props.title}
         </div>

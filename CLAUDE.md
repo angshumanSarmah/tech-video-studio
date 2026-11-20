@@ -325,6 +325,12 @@ its lease in card). The per-anchor sheets stay the record of timing.
   ₹); they name other roles or `glyphFallback`, a bundled face that is not a role (Inter in
   `drafting-paper`). Iterate faces with `bundledFonts(theme)`, not `FONT_ROLES`; `src/fonts/font-coverage.test.ts` reads each file's character map and fails when a role's
   stack misses any glyph in `REQUIRED_CODE_POINTS` (`src/fonts/glyphs.ts`).
+  **Measuring text:** size hints use the theme's average advance (`approxTextWidth`). Where a
+  width must match what the browser draws (whether a line is cut off), use `textWidth`
+  (`src/fonts/measure-text.ts`): real glyph advances from `src/fonts/metrics.generated.json`,
+  through the role's fallback stack, case transform and letter spacing, kerning ignored (errs
+  slightly wide). Regenerate it with `gen:font-metrics` after `fonts:subset` or a theme font
+  change; a test fails when it is stale.
   **Exception: KaTeX.** `formula_card` imports `katex/dist/katex.min.css`, so Remotion's webpack
   bundles KaTeX's own font files from the pinned `katex` package (still never the network);
   `useKatexFonts` delays the render until they load. Do not add other CSS-bundled fonts.
@@ -415,8 +421,12 @@ its lease in card). The per-anchor sheets stay the record of timing.
     enters and exits with it; it keeps its own events.
   - **Source footnote:** a beat's `script[].source` is drawn as "Source: …" in the footnote
     style at the board frame's bottom-left (`source-footnote.ts`), fading in 0.3 s after the beat
-    starts. The layout reserves its line for the whole chain when any beat in it has a source.
-    Required whenever a beat shows a real incident or a sourced number (agent prompts enforce it).
+    starts. The layout reserves its line for the whole chain when any beat in it has a source
+    (`footnoteLine`). Required whenever a beat shows a real incident or a sourced number (agent
+    prompts enforce it). `SOURCE_MAX_LENGTH` (58) is what fits after "Source: " on the narrowest
+    footnote line of any theme and format at the footnote style's average advance (a test
+    recomputes it); a shorter line of wide glyphs can still be cut, which warns
+    `text_truncated`.
 - **Layout engine** (`src/layout`, React-free, exported through `catalog`):
   `layout({ items, mode, focus }, theme, { rect, avoidZones })` places one board; `specLayout(spec,
 theme)` lays out a whole spec, memoised per spec object and theme (never per frame) and
@@ -443,7 +453,10 @@ theme)` lays out a whole spec, memoised per spec object and theme (never per fra
     `path` connector, packet_stream; `frame` grid_overlay; `ring` radius_ring; `span` bracket) and
     `contentInset` (containers size from their children and lay them out in their own box:
     `PlacedItem.children`), and `textRects` (text drawn outside the body, e.g. a ring's rim
-    label; the layout warns `text_covered` when an element covers it). A `radius_ring` grows to
+    label; the layout warns `text_covered` when an element covers it), and `clippedLines` (lines
+    drawn on one line and cut off, by ellipsis or clip, past a room computed from the box:
+    `node_card` subtitle, `data_block` fields, `segmented_time_bar` labels; the component cuts
+    at the same room function). A `radius_ring` grows to
     enclose its `encloses` elements and their side pins. Relational components get `path` (box px, layout output) and draw
     `standalonePath` only on sheets.
   - **Connector routing** (`routing.ts`): a connector stays a straight edge-to-edge line when it
@@ -459,8 +472,14 @@ theme)` lays out a whole spec, memoised per spec object and theme (never per fra
   - **Warnings** (`LayoutWarning`; `specLayoutWarnings(spec, theme)` gives `{ path, code,
 message }` for the Curator): `too_many_elements` (mode `maxUnits`), `text_too_small`,
     `overlap`, `connector_crosses`, `text_covered`, `unknown_zone`, `unknown_layout_mode`, `layout_mode_ignored`,
-    `pin_unresolved`, `avoid_zone`. Tests run the invariants (no overlaps, inside the frame,
-    clear of avoid zones, camera bounds) over every fixture beat in both formats.
+    `pin_unresolved`, `avoid_zone`, and `text_truncated` (`text-fit.ts`: a `clippedLines` line
+    wider than its room at the placed box, container children included, or a beat source wider
+    than its chain's footnote line; measured with `textWidth`; the path points at the text
+    itself, e.g. `$.scenes[3].elements[1].props.subtitle` or `$.script[1].source`, or at the
+    pattern instance). Never truncate text silently: a primitive that cuts text must declare
+    `clippedLines`. HUD text is not checked yet (docs/TODO.md). Tests run the invariants (no
+    overlaps, inside the frame, clear of avoid zones, camera bounds, no `text_truncated`) over
+    every fixture beat in both formats.
 - **`src/dev/` is temporary.** `DevSubtitles` is a stand-in until P1B.3 replaces it. Do not build
   on it or extend it. `src/dev/dev-layers.test.ts` fails once `src/subtitles/` exists and a
   composition still uses `DevSubtitles`.

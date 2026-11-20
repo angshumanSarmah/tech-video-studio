@@ -1,10 +1,14 @@
+import { SOURCE_MAX_LENGTH, VIDEO_FORMATS } from '@explainer-studio/shared';
 import { describe, expect, it } from 'vitest';
 import { parseRenderableSpec } from '../compositions/metadata.ts';
 import { fixtureSpec } from '../catalog/test-specs.ts';
-import { getTheme, safeAreas } from '../theme/index.ts';
+import { formatAreas } from '../layout/format.ts';
+import { SOURCE_PREFIX } from '../primitives/stat-card/definition.ts';
+import { getTheme, listThemes, safeAreas, type Theme } from '../theme/index.ts';
 import {
   FADE_SEC,
   FOOTNOTE_DELAY_SEC,
+  footnoteLine,
   footnoteOpacity,
   footnoteRect,
   footnoteText,
@@ -43,5 +47,26 @@ describe('footnoteRect', () => {
   it('takes the stage width when no zone is in its row', () => {
     const stage = { x: 0, y: 0, width: 900, height: 1000 };
     expect(footnoteRect(stage, [], 30, 24).width).toBe(900);
+  });
+});
+
+describe('SOURCE_MAX_LENGTH', () => {
+  /** Characters that fit on a footnote line at the footnote style's average advance. */
+  function averageChars(theme: Theme, width: number): number {
+    const { size, font, letterSpacing } = theme.text.footnote;
+    return Math.floor(width / (size * (theme.fonts[font].advanceEm + letterSpacing)));
+  }
+
+  it('is what fits after "Source: " on the narrowest footnote line of any theme and format', () => {
+    const fits = listThemes().flatMap((theme) =>
+      VIDEO_FORMATS.flatMap((format) => {
+        const areas = formatAreas(theme, format);
+        return [areas.board, areas.boardWithHeadline].map((frame) => {
+          const line = footnoteLine(theme, frame, areas.avoidZones);
+          return averageChars(theme, line.width) - SOURCE_PREFIX.length;
+        });
+      }),
+    );
+    expect(SOURCE_MAX_LENGTH).toBe(Math.min(...fits));
   });
 });

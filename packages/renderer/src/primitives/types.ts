@@ -1,7 +1,7 @@
 import type { AssetFamily, EventAction } from '@explainer-studio/shared';
 import type { z } from 'zod';
 import type { OutlineShape } from '../draw/outline.ts';
-import type { Rect, Theme } from '../theme/index.ts';
+import type { Rect, TextStyleName, Theme } from '../theme/index.ts';
 
 /**
  * Primitive definitions are React-free: the worker and server import them (through
@@ -40,6 +40,17 @@ export type SizeHints = {
 };
 
 export type Size = { width: number; height: number };
+
+/** A line a component draws on one line and cuts off when it does not fit (`clippedLines`). */
+export type ClippedLine = {
+  /** Where the text comes from in the props, e.g. `['subtitle']` or `['fields', 2]`. */
+  path: readonly (string | number)[];
+  /** The text as drawn (before the style's case transform). */
+  text: string;
+  style: TextStyleName;
+  /** Width the component gives the line, in box px. */
+  room: number;
+};
 
 export type Insets = { top: number; right: number; bottom: number; left: number };
 
@@ -144,6 +155,13 @@ export interface PrimitiveDefinition<Id extends string = string, S extends z.Zod
    * `text_covered` when an element is placed over one. Omit when all its text is inside it.
    */
   textRects?(props: z.output<S>, box: Size, theme: Theme): Rect[];
+  /**
+   * Lines it draws without wrapping and cuts off when they are too wide (an ellipsis or a clip),
+   * with the room each gets at `box`. The component must cut at exactly this room (share the
+   * function); the layout warns `text_truncated` when a line, measured with real glyph widths
+   * (`textWidth`), is wider. Omit when it never cuts text off.
+   */
+  clippedLines?(props: z.output<S>, box: Size, theme: Theme): ClippedLine[];
   /**
    * Where contained elements go inside a container (an `inset_panel`): its padding in box px.
    * The layout sizes the container to its children plus this. Omit for non-containers.

@@ -10,9 +10,8 @@ import {
 } from '@explainer-studio/shared';
 import { DEFAULT_REGISTRIES, type Registries } from '../catalog/registries.ts';
 import { beatHasHeadline } from '../hud/hud-state.ts';
-import { lineHeightPx } from '../primitives/measure.ts';
 import { beatWorld } from '../scene/beat-world.ts';
-import { footnoteRect } from '../scene/source-footnote.ts';
+import { footnoteLine } from '../scene/source-footnote.ts';
 import type { Rect, Theme } from '../theme/index.ts';
 import { CAMERA_EASE_SEC, ZOOM_PUSH_SEC } from '../events/presets.ts';
 import { beatCamera, visibleDuring } from './camera.ts';
@@ -21,6 +20,7 @@ import type { Transform } from './fit.ts';
 import { union } from './rect.ts';
 import { formatAreas, type FormatAreas } from './format.ts';
 import { layout } from './layout.ts';
+import { textTruncationWarnings } from './text-fit.ts';
 import { beatLayoutMode } from './modes.ts';
 import type { BoardLayout, LayoutFrame, LayoutWarning } from './types.ts';
 
@@ -149,9 +149,8 @@ function chainFrame(
   const rect = headline ? areas.boardWithHeadline : areas.board;
   const sourced = spec.script.some((s) => beatIds.includes(s.beatId) && s.source !== undefined);
   if (!sourced) return { frame: { rect, avoidZones: areas.avoidZones }, footnote: null };
-  const line = lineHeightPx(theme, 'footnote');
-  const footnote = footnoteRect(rect, areas.avoidZones, line, theme.space.md);
-  const board = { ...rect, height: rect.height - line - theme.space.sm };
+  const footnote = footnoteLine(theme, rect, areas.avoidZones);
+  const board = { ...rect, height: rect.height - footnote.height - theme.space.sm };
   return { frame: { rect: board, avoidZones: areas.avoidZones }, footnote };
 }
 
@@ -282,19 +281,22 @@ function modeIgnored(scene: BeatScene, mode: string): LayoutWarning {
 }
 
 /**
- * Layout warnings for the Curator, in the spec issue shape. Each points at the scene that starts
- * the chain (or the continuing scene whose mode was ignored).
+ * Layout warnings for the Curator, in the spec issue shape. Board warnings point at the scene
+ * that starts the chain (or the continuing scene whose mode was ignored); `text_truncated` points
+ * at the text itself (`text-fit.ts`).
  */
 export function specLayoutWarnings(
   spec: RenderableVideoSpec,
   theme: Theme,
   registries: Registries = DEFAULT_REGISTRIES,
 ): SpecError[] {
-  return specLayout(spec, theme, registries).chains.flatMap((chain) =>
+  const result = specLayout(spec, theme, registries);
+  const board = result.chains.flatMap((chain) =>
     chain.board.warnings.map((w) => ({
       path: toJsonPath(['scenes', chain.sceneIndex]),
       code: w.code,
       message: w.keys.length > 0 ? `${w.message} (${w.keys.join(', ')})` : w.message,
     })),
   );
+  return [...board, ...textTruncationWarnings(spec, result, theme, registries)];
 }

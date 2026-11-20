@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { SEMANTIC_COLOURS, type Theme } from '../../theme/index.ts';
 import { lineText as lineTextProp } from '../common-props.ts';
 import { approxTextWidth, lineHeightPx } from '../measure.ts';
-import { definePrimitive, type SizeHints } from '../types.ts';
+import { definePrimitive, type ClippedLine, type SizeHints, type Size } from '../types.ts';
 import { dataLines, lineText } from './lines.ts';
 
 export const DATA_BLOCK_MAX_FIELDS = 6;
@@ -36,6 +36,21 @@ export const DataBlockPropsSchema = z.strictObject({
 });
 export type DataBlockProps = z.output<typeof DataBlockPropsSchema>;
 
+/** Width of the data lines at `box`: the box less border and padding. Lines are clipped past it. */
+export function dataBlockTextRoom(theme: Theme, box: Size): number {
+  return box.width - 2 * (theme.space.lg + theme.stroke.regular);
+}
+
+function dataBlockClippedLines(props: DataBlockProps, box: Size, theme: Theme): ClippedLine[] {
+  const room = dataBlockTextRoom(theme, box);
+  return dataLines(props.fields).map((line, i) => ({
+    path: ['fields', i],
+    text: lineText(line),
+    style: 'data',
+    room,
+  }));
+}
+
 export function dataBlockSizeHints(props: DataBlockProps, theme: Theme): SizeHints {
   const { space, stroke } = theme;
   const lines = dataLines(props.fields).map(lineText);
@@ -56,6 +71,7 @@ export const dataBlockPrimitive = definePrimitive({
   propsSchema: DataBlockPropsSchema,
   actions: ['enter', 'exit', 'highlight', 'dim', 'pulse'],
   sizeHints: dataBlockSizeHints,
+  clippedLines: dataBlockClippedLines,
   outline: (_props, box, theme) => cardOutline(theme, 'neutral', box),
   description: {
     summary:

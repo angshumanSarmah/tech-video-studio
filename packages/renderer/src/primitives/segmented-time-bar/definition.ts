@@ -3,7 +3,8 @@ import type { Theme } from '../../theme/index.ts';
 import { idsOf, lineText, PartIdSchema, partList, semanticProp } from '../common-props.ts';
 import { approxTextWidth, lineHeightPx } from '../measure.ts';
 import { TIMER_MAX_SEC } from '../timer-ring/definition.ts';
-import { definePrimitive, type SizeHints } from '../types.ts';
+import { definePrimitive, type ClippedLine, type SizeHints, type Size } from '../types.ts';
+import { segmentWidths } from './segments.ts';
 
 export const TimeSegmentSchema = z.strictObject({
   id: PartIdSchema,
@@ -54,6 +55,40 @@ export function timeBarMetrics(props: SegmentedTimeBarProps, theme: Theme): Time
   };
 }
 
+/**
+ * The bar's stretches at a width: each segment's seconds, plus the unused budget as a last stretch
+ * (`spare`, 0 when there is none), and their widths (`segmentWidths`).
+ */
+export function timeBarStretches(
+  props: SegmentedTimeBarProps,
+  theme: Theme,
+  width: number,
+): { values: number[]; widths: number[]; total: number; spare: number } {
+  const m = timeBarMetrics(props, theme);
+  const secs = props.segments.map((s) => s.sec);
+  const total = secs.reduce((a, b) => a + b, 0);
+  const budget = props.budgetSec;
+  const spare = budget !== undefined && budget > total ? budget - total : 0;
+  const values = spare > 0 ? [...secs, spare] : secs;
+  const widths = segmentWidths(values, spare > 0 ? [...m.mins, 0] : m.mins, width);
+  return { values, widths, total, spare };
+}
+
+/** Room for a segment's label: the segment less its border. The label is clipped past it. */
+export function segmentLabelRoom(theme: Theme, segmentWidth: number): number {
+  return segmentWidth - 2 * theme.stroke.regular;
+}
+
+function timeBarClippedLines(props: SegmentedTimeBarProps, box: Size, theme: Theme): ClippedLine[] {
+  const { widths } = timeBarStretches(props, theme, box.width);
+  return props.segments.map((segment, i) => ({
+    path: ['segments', i, 'label'],
+    text: segment.label,
+    style: 'label',
+    room: segmentLabelRoom(theme, widths[i] ?? 0),
+  }));
+}
+
 export function segmentedTimeBarSizeHints(props: SegmentedTimeBarProps, theme: Theme): SizeHints {
   const m = timeBarMetrics(props, theme);
   const total = props.segments.reduce((sum, s) => sum + s.sec, 0);
@@ -75,6 +110,7 @@ export const segmentedTimeBarPrimitive = definePrimitive({
   propsSchema: SegmentedTimeBarPropsSchema,
   actions: ['enter', 'exit', 'highlight', 'dim', 'pulse'],
   sizeHints: segmentedTimeBarSizeHints,
+  clippedLines: timeBarClippedLines,
   parts: {
     actions: ['highlight', 'pulse', 'reject', 'dim'],
     ids: (props) => idsOf(props.segments),

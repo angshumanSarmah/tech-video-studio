@@ -4,7 +4,7 @@ import { semanticTint, textCss, type Theme } from '../../theme/index.ts';
 import { stateStyle, type PrimitiveComponentProps } from '../component-props.ts';
 import { cardSurfaceCss, NO_WRAP } from '../surface.ts';
 import { typedFieldChars } from '../typing.ts';
-import type { DataBlockProps, DataField } from './definition.ts';
+import { dataBlockTextRoom, type DataBlockProps, type DataField } from './definition.ts';
 import { dataLines, lineText, visibleParts, type DataLine } from './lines.ts';
 
 /** Key/value block that types in field by field after `enter` (see `typedFieldChars`). */
@@ -42,7 +42,14 @@ export function DataBlock({ theme, props, box, state }: PrimitiveComponentProps<
           {props.title}
         </div>
       ) : null}
-      <div style={{ ...textCss(theme, 'data'), ...NO_WRAP, color: theme.colours.ink.primary }}>
+      <div
+        style={{
+          ...textCss(theme, 'data'),
+          ...NO_WRAP,
+          maxWidth: dataBlockTextRoom(theme, box),
+          color: theme.colours.ink.primary,
+        }}
+      >
         <div style={punctuation}>{'{'}</div>
         {lines.map((line, i) => (
           <FieldLine

@@ -1,7 +1,8 @@
 import type { RenderableVideoSpec } from '@explainer-studio/shared';
 import { clamp01 } from '../primitives/geometry.ts';
 import { SOURCE_PREFIX } from '../primitives/stat-card/definition.ts';
-import type { Rect, Zone } from '../theme/index.ts';
+import { lineHeightPx } from '../primitives/measure.ts';
+import type { Rect, Theme, Zone } from '../theme/index.ts';
 
 /**
  * The beat source line ("Source: …"): small, in the bottom-left corner of the board frame (the
@@ -23,6 +24,11 @@ export function footnoteText(spec: RenderableVideoSpec, beatId: string): string 
 /** 0 until the delay after the beat start, then fading to 1. */
 export function footnoteOpacity(nowSec: number, beatStartSec: number): number {
   return clamp01((nowSec - beatStartSec - FOOTNOTE_DELAY_SEC) / FADE_SEC);
+}
+
+/** The footnote line a board frame reserves: one footnote-style line, clear of the avoid zones. */
+export function footnoteLine(theme: Theme, frame: Rect, avoidZones: readonly Zone[]): Rect {
+  return footnoteRect(frame, avoidZones, lineHeightPx(theme, 'footnote'), theme.space.md);
 }
 
 /**

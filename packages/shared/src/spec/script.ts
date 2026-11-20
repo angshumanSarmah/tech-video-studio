@@ -43,8 +43,13 @@ export type FormulaCard = z.infer<typeof FormulaCardSchema>;
 export const CommandBubbleSchema = z.strictObject({ text: z.string().min(1) });
 export type CommandBubble = z.infer<typeof CommandBubbleSchema>;
 
-/** Longest beat source line, e.g. "<publisher> post-incident report, <date>". */
-export const SOURCE_MAX_LENGTH = 80;
+/**
+ * Longest beat source line, e.g. "<publisher> post-incident report, <date>": what fits after
+ * "Source: " on the footnote line at the footnote style's average advance, in the narrowest board
+ * frame of any theme and format (a renderer test recomputes it). Text of wide glyphs can still
+ * overflow under the cap; the layout warns `text_truncated` for it.
+ */
+export const SOURCE_MAX_LENGTH = 58;
 
 export const BeatScriptSchema = z.strictObject({
   beatId: SpecIdSchema,

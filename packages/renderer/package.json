@@ -22,6 +22,7 @@
     "still:compare": "tsx scripts/render-theme-compare.ts",
     "calibrate:safe-area": "tsx scripts/calibrate-safe-area.ts",
     "gen:catalogue": "tsx scripts/generate-catalogue.ts",
+    "gen:font-metrics": "tsx scripts/generate-font-metrics.ts",
     "typecheck": "tsc --build",
     "test": "vitest run",
     "fonts:subset": "tsx scripts/subset-fonts.ts"

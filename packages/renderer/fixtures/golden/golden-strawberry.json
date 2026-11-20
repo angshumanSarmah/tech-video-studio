@@ -73,7 +73,7 @@
       "narration": "Models don't read letters. A tokenizer chops text into subword chunks, so strawberry becomes something like straw and berry. Each chunk is swapped for a number.",
       "headline": { "text": "Token = a chunk, not a letter", "semantic": "concept" },
       "tags": ["straw", "berry"],
-      "source": "Sennrich et al., \"NMT of Rare Words with Subword Units\", ACL 2016"
+      "source": "Sennrich, Haddow & Birch, ACL 2016"
     },
     {
       "beatId": "blind",

@@ -11,8 +11,13 @@ import {
 } from '../../emphasis/emphasis.ts';
 import { BoxMark } from '../../emphasis/Mark.tsx';
 import { formatClock } from '../timer-ring/timer.ts';
-import { timeBarMetrics, type SegmentedTimeBarProps, type TimeBarMetrics } from './definition.ts';
-import { segmentFills, segmentStarts, segmentWidths, timeToX } from './segments.ts';
+import {
+  timeBarMetrics,
+  timeBarStretches,
+  type SegmentedTimeBarProps,
+  type TimeBarMetrics,
+} from './definition.ts';
+import { segmentFills, segmentStarts, timeToX } from './segments.ts';
 
 type Segment = SegmentedTimeBarProps['segments'][number];
 
@@ -28,12 +33,8 @@ export function SegmentedTimeBar({
   state,
 }: PrimitiveComponentProps<SegmentedTimeBarProps>) {
   const m = timeBarMetrics(props, theme);
-  const secs = props.segments.map((s) => s.sec);
-  const total = secs.reduce((a, b) => a + b, 0);
   const budget = props.budgetSec;
-  const spare = budget !== undefined && budget > total ? budget - total : 0;
-  const values = spare > 0 ? [...secs, spare] : secs;
-  const widths = segmentWidths(values, spare > 0 ? [...m.mins, 0] : m.mins, box.width);
+  const { values, widths, total, spare } = timeBarStretches(props, theme, box.width);
   const lefts = segmentStarts(widths);
   const fills = segmentFills(props.segments.length, state.elapsed.enter);
   const over = budget !== undefined && total > budget;

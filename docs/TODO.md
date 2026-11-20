@@ -11,11 +11,17 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       `tag`s in a `pipeline` (the word, then the chunks stacked as stages, then the ids) and
       records the request in `story.missingPrimitiveRequests`. A real strip would draw the word
       with token boundaries over it and each id under its chunk, in one row.
-- [ ] **Renderer — Source footnotes truncate silently.** `script[].source` allows 80
-      characters (`SOURCE_MAX_LENGTH`), but the footnote line ends at the bottom-right avoid
-      zone: at 540×960 about 67 characters fit after "Source: ", and the rest is cut with an
-      ellipsis, with no warning. A full citation (authors, title, venue) can lose its venue and
-      year. Add a fit warning (measured like `text_too_small`) or wrap the line.
+- [ ] **HUD — `text_truncated` for HUD text.** The chapter header, top bar topic, title block
+      (subject line and the card header's two-line title), step tracker, card viewport label and
+      the two-line headline cut text off with CSS (ellipsis or line clamp) and do not warn. Their
+      widths come from flexbox (the chapter header is `flex: 1` beside the hero metric), so first
+      move the HUD onto pure slot widths the components render at, then warn like
+      `clippedLines` (path at the chapter, `meta.title` or headline).
+- [ ] **Renderer — Text that spills past its box.** `command_bubble`, `tag`, `connector` labels,
+      `conveyor_queue` items and others draw `nowrap` text without clipping, so text wider than
+      the box overflows visibly instead of being cut. Hints size them from the average advance;
+      check them with `textWidth` too (a `text_overflow` warning, or size hints from real
+      advances).
 - [ ] **Renderer — Key frame ignores typing and running effects.** `beatKeyFrame` waits for each
       event's preset duration only, so a `data_block` or `command_bubble` entering near a beat's
       end is caught mid-typing in stills (the strawberry fixture pulses its `data_block` on the

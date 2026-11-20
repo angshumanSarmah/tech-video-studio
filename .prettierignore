@@ -11,3 +11,4 @@ Tech Explainer Studio Design and Claude Code Prompts.md
 apps/studio/src/web/theme.generated.css
 docs/catalogue.md
 docs/catalogue.json
+packages/renderer/src/fonts/metrics.generated.json

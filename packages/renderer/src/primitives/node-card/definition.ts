@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { Theme } from '../../theme/index.ts';
 import { AssetIdSchema, lineText, semanticProp } from '../common-props.ts';
 import { approxTextWidth, lineHeightPx } from '../measure.ts';
-import { definePrimitive, type SizeHints } from '../types.ts';
+import { definePrimitive, type ClippedLine, type SizeHints, type Size } from '../types.ts';
 
 /** Longest subtitle: it stays on one line, and the card grows to fit it up to this. */
 export const NODE_SUBTITLE_MAX = 28;
@@ -46,6 +46,22 @@ export function subtitleWidth(theme: Theme, subtitle: string): number {
 /** Extra width on the subtitle estimate, so the line never wraps. */
 const SUBTITLE_SLACK = 1.1;
 
+/**
+ * Width of the text column at `box`: the box less the border, the padding and the icon with its
+ * gap. The component caps the column at this; the subtitle is cut off (ellipsis) past it.
+ */
+export function nodeCardTextRoom(theme: Theme, props: NodeCardProps, box: Size): number {
+  const { space, stroke } = theme;
+  const icon = props.icon ? nodeCardIconSize(theme) + space.md : 0;
+  return box.width - 2 * (space.lg + stroke.regular) - icon;
+}
+
+function nodeCardClippedLines(props: NodeCardProps, box: Size, theme: Theme): ClippedLine[] {
+  if (!props.subtitle) return [];
+  const room = nodeCardTextRoom(theme, props, box);
+  return [{ path: ['subtitle'], text: props.subtitle, style: 'label', room }];
+}
+
 export function nodeCardSizeHints(props: NodeCardProps, theme: Theme): SizeHints {
   const { space, stroke } = theme;
   const icon = props.icon ? nodeCardIconSize(theme) + space.md : 0;
@@ -65,6 +81,7 @@ export const nodeCardPrimitive = definePrimitive({
   propsSchema: NodeCardPropsSchema,
   actions: ['enter', 'exit', 'highlight', 'dim', 'pulse', 'lock', 'reject'],
   sizeHints: nodeCardSizeHints,
+  clippedLines: nodeCardClippedLines,
   outline: (props, box, theme) => cardOutline(theme, props.semantic, box),
   assetRefs: (props) => [
     ...(props.icon ? [{ path: ['icon'], id: props.icon }] : []),
