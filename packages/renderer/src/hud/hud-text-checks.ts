@@ -16,6 +16,7 @@ import {
   subjectText,
   titleBlockSlots,
   type HudContext,
+  type RowShare,
 } from './hud-slots.ts';
 import { TITLE_LINES, viewportLabel } from './title-block.ts';
 
@@ -70,12 +71,10 @@ function barChecks(
   const parts = visibleHudParts(spec);
   const slots = barSlots(theme, spec, context);
   return [
-    ...(parts.topBar ? subjectCheck(spec, theme, context, slots.topic, 'top bar') : []),
-    ...(parts.chapterHeader
-      ? chapterHeaderChecks(theme, chapters, slots.chapter)
-      : parts.stepTracker
-        ? stepNameChecks(theme, chapters, slots.chapter)
-        : []),
+    ...(parts.topBar
+      ? subjectCheck(spec, theme, context, slots.topic, 'top bar', slots.shares.topic)
+      : []),
+    ...chapterRowChecks(parts, theme, chapters, slots.chapter, slots.shares.chapter),
   ];
 }
 
@@ -92,13 +91,9 @@ function titleBlockChecks(
     variant === 'header'
       ? titleCheck(spec, theme, slots.title)
       : parts.topBar
-        ? subjectCheck(spec, theme, context, slots.subject, 'title block')
+        ? subjectCheck(spec, theme, context, slots.subject, 'title block', [])
         : [];
-  const meta = parts.chapterHeader
-    ? chapterHeaderChecks(theme, chapters, slots.metaText)
-    : parts.stepTracker
-      ? stepNameChecks(theme, chapters, slots.stepName)
-      : [];
+  const meta = chapterRowChecks(parts, theme, chapters, slots.chapter, slots.shares.chapter);
   const viewport =
     variant === 'header' && parts.chapterHeader
       ? chapters.flatMap((c) =>
@@ -123,19 +118,38 @@ function subjectCheck(
   context: HudContext,
   room: number,
   where: string,
+  shares: readonly RowShare[],
 ): SpecError[] {
   return lineCheck(theme, 'hud', subjectText(context.seriesLabel, spec.meta.title), room, {
     path: toJsonPath(['meta', 'title']),
     what: `The ${where}'s subject line`,
+    shares,
   });
 }
 
-/** The current step's name, on its own row (the chapter header is off). */
-function stepNameChecks(theme: Theme, chapters: readonly ChapterSpan[], room: number): SpecError[] {
+/** The chapter row: the chapter header, or the current step's name when the header is off. */
+function chapterRowChecks(
+  parts: { chapterHeader: boolean; stepTracker: boolean },
+  theme: Theme,
+  chapters: readonly ChapterSpan[],
+  room: number,
+  shares: readonly RowShare[],
+): SpecError[] {
+  if (parts.chapterHeader) return chapterHeaderChecks(theme, chapters, room, shares);
+  return parts.stepTracker ? stepNameChecks(theme, chapters, room, shares) : [];
+}
+
+function stepNameChecks(
+  theme: Theme,
+  chapters: readonly ChapterSpan[],
+  room: number,
+  shares: readonly RowShare[],
+): SpecError[] {
   return chapters.flatMap((c) =>
     lineCheck(theme, 'hud', c.title, room, {
       path: chapterPath(c, 'title'),
       what: `Chapter "${c.chapterId}": the step name`,
+      shares,
     }),
   );
 }
@@ -144,11 +158,13 @@ function chapterHeaderChecks(
   theme: Theme,
   chapters: readonly ChapterSpan[],
   room: number,
+  shares: readonly RowShare[],
 ): SpecError[] {
   return chapters.flatMap((c) =>
     lineCheck(theme, 'chapter', chapterHeaderText(c), room, {
       path: chapterPath(c, c.heading === c.title ? 'title' : 'question'),
       what: `Chapter "${c.chapterId}": the chapter header`,
+      shares,
     }),
   );
 }
@@ -173,7 +189,12 @@ function headlineChecks(spec: RenderableVideoSpec, theme: Theme, width: number):
   );
 }
 
-type Target = { path: string; what: string };
+type Target = {
+  path: string;
+  what: string;
+  /** What shares the text's row; named in the message so the crowding is fixable. */
+  shares?: readonly RowShare[];
+};
 
 function lineCheck(
   theme: Theme,
@@ -188,7 +209,8 @@ function lineCheck(
     truncated(
       target,
       `"${text}" is ${px(width)} wide, but its slot has ${describeRoom(theme, style, room)}; ` +
-        'it would be cut off.',
+        `it would be cut off.${crowding(target.shares, room)}`,
+      target.shares?.length ? 'Shorten it, or what shares its row.' : 'Shorten it.',
     ),
   ];
 }
@@ -210,12 +232,20 @@ function blockCheck(
   return [truncated(target, `"${text}" ${why}; it would be cut off.`)];
 }
 
-function truncated(target: Target, detail: string): SpecError {
+function truncated(target: Target, detail: string, fix = 'Shorten it.'): SpecError {
   return {
     path: target.path,
     code: TEXT_TRUNCATED,
-    message: `${target.what} ${detail} Shorten it.`,
+    message: `${target.what} ${detail} ${fix}`,
   };
+}
+
+/** " Its 936 px row is shared: the story clock "…" uses 412 px." (nothing when not shared). */
+function crowding(shares: readonly RowShare[] | undefined, room: number): string {
+  if (!shares?.length) return '';
+  const row = room + shares.reduce((sum, s) => sum + s.px, 0);
+  const list = shares.map((s) => `${s.what} uses ${px(s.px)}`).join('; ');
+  return ` Its ${px(row)} row is shared: ${list}.`;
 }
 
 function chapterPath(chapter: ChapterSpan, field: 'title' | 'question'): string {

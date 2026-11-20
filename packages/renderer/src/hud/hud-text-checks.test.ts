@@ -94,8 +94,42 @@ describe('hudTextWarnings', () => {
     const metric = { label: 'A very long metric label', value: '1,00,000 tokens per second' };
     const withMetric = { ...spec, story: { ...spec.story, heroMetric: metric } };
     expect(barSlots(dark, withMetric, context).chapter).toBe(hudLayout(dark).chapterRow.width);
-    expect(titleBlockSlots(paper, 'strip', withMetric).stepName).toBe(
-      titleBlockLayout(paper, 'strip').clockRow.width,
+    expect(titleBlockSlots(paper, 'strip', withMetric).chapter).toBe(
+      titleBlockLayout(paper, 'strip').chapterRow.width,
+    );
+  });
+
+  it('gives the chapter header its own row too: a long hero metric never crowds it', () => {
+    const spec = goldenRateLimiterSpec; // question chapters: the chapter header is on
+    const metric = {
+      label: 'Shared-store round trip',
+      value: '0.4 ms median / 2.1 ms p99',
+    };
+    const withMetric = { ...spec, story: { ...spec.story, heroMetric: metric } };
+    expect(paths(withMetric)).toEqual([]);
+    expect(titleBlockSlots(paper, 'strip', withMetric).shares.chapter).toEqual([]);
+  });
+
+  it('names what shares a crowded row and how much it uses', () => {
+    const clock = {
+      from: 'Every gateway in the fleet',
+      to: 'One shared counter for all of them',
+      startValue: 0,
+      endValue: 600,
+      keyframes: [],
+    };
+    const story = {
+      ...goldenStrawberrySpec.story,
+      heroMetric: { label: 'Tokens', value: '3', storyClock: clock },
+    };
+    const spec = withChapter({ ...goldenStrawberrySpec, story }, 'tokens', {
+      title: 'How a tokenizer splits words',
+    });
+    const warning = hudTextWarnings(spec, paper, contextFor(spec)).find(
+      (w) => w.path === '$.story.chapters[1].title',
+    );
+    expect(warning?.message).toMatch(
+      /Its 936 px row is shared: the story clock "Every gateway .*" \(story\.heroMetric\.storyClock\) uses \d+ px\. Shorten it, or what shares its row\.$/,
     );
   });
 

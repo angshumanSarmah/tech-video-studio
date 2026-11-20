@@ -23,17 +23,25 @@ export const HEADLINE_LINES = 2;
 /** Side of a step tracker dot. */
 export const STEP_DOT = 14;
 
+/**
+ * Something drawn beside a text on its row, and the px it takes from that text's slot (its width
+ * plus the gap): what a `text_truncated` message names when a row is crowded.
+ */
+export type RowShare = { what: string; px: number };
+
 /** `hud.style: 'bar'` (full format). */
 export type BarSlots = {
   /** "SERIES · TOPIC" beside the handle. */
   topic: number;
   /**
    * The chapter row beside the story clock: "— n · QUESTION" (chapter header), or the current
-   * step's name when the header is off (the step tracker's dots sit on the row above).
+   * step's name when the header is off (the step marker sits on the row above).
    */
   chapter: number;
   /** Headline line width (two lines). */
   headline: number;
+  /** What shares each text's row (empty when nothing does). */
+  shares: { topic: RowShare[]; chapter: RowShare[] };
 };
 
 /** `hud.style: 'title-block'` (`strip`, full format) and the card format's `header`. */
@@ -42,26 +50,30 @@ export type TitleBlockSlots = {
   subject: number;
   /** The header's title cell, per line (`TITLE_LINES` lines). */
   title: number;
-  /** The chapter header beside the hero metric dimension. */
-  metaText: number;
-  /** The current step's name on the clock row, beside the story clock (header off). */
-  stepName: number;
+  /**
+   * The chapter row beside the story clock: the chapter header, or the current step's name when
+   * the header is off (the step dots and the hero metric sit on the row above).
+   */
+  chapter: number;
   /** The card viewport's label cell. */
   viewportLabel: number;
   /** Headline line width (two lines). */
   headline: number;
+  /** What shares the chapter row (empty when nothing does). */
+  shares: { chapter: RowShare[] };
 };
 
 export function barSlots(theme: Theme, spec: RenderableVideoSpec, ctx: HudContext): BarSlots {
-  const { space } = theme;
   const layout = hudLayout(theme);
-  const parts = visibleHudParts(spec);
-  const clock = parts.storyClock ? spec.story.heroMetric?.storyClock : undefined;
-  const handle = ctx.channelHandle ? handleWidth(theme, ctx.channelHandle) + space.md : 0;
+  const shares = {
+    topic: handleShares(theme, ctx.channelHandle),
+    chapter: clockShares(theme, spec),
+  };
   return {
-    topic: layout.topBar.width - handle,
-    chapter: layout.chapterRow.width - clockRoom(theme, clock),
+    topic: layout.topBar.width - used(shares.topic),
+    chapter: layout.chapterRow.width - used(shares.chapter),
     headline: layout.headline.width,
+    shares,
   };
 }
 
@@ -73,19 +85,41 @@ export function titleBlockSlots(
   const { space, stroke } = theme;
   const layout = titleBlockLayout(theme, variant);
   const areas = formatAreas(theme, spec.meta.format);
-  const parts = visibleHudParts(spec);
-  const metric = parts.heroMetric ? spec.story.heroMetric : undefined;
-  const clock = parts.storyClock ? spec.story.heroMetric?.storyClock : undefined;
   const cell = layout.block.width - 2 * stroke.thin - 2 * space.sm;
   const viewport = areas.viewport?.width ?? 0;
+  const shares = { chapter: clockShares(theme, spec) };
   return {
     subject: cell,
     title: cell,
-    metaText: layout.metaRow.width - (metric ? dimensionWidth(theme, metric) + space.md : 0),
-    stepName: layout.clockRow.width - clockRoom(theme, clock),
+    chapter: layout.chapterRow.width - used(shares.chapter),
     viewportLabel: viewport / 2 - 2 * space.sm - stroke.thin,
     headline: areas.headlineBand.width,
+    shares,
   };
+}
+
+function used(shares: readonly RowShare[]): number {
+  return shares.reduce((sum, share) => sum + share.px, 0);
+}
+
+/** The handle beside the top bar's subject line. */
+function handleShares(theme: Theme, handle: string | null): RowShare[] {
+  if (!handle) return [];
+  return [
+    { what: `the channel handle "${handle}"`, px: handleWidth(theme, handle) + theme.space.md },
+  ];
+}
+
+/** The story clock (at its widest reading) beside the chapter row's text. */
+function clockShares(theme: Theme, spec: RenderableVideoSpec): RowShare[] {
+  const clock = visibleHudParts(spec).storyClock ? spec.story.heroMetric?.storyClock : undefined;
+  if (!clock) return [];
+  return [
+    {
+      what: `the story clock "${storyClockText(clock, formatClock(widestClockValue(clock)))}" (story.heroMetric.storyClock)`,
+      px: storyClockWidth(theme, clock) + theme.space.md,
+    },
+  ];
 }
 
 /** Chapters the HUD shows (those with beats; see `chapterSpans`): the N in "STEP n/N". */
@@ -124,24 +158,23 @@ function handleWidth(theme: Theme, handle: string): number {
   return textWidth(theme, 'hud', handle, { uppercase: false });
 }
 
-/** What a row gives the story clock beside it (none without a clock). */
-function clockRoom(theme: Theme, clock: StoryClock | undefined): number {
-  return clock ? storyClockWidth(theme, clock) + theme.space.md : 0;
-}
-
 /**
  * The story clock at its widest: the clock only runs between its points (start, keyframes, end),
  * so its longest reading is the largest of them.
  */
 export function storyClockWidth(theme: Theme, clock: StoryClock): number {
-  const widest = Math.max(clock.startValue, clock.endValue, ...clock.keyframes.map((k) => k.value));
-  return textWidth(theme, 'hud', storyClockText(clock, formatClock(widest)));
+  return textWidth(theme, 'hud', storyClockText(clock, formatClock(widestClockValue(clock))));
 }
 
-/** "LABEL ├── VALUE ──┤": label, gap, two ticks, two extension lines, the padded value. */
-function dimensionWidth(theme: Theme, metric: HeroMetric): number {
+function widestClockValue(clock: StoryClock): number {
+  return Math.max(clock.startValue, clock.endValue, ...clock.keyframes.map((k) => k.value));
+}
+
+/**
+ * The hero metric dimension "LABEL ├── VALUE ──┤" less its text: the gap after the label, two
+ * ticks, two extension lines and the value's padding. Its text (label and value) gets the rest.
+ */
+export function dimensionChrome(theme: Theme): number {
   const { space, stroke } = theme;
-  const label = textWidth(theme, 'hud', metric.label);
-  const value = textWidth(theme, 'hud', metric.value) + 2 * space.xs;
-  return label + space.sm + 2 * stroke.thin + 2 * space.lg + value;
+  return space.sm + 2 * stroke.thin + 2 * space.lg + 2 * space.xs;
 }

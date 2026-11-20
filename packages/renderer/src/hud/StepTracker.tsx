@@ -61,7 +61,7 @@ export function StepMarker({ theme, chapters, current, accent, label }: MarkerPr
 
 /**
  * The current step's name, alone on its row but for the story clock (`barSlots().chapter`,
- * `titleBlockSlots().stepName`). Drawn only when the chapter header is off, so the chapter is
+ * `titleBlockSlots().chapter`). Drawn only when the chapter header is off, so the chapter is
  * never named twice.
  */
 export function StepName(props: { theme: Theme; chapter: ChapterSpan; room: number }) {

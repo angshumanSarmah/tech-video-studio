@@ -150,11 +150,13 @@ Common mistakes to avoid
           "properties": {
             "label": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "description": "What the number measures, short: label and value together at most about 46 characters."
             },
             "value": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "description": "One research number as written, with its unit: label and value together at most about 46 characters."
             },
             "storyClock": {
               "type": "object",

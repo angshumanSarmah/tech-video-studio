@@ -9,9 +9,9 @@ import { lineHeightPx } from './hud-layout.ts';
  *           ├───────────────────────────────────────────┬───────┬────────┤
  *           │ SHEET 2/3                                 │ REV A │ @handle│
  *           └───────────────────────────────────────────┴───────┴────────┘
- *           metaRow   — 2 · CHAPTER QUESTION?        LABEL ├── VALUE ──┤
- *                     (or, with the chapter header off, the step dots ● ● ○)
- *           clockRow  STEP NAME (header off)            FROM → TO · 1:52
+ *           metaRow    ● ● ○ (step dots)              LABEL ├── VALUE ──┤
+ *           chapterRow — 2 · CHAPTER QUESTION?             FROM → TO · 1:52
+ *                      (or, with the chapter header off, the current step's name)
  *
  *   header  ┌────────────────────────────────────────────────────────────┐
  *           │ VIDEO TITLE, UP TO                                         │
@@ -40,10 +40,13 @@ export type TitleBlockLayout = {
   block: Rect;
   /** The top cell's height, its bottom divider included (subject line or title). */
   topHeight: number;
-  /** Chapter header or step dots (left) and the hero metric dimension (right). */
+  /** The step dots (left, with the step tracker on) and the hero metric dimension (right). */
   metaRow: Rect;
-  /** The current step's name (left, when the chapter header is off) and the story clock (right). */
-  clockRow: Rect;
+  /**
+   * The chapter header, or the current step's name when it is off (left), and the story clock
+   * (right): nothing else shares it.
+   */
+  chapterRow: Rect;
 };
 
 /** One row of cells: a HUD text line plus vertical padding. */
@@ -81,18 +84,19 @@ export function titleBlockLayout(theme: Theme, variant: TitleBlockVariant): Titl
     height,
   });
   const block = row(hudBand.y, blockHeight(theme, variant));
-  const gap = theme.space.sm;
-  const metaHeight = Math.max(lineHeightPx(theme, 'chapter'), dimensionHeight(theme));
-  const metaRow = row(block.y + block.height + gap, metaHeight);
-  const clockRow = row(metaRow.y + metaRow.height + gap, lineHeightPx(theme, 'hud'));
-  const needed = clockRow.y + clockRow.height - hudBand.y;
+  // Tight rows (xs): three rows under the two-cell block must fit the HUD band in every theme.
+  const gap = theme.space.xs;
+  const metaRow = row(block.y + block.height + gap, dimensionHeight(theme));
+  const chapterHeight = Math.max(lineHeightPx(theme, 'chapter'), lineHeightPx(theme, 'hud'));
+  const chapterRow = row(metaRow.y + metaRow.height + gap, chapterHeight);
+  const needed = chapterRow.y + chapterRow.height - hudBand.y;
   // The card format's header region is as tall as it needs; its window goes below it.
   if (variant === 'strip' && needed > hudBand.height) {
     throw new Error(
       `Theme "${theme.id}": the ${variant} title block needs ${needed}px but the HUD band is ${hudBand.height}px.`,
     );
   }
-  return { block, topHeight: topCellHeight(theme, variant), metaRow, clockRow };
+  return { block, topHeight: topCellHeight(theme, variant), metaRow, chapterRow };
 }
 
 export type TitleBlockCellId = 'series' | 'sheet' | 'revision' | 'handle';

@@ -73,7 +73,7 @@ function plan(): DirectorPlan {
       targetLengthSec: 60,
     },
     story: {
-      devices: ['failure_before_fix', 'planted_question'],
+      devices: ['failure_before_fix'],
       runningExample: 'One checkout request waits behind a burst.',
       chapters: [
         { id: 'burst', title: 'The burst' },
@@ -163,6 +163,7 @@ function twoParts(p: DirectorPlan): void {
   queue!.factIds = ['fact-1'];
   queue!.targetSec = 15;
   shed!.factIds = ['fact-2', 'num-2'];
+  shed!.device = 'failure_before_fix';
   shed!.targetSec = 15;
   end!.targetSec = 15;
   p.story.devices = ['failure_before_fix'];
@@ -187,6 +188,12 @@ function twoParts(p: DirectorPlan): void {
 }
 
 describe('directorPlanProblems', () => {
+  it('needs every device in story.devices on at least one beat', () => {
+    expect(problemsAfter((p) => p.story.devices.push('roadmap', 'contention_hook'))).toEqual([
+      ['$.story.devices[1]', 'devices_unused'],
+    ]);
+  });
+
   it('passes a valid plan, which is also a valid spec', () => {
     expect(directorPlanProblems(plan(), ctx())).toEqual([]);
     const result = validateVideoSpec(
@@ -352,7 +359,9 @@ describe('directorPlanProblems', () => {
       expect(
         problemsAfter((p) => {
           delete p.story.plantedQuestion;
-          p.story.devices.push('hero_metric', 'question_chapters');
+          p.story.beats[0]!.device = 'question_chapters';
+          p.story.beats[2]!.device = 'planted_question';
+          p.story.beats[3]!.device = 'hero_metric';
           p.story.chapters[0]!.question = 'Why did it fall over?';
         }),
       ).toEqual([
@@ -385,7 +394,7 @@ describe('directorPlanProblems', () => {
 
     it('takes a failure before the fix or a rejected alternative', () => {
       const noFailure = (p: DirectorPlan) => {
-        p.story.devices = ['planted_question'];
+        p.story.devices = [];
         p.story.beats[1]!.device = 'what_breaks';
       };
       expect(problemsAfter(noFailure)).toEqual([['$.story', 'no_failure_or_alternative']]);

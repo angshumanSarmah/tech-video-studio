@@ -7,6 +7,13 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **P1C.5 — Record catalogue versions per call.** The block's `CATALOGUE VERSIONS` line
       lands in the prompt file and the Director's step input (`catalogueVersions`); a column on
       `llm_calls` would make it queryable.
+- [ ] **P1C.5 — Numbers in plan prose.** The Director checks numbers on the spec card only; the
+      recorded plan's planted question says "300 req/s became 12,000 req/s", a product the notes
+      never state (300 × 40). Check `plantedQuestion.text`, `rejectedAlternative.summary`,
+      chapter text and beat intents with the spec card's token comparison.
+- [ ] **HUD — Metric row overflow.** The step marker and the hero metric share the metric row
+      with no check: a metric past `HERO_METRIC_MAX_CHARS`, or many steps, can overlap. Add a slot
+      and a `text_truncated` check (or warn) for the metric.
 - [ ] **P1D.1 — Format on the New Run page.** `RunSettings.format` (`full` | `card`) overrides
       the Director's `plan.meta.format`; the New Run form needs a choice ("Director decides",
       full, card).

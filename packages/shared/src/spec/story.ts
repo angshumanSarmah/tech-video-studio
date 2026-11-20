@@ -31,11 +31,23 @@ export const StoryClockSchema = z.strictObject({
 });
 export type StoryClock = z.infer<typeof StoryClockSchema>;
 
+/**
+ * About how many characters the hero metric's label and value hold together, in the default
+ * theme: its row less the dimension's ticks and lines and a step marker of 5 dots. A renderer
+ * test recomputes it (`roomInChars`). A hint for prompts.
+ */
+export const HERO_METRIC_MAX_CHARS = 46;
+
+const heroMetricText = `label and value together at most about ${HERO_METRIC_MAX_CHARS} characters`;
+
 /** A pinned pill such as "iPhone 17 · 3.5 min", with an optional story clock. */
 export const HeroMetricSchema = z.strictObject({
-  label: z.string().min(1),
+  label: z.string().min(1).describe(`What the number measures, short: ${heroMetricText}.`),
   /** Display value, kept as text so units and formatting survive. */
-  value: z.string().min(1),
+  value: z
+    .string()
+    .min(1)
+    .describe(`One research number as written, with its unit: ${heroMetricText}.`),
   storyClock: StoryClockSchema.optional(),
 });
 export type HeroMetric = z.infer<typeof HeroMetricSchema>;

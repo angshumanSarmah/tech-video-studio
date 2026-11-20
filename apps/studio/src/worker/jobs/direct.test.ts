@@ -1,5 +1,6 @@
 import { join } from 'node:path';
 import {
+  deviceLayoutCombo,
   DirectorPlanSchema,
   SettingsSchema,
   type DirectorPlan,
@@ -30,7 +31,7 @@ import {
 import { createLlmClient } from '../llm/client.ts';
 import { dryRunTransport, loadDryRunFixtures, type DryRunResponse } from '../llm/dry-run.ts';
 import { runNextJob } from '../runner.ts';
-import { DIRECT_JOB_TYPE, directJobHandler } from './direct.ts';
+import { DIRECT_JOB_TYPE, directJobHandler, summarize } from './direct.ts';
 import { ingestJobHandler } from './ingest.ts';
 import { createJobRegistry, type JobRegistry } from './registry.ts';
 import { RESEARCH_JOB_TYPE, researchJobHandler } from './research.ts';
@@ -155,11 +156,8 @@ describe('direct job (rate-limiter fixture, dry run)', () => {
     expect(user!.content).not.toContain('sourceChunkId');
     expect(user!.content).toContain('Decide within 45-150 s');
 
-    expect(logs(runId).map((l) => l.message)).toContainEqual(
-      'Beat sheet: 8 beats in 4 chapters, 75 s, format full, topic class concept, ending spec_card_ending.',
-    );
-    expect(logs(runId).map((l) => l.message)).toContainEqual(
-      'Missing primitive: token_bucket (fallback counter).',
+    expect(logs(runId).map((l) => l.message)).toEqual(
+      expect.arrayContaining(summarize(goodPlan())),
     );
   });
 
@@ -178,7 +176,7 @@ describe('direct job (rate-limiter fixture, dry run)', () => {
     expect(calls.map((c) => c.error)).toEqual(['Invalid output: 5 issue(s)', null]);
     const repair = promptOf(calls[1]!.promptPath).messages.at(-1)!.content;
     for (const expected of [
-      '$.story.beats[1].factIds[2]',
+      `$.story.beats[1].factIds[${goodPlan().story.beats[1]!.factIds.length}]`,
       '$.story.beats[2].newTerms[0]',
       '$.story.beats[0].factIds',
       '$.story.beats[3].suggestedPatternIds[0]',
@@ -262,29 +260,41 @@ describe('direct job (rate-limiter fixture, dry run)', () => {
       durationMs: 1,
       title: null,
     });
+    // The plan's first two device/layout combos were used by the last video.
+    const plan = goodPlan();
+    const recent = [...new Set(plan.story.beats.flatMap((b) => deviceLayoutCombo(b) ?? []))];
+    expect(recent.length).toBeGreaterThanOrEqual(2);
     t.db
       .insert(usageHistory)
-      .values([
-        { runId: past.id, kind: 'device_layout', value: 'contention_hook/centered_focus' },
-        { runId: past.id, kind: 'device_layout', value: 'failure_before_fix/hub_spoke' },
-      ])
+      .values(
+        recent
+          .slice(0, 2)
+          .map((value) => ({ runId: past.id, kind: 'device_layout' as const, value })),
+      )
       .run();
     t.db
       .insert(memoryRules)
       .values({ scope: 'director', text: '<example-rule>', status: 'active' })
       .run();
 
-    // The good plan reuses both recent combos: one repair to change a layout, then it passes.
-    const fixed = answer((plan) => (plan.story.beats[4]!.layoutMode = 'two_column'));
+    // The good plan reuses both: one repair moves those beats to another layout, then it passes.
+    const reused = new Set(recent.slice(0, 2));
+    const fixed = answer((p) => {
+      for (const beat of p.story.beats) {
+        const combo = deviceLayoutCombo(beat);
+        if (combo && reused.has(combo)) beat.layoutMode = 'two_column';
+      }
+    });
+    const length = plan.meta.targetLengthSec!;
     const { runId, job } = await direct(registry([goodAnswer, fixed]), {
-      lengthOverrideSec: 75,
+      lengthOverrideSec: length,
       format: 'card',
     });
     expect(job.status).toBe('done');
 
     const { input } = latestDirection(t.db, t.dataDir, runId)!;
     expect(input).toMatchObject({
-      length: { overrideSec: 75 },
+      length: { overrideSec: length },
       formatOverride: 'card',
       series: { nextNumber: 2 },
     });
@@ -293,9 +303,9 @@ describe('direct job (rate-limiter fixture, dry run)', () => {
     expect(system!.content).toContain(
       '## STYLE RULES (from your reviews; follow them)\n- <example-rule>',
     );
-    expect(user!.content).toContain('Fixed by this run: exactly 75 s');
+    expect(user!.content).toContain(`Fixed by this run: exactly ${length} s`);
     expect(user!.content).toContain('Fixed by this run: \\"card\\"');
-    expect(user!.content).toContain('"failure_before_fix/hub_spoke"');
+    expect(user!.content).toContain(`"${recent[1]}"`);
     expect(user!.content).toContain('<past-topic>');
     const repair = promptOf(calls[1]!.promptPath).messages.at(-1)!.content;
     expect(repair).toContain('recently used device/layout');

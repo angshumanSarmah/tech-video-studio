@@ -485,7 +485,8 @@ seriesNumber })` makes the spec; with parts its `targetLengthSec` is the parts' 
   `chosenBeatId`; each video's hook (first beat after a recap) cites a `num-*` id when the notes
   have numbers, and at most `MAX_HOOK_NUMBERS` (2); the planted question's payoff is at least
   `MIN_PAYOFF_GAP_BEATS` (2) beats later; a device sits on at most `MAX_BEATS_PER_DEVICE` (2)
-  beats (`recap_opening` and `cliffhanger_ending` aside, one per part); the `cta` has no digits
+  beats (`recap_opening` and `cliffhanger_ending` aside, one per part) and every device in
+  `story.devices` is on at least one beat (`devices_unused`); the `cta` has no digits
   and not the series name or label (code adds them); spec card numbers are research number
   values (`quantityTokens`, as the plain summary check); the single video or last part closes with an ending device other than
   `cliffhanger_ending` and its `ENDING_REQUIREMENTS` (spec card: `specCard` and `cta`; callback
@@ -495,7 +496,8 @@ seriesNumber })` makes the spec; with parts its `targetLengthSec` is the parts' 
   `target_length_mismatch` is dropped (the plan checks length per video or part).
 - **Fixture:** `agents/director/fixtures/rate-limiter/responses/director.json`, the dry-run plan
   `jobs/direct.test.ts` replays after ingesting the Researcher's sources and replaying its recorded
-  answer. Hand-written until recorded: `pnpm --filter @explainer-studio/studio director:fixture
+  answer (recorded from the configured Director model, repairs included; the job tests derive
+  their expectations from it). Re-record with `pnpm --filter @explainer-studio/studio director:fixture
 [--level beginner|intermediate|expert] [--record]` does the same against the configured
   Director model (the Researcher is replayed, never called) in
   `<DATA_DIR>/director/fixture/rate-limiter/`, prints each attempt's issues, the Director's cost
@@ -693,14 +695,17 @@ its lease in card). The per-anchor sheets stay the record of timing.
   only); an explicit true/false is a user override and wins. Every HUD animation starts at a frame
   resolved from a word or beat-edge anchor (`headline.at`, chapter and beat starts).
   **Step tracker** (`StepTracker.tsx`): `StepMarker` draws a dot per step (plus `STEP n/N` in
-  the bar style) on the metric row; `StepName` draws only the current step's name on the row
-  below (bar: the chapter row; title-block: the clock row), which it shares with nothing but the
-  story clock. With the chapter header on, the header takes that row and the name is not drawn.
+  the bar style) on the metric row; `StepName` draws only the current step's name on the chapter
+  row below, which it shares with nothing but the story clock. With the chapter header on, the
+  header takes that row and the name is not drawn. In both styles the metric row holds the step
+  marker (or nothing) and the hero metric; the chapter row holds the chapter header or the step
+  name and the story clock.
   The theme's `hud.style` picks how the same data is drawn (`Hud` dispatches; `useHudModel` is
   shared): `bar` (blueprint-dark, `BarHud`) or `title-block` (drafting-paper, `TitleBlockHud`):
   a ruled title block (`SERIES · TOPIC` over `SHEET n/N | REV A | handle`; SHEET is the step
-  tracker's label), the hero metric as a dimension (`DimensionMetric`) beside the chapter header
-  or the step dots, then the step name and story clock. Its slots come from `titleBlockLayout(theme, variant)`. `TitleBlock` has a
+  tracker's label), the step dots beside the hero metric as a dimension (`DimensionMetric`), then
+  the chapter header (or the step name) beside the story clock; rows `xs` apart so they fit the
+  HUD band. Its slots come from `titleBlockLayout(theme, variant)`. `TitleBlock` has a
   `header` variant (the title in display type over the cells): with `meta.format: "card"`, `Hud`
   draws it in every theme, with the same chapter / metric and clock rows, in the card header
   region (`formatAreas`); the headline goes under the window. `CardViewport` draws the window as
@@ -722,10 +727,14 @@ channelHandle })` measures the same strings (`subjectText`, `chapterHeaderText`,
     next to `specLayoutWarnings`. A new HUD text that can be cut needs a slot and a check.
     Every `text_truncated` message (HUD and layout) states its room in px and about how many
     characters fit (`describeRoom` / `roomInChars` in `src/fonts/measure-text.ts`, from the
-    style's real advances over a sample phrase), so a model can act on it.
+    style's real advances over a sample phrase), so a model can act on it. When something shares
+    the text's row (the handle, the story clock: `RowShare`s on `barSlots` / `titleBlockSlots`,
+    the same list the slot is computed from), the message names each and the px it uses.
     `CHAPTER_TITLE_MAX_CHARS` (shared; in the chapter title's schema description) is what the
     narrowest chapter-title slot of the default theme holds (the card viewport label); a test
-    recomputes it.
+    recomputes it. `HERO_METRIC_MAX_CHARS` (label and value together; in their schema
+    descriptions) is what the default theme's metric row holds beside a 5-step marker, also
+    recomputed by a test.
 - **Subtitles** (`src/subtitles`): word-by-word karaoke captions in the format's
   `subtitleBand` (`formatAreas`; card has its own). `buildSubtitleCues(spec, theme)` (pure,
   exported through `catalog`) is the single source for the burned-in captions and the SRT.

@@ -14,8 +14,8 @@ describe('CHAPTER_TITLE_MAX_CHARS', () => {
     const card = withFormat(full, 'card');
     const rooms = [
       // The step name (chapter header off), in the strip and the card header.
-      titleBlockSlots(theme, 'strip', full).stepName,
-      titleBlockSlots(theme, 'header', card).stepName,
+      titleBlockSlots(theme, 'strip', full).chapter,
+      titleBlockSlots(theme, 'header', card).chapter,
       // The card viewport's label cell, which shows the title while the chapter header is on.
       titleBlockSlots(theme, 'header', card).viewportLabel,
     ];

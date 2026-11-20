@@ -17,8 +17,8 @@ type Props = HudProps & { variant: TitleBlockVariant };
 
 /**
  * `hud.style: 'title-block'`. The strip variant draws the title block (topic, SHEET for the step
- * tracker, REV, handle), then the chapter header or step name beside the hero metric dimension,
- * then the story clock when `spec.hud` has it on. The header variant (card format) draws the title
+ * tracker, REV, handle), then the step dots beside the hero metric dimension, then the chapter
+ * header (or the current step's name) beside the story clock. The header variant (card format) draws the title
  * block with the title in display type, the same rows under it, and the diagram window as a ruled
  * viewport (`CardViewport`); its headline goes under the window (`formatAreas`).
  */
@@ -32,8 +32,6 @@ export function TitleBlockHud({ variant, ...props }: Props) {
   const headlineBand = areas.headlineBand;
   const row = { display: 'flex', alignItems: 'center', gap: theme.space.md } as const;
   const showSheet = parts.stepTracker && chapter !== undefined;
-  /** The step name has the clock row, unless the chapter header already names the chapter. */
-  const showStepName = showSheet && !parts.chapterHeader;
 
   return (
     <AbsoluteFill>
@@ -64,44 +62,40 @@ export function TitleBlockHud({ variant, ...props }: Props) {
           slots={slots}
         />
       ) : null}
-      {
-        <div style={{ ...rectCss(layout.metaRow), ...row, justifyContent: 'space-between' }}>
-          {parts.chapterHeader && chapter ? (
-            <ChapterHeader theme={theme} chapter={chapter} accent={accent} room={slots.metaText} />
-          ) : showSheet ? (
-            <StepMarker
-              theme={theme}
-              chapters={chapters}
-              current={chapter}
-              accent={accent}
-              label={false}
-            />
-          ) : (
-            <div />
-          )}
-          {parts.heroMetric && metric ? (
-            <DimensionMetric theme={theme} metric={metric} from={pinnedFrom} />
-          ) : null}
-        </div>
-      }
-      {showStepName || (parts.storyClock && clock) ? (
-        <div style={{ ...rectCss(layout.clockRow), ...row, justifyContent: 'space-between' }}>
-          {showStepName ? (
-            <StepName theme={theme} chapter={chapter} room={slots.stepName} />
-          ) : (
-            <div />
-          )}
-          {parts.storyClock && clock ? (
-            <StoryClock
-              theme={theme}
-              fromLabel={clock.from}
-              toLabel={clock.to}
-              points={points}
-              from={pinnedFrom}
-            />
-          ) : null}
-        </div>
-      ) : null}
+      <div style={{ ...rectCss(layout.metaRow), ...row, justifyContent: 'space-between' }}>
+        {showSheet ? (
+          <StepMarker
+            theme={theme}
+            chapters={chapters}
+            current={chapter}
+            accent={accent}
+            label={false}
+          />
+        ) : (
+          <div />
+        )}
+        {parts.heroMetric && metric ? (
+          <DimensionMetric theme={theme} metric={metric} from={pinnedFrom} />
+        ) : null}
+      </div>
+      <div style={{ ...rectCss(layout.chapterRow), ...row, justifyContent: 'space-between' }}>
+        {parts.chapterHeader && chapter ? (
+          <ChapterHeader theme={theme} chapter={chapter} accent={accent} room={slots.chapter} />
+        ) : showSheet ? (
+          <StepName theme={theme} chapter={chapter} room={slots.chapter} />
+        ) : (
+          <div />
+        )}
+        {parts.storyClock && clock ? (
+          <StoryClock
+            theme={theme}
+            fromLabel={clock.from}
+            toLabel={clock.to}
+            points={points}
+            from={pinnedFrom}
+          />
+        ) : null}
+      </div>
       {parts.headline && cue && frame < cue.to ? (
         <Headline
           key={cue.beatId}

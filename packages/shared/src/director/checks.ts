@@ -45,6 +45,7 @@ export const DIRECTOR_PROBLEM_CODES = [
   'hook_too_many_numbers',
   'payoff_too_soon',
   'device_overused',
+  'devices_unused',
   'cta_has_number',
   'cta_has_series_label',
   'spec_card_number_not_in_notes',
@@ -142,6 +143,7 @@ export function directorPlanProblems(
     ...deviceRequirementProblems(plan, ctx.notes),
     ...payoffGapProblems(plan),
     ...deviceReuseProblems(plan),
+    ...unusedDeviceProblems(plan),
     ...failureOrAlternativeProblems(plan),
     ...videos.flatMap((video) => hookProblems(plan, video, ctx.notes)),
     ...endingProblems(plan, videos),
@@ -597,6 +599,23 @@ function payoffGapProblems(plan: DirectorPlan): DirectorProblem[] {
         `pay it off at least ${MIN_PAYOFF_GAP_BEATS} beats later.`,
     ),
   ];
+}
+
+/** Every device the story lists is used on at least one beat (where it shows). */
+function unusedDeviceProblems(plan: DirectorPlan): DirectorProblem[] {
+  const onBeats = new Set(plan.story.beats.flatMap((b) => (b.device ? [b.device] : [])));
+  return plan.story.devices.flatMap((device, i) =>
+    onBeats.has(device)
+      ? []
+      : [
+          problem(
+            ['story', 'devices', i],
+            'devices_unused',
+            `"${device}" is listed in story.devices but on no beat: set it as the device of the ` +
+              'beat where it shows, or remove it from story.devices.',
+          ),
+        ],
+  );
 }
 
 /** One device on at most `MAX_BEATS_PER_DEVICE` beats (per-part recaps and cliffhangers aside). */

@@ -22,7 +22,7 @@ const cases = listThemes().flatMap((theme) =>
 describe.each(cases)('titleBlockLayout(%s, %s)', (_id, variant, theme) => {
   const areas = safeAreas(theme);
   const layout = titleBlockLayout(theme, variant);
-  const slots = [layout.block, layout.metaRow, layout.clockRow];
+  const slots = [layout.block, layout.metaRow, layout.chapterRow];
   // The strip is the full format's HUD band; the header is the card format's taller region.
   const region =
     variant === 'strip' ? areas.hudBand : (formatAreas(theme, 'card').header ?? areas.hudBand);
@@ -53,9 +53,9 @@ describe('titleBlockLayout variants', () => {
 
   it('puts the metric and clock rows under the block in both variants', () => {
     for (const variant of ['strip', 'header'] as const) {
-      const { block, metaRow, clockRow } = titleBlockLayout(theme, variant);
+      const { block, metaRow, chapterRow } = titleBlockLayout(theme, variant);
       expect(metaRow.y).toBeGreaterThan(block.y + block.height);
-      expect(clockRow.y).toBeGreaterThan(metaRow.y + metaRow.height);
+      expect(chapterRow.y).toBeGreaterThan(metaRow.y + metaRow.height);
     }
   });
 

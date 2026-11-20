@@ -73,8 +73,8 @@ function fullAreas(theme: Theme): FormatAreas {
 function cardAreas(theme: Theme): FormatAreas {
   const areas = safeAreas(theme);
   const zones = exclusionZones(theme);
-  const { block, clockRow } = titleBlockLayout(theme, 'header');
-  const header = { ...block, height: bottom(clockRow) - block.y };
+  const { block, chapterRow } = titleBlockLayout(theme, 'header');
+  const header = { ...block, height: bottom(chapterRow) - block.y };
   const window = cardWindow(theme, bottom(header) + theme.space.md, zones);
   const width = theme.canvas.width;
   const headlineBand = clearSymmetric(
