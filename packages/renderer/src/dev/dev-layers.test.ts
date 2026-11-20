@@ -4,12 +4,11 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 /**
- * `src/dev` holds temporary stand-ins. `DevSubtitles` goes once P1B.3 adds the subtitle layer (at
- * `src/subtitles/`); from then on no code outside `src/dev` may still render it.
+ * `src/dev` holds temporary stand-ins. Replaced ones stay gone: `DevBeatPreview` (P1A.5) and
+ * `DevSubtitles` (P1B.3, by `src/subtitles/`).
  */
 
 const SRC = fileURLToPath(new URL('..', import.meta.url));
-const SUBTITLES = join(SRC, 'subtitles');
 
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -31,10 +30,8 @@ describe('temporary Dev layers', () => {
     expect(usersOf('DevBeatPreview')).toEqual([]);
   });
 
-  it.skipIf(!existsSync(SUBTITLES))(
-    'DevSubtitles is gone once the subtitle layer exists (P1B.3)',
-    () => {
-      expect(usersOf('DevSubtitles'), 'Replace DevSubtitles with the subtitle layer').toEqual([]);
-    },
-  );
+  it('DevSubtitles is gone (replaced by the subtitle layer in P1B.3)', () => {
+    expect(existsSync(join(SRC, 'dev', 'DevSubtitles.tsx'))).toBe(false);
+    expect(usersOf('DevSubtitles')).toEqual([]);
+  });
 });

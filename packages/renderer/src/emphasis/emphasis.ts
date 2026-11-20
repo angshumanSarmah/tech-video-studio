@@ -170,3 +170,19 @@ export function focusUnderlineView(
   if (!isMarkTheme(theme) || semantic !== 'focus' || highlight > 0) return null;
   return { fill: withAlpha(semanticFillColour(theme, 'focus'), UNDERLINE_ALPHA) };
 }
+
+/**
+ * The single-line underline band's look, behind the lower part of its text box: shared by
+ * `FocusUnderline` and the subtitles' current-word band, so both read as one mark. Callers set
+ * the horizontal extent (reaching `UNDERLINE_OVERHANG` past the text) and stacking.
+ */
+export function underlineBandCss(view: UnderlineView): CSSProperties {
+  return {
+    position: 'absolute',
+    bottom: 0,
+    height: `${UNDERLINE_HEIGHT * 100}%`,
+    borderRadius: UNDERLINE_RADIUS,
+    background: view.fill,
+    transform: `rotate(${MARK_ANGLE_DEG}deg)`,
+  };
+}

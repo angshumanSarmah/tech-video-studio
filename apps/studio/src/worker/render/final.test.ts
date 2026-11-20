@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { totalFrames } from '@explainer-studio/renderer/catalog';
@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ffSec } from './ffmpeg-args.ts';
 import { renderFinal } from './final.ts';
 import { readManifest, StillsManifestSchema } from './manifests.ts';
+import { formatSrt, targetSubtitleCues } from './srt.ts';
 import { renderStills } from './stills.ts';
 import type { RenderRun, RenderTarget } from './target.ts';
 import { fakeTools, makeWav } from './testing.ts';
@@ -32,7 +33,8 @@ describe('renderFinal', () => {
   it('renders VideoFromSpec once at 1080x1920 @ 30, H.264 yuv420p, without the badge', async () => {
     const { tools, engine } = fakeTools();
     const out = join(dir, 'exports', 'rate-limiter.mp4');
-    const { frames } = await renderFinal(target(null), tools, run, out);
+    const subtitles = join(dir, 'exports', 'rate-limiter.srt');
+    const { frames } = await renderFinal(target(null), tools, run, { video: out, subtitles });
 
     expect(engine.videos).toHaveLength(1);
     const [request] = engine.videos;
@@ -48,7 +50,8 @@ describe('renderFinal', () => {
     writeFileSync(wav, makeWav([0, 0, 0]));
     const { tools, ff } = fakeTools();
     const out = join(dir, 'out.mp4');
-    const { frames } = await renderFinal(target(wav), tools, run, out);
+    const paths = { video: out, subtitles: join(dir, 'out.srt') };
+    const { frames } = await renderFinal(target(wav), tools, run, paths);
 
     expect(ff.calls).toHaveLength(1);
     const args = ff.calls[0]!;
@@ -62,7 +65,17 @@ describe('renderFinal', () => {
     expect(value('-movflags')).toBe('+faststart');
     expect(value('-t')).toBe(ffSec(frames / 30));
     expect(existsSync(out)).toBe(true);
-    expect(readdirSync(dir).sort()).toEqual(['narration.wav', 'out.json', 'out.mp4']);
+    expect(readdirSync(dir).sort()).toEqual(['narration.wav', 'out.json', 'out.mp4', 'out.srt']);
+  });
+
+  it('writes the SRT from the cues the video draws', async () => {
+    const { tools } = fakeTools();
+    const paths = { video: join(dir, 'out.mp4'), subtitles: join(dir, 'out.srt') };
+    const result = await renderFinal(target(null), tools, run, paths);
+    const cues = targetSubtitleCues(target(null));
+    expect(readFileSync(paths.subtitles, 'utf8')).toBe(formatSrt(cues));
+    expect(result.cues).toBe(cues.length);
+    expect(result.durationSec).toBe(result.frames / 30);
   });
 });
 

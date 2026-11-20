@@ -5,12 +5,14 @@ import {
   beatDraftMetaPath,
   beatDraftPath,
   beatStillPath,
+  exportSubtitlesPath,
   exportVideoPath,
   resolveDataPath,
   runDraftPath,
   stillsManifestPath,
 } from '#core/data-files.ts';
 import type { Db } from '#core/db/client.ts';
+import { recordExport } from '#core/db/repositories/exports.ts';
 import type { Job } from '#core/db/repositories/jobs.ts';
 import {
   renderBeatDraft,
@@ -105,7 +107,8 @@ function draftJob(deps: RenderJobDeps) {
 function finalJob(deps: RenderJobDeps) {
   return defineJobHandler({
     type: RENDER_JOB_TYPES.final,
-    description: 'Renders the whole video at the final preset and muxes the narration.',
+    description:
+      'Renders the whole video at the final preset, muxes the narration, writes the SRT and records the export.',
     payloadSchema: RunPayloadSchema,
     async run(ctx) {
       const { runId, input } = load(deps, ctx);
@@ -113,16 +116,27 @@ function finalJob(deps: RenderJobDeps) {
       if (blockers.length > 0) {
         throw new Error(`Final render refused:\n${blockers.map((b) => `  ${b}`).join('\n')}`);
       }
-      const relPath = exportVideoPath(runId, exportSlug(input.context.topicTitle, runId));
-      const { frames } = await renderFinal(
-        input.target,
-        deps.tools,
-        toRun(ctx),
-        resolveDataPath(deps.dataDir, relPath),
-      );
+      const slug = exportSlug(input.context.topicTitle, runId);
+      const rel = {
+        video: exportVideoPath(runId, slug),
+        subtitles: exportSubtitlesPath(runId, slug),
+      };
+      const abs = (path: string) => resolveDataPath(deps.dataDir, path);
+      const result = await renderFinal(input.target, deps.tools, toRun(ctx), {
+        video: abs(rel.video),
+        subtitles: abs(rel.subtitles),
+      });
+      // Only now that both files exist: the row makes the run undeletable.
+      recordExport(deps.db, {
+        runId,
+        mp4Path: rel.video,
+        srtPath: rel.subtitles,
+        durationMs: Math.round(result.durationSec * 1000),
+        title: input.target.spec.meta.title,
+      });
       ctx.log(
         'info',
-        `Final (spec v${input.specVersion}, ${frames} frames) written to ${relPath}.`,
+        `Final (spec v${input.specVersion}, ${result.frames} frames, ${result.cues} subtitle cues) written to ${rel.video} and ${rel.subtitles}.`,
       );
     },
   });

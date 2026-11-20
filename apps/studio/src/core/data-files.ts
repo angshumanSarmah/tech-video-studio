@@ -71,6 +71,11 @@ export function exportVideoPath(runId: number, slug: string): string {
   return posix.join('exports', String(runId), `${slug}.mp4`);
 }
 
+/** The final video's subtitles (`render_final`): the cues it burns in, as SubRip. */
+export function exportSubtitlesPath(runId: number, slug: string): string {
+  return posix.join('exports', String(runId), `${slug}.srt`);
+}
+
 /** The pronunciation dictionary (`PronunciationsSchema`), applied before every synthesis. */
 export function pronunciationsPath(): string {
   return posix.join('config', 'pronunciations.json');

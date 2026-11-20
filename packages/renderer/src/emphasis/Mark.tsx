@@ -14,6 +14,7 @@ import {
   markFill,
   markShape,
   markView,
+  underlineBandCss,
   type MarkLevels,
 } from './emphasis.ts';
 
@@ -211,15 +212,10 @@ export function FocusUnderline({
     <span style={{ position: 'relative', isolation: 'isolate', display: 'inline-block' }}>
       <span
         style={{
-          position: 'absolute',
+          ...underlineBandCss(view),
           left: -UNDERLINE_OVERHANG,
           right: -UNDERLINE_OVERHANG,
-          bottom: 0,
-          height: `${UNDERLINE_HEIGHT * 100}%`,
           zIndex: -1,
-          borderRadius: UNDERLINE_RADIUS,
-          background: view.fill,
-          transform: `rotate(${MARK_ANGLE_DEG}deg)`,
         }}
       />
       {children}

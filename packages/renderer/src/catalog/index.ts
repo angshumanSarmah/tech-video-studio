@@ -9,6 +9,9 @@ export { specLayout, specLayoutWarnings, type SpecLayout } from '../layout/spec-
 export { TEXT_TRUNCATED } from '../layout/text-fit.ts';
 export { hudTextWarnings } from '../hud/hud-text-checks.ts';
 export type { HudContext } from '../hud/hud-slots.ts';
+// Subtitles (P1B.3): the cues the video draws, for the SRT writer, and their warnings.
+export { buildSubtitleCues, type CueWord, type SubtitleCue } from '../subtitles/cues.ts';
+export { SUBTITLE_WORD_TOO_WIDE, subtitleWarnings } from '../subtitles/subtitle-checks.ts';
 export type { BoardLayout, LayoutWarning, PlacedItem } from '../layout/types.ts';
 export * from '../assets/house-svg.ts';
 export * from '../assets/library.ts';

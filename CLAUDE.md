@@ -183,7 +183,12 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   ignored). `loadRunRenderInput` resolves series and handle from the DB, assets via
   `prepareRenderAssets` and narration at `timing.audioFile` (relative to the data dir).
   Outputs: `runs/<id>/beats/<beat>.draft.mp4`, `runs/<id>/draft.mp4`,
-  `runs/<id>/stills/<beat>.png`, `exports/<id>/<topic-slug>.mp4`.
+  `runs/<id>/stills/<beat>.png`, `exports/<id>/<topic-slug>.mp4` and `.srt`.
+- **Finals export:** `render_final` writes the MP4, then the SRT (`render/srt.ts`: `formatSrt`
+  over `targetSubtitleCues`, the very cues the video burns in, same theme and format), then
+  records the `exports` row (`recordExport`: duration, the run's LLM cost, title). The row is
+  written last, only once both files exist, and is refreshed (not duplicated) when the job
+  reruns. A run with an exports row cannot be deleted (`RunHasExportsError`, `restrict` FK).
 - **Every output records its spec version** (`{ specVersionId, version }`) in a JSON sidecar
   (`render/manifests.ts`): a clip's `.draft.json` (with its cache key), `draft.json`,
   `stills/stills.json` and `<slug>.json`. The version is not part of the cache key: a reused
@@ -259,8 +264,8 @@ settings, settings.tts)`: speed is the run's `tts.speed`, else `settings.tts.spe
   (it reads words missing from misaki's dictionary; the server refuses to start without it), a
   test synthesis and the real-time factor. `… tts:fixture [--no-render]` synthesises the rate-limiter fixture
   per beat into `<DATA_DIR>/tts/fixture/rate-limiter/` (WAV, words, Audacity label track for
-  spot checks), times it with `settings.timing` (`narration.wav`, `timed-spec.json`) and renders
-  `draft.mp4` with the narration and one sentence per sample voice into `<DATA_DIR>/tts/voice-samples/`.
+  spot checks), times it with `settings.timing` (`narration.wav`, `timed-spec.json`), writes
+  `subtitles.srt` and renders `draft.mp4` with the narration and one sentence per sample voice into `<DATA_DIR>/tts/voice-samples/`.
 - Tests never need Python: `testing/fake-tts-server.ts` speaks the same protocol (Node runs it
   with type stripping) and can crash, hang, fail at startup or drop a word.
 
@@ -479,6 +484,22 @@ channelHandle })` measures the same strings (`subjectText`, `chapterHeaderText`,
     `$.script[i].headline.text` (`HEADLINE_LINES`, greedy wrap at spaces: `wrapText`). The run
     context is required (the series label and handle are not in the spec); the Curator runs it
     next to `specLayoutWarnings`. A new HUD text that can be cut needs a slot and a check.
+- **Subtitles** (`src/subtitles`): word-by-word karaoke captions in the format's
+  `subtitleBand` (`formatAreas`; card has its own). `buildSubtitleCues(spec, theme)` (pure,
+  exported through `catalog`) is the single source for the burned-in captions and the SRT.
+  Cues are one line of at most `MAX_CUE_WORDS` (4) words, never spanning two beats, split
+  (`chunking.ts`) at pauses longer than `PAUSE_BREAK_SEC` (0.25 s, on the speech-trimmed word
+  timings), then after sentence and clause punctuation (a lone word joins a neighbour), then by
+  cost: few chunks of about 3 words, none ending on a word that leans on the next (articles,
+  prepositions, conjunctions, a number before "thousand"), each fitting the band by `textWidth`.
+  A cue shows from its first word to its last word's end + `CUE_LINGER_SEC`, clamped to the
+  next cue and the scene end. Words are the narration tokens as written ("JSON"), never TTS
+  respellings, placed at measured offsets so the line never reflows. Glow themes draw the
+  current word in the series accent; mark themes keep ink and slide the `FocusUnderline` band
+  (`underlineBandCss`) under it over `WORD_SLIDE_SEC` (80 ms). Nothing is cut: a word wider
+  than the band gets its own cue drawn scaled down, and `subtitleWarnings` reports
+  `subtitle_word_too_wide` at `$.script[i].narration` (the Curator runs it with the HUD and
+  layout checks).
 - **Scene layer** (`src/scene`): `beatWorld` (pure) collects a beat's elements, expanded
   patterns and everything inherited through `continuesPrevious`, each with the events that act on
   it (resolved by the event engine, below) and its focus keys; `BeatScene` draws them with their registered components (through `WorldItemView`, which
@@ -554,9 +575,8 @@ message }` for the Curator): `too_many_elements` (mode `maxUnits`), `text_too_sm
     `clippedLines` (HUD text: `hudTextWarnings`, see HUD). Tests run the invariants (no
     overlaps, inside the frame, clear of avoid zones, camera bounds, no `text_truncated`) over
     every fixture beat in both formats.
-- **`src/dev/` is temporary.** `DevSubtitles` is a stand-in until P1B.3 replaces it. Do not build
-  on it or extend it. `src/dev/dev-layers.test.ts` fails once `src/subtitles/` exists and a
-  composition still uses `DevSubtitles`.
+- **`src/dev/` is for temporary stand-ins** (none today). `src/dev/dev-layers.test.ts` keeps the
+  replaced ones (`DevBeatPreview`, `DevSubtitles`) from coming back.
 
 ### Primitives and patterns
 

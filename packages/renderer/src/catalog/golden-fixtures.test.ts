@@ -1,8 +1,9 @@
 import { effectiveTiming, validateRenderableVideoSpec } from '@explainer-studio/shared';
 import { describe, expect, it } from 'vitest';
-import { fixtureChannelHandle, goldenFixtures } from '../../fixtures/index.ts';
+import { fixtureChannelHandle, goldenFixtures, withFormat } from '../../fixtures/index.ts';
 import { hudTextWarnings } from '../hud/hud-text-checks.ts';
 import { specLayoutWarnings } from '../layout/spec-layout.ts';
+import { subtitleWarnings } from '../subtitles/subtitle-checks.ts';
 import { getTheme } from '../theme/index.ts';
 import { withRegistryChecks } from './validate.ts';
 
@@ -24,6 +25,12 @@ describe.each(goldenFixtures.map((f) => [f.spec.meta.id, f] as const))('%s', (_i
   it('cuts no HUD text off in the default theme', () => {
     const context = { seriesLabel: fixture.series.label, channelHandle: fixtureChannelHandle };
     expect(hudTextWarnings(fixture.spec, getTheme(), context)).toEqual([]);
+  });
+
+  it('fits every subtitle word on a line in both formats', () => {
+    for (const format of ['full', 'card'] as const) {
+      expect(subtitleWarnings(withFormat(fixture.spec, format), getTheme())).toEqual([]);
+    }
   });
 
   it('has estimated timing only (no audio) and is a valid Short length', () => {

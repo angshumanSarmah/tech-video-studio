@@ -6,6 +6,7 @@
  *   Labels, for spot-checking that words land on audible speech);
  *   narration.wav, narration.labels.txt (every word on the whole track) and timed-spec.json, timed
  *   with `settings.timing` (gap, landing hold, tail);
+ *   subtitles.srt (the cues the video burns in, as the final export writes them);
  *   draft.mp4 (skipped with --no-render).
  * Then it renders one sentence in each sample voice to <DATA_DIR>/tts/voice-samples/<voice>.wav.
  * Run it twice: the second run is served from the cache without starting Python.
@@ -26,6 +27,8 @@ import { loadConfig, type AppConfig } from '#core/config.ts';
 import { ttsVoiceSamplesDir } from '#core/data-files.ts';
 import { renderDraft } from '#worker/render/draft.ts';
 import { runFfmpeg } from '#worker/render/ffmpeg.ts';
+import { writeSubtitles } from '#worker/render/srt.ts';
+import type { RenderTarget } from '#worker/render/target.ts';
 import { createRemotionEngine } from '#worker/render/remotion-engine.ts';
 import { resolveTimingOptions } from '#worker/timing/assemble.ts';
 import { timeNarration, type NarratedBeat } from '#worker/timing/step.ts';
@@ -113,6 +116,14 @@ function timeFixture(beats: readonly NarratedBeat[], pauses: TimingSettings, out
   return { spec: result.spec, narrationPath };
 }
 
+function fixtureTarget(timed: ReturnType<typeof timeFixture>): RenderTarget {
+  return {
+    spec: timed.spec,
+    props: { series: fixtureSeries, channelHandle: fixtureChannelHandle },
+    audioPath: timed.narrationPath,
+  };
+}
+
 async function renderFixtureDraft(
   config: AppConfig,
   timed: ReturnType<typeof timeFixture>,
@@ -121,11 +132,7 @@ async function renderFixtureDraft(
   const tools = { engine: createRemotionEngine(), ffmpeg: runFfmpeg, settings: config.render };
   const joined = join(outDir, 'draft.mp4');
   await renderDraft(
-    {
-      spec: timed.spec,
-      props: { series: fixtureSeries, channelHandle: fixtureChannelHandle },
-      audioPath: timed.narrationPath,
-    },
+    fixtureTarget(timed),
     tools,
     { signal: new AbortController().signal, onProgress: () => undefined },
     {
@@ -170,6 +177,9 @@ async function main(): Promise<number> {
     );
     const timed = timeFixture(narration.beats, pauses, fixtureDir);
     console.log(`  -> ${shown(timed.narrationPath)}, ${timed.spec.timing?.endSec ?? 0} s`);
+    const srtPath = join(fixtureDir, 'subtitles.srt');
+    const cues = await writeSubtitles(fixtureTarget(timed), srtPath);
+    console.log(`  subtitles -> ${shown(srtPath)} (${cues} cues)`);
     if (render)
       console.log(`  draft -> ${shown(await renderFixtureDraft(config, timed, fixtureDir))}`);
     console.log(`voice samples (speed ${speed}): "${SAMPLE_SENTENCE}"`);

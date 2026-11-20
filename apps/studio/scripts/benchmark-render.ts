@@ -115,8 +115,9 @@ await phase('draft (unchanged)', async (run) => {
 });
 
 await phase('final', async (run) => {
-  const r = await renderFinal(target(editedSpec()), tools, run, finalPath);
-  return `${r.frames} frames`;
+  const subtitles = finalPath.replace(/\.mp4$/, '.srt');
+  const r = await renderFinal(target(editedSpec()), tools, run, { video: finalPath, subtitles });
+  return `${r.frames} frames, ${r.cues} subtitle cues`;
 });
 
 await phase('stills', async (run) => {

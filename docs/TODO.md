@@ -88,10 +88,15 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       golden still, so refresh them in the same change.
 - [ ] **P1B.1 — TTS cache growth.** `<DATA_DIR>/tts/cache` is never pruned (~0.5 MB per beat).
       Add a cleanup (entries no spec version references) if it grows.
-- [ ] **P1B.3 / P1C.9 — Exports row.** `render_final` writes `exports/<id>/<slug>.mp4` only. Write
-      the SRT next to it (P1B.3), then insert the `exports` row (`srt_path` is required; duration
-      and cost from the run). The row makes the run undeletable, so insert it only for a
-      finished export.
+- [ ] **P1C.9 — Export metadata.** `render_final` records the `exports` row with duration, the
+      run's LLM cost and `meta.title`; `thumbnail_path`, `description` and `hashtags` stay null
+      until something produces them (the Scriptwriter's tags, a thumbnail still).
+- [ ] **P1B.3 — Subtitle chunking is English-only.** The words that must not end a cue
+      (`LEANING_WORDS`, `MAGNITUDES` in `subtitles/chunking.ts`) are an English list. Hinglish
+      captions need their own list (or a per-language one).
+- [ ] **P1B.3 — Subtitles before the final.** The SRT is written only by `render_final`. If the
+      draft gate should show or download captions, write `runs/<id>/draft.srt` from the same cues
+      in `render_draft`.
 - [ ] **P1C.9 / P1D — Queueing render jobs; gates store the version they approved.** Nothing
       queues `render_beat_draft`, `render_draft`, `render_final` or `render_stills` yet (the
       orchestrator and the gate UI will). Every render payload requires `specVersionId` (a

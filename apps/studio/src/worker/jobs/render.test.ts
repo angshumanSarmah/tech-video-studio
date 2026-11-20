@@ -1,11 +1,14 @@
-import { existsSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { buildSubtitleCues, totalFrames } from '@explainer-studio/renderer/catalog';
 import { rateLimiterSpec } from '@explainer-studio/renderer/fixtures';
+import { DEFAULT_THEME_ID, getTheme } from '@explainer-studio/renderer/theme';
 import { effectiveTiming, type RenderableVideoSpec } from '@explainer-studio/shared';
 import { eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readMissingAssets } from '#core/assets/render-assets.ts';
 import {
   beatStillPath,
+  exportSubtitlesPath,
   exportVideoPath,
   beatDraftMetaPath,
   resolveDataPath,
@@ -17,7 +20,8 @@ import {
 } from '#core/data-files.ts';
 import { listEventsSince } from '#core/db/repositories/events.ts';
 import { enqueueJob, getJob } from '#core/db/repositories/jobs.ts';
-import { createRun, getRun } from '#core/db/repositories/runs.ts';
+import { listRunExports } from '#core/db/repositories/exports.ts';
+import { createRun, deleteRun, getRun, RunHasExportsError } from '#core/db/repositories/runs.ts';
 import { createSpecVersion } from '#core/db/repositories/spec-versions.ts';
 import { createTopic } from '#core/db/repositories/topics.ts';
 import { series } from '#core/db/schema.ts';
@@ -30,6 +34,7 @@ import {
   StillsManifestSchema,
 } from '../render/manifests.ts';
 import { exportSlug, finalRenderBlockers, loadRunRenderInput } from '../render/run-target.ts';
+import { formatSrt } from '../render/srt.ts';
 import { fakeTools, makeWav } from '../render/testing.ts';
 import { runNextJob } from '../runner.ts';
 import { createJobRegistry } from './registry.ts';
@@ -157,6 +162,41 @@ describe('render jobs', () => {
     const out = exportVideoPath(runId, 'how-a-rate-limiter-works');
     expect(existsSync(data(out))).toBe(true);
     expect(fake.engine.videos[0]?.preset).toEqual({ width: 1080, height: 1920, fps: 30 });
+  });
+
+  it('render_final writes the SRT next to the video and records one export row', async () => {
+    const spec = timedSpec();
+    const specVersionId = saveSpec(spec);
+    const slug = 'how-a-rate-limiter-works';
+    const srt = exportSubtitlesPath(runId, slug);
+    const { job } = await runJob(RENDER_JOB_TYPES.final, { specVersionId });
+    expect(job.status).toBe('done');
+    expect(readFileSync(data(srt), 'utf8')).toBe(
+      formatSrt(buildSubtitleCues(spec, getTheme(DEFAULT_THEME_ID))),
+    );
+
+    const frames = totalFrames(effectiveTiming(spec), 30);
+    const [row] = listRunExports(t.db, runId);
+    expect(row).toMatchObject({
+      runId,
+      mp4Path: exportVideoPath(runId, slug),
+      srtPath: srt,
+      durationMs: Math.round((frames / 30) * 1000),
+      costUsd: 0,
+      title: spec.meta.title,
+    });
+    expect(() => deleteRun(t.db, runId)).toThrow(RunHasExportsError);
+
+    // At-least-once delivery: a rerun refreshes the row instead of adding one.
+    await runJob(RENDER_JOB_TYPES.final, { specVersionId });
+    expect(listRunExports(t.db, runId)).toHaveLength(1);
+  });
+
+  it('render_final records no export when the render fails', async () => {
+    const specVersionId = saveSpec(rateLimiterSpec);
+    await runJob(RENDER_JOB_TYPES.final, { specVersionId });
+    expect(listRunExports(t.db, runId)).toEqual([]);
+    expect(deleteRun(t.db, runId)).toBe(true);
   });
 
   it('render_stills writes one PNG per beat and does not fail the run on error', async () => {

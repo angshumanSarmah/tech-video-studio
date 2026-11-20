@@ -4,13 +4,13 @@ import { AbsoluteFill, Sequence, useVideoConfig } from 'remotion';
 import { AssetProvider } from '../assets/AssetContext.tsx';
 import { assetContext } from '../assets/library.ts';
 import { Background } from '../background/Background.tsx';
-import { DevSubtitles } from '../dev/DevSubtitles.tsx';
 import { loadThemeFonts } from '../fonts/load-theme-fonts.ts';
 import { Hud } from '../hud/Hud.tsx';
 import { DraftBadge } from '../layers/DraftBadge.tsx';
 import { NarrationAudio } from '../layers/NarrationAudio.tsx';
 import { BeatScene } from '../scene/BeatScene.tsx';
 import { sceneSpans } from '../events/transitions.ts';
+import { Subtitles } from '../subtitles/Subtitles.tsx';
 import { DEFAULT_THEME_ID, getTheme, seriesAccent } from '../theme/index.ts';
 import { beatFrameSpans } from '../timing/frames.ts';
 import type { VideoFromSpecProps } from './props.ts';
@@ -74,7 +74,7 @@ export function SpecLayers(props: Props) {
           accent={accent}
           channelHandle={channelHandle}
         />
-        <DevSubtitles theme={theme} spec={spec} timing={timing} spans={spans} accent={accent} />
+        <Subtitles theme={theme} spec={spec} timing={timing} accent={accent} />
         {draft ? <DraftBadge theme={theme} /> : null}
         {audioSrc ? <NarrationAudio src={audioSrc} /> : null}
       </AbsoluteFill>
