@@ -14,6 +14,7 @@ import { createInterface } from 'node:readline';
 const mode = process.env.FAKE_TTS_MODE ?? 'ok';
 const state = process.env.FAKE_TTS_STATE ?? '';
 const WORD_SEC = 0.3;
+const SAMPLE_RATE = 24000;
 /** Like the real server, which rounds token times to 0.1 ms. */
 const round = (sec: number) => Math.round(sec * 1e4) / 1e4;
 
@@ -32,8 +33,34 @@ function synthesize(text: string, outPath: string) {
       endSec: dropped ? null : round(i * WORD_SEC + 0.25),
     };
   });
-  writeFileSync(outPath, 'RIFF-fake-wav');
-  return { tokens, durationSec: tokens.length * WORD_SEC, sampleRate: 24000, synthSec: 0.01 };
+  const durationSec = tokens.length * WORD_SEC;
+  writeFileSync(outPath, toneWav(durationSec));
+  return { tokens, durationSec, sampleRate: SAMPLE_RATE, synthSec: 0.01 };
+}
+
+/** 16-bit mono PCM: a steady tone with no silences, so trimming to speech changes nothing. */
+function toneWav(durationSec: number): Buffer {
+  const samples = Math.round(durationSec * SAMPLE_RATE);
+  const wav = Buffer.alloc(44 + samples * 2);
+  wav.write('RIFF', 0);
+  wav.writeUInt32LE(36 + samples * 2, 4);
+  wav.write('WAVEfmt ', 8);
+  wav.writeUInt32LE(16, 16);
+  wav.writeUInt16LE(1, 20); // PCM
+  wav.writeUInt16LE(1, 22); // mono
+  wav.writeUInt32LE(SAMPLE_RATE, 24);
+  wav.writeUInt32LE(SAMPLE_RATE * 2, 28);
+  wav.writeUInt16LE(2, 32);
+  wav.writeUInt16LE(16, 34);
+  wav.write('data', 36);
+  wav.writeUInt32LE(samples * 2, 40);
+  for (let i = 0; i < samples; i++) {
+    wav.writeInt16LE(
+      Math.round(8000 * Math.sin((2 * Math.PI * 220 * i) / SAMPLE_RATE)),
+      44 + i * 2,
+    );
+  }
+  return wav;
 }
 
 function crash(): never {

@@ -1,4 +1,4 @@
-import { mkdirSync, rmSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { dirname } from 'node:path';
 import type { Pronunciations } from '@explainer-studio/shared';
 import { alignWords } from './alignment.ts';
@@ -6,6 +6,7 @@ import { cacheFiles, commitCachedSynthesis, readCachedSynthesis, ttsCacheKey } f
 import type { KokoroClient } from './kokoro-client.ts';
 import { identityMismatches, voiceHash, type ModelIdentity } from './model-identity.ts';
 import { planSpeech } from './pronunciations.ts';
+import { trimToSpeech, wavEnvelope } from './speech-trim.ts';
 import {
   TtsWordError,
   type SynthesizeOptions,
@@ -76,7 +77,8 @@ export function createKokoroProvider(deps: KokoroProviderDeps): TtsProvider {
       );
       const aligned = alignWords(plan, synthesis.tokens);
       if (!aligned.ok) throw new TtsWordError(aligned.problems);
-      const problems = wordTimingProblems(text, aligned.words, synthesis.durationSec);
+      const words = trimToSpeech(aligned.words, wavEnvelope(readFileSync(partialWav)));
+      const problems = wordTimingProblems(text, words, synthesis.durationSec);
       if (problems.length) throw new TtsWordError(problems);
       commitCachedSynthesis(files, partialWav, {
         key,
@@ -85,11 +87,11 @@ export function createKokoroProvider(deps: KokoroProviderDeps): TtsProvider {
         voice,
         speed,
         durationSec: synthesis.durationSec,
-        words: aligned.words,
+        words,
       });
       return {
         wavPath: files.wav,
-        words: aligned.words,
+        words,
         durationSec: synthesis.durationSec,
         cached: false,
       };

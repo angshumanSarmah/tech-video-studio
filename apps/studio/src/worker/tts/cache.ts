@@ -6,8 +6,8 @@ import { z } from 'zod';
 import { ttsCachePath } from '#core/data-files.ts';
 import type { ModelIdentity } from './model-identity.ts';
 
-/** Bump when token mapping, the server or the WAV format changes the cached output. */
-export const TTS_PIPELINE_VERSION = 1;
+/** Bump when token mapping, trimming, the server or the WAV format changes the cached output. */
+export const TTS_PIPELINE_VERSION = 2;
 
 export interface CacheKeyInput {
   readonly text: string;

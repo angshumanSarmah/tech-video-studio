@@ -52,7 +52,7 @@ describe('createKokoroProvider', () => {
       { text: 'fast', startSec: 1.2, endSec: 1.45 },
     ]);
     expect(result.cached).toBe(false);
-    expect(readFileSync(result.wavPath, 'utf8')).toBe('RIFF-fake-wav');
+    expect(readFileSync(result.wavPath).subarray(0, 4).toString()).toBe('RIFF');
   });
 
   it('serves the second call from the cache without starting the engine', async () => {
