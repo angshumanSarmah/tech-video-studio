@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeNumber, numberSet, quantityTokens } from './numbers.ts';
+import { normalizeNumber, numberSet, numberWordTokens, quantityTokens } from './numbers.ts';
 
 describe('quantityTokens', () => {
   it.each([
@@ -12,13 +12,19 @@ describe('quantityTokens', () => {
     ['O(log n) lookups', []],
     ['O(1) reads and Θ(n) scans', []],
     ['S3 and x86', []],
+    ['HTTP 429 Too Many Requests', []],
+    ['a Status 503 page', []],
+    ['an error  500 from the store', []],
   ])('skips identifiers: %s', (text, expected) => {
     expect(quantityTokens(text)).toEqual(expected);
   });
 
   it.each([
     ['10,000 requests', ['10,000']],
-    ['HTTP 429 Too Many Requests', ['429']],
+    ['returned 429 to every caller', ['429']],
+    ['HTTP 1.1, HTTP 2,000 requests, HTTP 600', ['1.1', '2,000', '600']],
+    ['an error rate of 503 per hour', ['503']],
+    ['sterror 500 (not the word error)', ['500']],
     ['the 2018 outage', ['2018']],
     ['50 ms at the median', ['50']],
     ['50ms, 10k keys, 5xx errors, 2x the limit', ['50', '10', '5', '2']],
@@ -40,5 +46,19 @@ describe('numberSet', () => {
 
   it('matches whole numbers only', () => {
     expect(numberSet('100 tokens').has(normalizeNumber('10'))).toBe(false);
+  });
+});
+
+describe('numberWordTokens', () => {
+  it('finds numbers written as words, as written', () => {
+    expect(numberWordTokens('Twenty-four tills, ten coins and a hundred-seat hall.')).toEqual([
+      'Twenty-four',
+      'ten',
+      'hundred-seat',
+    ]);
+  });
+
+  it('skips "one", vague plurals and words that only contain a number word', () => {
+    expect(numberWordTokens('One shared jar; hundreds of beans, often, at a tenth.')).toEqual([]);
   });
 });

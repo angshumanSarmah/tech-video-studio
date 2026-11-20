@@ -92,7 +92,7 @@ export const FAILURE_MODE_KINDS = ['edge_case', 'failure_mode', 'incident'] as c
 
 export const ResearchFailureModeSchema = z.strictObject({
   kind: z.enum(FAILURE_MODE_KINDS),
-  description: text(400, 'What breaks, when, and what it costs.'),
+  description: text(600, 'What breaks, when, and what it costs.'),
   /** Real incidents only: date and publisher as the source writes them. */
   incident: z
     .strictObject({

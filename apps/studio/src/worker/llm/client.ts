@@ -42,8 +42,12 @@ export interface CallJsonRequest<S extends z.ZodType> {
   readonly runId?: number | null;
   readonly stepId?: number | null;
   readonly aliases?: readonly FieldAlias[];
-  /** Checks beyond the schema (e.g. registry checks); its issues are repaired the same way. */
-  readonly check?: (value: z.output<S>) => readonly OutputIssue[];
+  /**
+   * Checks beyond the schema (e.g. registry checks); its issues are repaired the same way. It runs
+   * on every answer that parses as JSON, also one that fails the schema (then on the parsed JSON),
+   * so one repair message lists every problem: it must accept any JSON value.
+   */
+  readonly check?: (value: unknown) => readonly OutputIssue[];
   readonly signal?: AbortSignal;
   /** Where normalizer fixes and repairs are reported (a job's `ctx.log`). */
   readonly log?: (level: LogLevel, message: string) => void;
@@ -94,7 +98,10 @@ export function repairMessage(issues: readonly OutputIssue[]): string {
   ].join('\n');
 }
 
-/** Normalize, then the schema, then the extra check. Reasoning content is never read here. */
+/**
+ * Normalize, then the schema and the extra check together, so one repair covers both. Reasoning
+ * content is never read here.
+ */
 export function evaluateAnswer<S extends z.ZodType>(
   response: Pick<TransportResponse, 'content' | 'finishReason'>,
   request: Pick<CallJsonRequest<S>, 'schema' | 'aliases' | 'check'>,
@@ -119,18 +126,30 @@ export function evaluateAnswer<S extends z.ZodType>(
     };
   }
   const parsed = request.schema.safeParse(normalized.value);
-  if (!parsed.success) {
-    const issues = parsed.error.issues.map((i) => ({
-      path: toJsonPath(i.path),
-      code: i.code,
-      message: i.message,
-    }));
-    return { ok: false, issues, fixes: normalized.fixes };
+  const issues = parsed.success
+    ? [...(request.check?.(parsed.data) ?? [])]
+    : [...schemaIssues(parsed.error), ...checkUnvalidated(request.check, normalized.value)];
+  if (!parsed.success || issues.length > 0) return { ok: false, issues, fixes: normalized.fixes };
+  return { ok: true, value: parsed.data, fixes: normalized.fixes };
+}
+
+function schemaIssues(error: z.ZodError): OutputIssue[] {
+  return error.issues.map((i) => ({ path: toJsonPath(i.path), code: i.code, message: i.message }));
+}
+
+/**
+ * The extra check on JSON that failed the schema. A check that throws on an unexpected shape
+ * adds nothing: the schema issues are repaired alone and the check runs on the next answer.
+ */
+function checkUnvalidated(
+  check: ((value: unknown) => readonly OutputIssue[]) | undefined,
+  value: unknown,
+): readonly OutputIssue[] {
+  try {
+    return check?.(value) ?? [];
+  } catch {
+    return [];
   }
-  const value = parsed.data;
-  const checked = request.check?.(value) ?? [];
-  if (checked.length > 0) return { ok: false, issues: [...checked], fixes: normalized.fixes };
-  return { ok: true, value, fixes: normalized.fixes };
 }
 
 function describeFix(role: ModelRole, fix: NormalizerFix): string {

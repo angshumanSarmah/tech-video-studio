@@ -35,6 +35,12 @@ const prompt: BuiltPrompt = {
 };
 const Schema = z.strictObject({ headline: z.string().max(20), targetSec: z.number().int() });
 
+/** An extra check that runs on any JSON value, as `callJson` requires. */
+function noBadHeadline(value: unknown) {
+  const headline = (value as { headline?: unknown } | null)?.headline;
+  return headline === 'Bad' ? [{ path: '$.headline', code: 'custom', message: 'Not allowed' }] : [];
+}
+
 let t: TestDb;
 let runId: number;
 let logs: { level: LogLevel; message: string }[];
@@ -232,9 +238,36 @@ describe('callJson: repair', () => {
       completion('{"headline":"Bad","targetSec":60}'),
       completion('{"headline":"Good","targetSec":60}'),
     ]);
-    const check = (v: z.infer<typeof Schema>) =>
-      v.headline === 'Bad' ? [{ path: '$.headline', code: 'custom', message: 'Not allowed' }] : [];
+    await expect(call(c, { check: noBadHeadline })).resolves.toMatchObject({
+      value: { headline: 'Good' },
+    });
+  });
+
+  it('runs the extra check on JSON that fails the schema, in one repair message', async () => {
+    const { llm: c, requests } = httpClient([
+      completion('{"headline":"Bad","targetSec":"soon"}'),
+      completion('{"headline":"Good","targetSec":60}'),
+    ]);
+    await expect(call(c, { check: noBadHeadline })).resolves.toMatchObject({
+      value: { headline: 'Good' },
+    });
+    const repair = requests[1]?.body.messages[3]?.content;
+    expect(repair).toContain('- $.targetSec:');
+    expect(repair).toContain('- $.headline: Not allowed');
+    expect(listRunLlmCalls(t.db, runId)[0]?.error).toBe('Invalid output: 2 issue(s)');
+  });
+
+  it('repairs the schema issues alone when the check throws on an invalid shape', async () => {
+    const { llm: c, requests } = httpClient([
+      completion('[1, 2]'),
+      completion('{"headline":"Good","targetSec":60}'),
+    ]);
+    const check = (v: unknown) => {
+      if (Array.isArray(v)) throw new Error('not an object');
+      return [];
+    };
     await expect(call(c, { check })).resolves.toMatchObject({ value: { headline: 'Good' } });
+    expect(requests[1]?.body.messages[3]?.content).toContain('- $: ');
   });
 
   it(`throws after ${MAX_REPAIR_ATTEMPTS} failed repairs, with every attempt logged`, async () => {

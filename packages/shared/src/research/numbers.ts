@@ -17,11 +17,25 @@ function isLetter(char: string | undefined): boolean {
  * Digits glued to letters name things rather than measure them: `IPv4`, `L7`, `p99`, `SHA-256`,
  * `HTTP/2`, `UTF-8`, `O(1)`. Digits followed by letters stay quantities (`50ms`, `10k`, `5xx`).
  */
-function isIdentifierAt(text: string, index: number): boolean {
+function isGluedIdentifier(text: string, index: number): boolean {
   const prev = text[index - 1];
   if (isLetter(prev)) return true;
   if ((prev === '-' || prev === '/') && isLetter(text[index - 2])) return true;
   return prev === '(' && ORDER_OF.test(text[index - 2] ?? '') && !isLetter(text[index - 3]);
+}
+
+/** An HTTP status code (100-599). */
+const STATUS_CODE = /^[1-5]\d\d$/;
+/** The word right before a status code: "HTTP 429", "status 503", "error 500". */
+const STATUS_LEAD = /(?:^|[^\p{L}])(?:http|status|error)\s+$/iu;
+
+/** A status code after "HTTP", "status" or "error" names a response, it does not measure one. */
+function isStatusCode(text: string, index: number, token: string): boolean {
+  return STATUS_CODE.test(token) && STATUS_LEAD.test(text.slice(Math.max(0, index - 16), index));
+}
+
+function isIdentifierAt(text: string, index: number, token: string): boolean {
+  return isGluedIdentifier(text, index) || isStatusCode(text, index, token);
 }
 
 export function normalizeNumber(token: string): string {
@@ -32,7 +46,7 @@ export function normalizeNumber(token: string): string {
 export function quantityTokens(text: string): string[] {
   const tokens: string[] = [];
   for (const match of text.matchAll(NUMBER)) {
-    if (!isIdentifierAt(text, match.index)) tokens.push(match[0]);
+    if (!isIdentifierAt(text, match.index, match[0])) tokens.push(match[0]);
   }
   return tokens;
 }
@@ -45,4 +59,55 @@ export function numberSet(text: string): Set<string> {
 /** Lowercased with whitespace collapsed, for matching numbers written in words. */
 export function foldText(text: string): string {
   return text.toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Cardinal number words. "one" is left out: it is as often a pronoun or an article ("one shared
+ * store") as a count. Vague plurals ("hundreds of") are not counts either.
+ */
+const NUMBER_WORDS = new Set([
+  'zero',
+  'two',
+  'three',
+  'four',
+  'five',
+  'six',
+  'seven',
+  'eight',
+  'nine',
+  'ten',
+  'eleven',
+  'twelve',
+  'thirteen',
+  'fourteen',
+  'fifteen',
+  'sixteen',
+  'seventeen',
+  'eighteen',
+  'nineteen',
+  'twenty',
+  'thirty',
+  'forty',
+  'fifty',
+  'sixty',
+  'seventy',
+  'eighty',
+  'ninety',
+  'hundred',
+  'thousand',
+  'million',
+  'billion',
+  'trillion',
+  'dozen',
+]);
+const WORD = /\p{L}+(?:-\p{L}+)*/gu;
+
+/** Numbers written as words ("Twenty-four", "ten"), as written, for texts that carry none. */
+export function numberWordTokens(text: string): string[] {
+  return Array.from(text.matchAll(WORD), (m) => m[0]).filter((word) =>
+    word
+      .toLowerCase()
+      .split('-')
+      .some((part) => NUMBER_WORDS.has(part)),
+  );
 }

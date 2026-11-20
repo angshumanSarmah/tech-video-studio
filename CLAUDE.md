@@ -318,8 +318,10 @@ settings, settings.tts)`: speed is the run's `tts.speed`, else `settings.tts.spe
 - **`createLlmClient({ db, dataDir, llm, transport }).callJson({ role, prompt, schema, runId?,
 stepId?, aliases?, check?, signal?, log? })`** is the only way to call a model (rule 6). The
   model comes from `settings.llm.models[role]`. Each attempt: normalize the answer, validate it
-  with `schema`, then `check` (e.g. registry checks); on failure the errors go back as an
-  assistant + user turn, at most `MAX_REPAIR_ATTEMPTS` (2) times, then `LlmOutputInvalidError`.
+  with `schema` and run `check` (e.g. registry checks) on it, both together: `check` also runs on
+  JSON that fails the schema, so it takes `unknown` and must accept any shape (a throw there is
+  ignored). On failure all the errors go back in one assistant + user turn, at most
+  `MAX_REPAIR_ATTEMPTS` (2) times, then `LlmOutputInvalidError`.
 - **Transports:** `httpTransport` (`createLlmTransport(config.llm)`) posts to
   `<baseUrl>/chat/completions` in JSON mode. It retries 429/5xx up to 2 times (1 s, 2 s, or
   `Retry-After` up to 60 s; `src/worker/http/retry.ts`), separately from repairs. Each request times out after
@@ -383,13 +385,16 @@ stepId?, aliases?, check?, signal?, log? })`** is the only way to call a model (
   matches an entry in `numbers` (same token comparison as `number_not_in_source`). Fact and number ids are slugs, so `factIds` and stat card
   `sourceRef`s can point at them.
 - **Checks** (`researchNotesProblems(notes, chunks)`, pure, shared so gate edits and imports
-  run them too): `unknown_chunk` (a citation not among the chunks sent), `number_not_in_source`
+  run them too; takes any JSON value, so the LLM client runs it before the schema passes):
+  `unknown_chunk` (a citation not among the chunks sent), `number_not_in_source`
   (a number's value not in its chunk: digit tokens compared, words matched as text),
-  `unsourced_number` (a quantity in any text that none of the item's own cited chunks states)
-  and `duplicate_id`. Numbers are digit runs with `.`/`,` groups, grouping commas ignored,
+  `unsourced_number` (a quantity in any text that none of the item's own cited chunks states;
+  a number's `asOf` may come from any chunk of its source; analogies also carry no number
+  written as a word, `numberWordTokens`, "one" excepted) and `duplicate_id`. Numbers are digit runs with `.`/`,` groups, grouping commas ignored,
   whole tokens only (`numbers.ts`). **Digits glued to letters are identifiers and skipped**
-  (`IPv4`, `L7`, `p99`, `SHA-256`, `HTTP/2`, `UTF-8`, `O(1)`); digits followed by letters stay
-  quantities (`50ms`, `10k`, `5xx`). Glossary entries are checked like any cited item.
+  (`IPv4`, `L7`, `p99`, `SHA-256`, `HTTP/2`, `UTF-8`, `O(1)`), and so is a status code (100-599)
+  after "HTTP", "status" or "error" (`HTTP 429`); digits followed by letters stay quantities
+  (`50ms`, `10k`, `5xx`). Glossary entries are checked like any cited item.
 - **Source token budget** (`settings.research.sourceTokenBudget`, default 60,000 estimated
   tokens at 4 characters each; `select-chunks.ts`, pure): above it, each source gets a max-min
   fair share, keeps its first `KEEP_FIRST_CHUNKS` (2) chunks even past its share (so the budget

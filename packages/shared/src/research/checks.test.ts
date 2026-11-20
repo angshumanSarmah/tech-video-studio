@@ -4,6 +4,8 @@ import { ResearchNotesSchema, type ResearchNotes } from './notes.ts';
 
 const C1 = 'source-1#chunk-1';
 const C2 = 'source-2#chunk-1';
+/** The second chunk of source 1: its header date. */
+const C1B = 'source-1#chunk-2';
 
 /** Invented chunk text. */
 const CHUNKS: CitableChunk[] = [
@@ -15,6 +17,7 @@ const CHUNKS: CitableChunk[] = [
     id: C2,
     text: 'A log of 1,000 requests costs about 8 KB per key. One million keys is a lot.',
   },
+  { id: C1B, text: 'Published by an invented platform team on 3 May 2025.' },
 ];
 
 function notes(patch: Partial<ResearchNotes> = {}): ResearchNotes {
@@ -209,6 +212,76 @@ describe('researchNotesProblems', () => {
         message: expect.stringContaining('this text cites no chunk') as string,
       },
     ]);
+  });
+
+  it('flags numbers written as words in analogies, but not "one"', () => {
+    const problems = researchNotesProblems(
+      notes({
+        analogies: [
+          {
+            analogy: 'Twenty-four tills share one ledger.',
+            matches: 'Each till writes one line; ten tills write ten lines.',
+            breaksDown: 'One paper ledger is never slow.',
+          },
+        ],
+      }),
+      CHUNKS,
+    );
+    expect(problems.map((p) => [p.path, p.code, p.message.split(' ')[0]])).toEqual([
+      ['$.analogies[0].analogy', 'unsourced_number', '"Twenty-four"'],
+      ['$.analogies[0].matches', 'unsourced_number', '"ten"'],
+    ]);
+  });
+
+  it('treats HTTP status codes after "HTTP", "status" or "error" as identifiers', () => {
+    const plainSummary = 'An empty bucket answers HTTP 429; a slow store gives error 503.';
+    expect(researchNotesProblems(notes({ plainSummary }), CHUNKS)).toEqual([]);
+  });
+
+  it('takes a number’s date from any chunk of its source, never another source', () => {
+    const base = notes().numbers;
+    const problems = researchNotesProblems(
+      notes({
+        numbers: [
+          { ...base[0]!, asOf: '3 May 2025' },
+          { ...base[1]!, sourceChunkId: C2 },
+          { ...base[2]!, asOf: '3 May 2025' },
+        ],
+      }),
+      CHUNKS,
+    );
+    // num-1 cites source 2, whose chunks give no date; num-3 cites source 1, whose header does.
+    expect(problems).toEqual([
+      {
+        path: '$.numbers[0].asOf',
+        code: 'unsourced_number',
+        message: expect.stringContaining(
+          '"3" is not in the cited chunks (source-2#chunk-1)',
+        ) as string,
+      },
+      {
+        path: '$.numbers[0].asOf',
+        code: 'unsourced_number',
+        message: expect.stringContaining('"2025"') as string,
+      },
+    ]);
+  });
+
+  it('checks an answer that fails the schema, as far as its shape allows', () => {
+    const invalid = {
+      ...notes(),
+      plainSummary: 42,
+      failureModes: [{ kind: 'outage', description: 'Down for 90 minutes.', sourceChunkIds: [C1] }],
+      numbers: [{ id: 'num-1', value: 7 }, 'not a number', { id: 'num-1', value: '8 KB' }],
+    };
+    expect(researchNotesProblems(invalid, CHUNKS).map((p) => [p.path, p.code])).toEqual([
+      ['$.failureModes[0].description', 'unsourced_number'],
+      ['$.numbers[2].id', 'duplicate_id'],
+    ]);
+  });
+
+  it.each([null, 'notes', 7, []])('returns nothing for a non-object answer: %j', (value) => {
+    expect(researchNotesProblems(value, CHUNKS)).toEqual([]);
   });
 
   it('checks a number’s value, context and date against its one chunk', () => {

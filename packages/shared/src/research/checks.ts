@@ -1,6 +1,12 @@
 import { toJsonPath, type SpecError } from '../spec/validate.ts';
-import type { ResearchNotes } from './notes.ts';
-import { foldText, normalizeNumber, numberSet, quantityTokens } from './numbers.ts';
+import { parseSourceChunkId } from '../domain/sources.ts';
+import {
+  foldText,
+  normalizeNumber,
+  numberSet,
+  numberWordTokens,
+  quantityTokens,
+} from './numbers.ts';
 
 /** A problem in research notes at a JSON path, in the spec validator's shape. */
 export type ResearchIssue = SpecError;
@@ -25,6 +31,21 @@ interface ChunkIndex {
 }
 
 type Path = readonly (string | number)[];
+type JsonObject = Readonly<Record<string, unknown>>;
+
+function asObject(value: unknown): JsonObject | null {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? (value as JsonObject)
+    : null;
+}
+
+function asList(value: unknown): readonly unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function asString(value: unknown): string | null {
+  return typeof value === 'string' ? value : null;
+}
 
 /**
  * Keys the walk skips: ids, citations, `value` (checked by `numberValueIssues`) and
@@ -38,25 +59,33 @@ const NOT_PROSE = new Set(['id', 'sourceChunkIds', 'sourceChunkId', 'value', 'pl
  * - `number_not_in_source`: a `numbers[]` value its cited chunk does not state;
  * - `unsourced_number`: a quantity in any text that none of the item's cited chunks states
  *   (identifiers such as `IPv4` or `p99` are skipped: `quantityTokens`). Texts that cite
- *   nothing (analogies, open questions without chunks) may carry no number; `plainSummary`
- *   may reuse a number listed in `numbers[]` and no other;
+ *   nothing (analogies, open questions without chunks) may carry no number, and analogies no
+ *   number written as a word either; `plainSummary` may reuse a number listed in `numbers[]` and
+ *   no other; a number's `asOf` may come from any chunk of its source (a report's date sits in
+ *   its header, not next to every number);
  * - `duplicate_id`: two facts or two numbers with one id.
- * Agent output repairs these; gate edits and imports run the same check.
+ * Agent output repairs these; gate edits and imports run the same check. It accepts any JSON
+ * value and checks what it can find, so the LLM client can run it on an answer that still fails
+ * the schema and send every problem in one repair.
  */
 export function researchNotesProblems(
-  notes: ResearchNotes,
+  notes: unknown,
   chunks: Iterable<CitableChunk>,
 ): ResearchIssue[] {
   const index = new Map<string, ChunkIndex>();
   for (const chunk of chunks) {
     index.set(chunk.id, { folded: foldText(chunk.text), numbers: numberSet(chunk.text) });
   }
+  const root = asObject(notes);
+  if (!root) return [];
+  const numbers = asList(root.numbers);
   return [
-    ...walkIssues(notes, [], [], index),
-    ...plainSummaryIssues(notes),
-    ...notes.numbers.flatMap((n, i) => numberValueIssues(n, ['numbers', i, 'value'], index)),
-    ...duplicateIds(notes.facts, 'facts'),
-    ...duplicateIds(notes.numbers, 'numbers'),
+    ...walkIssues(root, [], [], index),
+    ...analogyWordIssues(asList(root.analogies)),
+    ...plainSummaryIssues(asString(root.plainSummary), numbers),
+    ...numbers.flatMap((n, i) => numberValueIssues(n, ['numbers', i, 'value'], index)),
+    ...duplicateIds(asList(root.facts), 'facts'),
+    ...duplicateIds(numbers, 'numbers'),
   ];
 }
 
@@ -91,9 +120,19 @@ function walkIssues(
   const scope = own ?? cited;
   for (const [key, child] of Object.entries(value)) {
     if (NOT_PROSE.has(key)) continue;
-    issues.push(...walkIssues(child, [...path, key], scope, index));
+    const childScope = key === 'asOf' ? sameSourceChunks(scope, index) : scope;
+    issues.push(...walkIssues(child, [...path, key], childScope, index));
   }
   return issues;
+}
+
+/** Every input chunk of the sources the given chunks belong to, in input order. */
+function sameSourceChunks(
+  cited: readonly string[],
+  index: ReadonlyMap<string, ChunkIndex>,
+): readonly string[] {
+  const sources = new Set(cited.map((id) => parseSourceChunkId(id)?.sourceId));
+  return [...index.keys()].filter((id) => sources.has(parseSourceChunkId(id)?.sourceId));
 }
 
 function citationIssues(
@@ -150,15 +189,34 @@ function proseIssues(
   );
 }
 
+/** Analogies cite nothing, so they carry no number in words either ("Twenty-four tills"). */
+function analogyWordIssues(analogies: readonly unknown[]): ResearchIssue[] {
+  return analogies.flatMap((analogy, i) =>
+    Object.entries(asObject(analogy) ?? {}).flatMap(([key, text]) =>
+      [...new Set(numberWordTokens(asString(text) ?? ''))].map((word) =>
+        issue(
+          ['analogies', i, key],
+          'unsourced_number',
+          `"${word}" is a number written as a word. Analogies carry no numbers, in digits or words: describe the idea without the count.`,
+        ),
+      ),
+    ),
+  );
+}
+
 /**
  * The plain summary cites nothing, so it may only reuse numbers already listed in `numbers[]`
  * (each sourced there), compared by the same tokens as `number_not_in_source`.
  */
-function plainSummaryIssues(notes: ResearchNotes): ResearchIssue[] {
+function plainSummaryIssues(
+  plainSummary: string | null,
+  numbers: readonly unknown[],
+): ResearchIssue[] {
+  if (plainSummary === null) return [];
   const listed = new Set(
-    notes.numbers.flatMap((n) => quantityTokens(n.value).map(normalizeNumber)),
+    numbers.flatMap((n) => quantityTokens(asString(asObject(n)?.value) ?? '').map(normalizeNumber)),
   );
-  const missing = quantityTokens(notes.plainSummary).filter(
+  const missing = quantityTokens(plainSummary).filter(
     (token) => !listed.has(normalizeNumber(token)),
   );
   return [...new Set(missing)].map((token) =>
@@ -171,35 +229,39 @@ function plainSummaryIssues(notes: ResearchNotes): ResearchIssue[] {
 }
 
 function numberValueIssues(
-  number: ResearchNotes['numbers'][number],
+  number: unknown,
   path: Path,
   index: ReadonlyMap<string, ChunkIndex>,
 ): ResearchIssue[] {
-  const chunk = index.get(number.sourceChunkId);
-  if (!chunk) return []; // reported as unknown_chunk
-  const tokens = quantityTokens(number.value);
+  const value = asString(asObject(number)?.value);
+  const chunkId = asString(asObject(number)?.sourceChunkId);
+  const chunk = chunkId === null ? undefined : index.get(chunkId);
+  if (value === null || !chunk) return []; // a schema error, or reported as unknown_chunk
+  const tokens = quantityTokens(value);
   const stated =
     tokens.length > 0
       ? tokens.every((token) => chunk.numbers.has(normalizeNumber(token)))
-      : chunk.folded.includes(foldText(number.value));
+      : chunk.folded.includes(foldText(value));
   if (stated) return [];
   return [
     issue(
       path,
       'number_not_in_source',
-      `"${number.value}" is not in ${number.sourceChunkId}. Write the value exactly as that chunk does, or cite the chunk that states it.`,
+      `"${value}" is not in ${chunkId}. Write the value exactly as that chunk does, or cite the chunk that states it.`,
     ),
   ];
 }
 
-function duplicateIds(items: readonly { id: string }[], list: string): ResearchIssue[] {
+function duplicateIds(items: readonly unknown[], list: string): ResearchIssue[] {
   const seen = new Set<string>();
   const issues: ResearchIssue[] = [];
   for (const [i, item] of items.entries()) {
-    if (seen.has(item.id)) {
-      issues.push(issue([list, i, 'id'], 'duplicate_id', `"${item.id}" is used twice in ${list}.`));
+    const id = asString(asObject(item)?.id);
+    if (id === null) continue;
+    if (seen.has(id)) {
+      issues.push(issue([list, i, 'id'], 'duplicate_id', `"${id}" is used twice in ${list}.`));
     }
-    seen.add(item.id);
+    seen.add(id);
   }
   return issues;
 }
