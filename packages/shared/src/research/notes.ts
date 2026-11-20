@@ -136,7 +136,7 @@ export const ResearchNotesSchema = z.strictObject({
   mechanism: ResearchMechanismSchema,
   plainSummary: text(
     600,
-    'The mechanism in plain words, as you would tell a smart friend new to the topic. No numbers: they go in "numbers" with their source.',
+    'The mechanism in plain words, as you would tell a smart friend new to the topic. Use only numbers already listed in "numbers".',
   ),
   analogies: z.array(ResearchAnalogySchema).min(1).max(2),
   glossary: z.array(ResearchGlossaryEntrySchema).min(1).max(12),

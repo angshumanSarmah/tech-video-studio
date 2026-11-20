@@ -372,14 +372,15 @@ stepId?, aliases?, check?, signal?, log? })`** is the only way to call a model (
   interrupted and is marked failed. **Gate 1 input** is `latestResearch(db, dataDir, runId)`
   (`#core/services/research-notes.ts`): the newest `done` step's notes and input, validated.
 - **`ResearchNotes`** (`packages/shared/src/research`): mechanism (summary + steps),
-  `plainSummary` (the mechanism in plain words, no numbers), 1–2 `analogies` (`analogy`,
+  `plainSummary` (the mechanism in plain words), 1–2 `analogies` (`analogy`,
   `matches`, `breaksDown`), `glossary` (`term`, `plainMeaning`, cited), facts
   (`fact-<n>`, confidence), numbers (`num-<n>`, `value` exactly as the chunk writes it, unit,
   context, one `sourceChunkId`, optional `asOf`), trade-offs, rejected alternatives,
   misconceptions, failure modes (edge case / failure mode / incident with date and publisher),
   2–4 hooks and open questions (`disagreement` / `not_covered`). Every item cites chunks
-  except `plainSummary`, analogies and open questions with nothing to cite; text that cites
-  nothing may carry no number. Fact and number ids are slugs, so `factIds` and stat card
+  except `plainSummary`, analogies and open questions with nothing to cite; analogies and
+  uncited open questions may carry no number, and `plainSummary` only numbers whose value
+  matches an entry in `numbers` (same token comparison as `number_not_in_source`). Fact and number ids are slugs, so `factIds` and stat card
   `sourceRef`s can point at them.
 - **Checks** (`researchNotesProblems(notes, chunks)`, pure, shared so gate edits and imports
   run them too): `unknown_chunk` (a citation not among the chunks sent), `number_not_in_source`

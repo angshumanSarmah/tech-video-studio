@@ -129,7 +129,7 @@ Common mistakes to avoid
       "type": "string",
       "minLength": 1,
       "maxLength": 600,
-      "description": "The mechanism in plain words, as you would tell a smart friend new to the topic. No numbers: they go in \"numbers\" with their source."
+      "description": "The mechanism in plain words, as you would tell a smart friend new to the topic. Use only numbers already listed in \"numbers\"."
     },
     "analogies": {
       "minItems": 1,

@@ -26,8 +26,11 @@ interface ChunkIndex {
 
 type Path = readonly (string | number)[];
 
-/** Keys that are not prose: ids, citations, and `value` (checked by `numberValueIssues`). */
-const NOT_PROSE = new Set(['id', 'sourceChunkIds', 'sourceChunkId', 'value']);
+/**
+ * Keys the walk skips: ids, citations, `value` (checked by `numberValueIssues`) and
+ * `plainSummary` (checked by `plainSummaryIssues`).
+ */
+const NOT_PROSE = new Set(['id', 'sourceChunkIds', 'sourceChunkId', 'value', 'plainSummary']);
 
 /**
  * Deterministic checks on research notes against the chunks the Researcher was given (P1C.3):
@@ -35,7 +38,8 @@ const NOT_PROSE = new Set(['id', 'sourceChunkIds', 'sourceChunkId', 'value']);
  * - `number_not_in_source`: a `numbers[]` value its cited chunk does not state;
  * - `unsourced_number`: a quantity in any text that none of the item's cited chunks states
  *   (identifiers such as `IPv4` or `p99` are skipped: `quantityTokens`). Texts that cite
- *   nothing (`plainSummary`, analogies, open questions without chunks) may carry no number;
+ *   nothing (analogies, open questions without chunks) may carry no number; `plainSummary`
+ *   may reuse a number listed in `numbers[]` and no other;
  * - `duplicate_id`: two facts or two numbers with one id.
  * Agent output repairs these; gate edits and imports run the same check.
  */
@@ -49,6 +53,7 @@ export function researchNotesProblems(
   }
   return [
     ...walkIssues(notes, [], [], index),
+    ...plainSummaryIssues(notes),
     ...notes.numbers.flatMap((n, i) => numberValueIssues(n, ['numbers', i, 'value'], index)),
     ...duplicateIds(notes.facts, 'facts'),
     ...duplicateIds(notes.numbers, 'numbers'),
@@ -141,6 +146,26 @@ function proseIssues(
       cited.length === 0
         ? `"${token}" has no source here: this text cites no chunk, so it cannot carry a number. Remove it, or put it in an item that cites the chunk that states it.`
         : `"${token}" is not in the cited chunks (${cited.join(', ')}). Cite the chunk that states it, or remove the number.`,
+    ),
+  );
+}
+
+/**
+ * The plain summary cites nothing, so it may only reuse numbers already listed in `numbers[]`
+ * (each sourced there), compared by the same tokens as `number_not_in_source`.
+ */
+function plainSummaryIssues(notes: ResearchNotes): ResearchIssue[] {
+  const listed = new Set(
+    notes.numbers.flatMap((n) => quantityTokens(n.value).map(normalizeNumber)),
+  );
+  const missing = quantityTokens(notes.plainSummary).filter(
+    (token) => !listed.has(normalizeNumber(token)),
+  );
+  return [...new Set(missing)].map((token) =>
+    issue(
+      ['plainSummary'],
+      'unsourced_number',
+      `"${token}" is not a value in "numbers". The plain summary may only reuse listed numbers: add it to "numbers" with its source chunk, or remove it.`,
     ),
   );
 }

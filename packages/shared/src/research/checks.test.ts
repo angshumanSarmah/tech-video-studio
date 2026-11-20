@@ -173,23 +173,41 @@ describe('researchNotesProblems', () => {
     ]);
   });
 
-  it('allows no numbers in texts that cite nothing: plain summary and analogies', () => {
+  it('lets the plain summary reuse listed numbers, compared by token', () => {
+    // "1000" matches the listed "1,000", "2.1" is listed, "p99" is an identifier.
+    const plainSummary = 'About 1000 requests fit in a log, and p99 stays near 2.1 ms.';
+    expect(researchNotesProblems(notes({ plainSummary }), CHUNKS)).toEqual([]);
+  });
+
+  it('flags any other number in the plain summary, even one a chunk states', () => {
+    // 100 is in source-1#chunk-1 but not in "numbers"; 1,200 is nowhere.
+    const plainSummary = 'A bucket of 100 tokens, a log of 1,000 requests, never 1,200.';
+    const problems = researchNotesProblems(notes({ plainSummary }), CHUNKS);
+    expect(problems.map((p) => [p.path, p.code, p.message.split(' ')[0]])).toEqual([
+      ['$.plainSummary', 'unsourced_number', '"100"'],
+      ['$.plainSummary', 'unsourced_number', '"1,200"'],
+    ]);
+  });
+
+  it('keeps analogies number-free, even for listed numbers', () => {
     const problems = researchNotesProblems(
       notes({
-        plainSummary: 'A bucket of 100 tokens refills while you wait.',
         analogies: [
           {
-            analogy: 'A cup of 20 arcade tokens',
-            matches: 'Each game takes one.',
-            breaksDown: 'Arcades do not share cups.',
+            analogy: 'A ledger with room for 1,000 entries',
+            matches: 'Each request writes one line.',
+            breaksDown: 'Paper ledgers are not shared.',
           },
         ],
       }),
       CHUNKS,
     );
-    expect(problems.map((p) => [p.path, p.code])).toEqual([
-      ['$.plainSummary', 'unsourced_number'],
-      ['$.analogies[0].analogy', 'unsourced_number'],
+    expect(problems).toEqual([
+      {
+        path: '$.analogies[0].analogy',
+        code: 'unsourced_number',
+        message: expect.stringContaining('this text cites no chunk') as string,
+      },
     ]);
   });
 
