@@ -23,8 +23,18 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       branch list if that matters.
 - [ ] **P1C.2 — Scanned PDFs.** A PDF without a text layer fails as `empty` (upload its text
       instead); there is no OCR.
-- [ ] **P1C.3 — Chunk budget.** Every chunk of every pinned source goes to the Researcher. A long
-      PDF can blow the prompt; select or cap chunks per source when that happens.
+- [ ] **P1C.3 — Record the Researcher fixture.** `responses/researcher.json` is hand-written (its
+      `servedModel` says so): no API key was available. Run `research:fixture --record` with a
+      key, check the deterministic checks pass, review the diff and commit it.
+- [ ] **P1C.9 — Gate 1 row.** The `research` job ends after saving its step; the orchestrator
+      creates the `gates` row (`research`), sets the run `awaiting_review` unless auto-approved,
+      and reads `latestResearch` for the gate.
+- [ ] **P1D.3 — Research gate view.** Show `input.omittedChunks` (what the source budget left
+      out, per source) next to the notes; "exclude a fact" needs a field on `ResearchFact` (or a
+      gate-side list) and edits must pass `researchNotesProblems` against the step's input.
+- [ ] **P1C.3 — Pinned title and date.** `loadRunSources` takes title and fetch date from the
+      source row (its latest version), not the pinned version; store both on `run_sources` if a
+      re-fetch between runs ever makes that matter.
 - [ ] **P1C.9 — Queue research after ingest.** The `ingest` job ends without queueing the next
       step; the orchestrator does that.
 - [ ] **P1A.13 — Golden images are platform-specific.** `apps/studio/golden/` holds macOS
@@ -150,9 +160,8 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       message from its first tokens and misses the provider's prefix cache for that run. Cheap
       while overrides are rare; if they become common, move the filled values into a short
       block after the static sections.
-- [ ] **P1C.3 — Wire the LLM client.** `createLlmClient` (with `createLlmTransport(config.llm)`)
-      and `loadPromptTemplates(<root>/PROMPTS_DIR)` are not in `WorkerDeps` yet; add them with
-      the first agent, and a dry-run switch for the P1C.9 end-to-end test.
+- [ ] **P1C.9 — Dry-run switch.** The worker always builds the HTTP transport; the end-to-end test
+      needs a way to start it with `dryRunTransport(loadDryRunFixtures(dir))`.
 - [ ] **P1C.1 — Off-peak holidays.** DeepSeek treats Chinese public holidays as off-peak in full;
       the price table only models weekday peak windows, so cost is slightly overestimated on
       those days. Add a holiday list only if the difference matters.

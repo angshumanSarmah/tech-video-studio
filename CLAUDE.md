@@ -346,12 +346,60 @@ stepId?, aliases?, check?, signal?, log? })`** is the only way to call a model (
 - **Prompts:** `agents/prompts/<name>.v<n>.md` are verbatim copies of the design doc's "Agent
   system prompts" section (`verbatim.test.ts` compares them; Prettier ignores them). Change the
   doc first, add the next file, bump `PROMPT_VERSIONS`. `buildPrompt(templates, parts)` puts
-  preamble, role prompt, catalogue, references (Director only) and style rules in the system
-  message and the run's input in the user message, so the static prefix caches. `{{name}}`
+  preamble, role prompt, the role's output JSON Schema (`ROLE_OUTPUT_SCHEMAS` in
+  `agents/output-schemas.ts`, rendered with `z.toJSONSchema`, input side), catalogue,
+  references (Director only) and style rules in the system message and the run's input in the
+  user message, so the static prefix caches. A new agent registers its output schema there and
+  passes the same schema to `callJson`. `{{name}}`
   takes values from `resolvePromptVariables(run settings, settings.video)` (run override →
   app settings → defaults 45, 150, 90, true, 4, 2.7); an unknown, unfilled or malformed
   placeholder throws `PromptBuildError`. `__snapshots__/<role>.prompt.txt` holds each assembled
   prompt with the defaults: review the diff when one changes.
+
+### Researcher (`src/worker/agents/researcher`, job in `jobs/research.ts`)
+
+- **`research` job** (payload `{}`): reads the chunks of the versions pinned to the run
+  (`loadRunSources`: `run_sources` → `<hash>.chunks.json`), applies the source token budget,
+  builds the prompt (user message: topic, angle = `topics.notes`, series and the sent chunks as
+  JSON, so a source cannot forge chunk boundaries) and calls `callJson` with
+  `ResearchNotesSchema` and `check: researchNotesProblems`, so check failures are repaired like
+  schema errors.
+- **Steps:** every attempt is its own `run_steps` row (`#core/db/repositories/run-steps.ts`,
+  stage `research`; never reused), whose id goes on its `llm_calls` rows. Files:
+  `runs/<id>/research/input-<step>.json` (`ResearchInputSchema`: chunks sent, budget, chunks
+  left out) and `notes-<step>.json`. A step still `running` when the job starts again was
+  interrupted and is marked failed. **Gate 1 input** is `latestResearch(db, dataDir, runId)`
+  (`#core/services/research-notes.ts`): the newest `done` step's notes and input, validated.
+- **`ResearchNotes`** (`packages/shared/src/research`): mechanism (summary + steps), facts
+  (`fact-<n>`, confidence), numbers (`num-<n>`, `value` exactly as the chunk writes it, unit,
+  context, one `sourceChunkId`, optional `asOf`), trade-offs, rejected alternatives,
+  misconceptions, failure modes (edge case / failure mode / incident with date and publisher),
+  2–4 hooks and open questions (`disagreement` / `not_covered`). Every item cites chunks;
+  only open questions may cite none. Fact and number ids are slugs, so `factIds` and stat card
+  `sourceRef`s can point at them.
+- **Checks** (`researchNotesProblems(notes, chunks)`, pure, shared so gate edits and imports
+  run them too): `unknown_chunk` (a citation not among the chunks sent), `number_not_in_source`
+  (a number's value not in its chunk: digit tokens compared, words matched as text),
+  `unsourced_number` (a quantity in any text that none of the item's own cited chunks states)
+  and `duplicate_id`. Numbers are digit runs with `.`/`,` groups, grouping commas ignored,
+  whole tokens only (`numbers.ts`). **Digits glued to letters are identifiers and skipped**
+  (`IPv4`, `L7`, `p99`, `SHA-256`, `HTTP/2`, `UTF-8`, `O(1)`); digits followed by letters stay
+  quantities (`50ms`, `10k`, `5xx`).
+- **Source token budget** (`settings.research.sourceTokenBudget`, default 60,000 estimated
+  tokens at 4 characters each; `select-chunks.ts`, pure): above it, each source gets a max-min
+  fair share, keeps its first `KEEP_FIRST_CHUNKS` (2) chunks even past its share (so the budget
+  is soft with many sources), then fills the share with the chunks most relevant to the topic
+  and angle (distinct query terms matched, then density, then order; plurals folded,
+  stopwords dropped). Kept chunks stay in source order. Left-out chunks are recorded in the
+  step input and logged as a `warn`.
+- **Fixture:** `agents/researcher/fixtures/rate-limiter/` holds three invented sources
+  (an article, a library README and a post-mortem that disagree on fail open vs closed) and
+  `responses/researcher.json`, the dry-run answer `jobs/research.test.ts` replays. It is
+  hand-written until recorded: `pnpm --filter @explainer-studio/studio research:fixture
+[--record]` runs ingestion and the Researcher on those sources against the configured model
+  in a scratch data dir (`<DATA_DIR>/research/fixture/rate-limiter/`, its own DB), prints the
+  log, check result and cost, and with `--record` replaces the dry-run answer (every attempt,
+  repairs included). `fixtures/oversized-source.ts` builds the long source of the budget test.
 
 API conventions: routes under `/api`, inputs validated with the `validate()` helper against schemas
 from `packages/shared/src/api`, list responses wrapped as `{ items }`, and every error is

@@ -65,6 +65,17 @@ describe('buildPrompt', () => {
     expect(prompt.messages[1]!.content).toBe(FIXTURE.input);
   });
 
+  it('puts a role’s registered output schema right after its role prompt', () => {
+    const system = buildPrompt(templates, parts('researcher')).messages[0]!.content;
+    const order = ['Role: Researcher.', '## OUTPUT SHAPE', '"hooks"', FIXTURE.catalogue].map(
+      (text) => system.indexOf(text),
+    );
+    expect(order.every((i) => i >= 0)).toBe(true);
+    expect(order).toEqual([...order].sort((a, b) => a - b));
+    const director = buildPrompt(templates, parts('director')).messages[0]!.content;
+    expect(director).not.toContain('## OUTPUT SHAPE');
+  });
+
   it('keeps the system message identical across runs with different input (cache prefix)', () => {
     const a = buildPrompt(templates, parts('generator', { input: '{"beat": "<example-a>"}' }));
     const b = buildPrompt(templates, parts('generator', { input: '{"beat": "<example-b>"}' }));

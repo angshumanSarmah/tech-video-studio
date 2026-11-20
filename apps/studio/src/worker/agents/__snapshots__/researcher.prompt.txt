@@ -55,6 +55,423 @@ Common mistakes to avoid
 5. Merging two sources' different numbers into one.
 6. Empty open questions when the sources are thin.
 
+## OUTPUT SHAPE (JSON Schema: return one JSON object that matches it)
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "mechanism": {
+      "type": "object",
+      "properties": {
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 600,
+          "description": "How the thing does its main job, in two to four sentences."
+        },
+        "sourceChunkIds": {
+          "minItems": 1,
+          "maxItems": 8,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^source-([1-9]\\d*)#chunk-([1-9]\\d*)$"
+          },
+          "description": "Ids of the source chunks that state this. Use only chunk ids from the input."
+        },
+        "steps": {
+          "minItems": 1,
+          "maxItems": 10,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "text": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 240,
+                "description": "One step of what happens, in order."
+              },
+              "sourceChunkIds": {
+                "minItems": 1,
+                "maxItems": 8,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^source-([1-9]\\d*)#chunk-([1-9]\\d*)$"
+                },
+                "description": "Ids of the source chunks that state this. Use only chunk ids from the input."
+              }
+            },
+            "required": [
+              "text",
+              "sourceChunkIds"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "summary",
+        "sourceChunkIds",
+        "steps"
+      ],
+      "additionalProperties": false
+    },
+    "facts": {
+      "minItems": 1,
+      "maxItems": 40,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^fact-[1-9]\\d*$"
+          },
+          "statement": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300,
+            "description": "One claim the sources state."
+          },
+          "sourceChunkIds": {
+            "minItems": 1,
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^source-([1-9]\\d*)#chunk-([1-9]\\d*)$"
+            },
+            "description": "Ids of the source chunks that state this. Use only chunk ids from the input."
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "description": "low when one weak source supports it."
+          }
+        },
+        "required": [
+          "id",
+          "statement",
+          "sourceChunkIds",
+          "confidence"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "numbers": {
+      "maxItems": 40,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^num-[1-9]\\d*$"
+          },
+          "value": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40,
+            "description": "The number exactly as the cited chunk writes it (digits, separators and words as written), never rounded or converted."
+          },
+          "unit": {
+            "type": "string",
+            "maxLength": 40,
+            "description": "Unit as the source gives it, e.g. \"ms\", \"requests per second\"; \"\" when none."
+          },
+          "context": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "What the number measures, and under which conditions."
+          },
+          "sourceChunkId": {
+            "type": "string",
+            "pattern": "^source-([1-9]\\d*)#chunk-([1-9]\\d*)$",
+            "description": "The one chunk that states this number."
+          },
+          "asOf": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40,
+            "description": "The date the source gives for the number, as written; omit when none."
+          }
+        },
+        "required": [
+          "id",
+          "value",
+          "unit",
+          "context",
+          "sourceChunkId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "tradeOffs": {
+      "maxItems": 12,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "choice": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "description": "The design choice."
+          },
+          "gains": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 240,
+            "description": "What the choice buys."
+          },
+          "costs": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 240,
+            "description": "What it gives up."
+          },
+          "sourceChunkIds": {
+            "minItems": 1,
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^source-([1-9]\\d*)#chunk-([1-9]\\d*)$"
+            },
+            "description": "Ids of the source chunks that state this. Use only chunk ids from the input."
+          }
+        },
+        "required": [
+          "choice",
+          "gains",
+          "costs",
+          "sourceChunkIds"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "rejectedAlternatives": {
+      "maxItems": 12,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "alternative": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "description": "A design the sources consider and reject."
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300,
+            "description": "Why it was rejected, as the sources say."
+          },
+          "sourceChunkIds": {
+            "minItems": 1,
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^source-([1-9]\\d*)#chunk-([1-9]\\d*)$"
+            },
+            "description": "Ids of the source chunks that state this. Use only chunk ids from the input."
+          }
+        },
+        "required": [
+          "alternative",
+          "reason",
+          "sourceChunkIds"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "misconceptions": {
+      "maxItems": 12,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "belief": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "What engineers commonly believe."
+          },
+          "correction": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300,
+            "description": "What is actually true, per the sources."
+          },
+          "sourceChunkIds": {
+            "minItems": 1,
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^source-([1-9]\\d*)#chunk-([1-9]\\d*)$"
+            },
+            "description": "Ids of the source chunks that state this. Use only chunk ids from the input."
+          }
+        },
+        "required": [
+          "belief",
+          "correction",
+          "sourceChunkIds"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "failureModes": {
+      "maxItems": 12,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "edge_case",
+              "failure_mode",
+              "incident"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 400,
+            "description": "What breaks, when, and what it costs."
+          },
+          "incident": {
+            "description": "For kind \"incident\": when it happened and who reported it.",
+            "type": "object",
+            "properties": {
+              "date": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40,
+                "description": "As the source writes it."
+              },
+              "publisher": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80,
+                "description": "Who published the report."
+              }
+            },
+            "additionalProperties": false
+          },
+          "sourceChunkIds": {
+            "minItems": 1,
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^source-([1-9]\\d*)#chunk-([1-9]\\d*)$"
+            },
+            "description": "Ids of the source chunks that state this. Use only chunk ids from the input."
+          }
+        },
+        "required": [
+          "kind",
+          "description",
+          "sourceChunkIds"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "hooks": {
+      "minItems": 2,
+      "maxItems": 4,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "situation": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "An engineer's concrete problem with a real number from the sources."
+          },
+          "sourceChunkIds": {
+            "minItems": 1,
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^source-([1-9]\\d*)#chunk-([1-9]\\d*)$"
+            },
+            "description": "Ids of the source chunks that state this. Use only chunk ids from the input."
+          }
+        },
+        "required": [
+          "situation",
+          "sourceChunkIds"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "openQuestions": {
+      "maxItems": 12,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300,
+            "description": "What the sources disagree on or do not cover."
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "disagreement",
+              "not_covered"
+            ]
+          },
+          "sourceChunkIds": {
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^source-([1-9]\\d*)#chunk-([1-9]\\d*)$"
+            },
+            "description": "The chunks that disagree; empty when the sources are silent."
+          }
+        },
+        "required": [
+          "question",
+          "reason",
+          "sourceChunkIds"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "mechanism",
+    "facts",
+    "numbers",
+    "tradeOffs",
+    "rejectedAlternatives",
+    "misconceptions",
+    "failureModes",
+    "hooks",
+    "openQuestions"
+  ],
+  "additionalProperties": false
+}
+
 ## ALLOWED PATTERNS (exhaustive: use only these ids)
 - <example-pattern-id>: <example description>
 

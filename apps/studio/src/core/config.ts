@@ -6,6 +6,7 @@ import {
   type Env,
   type LlmSettings,
   type RenderSettings,
+  type ResearchSettings,
   type Settings,
   type SettingsInput,
   type TimingSettings,
@@ -37,6 +38,8 @@ export interface AppConfig {
   readonly render: RenderSettings;
   /** Length, parts and pace for agent prompts; a run's `settings.video` overrides them. */
   readonly video: VideoSettings;
+  /** Researcher input limits (source token budget). */
+  readonly research: ResearchSettings;
 }
 
 type RawEnv = Record<string, string | undefined>;
@@ -92,6 +95,7 @@ export function resolveConfig(env: Env, settings: Settings, workspaceRoot: strin
     timing: settings.timing,
     render: settings.render,
     video: settings.video,
+    research: settings.research,
   };
 }
 

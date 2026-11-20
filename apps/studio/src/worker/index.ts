@@ -1,9 +1,12 @@
 import { hostname } from 'node:os';
+import { join } from 'node:path';
 import { loadConfig } from '#core/config.ts';
 import { ensureDataDirs } from '#core/data-dirs.ts';
 import { closeDatabase, dbPathFor, openDatabase } from '#core/db/client.ts';
 import { recoverStaleJobs } from '#core/services/jobs.ts';
+import { loadPromptTemplates, PROMPTS_DIR } from '#worker/agents/prompts/templates.ts';
 import { createJobHandlers, createJobRegistry } from '#worker/jobs/registry.ts';
+import { createLlmClient, createLlmTransport } from '#worker/llm/index.ts';
 import { startPollLoop } from '#worker/poll-loop.ts';
 import { runFfmpeg } from '#worker/render/ffmpeg.ts';
 import { createRemotionEngine } from '#worker/render/remotion-engine.ts';
@@ -24,9 +27,22 @@ const { provider: tts } = createKokoroTts({
   python: config.tts.binaryPath,
   log: (message) => console.warn(`[worker] ${message}`),
 });
-const settings = { tts: config.tts, timing: config.timing };
+// Every LLM call goes through this one client (logged and costed); a missing key fails the call.
+const llm = createLlmClient({
+  db,
+  dataDir: config.dataDir,
+  llm: config.llm,
+  transport: createLlmTransport(config.llm),
+});
+const prompts = loadPromptTemplates(join(config.workspaceRoot, PROMPTS_DIR));
+const settings = {
+  tts: config.tts,
+  timing: config.timing,
+  video: config.video,
+  research: config.research,
+};
 const registry = createJobRegistry(
-  createJobHandlers({ db, dataDir: config.dataDir, tools, tts, settings }),
+  createJobHandlers({ db, dataDir: config.dataDir, tools, tts, settings, llm, prompts }),
 );
 const workerId = `${hostname()}:${process.pid}`;
 const shutdownController = new AbortController();

@@ -68,6 +68,19 @@ export const RenderSettingsSchema = z.strictObject({
 
 export type RenderSettings = z.infer<typeof RenderSettingsSchema>;
 
+/** Rough tokens per character of English source text (`estimateTokens`). */
+export const SOURCE_CHARS_PER_TOKEN = 4;
+
+export const ResearchSettingsSchema = z.strictObject({
+  /**
+   * Most source text the Researcher gets, in estimated tokens (characters / 4). Above it, chunks
+   * are selected per source (`selectChunks`) and the rest is recorded as left out.
+   */
+  sourceTokenBudget: z.number().int().min(2_000).max(500_000).default(60_000),
+});
+
+export type ResearchSettings = z.infer<typeof ResearchSettingsSchema>;
+
 /**
  * Editable app settings persisted in `<dataDir>/config.json`. Every field has a default, so `{}`
  * (or a missing file) is a complete config. Unknown keys are rejected so typos fail loudly.
@@ -80,6 +93,8 @@ export const SettingsSchema = z.strictObject({
   render: RenderSettingsSchema.prefault({}),
   /** Length, parts and pace: the values agent prompts are filled with. */
   video: VideoSettingsSchema.prefault({}),
+  /** Researcher input limits. */
+  research: ResearchSettingsSchema.prefault({}),
 });
 
 /** Validated settings with defaults applied. */

@@ -11,6 +11,9 @@ apps/studio/src/worker/agents/prompts/*.md
 # Saved source-ingestion fixtures (read as fetched pages; keep byte-for-byte)
 apps/studio/src/worker/ingest/fixtures/*.html
 apps/studio/src/worker/ingest/fixtures/*.md
+# Researcher fixture sources (chunked as uploaded) and the recorded answers that cite their chunks
+apps/studio/src/worker/agents/researcher/fixtures/**/*.md
+apps/studio/src/worker/agents/researcher/fixtures/**/*.json
 
 # Generated (compared byte-for-byte by a test)
 apps/studio/src/web/theme.generated.css

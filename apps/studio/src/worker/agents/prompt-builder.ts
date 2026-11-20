@@ -1,4 +1,6 @@
+import { z } from 'zod';
 import type { BuiltPrompt } from '#worker/llm/types.ts';
+import { ROLE_OUTPUT_SCHEMAS } from './output-schemas.ts';
 import { PROMPT_VARIABLE_NAMES, type PromptVariables } from './prompt-variables.ts';
 import type { PromptRole, PromptTemplate, PromptTemplates } from './prompts/templates.ts';
 
@@ -48,6 +50,18 @@ export function fillTemplate(
   return filled;
 }
 
+/** The output shape as JSON Schema (input side: fields with defaults are optional). */
+export function outputSchemaSection(schema: z.ZodType): string {
+  const json = JSON.stringify(z.toJSONSchema(schema, { io: 'input' }), null, 2);
+  return `## OUTPUT SHAPE (JSON Schema: return one JSON object that matches it)\n${json}`;
+}
+
+/** The role's registered output schema (`ROLE_OUTPUT_SCHEMAS`), if it has one. */
+function outputSection(role: PromptRole): string[] {
+  const schema = ROLE_OUTPUT_SCHEMAS[role];
+  return schema ? [outputSchemaSection(schema)] : [];
+}
+
 function section(text: string | undefined): string[] {
   const trimmed = text?.trim();
   return trimmed ? [trimmed] : [];
@@ -55,8 +69,8 @@ function section(text: string | undefined): string[] {
 
 /**
  * Assembles a prompt in the design doc's order, static content first so the provider's prefix
- * cache hits: preamble, role prompt, catalogue, references, style rules (one system message),
- * then the run's input (the user message).
+ * cache hits: preamble, role prompt, output JSON Schema, catalogue, references, style rules (one
+ * system message), then the run's input (the user message).
  */
 export function buildPrompt(templates: PromptTemplates, parts: PromptParts): BuiltPrompt {
   if (parts.references && parts.role !== 'director') {
@@ -67,6 +81,7 @@ export function buildPrompt(templates: PromptTemplates, parts: PromptParts): Bui
   const system = [
     fillTemplate(preamble, parts.variables).trim(),
     fillTemplate(rolePrompt, parts.variables).trim(),
+    ...outputSection(parts.role),
     ...section(parts.catalogue),
     ...section(parts.references),
     ...section(parts.styleRules),

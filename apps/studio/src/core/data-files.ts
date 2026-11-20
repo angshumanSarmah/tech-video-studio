@@ -36,6 +36,16 @@ export function narrationTrackPath(runId: number, contentHash: string): string {
   return posix.join(runDir(runId), 'audio', `narration-${contentHash.slice(0, 16)}.wav`);
 }
 
+/** What one research step read (`ResearchInputSchema`): chunks sent and chunks left out. */
+export function researchInputPath(runId: number, stepId: number): string {
+  return posix.join(runDir(runId), 'research', `input-${stepId}.json`);
+}
+
+/** One research step's notes (`ResearchNotesSchema`): the gate-1 input. */
+export function researchNotesPath(runId: number, stepId: number): string {
+  return posix.join(runDir(runId), 'research', `notes-${stepId}.json`);
+}
+
 /** Per-beat draft clips and their cache sidecars. */
 export function runBeatsDir(runId: number): string {
   return posix.join(runDir(runId), 'beats');
