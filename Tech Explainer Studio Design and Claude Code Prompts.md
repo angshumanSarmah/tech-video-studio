@@ -9,7 +9,7 @@ This is a rebuild: the previous app produced monotonous videos (the same 3–4 b
 | Area | Decision |
 | --- | --- |
 | Rebuild | The old app is discarded. New repo from scratch; prompts never reference the old code |
-| Content | System design + AI topics, for engineers |
+| Content | System design + AI topics, for engineers, explained so someone new to the topic follows it on first watch (explanation level is a setting: beginner by default, intermediate or expert per run) |
 | Channel | One channel, two series (System Design, AI) with a series tag and accent colour; data model ready for more channels |
 | Format | YouTube Shorts / Reels, 9:16, length is a setting, not a fixed rule: defaults 45–150 s, a one-line reason above 90 s, hard cap 170 s (under both platforms' 3-minute limit). The Director decides within the range; override per run. Parts (Part 1/N, each its own video) are a setting too: on by default, up to 4. Two layouts: full-screen, or card (persistent title header + 16:9 diagram window + captions) |
 | Visual style, phase 1 | 2D "board" scenes in our own drafting-paper look: an engineering drawing on warm paper, ink line work, highlighter marks for focus, IBM Plex fonts (see Originality) |
@@ -640,7 +640,7 @@ These are the system prompts the in-app agents run with: the channel's taste, wr
 **How a prompt is assembled** (static parts first, so DeepSeek's prompt cache hits):
 
 1. Shared preamble (below)
-2. The agent's role prompt (below)
+2. The agent's role prompt (below), then its output JSON Schema (generated from the agent's Zod schema, so it can't drift)
 3. Closed lists and the catalogue block (P1C.4)
 4. Reference breakdowns (Director only, structure only)
 5. Your accepted style rules from memory (P1C.10)
@@ -655,8 +655,11 @@ You are part of Tech Explainer Studio, a pipeline that turns one engineering top
 vertical explainer video for YouTube Shorts and Instagram Reels ({{lengthMinSec}}-{{lengthMaxSec}} s, or a short series of
 parts for bigger topics when parts are allowed).
 
-Audience: working software engineers. They know what a server, a database and an API are. They want
-the mechanism, the numbers and the trade-off, not motivation or hype.
+Audience: smart software engineers who are new to this topic (explanation level: {{explanationLevel}}). They know what a server, a database and an API are, but not this topic's own terms. They want
+the mechanism, the numbers and the trade-off, explained so they follow it the first time they watch, not motivation or hype.
+Explanation levels: beginner = explain every topic term in plain words, everyday analogies
+welcome; intermediate = explain only uncommon terms; expert = assume the topic's basics and go
+deeper on trade-offs and failure modes.
 
 How the pipeline works: each agent fills in one part of a VideoSpec (JSON). The app validates every
 answer, a person reviews it at gates, and code draws the video. You never decide colours, fonts,
@@ -694,6 +697,10 @@ DO
 - Capture failure modes and edge cases; prefer real incidents and post-mortems with date and publisher.
 - Capture misconceptions engineers commonly hold about this topic.
 - Suggest 2-4 hooks, each an engineer's problem with a real number from the sources.
+- Also explain the mechanism in plain words (plainSummary), as you would to a smart friend who is
+  new to the topic.
+- Offer 1-2 everyday analogies that match the mechanism, each with where the analogy breaks down.
+- List the key terms (glossary): each with a one-line plain meaning and its source chunk ids.
 - Give each fact a confidence (low / medium / high); low when one weak source supports it.
 - Put anything the sources disagree on, or don't cover, under open questions.
 DO NOT
@@ -741,6 +748,9 @@ DO
   seconds sum to the target within 10%.
 - Avoid the device / layout / pattern combinations listed as recently used.
 - Prefer one persistent scene that grows across beats (continuesPrevious) over a new scene per beat.
+- Keep it easy to follow: one new idea per beat; at most 3 new terms in the whole video (from the
+  glossary); one concrete running example all the way through (one user, one request); show it
+  happening first, then name it. Use an analogy from the notes when it helps.
 DO NOT
 - Plan a beat that needs facts the notes don't have.
 - Use the same pattern on the same focus in two consecutive beats.
@@ -772,6 +782,9 @@ Narration
 - Say numbers as a person would ("ten thousand requests a second"); spell out what text-to-speech
   misreads ("p99" -> "p ninety-nine").
 - The real term, then a short gloss the first time ("a lease, a timer that says who is in charge").
+- Talk like explaining to a smart friend: the example before the abstraction, everyday words
+  ("use", not "utilize"), at most one new term per sentence, and every term explained before it
+  is relied on.
 - Make the words where visuals should land concrete ("the cache misses", "the leader dies"): the
   Generator anchors animations to them.
 
@@ -804,6 +817,8 @@ change. The layout engine places everything; you never give positions or sizes.
 DO
 - Prefer a pattern when one shows the beat's idea; add loose primitives only for what it doesn't cover.
 - Give the beat one focus: the thing the viewer should watch. Dim or leave out the rest.
+- Let the picture do the explaining: show the thing happening (the request bouncing off), not
+  just a label that says so.
 - Anchor every event to a word in this beat's narration, choosing the word where the idea is said,
   not the start of the sentence.
 - Reuse element ids from earlier beats when the same thing is still on screen.
@@ -819,7 +834,7 @@ DO
 - Read each primitive's "when not to" to rule out near misses.
 DO NOT
 - Use any id (primitive, pattern, asset, element, part) that is not in your lists.
-- Put more than about 6 visible elements on a board (an overlay's children count).
+- Put more than about 5 visible elements on a board (an overlay's children count).
 - Show two overlays at the same time.
 - Anchor several unrelated events to the same word.
 - Anchor an enter on the last word or two of a beat: elements draw on over up to 0.8 s and would
@@ -849,7 +864,10 @@ For each beat, compare the narration, on-screen text and visuals with the resear
 - simplifications that become wrong for an engineer (blocking);
 - a visual that contradicts the narration (blocking) or distracts from it (advisory);
 - a trade-off or failure mode in the notes that the video skips (advisory);
-- wording that copies a reference video (blocking).
+- wording that copies a reference video (blocking);
+- clarity at the {{explanationLevel}} level: a term relied on before it is explained, more than
+  one new idea in a beat, or an abstract sentence with no example (blocking at beginner, advisory
+  otherwise).
 Each issue: beat id, severity, what is wrong, the fact id involved, and the smallest fix. Don't
 rewrite beats yourself.
 
@@ -904,11 +922,11 @@ and key from config) with:
   the preamble and role prompt versions; snapshot tests render each assembled prompt with fixture
   inputs so a prompt can't change unnoticed;
 - prompt variables: {{lengthMinSec}}, {{lengthMaxSec}}, {{lengthReasonAboveSec}}, {{allowParts}},
-  {{maxParts}} and {{wordsPerSec}} are filled from settings. Add them to SettingsSchema (a
-  `video` block: lengthMinSec, lengthMaxSec, lengthReasonAboveSec, allowParts, maxParts) and to
+  {{maxParts}}, {{wordsPerSec}} and {{explanationLevel}} are filled from settings. Add them to SettingsSchema (a
+  `video` block: lengthMinSec, lengthMaxSec, lengthReasonAboveSec, allowParts, maxParts, explanationLevel: beginner | intermediate | expert) and to
   the Scriptwriter pace (wordsPerSec), each also overridable in RunSettingsSchema (run override ->
   app settings ->
-  defaults 45, 150, 90, true, 4, 2.7); an unknown or unfilled variable fails the build of the
+  defaults 45, 150, 90, true, 4, 2.7, beginner); an unknown or unfilled variable fails the build of the
   prompt; the 170 s hard cap is enforced by validation, not by the prompt; snapshot tests render
   the prompts with the defaults;
 - a dry-run mode that returns recorded fixtures for tests.
@@ -1042,6 +1060,8 @@ Implement the Curator in two parts.
 2. LLM review (curator role): for each beat compare narration and visuals with research facts;
    flag claims not supported, simplifications that become wrong at this level, confusing visuals for
    the narration, missing trade-offs. Output issues with severity and the beat id.
+Part 1 also scores each beat's narration for readability (Flesch reading ease) and warns when it
+falls below the level's threshold (beginner: 60), so the LLM review sees it.
 System prompt for part 2: the shared preamble + the Curator prompt from "Agent system prompts (v1)";
 repair calls reuse the Scriptwriter or Generator prompt plus the Curator's repair rule.
 Then an auto-repair loop: send blocking issues to the responsible agent (Scriptwriter or Generator)
@@ -1215,7 +1235,7 @@ Goal: you can start a run, watch it, review and edit at every gate, preview, and
 Build the New Run page: topic title, series (System Design | AI), free-text angle/notes, source URLs
 (multi-line) and file uploads (.md .txt .pdf), target length (auto, or a range within the configured limits), "allow parts" (default from
 settings), an optional pace override
-(TTS speed, beat gap), per-gate
+(TTS speed, beat gap), explanation level (default from settings), per-gate
 auto-approve checkboxes with an "auto-approve all" toggle, and an estimated cost range from recent
 runs. Submitting creates the topic, sources and run, then navigates to the run page.
 Endpoints: POST /api/topics, POST /api/topics/:id/sources (URLs + multipart upload), POST /api/runs,
@@ -1319,7 +1339,7 @@ Build Settings: LLM base URL/key (masked), model per role, price table, request 
 an "Advanced" section), TTS voice and speed with a
 "test voice" button, pacing (beat gap, landing hold, end tail, Scriptwriter words per second),
 video length (min, max, the "needs a reason" threshold; the 170 s hard cap shown read-only), parts
-(allowed, max parts), pronunciation dictionary editor, render concurrency and presets, channel handle,
+(allowed, max parts), explanation level (beginner | intermediate | expert), pronunciation dictionary editor, render concurrency and presets, channel handle,
 series names, tags and accent colours. Validate the channel handle and series labels against
 their HUD cell widths on save (text_truncated), so they can never be cut off in a video.
 Endpoints: GET /api/memory/rules, PATCH /api/memory/rules/:id, GET /api/memory/usage,
