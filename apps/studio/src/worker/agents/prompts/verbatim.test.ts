@@ -2,11 +2,20 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { findWorkspaceRoot } from '#core/workspace-root.ts';
-import { loadPromptTemplates, PROMPT_ROLES, PROMPTS_DIR, type PromptName } from './templates.ts';
+import {
+  loadPromptTemplates,
+  promptFileName,
+  PROMPT_ROLES,
+  PROMPT_VERSIONS,
+  PROMPTS_DIR,
+  type PromptName,
+} from './templates.ts';
 
 /**
  * The prompt files are copies of the design doc's "Agent system prompts" section. The doc is the
- * source: change it first, then add the next version's file and bump `PROMPT_VERSIONS`.
+ * source: change it first, then add the next version's file and bump `PROMPT_VERSIONS`. Only the
+ * current version must match the doc; earlier versions stay as they were, for the calls that
+ * recorded them.
  */
 const root = findWorkspaceRoot(import.meta.dirname);
 const DOC = 'Tech Explainer Studio Design and Claude Code Prompts.md';
@@ -46,6 +55,17 @@ describe('agent prompt files', () => {
     '%s matches the design doc verbatim',
     (name) => {
       expect(files[name].text).toBe(fromDoc.get(HEADINGS[name]));
+    },
+  );
+
+  it.each(['preamble', ...PROMPT_ROLES] as PromptName[])(
+    '%s keeps every earlier version for history',
+    (name) => {
+      const versions = Array.from({ length: PROMPT_VERSIONS[name] }, (_, i) => i + 1);
+      for (const version of versions) {
+        const path = join(root, PROMPTS_DIR, promptFileName(name, version));
+        expect(() => readFileSync(path, 'utf8'), path).not.toThrow();
+      }
     },
   );
 });

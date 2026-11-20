@@ -18,7 +18,7 @@ import { getRun } from '#core/db/repositories/runs.ts';
 import { createTestDb, type TestDb } from '#core/db/testing.ts';
 import { latestResearch } from '#core/services/research-notes.ts';
 import { findWorkspaceRoot } from '#core/workspace-root.ts';
-import { loadPromptTemplates, PROMPTS_DIR } from '../agents/prompts/templates.ts';
+import { loadPromptTemplates, promptId, PROMPTS_DIR } from '../agents/prompts/templates.ts';
 import {
   buildOversizedSource,
   RELEVANT_MARKER,
@@ -39,8 +39,10 @@ import { RESEARCH_JOB_TYPE, researchJobHandler } from './research.ts';
 
 const prompts = loadPromptTemplates(join(findWorkspaceRoot(import.meta.dirname), PROMPTS_DIR));
 const settings = SettingsSchema.parse({});
+/** Every recorded attempt, repairs included; the last one is the answer that passed. */
 const recorded = loadDryRunFixtures(RATE_LIMITER_RESPONSES_DIR).researcher!;
-const recordedContent = recorded[0]!.content!;
+const recordedAnswer = recorded.at(-1)!;
+const recordedContent = recordedAnswer.content!;
 
 let t: TestDb;
 let scratch: string;
@@ -120,7 +122,7 @@ describe('research job (rate-limiter fixture, dry run)', () => {
     expect(result.notes.numbers.length).toBeGreaterThan(10);
     expect(result.notes.plainSummary).not.toMatch(/\d/);
     expect(result.notes.analogies.length).toBeGreaterThan(0); // 1-2 by schema
-    expect(result.notes.glossary.map((g) => g.term)).toContain('Token bucket');
+    expect(result.notes.glossary.map((g) => g.term.toLowerCase())).toContain('token bucket');
     expect(result.step).toMatchObject({ stage: 'research', status: 'done', error: null });
     expect(result.input.omittedChunks).toEqual([]);
     expect(result.input.topic).toEqual({
@@ -133,14 +135,17 @@ describe('research job (rate-limiter fixture, dry run)', () => {
       'larkspur-checkout-incident.md',
     ]);
 
+    // One call per recorded attempt: any recorded repairs replay too, and only the last passes.
     const calls = listRunLlmCalls(t.db, runId);
-    expect(calls).toHaveLength(1);
+    expect(calls).toHaveLength(recorded.length);
+    expect(calls.map((c) => c.error === null)).toEqual(
+      recorded.map((_, i) => i === recorded.length - 1),
+    );
     expect(calls[0]).toMatchObject({
       role: 'researcher',
       stepId: result.step.id,
-      promptVersion: 'researcher@v1',
+      promptVersion: promptId('researcher'),
       preambleVersion: 'preamble@v1',
-      error: null,
     });
     const prompt = readDataJson(t.dataDir, calls[0]!.promptPath) as {
       messages: { role: string; content: string }[];
@@ -156,7 +161,7 @@ describe('research job (rate-limiter fixture, dry run)', () => {
   });
 
   it('repairs an unsourced number through the LLM client', async () => {
-    const reg = registry([{ content: withUnsourcedNumber() }, ...recorded]);
+    const reg = registry([{ content: withUnsourcedNumber() }, recordedAnswer]);
     const { runId, job } = await research(reg);
     expect(job.status).toBe('done');
 

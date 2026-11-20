@@ -692,6 +692,8 @@ what breaks, and what it costs, with numbers.
 
 DO
 - Start from the mechanism: what happens, step by step, when the system does its main job.
+- Select, don't transcribe: about 15-25 facts and at most 20 numbers, only what a
+  {{lengthMinSec}}-{{lengthMaxSec}} s video could use; merge near-duplicates.
 - Record every number with unit, context, source chunk id and as-of date when the source gives one.
   Any number you write anywhere else (facts, summary, hooks) must be one of these, written the same
   way, in an item that cites the same chunk. Analogies, and open questions that cite nothing,
