@@ -120,6 +120,9 @@ Dev ports: the UI is on http://localhost:4310 (`WEB_PORT`, Vite, `strictPort`) a
 - **User edits at gates:** a save succeeds when `ok` is true; the UI shows the warnings.
 - A narration "word" is whatever `narrationWords()` returns. Word anchors and timed word lists
   both count words this way.
+- **Length:** `meta.targetLengthSec`, a run's `lengthOverrideSec` and every `settings.video`
+  length stay within `VIDEO_LENGTH_LIMITS_SEC` (15–170 s); a timed track past 170 s is the error
+  `timing_too_long`. Prompts state only the configured range (`settings.video`), never the cap.
 - `meta.format` is `full` (default) or `card` (title header, 16:9 diagram window, headline,
   subtitles). It is a run setting: the LLM `meta` schema leaves it out.
 - A scene's `transitionIn` (cut, fade, slide, zoom-in, zoom-out) applies only to a beat that
@@ -268,6 +271,46 @@ settings, settings.tts)`: speed is the run's `tts.speed`, else `settings.tts.spe
   `subtitles.srt` and renders `draft.mp4` with the narration and one sentence per sample voice into `<DATA_DIR>/tts/voice-samples/`.
 - Tests never need Python: `testing/fake-tts-server.ts` speaks the same protocol (Node runs it
   with type stripping) and can crash, hang, fail at startup or drop a word.
+
+### LLM client (`src/worker/llm`) and agent prompts (`src/worker/agents`)
+
+- **`createLlmClient({ db, dataDir, llm, transport }).callJson({ role, prompt, schema, runId?,
+stepId?, aliases?, check?, signal?, log? })`** is the only way to call a model (rule 6). The
+  model comes from `settings.llm.models[role]`. Each attempt: normalize the answer, validate it
+  with `schema`, then `check` (e.g. registry checks); on failure the errors go back as an
+  assistant + user turn, at most `MAX_REPAIR_ATTEMPTS` (2) times, then `LlmOutputInvalidError`.
+- **Transports:** `httpTransport` (`createLlmTransport(config.llm)`) posts to
+  `<baseUrl>/chat/completions` in JSON mode. It retries 429/5xx up to 2 times (1 s, 2 s, or
+  `Retry-After` up to 60 s), separately from repairs. Each request times out after
+  `llm.requestTimeoutSec` (300) and honours the caller's `signal`. A missing key fails before
+  any request. `dryRunTransport(fixtures)` / `loadDryRunFixtures(dir)` replay recorded responses
+  per role, in order, and run through the same validation, logging and cost.
+- **Every attempt is an `llm_calls` row** (`#core/db/repositories/llm-calls.ts`): role, role
+  prompt and preamble versions, `attempt`, model and served model, cached / uncached input,
+  output (reasoning included) and reasoning tokens, cost, normalizer fixes, error. A failed
+  request is logged too, then rethrown. Files: `runs/<id>/llm/<key>.prompt.json`
+  (messages and versions) and `.response.json` (content, reasoning content, usage);
+  `llm/` outside a run. The API key never reaches disk (a test scans the data dir); errors
+  redact it. `runCostUsd(db, runId)` sums a run.
+- **Cost** (`cost.ts`): cache-hit input, cache-miss input and output at the model's
+  `llm.prices`, times `offPeak.multiplier` when the request starts outside the peak windows.
+  Usage reads DeepSeek's `prompt_cache_hit/miss_tokens`, else OpenAI's `cached_tokens`.
+- **Reasoning content** (`reasoning_content`) is stored in the response file and billed as
+  output; it is never parsed as the answer, even when the answer is empty.
+- **Normalizer** (`normalize.ts`; also for pasted external JSON): a fixed list of fixes, each
+  recorded as a `NormalizerFix` and sent to `log`: strip code fences and surrounding prose;
+  rename declared aliases (`{ at: '$.script[*]', from: 'title', to: 'headline' }`, only when
+  the target key is absent); turn a plain decimal string into a number where the schema reports
+  "expected number" (never inside unions). Nothing else is changed or guessed.
+- **Prompts:** `agents/prompts/<name>.v<n>.md` are verbatim copies of the design doc's "Agent
+  system prompts" section (`verbatim.test.ts` compares them; Prettier ignores them). Change the
+  doc first, add the next file, bump `PROMPT_VERSIONS`. `buildPrompt(templates, parts)` puts
+  preamble, role prompt, catalogue, references (Director only) and style rules in the system
+  message and the run's input in the user message, so the static prefix caches. `{{name}}`
+  takes values from `resolvePromptVariables(run settings, settings.video)` (run override →
+  app settings → defaults 45, 150, 90, true, 4, 2.7); an unknown, unfilled or malformed
+  placeholder throws `PromptBuildError`. `__snapshots__/<role>.prompt.txt` holds each assembled
+  prompt with the defaults: review the diff when one changes.
 
 API conventions: routes under `/api`, inputs validated with the `validate()` helper against schemas
 from `packages/shared/src/api`, list responses wrapped as `{ items }`, and every error is

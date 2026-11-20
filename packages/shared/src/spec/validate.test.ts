@@ -352,6 +352,11 @@ describe('validateVideoSpec: cross-references', () => {
       { path: '$.timing.endSec', code: 'timing_end_before_beats' },
     ],
     [
+      'a track past the hard length cap',
+      (spec) => (spec.timing.endSec = 170.5),
+      { path: '$.timing.endSec', code: 'timing_too_long' },
+    ],
+    [
       'a timed word outside its beat',
       (spec) => (at(at(spec.timing.beats, 0).words, 9).endSec = 4.5),
       { path: '$.timing.beats[0].words[9]', code: 'timing_word_outside_beat' },

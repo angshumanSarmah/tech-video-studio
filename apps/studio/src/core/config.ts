@@ -10,6 +10,7 @@ import {
   type SettingsInput,
   type TimingSettings,
   type TtsSettings,
+  type VideoSettings,
 } from '@explainer-studio/shared';
 import { z } from 'zod';
 import { findWorkspaceRoot } from './workspace-root.ts';
@@ -34,6 +35,8 @@ export interface AppConfig {
   /** Narration pauses (gap, landing hold, tail); a run's `settings.timing` overrides them. */
   readonly timing: TimingSettings;
   readonly render: RenderSettings;
+  /** Length, parts and pace for agent prompts; a run's `settings.video` overrides them. */
+  readonly video: VideoSettings;
 }
 
 type RawEnv = Record<string, string | undefined>;
@@ -88,6 +91,7 @@ export function resolveConfig(env: Env, settings: Settings, workspaceRoot: strin
     tts: { ...settings.tts, binaryPath: resolveFromRoot(workspaceRoot, settings.tts.binaryPath) },
     timing: settings.timing,
     render: settings.render,
+    video: settings.video,
   };
 }
 

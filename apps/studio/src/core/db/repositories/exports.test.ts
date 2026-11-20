@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { llmCalls, series } from '../schema.ts';
 import { createTestDb, type TestDb } from '../testing.ts';
-import { listRunExports, recordExport, runCostUsd } from './exports.ts';
+import { listRunExports, recordExport } from './exports.ts';
 import { createRun } from './runs.ts';
 import { createTopic } from './topics.ts';
 
@@ -38,16 +38,6 @@ const input = (mp4Path = 'exports/1/a.mp4') => ({
   srtPath: mp4Path.replace(/mp4$/, 'srt'),
   durationMs: 61_000,
   title: 'How a rate limiter works',
-});
-
-describe('runCostUsd', () => {
-  it("sums the run's LLM calls only (0 without any)", () => {
-    expect(runCostUsd(t.db, runId)).toBe(0);
-    addCall(runId, 0.25);
-    addCall(runId, 0.5);
-    addCall(null, 3);
-    expect(runCostUsd(t.db, runId)).toBeCloseTo(0.75);
-  });
 });
 
 describe('recordExport', () => {

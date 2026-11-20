@@ -125,6 +125,11 @@ export const LlmSettingsSchema = z
     /** Optional so the Settings UI can set it; DEEPSEEK_API_KEY in .env takes precedence. */
     apiKey: z.string().trim().min(1).optional(),
     models: ModelMapSchema.prefault({}),
+    /**
+     * Per HTTP request. Generous because the Director's reasoning model can think for minutes
+     * before a long JSON answer; 429/5xx retries each get their own timeout.
+     */
+    requestTimeoutSec: z.number().int().min(10).max(1800).default(300),
     prices: PriceTableSchema.default(defaultPriceTable),
   })
   .superRefine((llm, ctx) => {

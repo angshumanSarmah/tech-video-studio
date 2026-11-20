@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { PauseSecSchema, TtsSpeedSchema } from '../config/settings.ts';
+import { VideoLengthSecSchema, VideoSettingsOverrideSchema } from '../config/video.ts';
 
 /** Pipeline stages, in execution order. Exhaustive. */
 export const STAGES = [
@@ -50,8 +51,6 @@ export const SPEC_AUTHORS = ['agent', 'user', 'external'] as const;
 export const SpecAuthorSchema = z.enum(SPEC_AUTHORS);
 export type SpecAuthor = z.infer<typeof SpecAuthorSchema>;
 
-export const SHORT_LENGTH_SEC = { min: 45, max: 90 } as const;
-
 const autoApprove = (): z.ZodDefault<z.ZodBoolean> => z.boolean().default(false);
 
 /** Keys must match GATE_IDS (checked by test). */
@@ -65,13 +64,11 @@ export const AutoApproveSchema = z.strictObject({
 /** Per-run settings, stored as JSON on the run row. */
 export const RunSettingsSchema = z.strictObject({
   autoApprove: AutoApproveSchema.prefault({}),
-  /** Target length in seconds; omitted means the Director decides within 45–90 s. */
-  lengthOverrideSec: z
-    .number()
-    .int()
-    .min(SHORT_LENGTH_SEC.min)
-    .max(SHORT_LENGTH_SEC.max)
-    .optional(),
+  /**
+   * Target length in seconds, within the hard limits; omitted means the Director decides within
+   * the configured range (`settings.video`).
+   */
+  lengthOverrideSec: VideoLengthSecSchema.optional(),
   /** Per-run TTS overrides; anything omitted falls back to the app's `settings.tts`. */
   tts: z.strictObject({ speed: TtsSpeedSchema.optional() }).optional(),
   /** Per-run pause overrides (`TimingSettingsSchema`); omitted fields use the app's. */
@@ -82,6 +79,8 @@ export const RunSettingsSchema = z.strictObject({
       endTailSec: PauseSecSchema.optional(),
     })
     .optional(),
+  /** Per-run length, parts and pace overrides (`VideoSettingsSchema`); omitted fields use the app's. */
+  video: VideoSettingsOverrideSchema.optional(),
 });
 export type RunSettings = z.infer<typeof RunSettingsSchema>;
 export type RunSettingsInput = z.input<typeof RunSettingsSchema>;

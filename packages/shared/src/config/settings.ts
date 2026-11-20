@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { END_TAIL_SEC } from '../spec/effective-timing.ts';
 import { LlmSettingsSchema } from './llm.ts';
+import { VideoSettingsSchema } from './video.ts';
 
 /** Kokoro's speed multiplier (1 = the voice's natural pace). */
 export const TtsSpeedSchema = z.number().min(0.5).max(2);
@@ -77,6 +78,8 @@ export const SettingsSchema = z.strictObject({
   tts: TtsSettingsSchema.prefault({}),
   timing: TimingSettingsSchema.prefault({}),
   render: RenderSettingsSchema.prefault({}),
+  /** Length, parts and pace: the values agent prompts are filled with. */
+  video: VideoSettingsSchema.prefault({}),
 });
 
 /** Validated settings with defaults applied. */

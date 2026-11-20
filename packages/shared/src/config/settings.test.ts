@@ -73,3 +73,27 @@ describe('SettingsSchema validation', () => {
     expect(paths({ tts: { voice: ' ', speed: 3 } })).toEqual(['tts.voice', 'tts.speed']);
   });
 });
+
+describe('SettingsSchema video', () => {
+  it('defaults length, parts and pace to the prompt defaults', () => {
+    expect(SettingsSchema.parse({}).video).toEqual({
+      lengthMinSec: 45,
+      lengthMaxSec: 150,
+      lengthReasonAboveSec: 90,
+      allowParts: true,
+      maxParts: 4,
+      wordsPerSec: 2.7,
+    });
+  });
+
+  it.each([
+    [{ lengthMaxSec: 171 }, 'video.lengthMaxSec'],
+    [{ lengthMinSec: 14 }, 'video.lengthMinSec'],
+    [{ lengthMinSec: 100 }, 'video.lengthReasonAboveSec'],
+    [{ lengthMaxSec: 80 }, 'video.lengthMaxSec'],
+  ])('rejects %j', (video, path) => {
+    const result = SettingsSchema.safeParse({ video });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.map((i) => i.path.join('.'))).toContain(path);
+  });
+});

@@ -1,6 +1,7 @@
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import type { Db, Executor } from '../client.ts';
-import { exports, llmCalls } from '../schema.ts';
+import { exports } from '../schema.ts';
+import { runCostUsd } from './llm-calls.ts';
 
 export type ExportRow = typeof exports.$inferSelect;
 
@@ -12,16 +13,6 @@ export interface NewExport {
   readonly srtPath: string;
   readonly durationMs: number;
   readonly title: string | null;
-}
-
-/** What the run's LLM calls cost so far, in USD. */
-export function runCostUsd(db: Executor, runId: number): number {
-  const row = db
-    .select({ total: sql<number>`coalesce(sum(${llmCalls.costUsd}), 0)` })
-    .from(llmCalls)
-    .where(eq(llmCalls.runId, runId))
-    .get();
-  return row?.total ?? 0;
 }
 
 /**

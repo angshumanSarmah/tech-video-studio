@@ -26,6 +26,7 @@ export const SPEC_ERROR_CODES = [
   'timing_word_count',
   'timing_word_outside_beat',
   'timing_end_before_beats',
+  'timing_too_long',
 ] as const;
 export type SpecErrorCode = (typeof SPEC_ERROR_CODES)[number];
 

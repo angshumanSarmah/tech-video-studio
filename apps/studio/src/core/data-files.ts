@@ -91,6 +91,22 @@ export function ttsVoiceSamplesDir(): string {
   return posix.join('tts', 'voice-samples');
 }
 
+/**
+ * One LLM call's prompt and response files (`llm_calls.prompt_path` / `response_path`): under
+ * the run, or under `llm/` for calls outside a run. `callKey` is unique per call (time + random),
+ * so retries and reruns never overwrite an earlier call's files.
+ */
+export function llmCallPaths(
+  runId: number | null,
+  callKey: string,
+): { readonly prompt: string; readonly response: string } {
+  const dir = runId === null ? 'llm' : posix.join(runDir(runId), 'llm');
+  return {
+    prompt: posix.join(dir, `${callKey}.prompt.json`),
+    response: posix.join(dir, `${callKey}.response.json`),
+  };
+}
+
 /** Extracted source text is content-addressed so re-fetching never overwrites an older version. */
 export function sourceTextPath(topicId: number, sourceId: number, contentHash: string): string {
   return posix.join('topics', String(topicId), 'sources', String(sourceId), `${contentHash}.txt`);

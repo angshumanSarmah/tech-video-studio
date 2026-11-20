@@ -4,8 +4,9 @@ coverage
 data
 pnpm-lock.yaml
 
-# Author-maintained design doc
+# Author-maintained design doc, and the agent prompts copied verbatim from it (a test compares them)
 Tech Explainer Studio Design and Claude Code Prompts.md
+apps/studio/src/worker/agents/prompts/*.md
 
 # Generated (compared byte-for-byte by a test)
 apps/studio/src/web/theme.generated.css

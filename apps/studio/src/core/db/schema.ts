@@ -25,6 +25,7 @@ import {
   STEP_STATUSES,
   USAGE_KINDS,
   type EventBody,
+  type NormalizerFix,
   type RunSettings,
 } from '@explainer-studio/shared';
 import { sql } from 'drizzle-orm';
@@ -239,15 +240,27 @@ export const llmCalls = sqliteTable(
     runId: integer('run_id').references(() => runs.id, { onDelete: 'cascade' }),
     stepId: integer('step_id').references(() => runSteps.id, { onDelete: 'set null' }),
     role: text('role', { enum: MODEL_ROLES }).notNull(),
-    /** Prompt template id and version, e.g. `director@v3`. */
+    /** The role prompt's id and version, e.g. `director@v3`. */
     promptVersion: text('prompt_version').notNull(),
+    /** The shared preamble's version, e.g. `preamble@v1`; null for a prompt without one. */
+    preambleVersion: text('preamble_version'),
+    /** 0 for the first call, then 1, 2… for repair retries of the same output. */
+    attempt: integer('attempt').notNull().default(0),
+    /** Fixes the normalizer applied to this response (`NormalizerFix[]`). */
+    normalizerFixes: text('normalizer_fixes', { mode: 'json' })
+      .$type<NormalizerFix[]>()
+      .notNull()
+      .default(sql`'[]'`),
     /** Model id requested (may be an alias). */
     model: text('model').notNull(),
     /** Model version reported by the API response. */
     servedModel: text('served_model'),
     tokensInCached: integer('tokens_in_cached').notNull().default(0),
     tokensInUncached: integer('tokens_in_uncached').notNull().default(0),
+    /** Completion tokens, reasoning included (billed as output). */
     tokensOut: integer('tokens_out').notNull().default(0),
+    /** The reasoning share of `tokens_out`, when the API reports it. */
+    tokensReasoning: integer('tokens_reasoning').notNull().default(0),
     costUsd: real('cost_usd').notNull().default(0),
     promptPath: text('prompt_path').notNull(),
     responsePath: text('response_path'),

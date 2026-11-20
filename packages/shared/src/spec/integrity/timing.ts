@@ -1,3 +1,4 @@
+import { VIDEO_LENGTH_LIMITS_SEC } from '../../config/video.ts';
 import { narrationWords } from '../narration.ts';
 import type { VideoSpec } from '../shape.ts';
 import type { BeatTiming, TimingLayer } from '../timing.ts';
@@ -11,6 +12,7 @@ export function checkTiming(spec: VideoSpec): SpecIssue[] {
     ...checkBeatCoverage(spec, timing.beats, ['timing', 'beats']),
     ...checkBeatSpans(timing.beats),
     ...checkTrackEnd(timing),
+    ...checkTrackLength(timing),
     ...timing.beats.flatMap((beat, i) => checkWords(spec, beat, i)),
     ...checkEventRefs(spec, timing),
   ];
@@ -40,6 +42,19 @@ function checkTrackEnd(timing: TimingLayer): SpecIssue[] {
       path: ['timing', 'endSec'],
       code: 'timing_end_before_beats',
       message: `The track ends at ${timing.endSec}s, before beat "${last.beatId}" ends (${last.endSec}s).`,
+    },
+  ];
+}
+
+/** The timed video stays within the hard length cap (prompts only state the configured range). */
+function checkTrackLength(timing: TimingLayer): SpecIssue[] {
+  const end = timing.endSec ?? timing.beats.at(-1)?.endSec ?? 0;
+  if (end <= VIDEO_LENGTH_LIMITS_SEC.max) return [];
+  return [
+    {
+      path: ['timing', timing.endSec === undefined ? 'beats' : 'endSec'],
+      code: 'timing_too_long',
+      message: `The video runs ${end}s; the hard cap is ${VIDEO_LENGTH_LIMITS_SEC.max}s. Shorten the narration or split the topic into parts.`,
     },
   ];
 }

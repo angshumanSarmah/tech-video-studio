@@ -117,23 +117,22 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       ffmpeg through `RenderInternals.callFf` (internal API). After a Remotion upgrade, run
       `bench:render`: it checks `ffmpeg -version` through the adapter first. The bundled build is
       trimmed (no `ametadata`, for example); check a filter exists before relying on it.
-- [ ] **Worker — Retries and backoff.** A handler error fails the job at once; `attempts` only
-      counts hard crashes. Add per-handler retry with `run_after` backoff when a stage needs it
-      (e.g. transient LLM or fetch errors).
 - [ ] **Worker — More than one worker.** Stale-lock recovery assumes a single worker (every
       `running` job is stale at startup). A second worker needs a lease (`locked_at` heartbeat +
       timeout) instead.
 - [ ] **P1D.2 — List pagination.** `GET /api/runs` and `GET /api/topics` return everything
       (newest first) wrapped as `{ items }`. Add cursor pagination once lists grow.
-- [ ] **P0.2 / P1C.1 — Missing API key.** `DEEPSEEK_API_KEY` is optional at boot so `pnpm dev`
-      works without a key. The LLM client must fail fast with a clear error when the key is
-      missing.
+- [ ] **P1C.1 — Prompt cache and run overrides.** The prompt variables sit in the preamble's
+      first sentence, so a run that overrides length, parts or pace changes the system
+      message from its first tokens and misses the provider's prefix cache for that run. Cheap
+      while overrides are rare; if they become common, move the filled values into a short
+      block after the static sections.
+- [ ] **P1C.3 — Wire the LLM client.** `createLlmClient` (with `createLlmTransport(config.llm)`)
+      and `loadPromptTemplates(<root>/PROMPTS_DIR)` are not in `WorkerDeps` yet; add them with
+      the first agent, and a dry-run switch for the P1C.9 end-to-end test.
 - [ ] **P1C.1 — Off-peak holidays.** DeepSeek treats Chinese public holidays as off-peak in full;
       the price table only models weekday peak windows, so cost is slightly overestimated on
       those days. Add a holiday list only if the difference matters.
-- [ ] **P1C.1 — Model alias drift.** `deepseek-flash` is an alias (currently
-      DeepSeek-V4.1-Flash-1017). Record the served model version from each API response in
-      `llm_calls` so output changes can be traced to a model swap.
 - [ ] **P1D.8 — Settings API.** Never return `llm.apiKey` to the browser; mask it in the GET
       response and treat a masked value in PUT as "unchanged". Show when `DEEPSEEK_API_KEY` in
       `.env` overrides the stored key. Save via `saveConfig()` from `#core/config.ts`, passing

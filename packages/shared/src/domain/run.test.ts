@@ -26,7 +26,7 @@ describe('RunSettingsSchema', () => {
     expect(settings.lengthOverrideSec).toBe(60);
   });
 
-  it.each([44, 91, 60.5])('rejects length override %s', (lengthOverrideSec) => {
+  it.each([14, 171, 60.5])('rejects length override %s', (lengthOverrideSec) => {
     expect(RunSettingsSchema.safeParse({ lengthOverrideSec }).success).toBe(false);
   });
 
