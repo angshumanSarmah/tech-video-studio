@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { MAX_RETRY_AFTER_MS } from '../http/retry.ts';
 import {
   completion,
   completionBody,
@@ -12,8 +13,6 @@ import {
   LlmConfigError,
   LlmRequestError,
   LlmTimeoutError,
-  MAX_RETRY_AFTER_MS,
-  retryDelayMs,
 } from './transport.ts';
 import type { TransportRequest } from './types.ts';
 
@@ -159,15 +158,6 @@ describe('httpTransport retries', () => {
     ]);
     await expect(transport(fetch).t.send(request)).rejects.toThrow(/Retry-After too long/);
     expect(requests).toHaveLength(1);
-  });
-
-  it('computes delays from Retry-After or backoff', () => {
-    const now = Date.parse('2026-11-20T10:00:00Z');
-    expect(retryDelayMs(null, 0, now)).toBe(1_000);
-    expect(retryDelayMs(null, 1, now)).toBe(2_000);
-    expect(retryDelayMs('0', 1, now)).toBe(0);
-    expect(retryDelayMs('Fri, 20 Nov 2026 09:00:00 GMT', 0, now)).toBe(0);
-    expect(retryDelayMs('soon', 0, now)).toBe(1_000);
   });
 
   it('redacts the key if a server echoes it', async () => {

@@ -18,6 +18,7 @@ import {
   MEMORY_RULE_STATUSES,
   MODEL_ROLES,
   RUN_STATUSES,
+  SOURCE_FAILURE_CODES,
   SOURCE_KINDS,
   SOURCE_STATUSES,
   SPEC_AUTHORS,
@@ -120,7 +121,12 @@ export const sources = sqliteTable(
     textPath: text('text_path'),
     /** sha256 (hex) of the latest extracted text. */
     contentHash: text('content_hash'),
+    /** Page or document title (HTML title, PDF title, first heading, else the file name). */
+    title: text('title'),
+    /** Why the latest ingestion failed, written for the user (what to do instead). */
     error: text('error'),
+    errorCode: text('error_code', { enum: SOURCE_FAILURE_CODES }),
+    /** When the latest text was fetched (URL) or read (file): the source's "as of" date. */
     extractedAt: timestamp('extracted_at'),
     createdAt: createdAt(),
   },

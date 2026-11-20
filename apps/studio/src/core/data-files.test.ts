@@ -18,6 +18,8 @@ import {
   runDir,
   runBeatsDir,
   runDraftPath,
+  sourceChunksPath,
+  sourceUploadPath,
   runLogosDir,
   sourceTextPath,
   specVersionPath,
@@ -57,6 +59,17 @@ describe('data file paths', () => {
     expect(ttsVoiceSamplesDir()).toBe('tts/voice-samples');
     expect(narrationTrackPath(4, 'abcdef0123456789ffff')).toBe(
       'runs/4/audio/narration-abcdef0123456789.wav',
+    );
+  });
+
+  it('builds source paths: chunks next to their text, uploads by file hash', () => {
+    const hash = 'ab'.repeat(32);
+    expect(sourceChunksPath(3, 9, hash)).toBe(`topics/3/sources/9/${hash}.chunks.json`);
+    expect(sourceUploadPath(3, hash, 'Field notes (v2).pdf')).toBe(
+      'topics/3/uploads/abababababababab/Field_notes_v2_.pdf',
+    );
+    expect(sourceUploadPath(3, hash, '..\\..\\evil/../x.md')).toBe(
+      'topics/3/uploads/abababababababab/x.md',
     );
   });
 

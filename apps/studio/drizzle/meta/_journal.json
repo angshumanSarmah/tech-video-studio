@@ -15,6 +15,13 @@
       "when": 1795167876421,
       "tag": "0001_llm_call_details",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1795170321573,
+      "tag": "0002_source_title_error_code",
+      "breakpoints": true
     }
   ]
 }

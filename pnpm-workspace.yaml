@@ -28,6 +28,10 @@ catalog:
   lucide: ^1.74.0
   # house SVG parser for asset files (renderer catalog; reused by the P1C.12 sanitizer)
   fast-xml-parser: ^5.9.3
+  # source ingestion (P1C.2): article extraction on jsdom, PDF text via pdf.js
+  '@mozilla/readability': ^0.6.0
+  unpdf: ^2.2.1
+  '@types/jsdom': ^30.0.0
   # fonts: subsetting script + glyph coverage test (fontkit 3 is younger than minimumReleaseAge)
   subset-font: ^2.9.0
   fontkit: ^2.0.4

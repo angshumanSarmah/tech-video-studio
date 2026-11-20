@@ -179,6 +179,9 @@ catalogs:
     '@hono/node-server':
       specifier: ^2.1.9
       version: 2.1.9
+    '@mozilla/readability':
+      specifier: ^0.6.0
+      version: 0.6.0
     '@remotion/bundler':
       specifier: 4.0.540
       version: 4.0.540
@@ -200,6 +203,9 @@ catalogs:
     '@types/fontkit':
       specifier: ^2.0.9
       version: 2.0.9
+    '@types/jsdom':
+      specifier: ^30.0.0
+      version: 30.0.0
     '@types/node':
       specifier: ^24.19.2
       version: 24.19.2
@@ -290,6 +296,9 @@ catalogs:
     typescript-eslint:
       specifier: ^8.73.0
       version: 8.73.0
+    unpdf:
+      specifier: ^2.2.1
+      version: 2.2.1
     vite:
       specifier: ^8.3.8
       version: 8.3.8
@@ -355,6 +364,9 @@ importers:
       '@hono/node-server':
         specifier: 'catalog:'
         version: 2.1.9(hono@4.13.19)
+      '@mozilla/readability':
+        specifier: 'catalog:'
+        version: 0.6.0
       '@remotion/bundler':
         specifier: 'catalog:'
         version: 4.0.540(@swc/helpers@0.5.24)(lightningcss@1.33.0)(postcss@8.5.33)(react-dom@19.2.9(react@19.2.9))(react@19.2.9)
@@ -373,9 +385,15 @@ importers:
       hono:
         specifier: 'catalog:'
         version: 4.13.19
+      jsdom:
+        specifier: 'catalog:'
+        version: 31.0.1
       pinia:
         specifier: 'catalog:'
         version: 4.1.0(@vue/devtools-api@8.2.1)(typescript@6.0.3)(vue@3.5.45(typescript@6.0.3))
+      unpdf:
+        specifier: 'catalog:'
+        version: 2.2.1
       vue:
         specifier: 'catalog:'
         version: 3.5.45(typescript@6.0.3)
@@ -392,6 +410,9 @@ importers:
       '@types/better-sqlite3':
         specifier: 'catalog:'
         version: 9.6.0
+      '@types/jsdom':
+        specifier: 'catalog:'
+        version: 30.0.0
       '@types/node':
         specifier: 'catalog:'
         version: 24.19.2
@@ -407,9 +428,6 @@ importers:
       drizzle-kit:
         specifier: 'catalog:'
         version: 0.31.11
-      jsdom:
-        specifier: 'catalog:'
-        version: 31.0.1
       tailwindcss:
         specifier: 'catalog:'
         version: 4.3.5
@@ -1362,6 +1380,10 @@ packages:
     peerDependencies:
       mediabunny: ^1.0.0
 
+  '@mozilla/readability@0.6.0':
+    resolution: {integrity: sha512-juG5VWh4qAivzTAeMzvY9xs9HY5rAcr2E4I7tiSSCokRFi7XIZCAu92ZkSTsIj1OPceCifL3cpfteP3pDT9/QQ==}
+    engines: {node: '>=14.0.0'}
+
   '@napi-rs/wasm-runtime@1.1.6':
     resolution: {integrity: sha512-ZLv/JdUfkvOy9eCnnBaGfiO+XimbjebAeO+MRQqD/B+FR1tnRN0tpKSJHRbE8sFfS6aqsXZ67TQjfwfsxULVbg==}
     peerDependencies:
@@ -2078,6 +2100,9 @@ packages:
   '@types/fontkit@2.0.9':
     resolution: {integrity: sha512-qNYerFky3muCmZPq+R+B3cUDRA5OONw/oh6aGGFxx2LOBz6yu8eamKusrhkHnC6rc2fm76+G9z9QoWSB2SaQaw==}
 
+  '@types/jsdom@30.0.0':
+    resolution: {integrity: sha512-uAHGxujGE0cDaKGdK28zgDotFtNA7MKq5DXl8LrfdxdCI8VHcg15oJz+amHTChPNI5JpgEPQWc2xFdrw3em/nQ==}
+
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
 
@@ -2091,6 +2116,9 @@ packages:
 
   '@types/react@19.3.0':
     resolution: {integrity: sha512-N0rFCuH9YoxG9/m61l9MfpJKfmLOVU0em7ipIz6TRgSSkvReLB9vL85GB+yr8Bs5leqpvg96JSwF4ZS1s4viQg==}
+
+  '@types/tough-cookie@4.0.5':
+    resolution: {integrity: sha512-/Ad8+nIOV7Rl++6f1BdKxFSMgmoqEoYbHRpPcx3JEfv8VRsQe9Z4mCXeJBzxs7mbHY/XOZZuXlRNfhpVPbs6ZA==}
 
   '@typescript-eslint/eslint-plugin@8.73.0':
     resolution: {integrity: sha512-UkygMFer53Yzn29MCYFTHf34hGXf5KJhiDWfIm1tXtXRrym1CS6l5H9Y3yCtPWChpC0/f93H88gdj8tN0dd4kw==}
@@ -3847,6 +3875,9 @@ packages:
   undici-types@7.24.6:
     resolution: {integrity: sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg==}
 
+  undici-types@8.12.4:
+    resolution: {integrity: sha512-GNCQH3MbVGB8OAVAoTiLH8pu4wx5Ni3DWKpnBzGj3WDsi8EwmK0aOVBooNEt+g5YL1eHPxcS9XUTouwFU6j1kQ==}
+
   undici@8.12.4:
     resolution: {integrity: sha512-8Mx+uNKKER2bA4AdtedkqRbwUCIJFr2nJckXRe5yrDqzePqwLP7VNcctN8/XdmDSbF7mS+jJKIszlL+vbam1VA==}
     engines: {node: '>=22.19.0'}
@@ -3856,6 +3887,18 @@ packages:
 
   unicode-trie@2.0.0:
     resolution: {integrity: sha512-x7bc76x0bm4prf1VLg79uhAzKw8DVboClSN5VxJuQ+LKDOVEW9CdH+VY7SP+vX7xCYQqzzgQpFqz15zeLvAtZQ==}
+
+  unpdf@2.2.1:
+    resolution: {integrity: sha512-tstQpe/fhxkDGY1ZtpejwnU14QZ9w0SYLo9lIZooB1zQ7QXVE4t+SBQUN/2a9+EBg9UrrO2bWlqdzV+UtoebHw==}
+    engines: {node: '>=24'}
+    peerDependencies:
+      '@napi-rs/canvas': ^0.1.69 || ^1.0.0
+      pdfjs-dist: '*'
+    peerDependenciesMeta:
+      '@napi-rs/canvas':
+        optional: true
+      pdfjs-dist:
+        optional: true
 
   unplugin-utils@0.3.2:
     resolution: {integrity: sha512-xVToRh2CTmLk2HnEG7ac4rl1MJTT3RFkpS8B++/SnB0kXvuaavD+n3m/vrzyWQOdJNSZQACnbz01pnppbwV5BA==}
@@ -4743,6 +4786,8 @@ snapshots:
     dependencies:
       mediabunny: 1.64.0
 
+  '@mozilla/readability@0.6.0': {}
+
   '@napi-rs/wasm-runtime@1.1.6(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)':
     dependencies:
       '@emnapi/core': 1.11.3
@@ -5461,6 +5506,13 @@ snapshots:
     dependencies:
       '@types/node': 24.19.2
 
+  '@types/jsdom@30.0.0':
+    dependencies:
+      '@types/node': 24.19.2
+      '@types/tough-cookie': 4.0.5
+      parse5: 8.1.1
+      undici-types: 8.12.4
+
   '@types/json-schema@7.0.15': {}
 
   '@types/node@24.19.2':
@@ -5474,6 +5526,8 @@ snapshots:
   '@types/react@19.3.0':
     dependencies:
       csstype: 3.2.3
+
+  '@types/tough-cookie@4.0.5': {}
 
   '@typescript-eslint/eslint-plugin@8.73.0(@typescript-eslint/parser@8.73.0(eslint@10.15.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3))(eslint@10.15.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)':
     dependencies:
@@ -7219,6 +7273,8 @@ snapshots:
 
   undici-types@7.24.6: {}
 
+  undici-types@8.12.4: {}
+
   undici@8.12.4: {}
 
   unicode-properties@1.4.1:
@@ -7230,6 +7286,8 @@ snapshots:
     dependencies:
       pako: 0.2.9
       tiny-inflate: 1.0.3
+
+  unpdf@2.2.1: {}
 
   unplugin-utils@0.3.2:
     dependencies:

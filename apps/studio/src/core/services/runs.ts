@@ -7,10 +7,7 @@ import { getSeries } from '../db/repositories/series.ts';
 import { getTopic } from '../db/repositories/topics.ts';
 import { NotFoundError } from '../errors.ts';
 
-/**
- * Job type that starts a run's pipeline. Until its worker handler lands with ingestion (P1C), the
- * worker fails it (and the run) with `no handler for job type ingest`.
- */
+/** Job type that starts a run's pipeline: source ingestion (`#worker/jobs/ingest.ts`). */
 export const FIRST_RUN_JOB_TYPE = 'ingest' satisfies Stage;
 
 export interface StartRunInput {

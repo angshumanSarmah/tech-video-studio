@@ -112,6 +112,27 @@ export function sourceTextPath(topicId: number, sourceId: number, contentHash: s
   return posix.join('topics', String(topicId), 'sources', String(sourceId), `${contentHash}.txt`);
 }
 
+/** A source's chunks (`SourceChunksFileSchema`), next to the text version they were cut from. */
+export function sourceChunksPath(topicId: number, sourceId: number, contentHash: string): string {
+  return posix.join(
+    'topics',
+    String(topicId),
+    'sources',
+    String(sourceId),
+    `${contentHash}.chunks.json`,
+  );
+}
+
+/**
+ * An uploaded source file (`sources.file_path`), stored before its row exists (the row needs the
+ * path): under the topic, in a folder named by the file's hash, with its sanitised original name
+ * (the title falls back to it).
+ */
+export function sourceUploadPath(topicId: number, fileHash: string, fileName: string): string {
+  const safe = posix.basename(fileName.replaceAll('\\', '/')).replace(/[^\w.-]+/g, '_');
+  return posix.join('topics', String(topicId), 'uploads', fileHash.slice(0, 16), safe || 'file');
+}
+
 /** sha256 hex of UTF-8 text. */
 export function contentHash(text: string): string {
   return createHash('sha256').update(text, 'utf8').digest('hex');

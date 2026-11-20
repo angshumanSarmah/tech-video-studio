@@ -178,6 +178,45 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
 - **Handlers get dependencies** through `createJobHandlers({ db, dataDir, tools })`
   (`jobs/registry.ts`); `JobContext` carries only the job, payload, progress, log and signal.
 
+### Source ingestion (`src/worker/ingest`, job in `jobs/ingest.ts`)
+
+- **`ingest` job** (the run's first job, payload `{}`): extracts every source of the run's topic
+  that is `pending` or `failed`, one at a time; `extracted` ones are reused, never re-fetched
+  (re-fetching is the explicit retry, P1D.2). A source that fails gets `status: failed`, `error`
+  (what happened and what to do, e.g. "HTTP 403: the site blocks automated access, so upload the
+  page as a file instead …") and `error_code` (`SOURCE_FAILURE_CODES`), plus a `warn` log event;
+  the job carries on. Then `recordRunSources` pins the extracted versions to the run
+  (`run_sources`): the set the Researcher reads. The job fails (and the run) only when no source
+  is usable, or the topic has none.
+- **Outputs** (content-addressed by the normalized text's sha256, written atomically, skipped when
+  present): `topics/<t>/sources/<s>/<hash>.txt` and `<hash>.chunks.json`
+  (`SourceChunksFileSchema`). The row gets `text_path`, `content_hash`, `title` and `extracted_at`
+  (the fetch date). Uploads live at `sourceUploadPath(topic, fileHash, name)`, written before the
+  row is inserted; only `.md`, `.txt` and `.pdf` are read.
+- **Fetching** (`fetch.ts`): http(s) only, the given URL only (redirects followed, nothing
+  crawled), `FETCH_TIMEOUT_MS` (20 s) per attempt including the body, `MAX_SOURCE_BYTES` (15 MB)
+  checked on Content-Length and while streaming. Timeouts, 429 and 5xx are retried up to 2 times
+  with the shared rules in `src/worker/http/retry.ts` (backoff 1 s, 2 s; Retry-After honoured up
+  to 60 s), the same ones the LLM transport uses. GitHub repo, `tree`, `blob` and `raw` URLs are
+  read as raw markdown (`github.ts`: README through the API, files from
+  raw.githubusercontent.com); other GitHub pages are HTML.
+- **Extraction** (`extract.ts`): format from PDF magic bytes, then content type, then file name,
+  then an HTML sniff. HTML: jsdom (no scripts, no subresources), then **`removeHiddenContent`**
+  (`hidden.ts`) drops what a browser would not show (`template`, `noscript`, `script`, `style`,
+  embeds, `[hidden]`, `aria-hidden="true"`, and `display: none` / `visibility: hidden|collapse` /
+  `content-visibility: hidden` from inline styles and the page's own `<style>` rules), so hidden
+  text never reaches the Researcher; then Readability and `domToText` (`#` headings, `- ` items,
+  `a | b` rows, fenced `pre`). Markdown is kept minus HTML comments (`markdown.ts`). PDF: the text
+  layer via `unpdf` (`pdf.ts`). Every format then goes through `normalizeText` (NFC, invisible
+  and control characters removed, whitespace canonical); under `MIN_TEXT_CHARS` (200) is `empty`.
+- **Chunks** (`chunk.ts`, pure): whole paragraphs packed to about 1,200 characters (max 2,000;
+  longer paragraphs split at sentence ends), a `#` heading never ends a chunk, a short tail joins
+  the chunk before. Ids are `source-<id>#chunk-<n>` from 1 (`sourceChunkId` in shared); each
+  chunk is `text.slice(start, end)`.
+- Tests use saved fixtures in `ingest/fixtures/` (an article with planted hidden instructions, a
+  README with HTML comments, and a PDF built by `fixtures/pdf-builder.ts`; all text invented) and
+  `ingest/testing.ts` (`fakeWeb`: a URL-routed fake `fetch` and a recording `sleep`).
+
 ### Render service (`src/worker/render`, jobs in `jobs/render.ts`)
 
 - **Jobs:** `render_beat_draft` (`{ specVersionId, beatId }`), `render_draft`, `render_final`,
@@ -281,7 +320,7 @@ stepId?, aliases?, check?, signal?, log? })`** is the only way to call a model (
   assistant + user turn, at most `MAX_REPAIR_ATTEMPTS` (2) times, then `LlmOutputInvalidError`.
 - **Transports:** `httpTransport` (`createLlmTransport(config.llm)`) posts to
   `<baseUrl>/chat/completions` in JSON mode. It retries 429/5xx up to 2 times (1 s, 2 s, or
-  `Retry-After` up to 60 s), separately from repairs. Each request times out after
+  `Retry-After` up to 60 s; `src/worker/http/retry.ts`), separately from repairs. Each request times out after
   `llm.requestTimeoutSec` (300) and honours the caller's `signal`. A missing key fails before
   any request. `dryRunTransport(fixtures)` / `loadDryRunFixtures(dir)` replay recorded responses
   per role, in order, and run through the same validation, logging and cost.

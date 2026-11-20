@@ -8,6 +8,10 @@ pnpm-lock.yaml
 Tech Explainer Studio Design and Claude Code Prompts.md
 apps/studio/src/worker/agents/prompts/*.md
 
+# Saved source-ingestion fixtures (read as fetched pages; keep byte-for-byte)
+apps/studio/src/worker/ingest/fixtures/*.html
+apps/studio/src/worker/ingest/fixtures/*.md
+
 # Generated (compared byte-for-byte by a test)
 apps/studio/src/web/theme.generated.css
 docs/catalogue.md
