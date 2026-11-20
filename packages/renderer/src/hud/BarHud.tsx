@@ -5,6 +5,7 @@ import { ChapterHeader } from './ChapterHeader.tsx';
 import { Headline } from './Headline.tsx';
 import { HeroMetricPill, StoryClock } from './HeroMetric.tsx';
 import { hudLayout } from './hud-layout.ts';
+import { barSlots } from './hud-slots.ts';
 import { StepTracker } from './StepTracker.tsx';
 import { TopBar } from './TopBar.tsx';
 import { useHudModel, type HudProps } from './use-hud-model.ts';
@@ -15,6 +16,10 @@ export function BarHud(props: HudProps) {
   const { frame, parts, chapters, chapter, cue, metric, clock, points, start, pinnedFrom } =
     useHudModel(props);
   const layout = useMemo(() => hudLayout(theme), [theme]);
+  const slots = useMemo(
+    () => barSlots(theme, spec, { seriesLabel, channelHandle }),
+    [theme, spec, seriesLabel, channelHandle],
+  );
   const row = { display: 'flex', alignItems: 'center', gap: theme.space.md } as const;
 
   return (
@@ -28,11 +33,18 @@ export function BarHud(props: HudProps) {
           accent={accent}
           channelHandle={channelHandle}
           from={start}
+          room={slots.topic}
         />
       ) : null}
       <div style={{ ...rectCss(layout.metaRow), ...row, justifyContent: 'space-between' }}>
         {parts.stepTracker && chapter ? (
-          <StepTracker theme={theme} chapters={chapters} current={chapter} accent={accent} />
+          <StepTracker
+            theme={theme}
+            chapters={chapters}
+            current={chapter}
+            accent={accent}
+            room={slots.stepText}
+          />
         ) : (
           <div />
         )}
@@ -42,7 +54,7 @@ export function BarHud(props: HudProps) {
       </div>
       <div style={{ ...rectCss(layout.chapterRow), ...row, justifyContent: 'space-between' }}>
         {parts.chapterHeader && chapter ? (
-          <ChapterHeader theme={theme} chapter={chapter} accent={accent} />
+          <ChapterHeader theme={theme} chapter={chapter} accent={accent} room={slots.chapter} />
         ) : (
           <div />
         )}
@@ -57,7 +69,13 @@ export function BarHud(props: HudProps) {
         ) : null}
       </div>
       {parts.headline && cue && frame < cue.to ? (
-        <Headline key={cue.beatId} theme={theme} rect={layout.headline} cue={cue} />
+        <Headline
+          key={cue.beatId}
+          theme={theme}
+          rect={layout.headline}
+          cue={cue}
+          room={slots.headline}
+        />
       ) : null}
     </AbsoluteFill>
   );

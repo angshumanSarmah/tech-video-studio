@@ -11,12 +11,9 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       `tag`s in a `pipeline` (the word, then the chunks stacked as stages, then the ids) and
       records the request in `story.missingPrimitiveRequests`. A real strip would draw the word
       with token boundaries over it and each id under its chunk, in one row.
-- [ ] **HUD — `text_truncated` for HUD text.** The chapter header, top bar topic, title block
-      (subject line and the card header's two-line title), step tracker, card viewport label and
-      the two-line headline cut text off with CSS (ellipsis or line clamp) and do not warn. Their
-      widths come from flexbox (the chapter header is `flex: 1` beside the hero metric), so first
-      move the HUD onto pure slot widths the components render at, then warn like
-      `clippedLines` (path at the chapter, `meta.title` or headline).
+- [ ] **HUD — Series cell in the card header.** The header variant's first bottom cell ellipsizes
+      the series label, which is run data (the `series` row), not spec text, so
+      `hudTextWarnings` does not check it. Check it when series are edited (Studio settings).
 - [ ] **Renderer — Text that spills past its box.** `command_bubble`, `tag`, `connector` labels,
       `conveyor_queue` items and others draw `nowrap` text without clipping, so text wider than
       the box overflows visibly instead of being cut. Hints size them from the average advance;

@@ -104,7 +104,7 @@ describe('chapterSpans', () => {
 
   it('heads a chapter with its question when it has one', () => {
     expect(chapters.map((c) => c.heading)).toEqual([
-      'Why did the API fall over?',
+      'Why did the API crash?',
       'Token bucket',
       'Why it holds',
     ]);

@@ -11,6 +11,7 @@ import { rectCss } from '../layers/rect-css.ts';
 import { textCss, withAlpha, type Theme } from '../theme/index.ts';
 import type { ChapterSpan } from './hud-state.ts';
 import { enterProgress, enterStyle } from './motion.ts';
+import type { TitleBlockSlots } from './hud-slots.ts';
 import { ellipsis } from './styles.ts';
 import {
   REVISION_LABEL,
@@ -37,6 +38,8 @@ export type TitleBlockProps = {
   sheet: TitleBlockSheet | null;
   /** First beat start (frame): the block slides in. */
   from: number;
+  /** Widths the subject line and the title are cut at (`titleBlockSlots`). */
+  slots: Pick<TitleBlockSlots, 'subject' | 'title'>;
 };
 
 /**
@@ -76,7 +79,7 @@ export function TitleBlock(props: TitleBlockProps) {
       ) : null}
       <TopCell theme={theme} height={layout.topHeight} draw={live}>
         {variant === 'header' ? (
-          <TitleText theme={theme} text={title} />
+          <TitleText theme={theme} text={title} room={props.slots.title} />
         ) : (
           <SubjectText {...props} />
         )}
@@ -133,7 +136,7 @@ function TopCell({ theme, height, draw, children }: TopCellProps) {
 }
 
 /** The header's title: display type, up to `TITLE_LINES` lines. */
-function TitleText({ theme, text }: { theme: Theme; text: string }) {
+function TitleText({ theme, text, room }: { theme: Theme; text: string; room: number }) {
   return (
     <div
       style={{
@@ -143,6 +146,7 @@ function TitleText({ theme, text }: { theme: Theme; text: string }) {
         WebkitLineClamp: TITLE_LINES,
         WebkitBoxOrient: 'vertical',
         overflow: 'hidden',
+        maxWidth: room,
       }}
     >
       {text}
@@ -151,9 +155,10 @@ function TitleText({ theme, text }: { theme: Theme; text: string }) {
 }
 
 /** The strip's "SERIES · TOPIC" line, truncated when it does not fit. */
-function SubjectText({ theme, seriesLabel, title, accent }: TitleBlockProps) {
+function SubjectText({ theme, seriesLabel, title, accent, slots }: TitleBlockProps) {
+  const style = { ...textCss(theme, 'hud'), ...ellipsis, flex: 'none', maxWidth: slots.subject };
   return (
-    <div style={{ ...textCss(theme, 'hud'), ...ellipsis, color: theme.colours.ink.primary }}>
+    <div style={{ ...style, color: theme.colours.ink.primary }}>
       <span style={{ color: accent }}>{seriesLabel}</span>
       <span style={{ color: theme.colours.ink.faint }}> · </span>
       {title}

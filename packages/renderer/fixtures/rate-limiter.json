@@ -21,7 +21,7 @@
       }
     },
     "chapters": [
-      { "id": "flood", "title": "The flood", "question": "Why did the API fall over?" },
+      { "id": "flood", "title": "The flood", "question": "Why did the API crash?" },
       { "id": "bucket", "title": "Token bucket" },
       { "id": "payoff", "title": "Why it holds" }
     ],

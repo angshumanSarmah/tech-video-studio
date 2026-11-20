@@ -33,6 +33,12 @@ export type FontMetricsTable = Record<string, FaceMetrics>;
 
 const METRICS: FontMetricsTable = metricsJson;
 
+export type MeasureOptions = {
+  /** Override the style's case transform (e.g. a handle drawn with `textTransform: none`). */
+  uppercase?: boolean;
+  metrics?: FontMetricsTable;
+};
+
 /**
  * Width in px of `text` on one line in a text style: the case transform, each glyph's advance
  * from the first face of the style's stack that has it (the role, then its bundled fallbacks;
@@ -42,10 +48,10 @@ export function textWidth(
   theme: Theme,
   style: TextStyleName,
   text: string,
-  metrics: FontMetricsTable = METRICS,
+  { uppercase, metrics = METRICS }: MeasureOptions = {},
 ): number {
   const s = theme.text[style];
-  const shown = [...(s.uppercase ? text.toUpperCase() : text)];
+  const shown = [...((uppercase ?? s.uppercase) ? text.toUpperCase() : text)];
   const faces = stackFaces(theme, style, metrics);
   const fallbackEm = theme.fonts[s.font].advanceEm;
   const em = shown.reduce((sum, ch) => sum + (glyphEm(faces, ch) ?? fallbackEm), 0);
@@ -78,4 +84,53 @@ function glyphEm(faces: readonly FaceMetrics[], ch: string): number | undefined 
 
 function covers(face: FaceMetrics, codePoint: number): boolean {
   return face.ranges.some(([from = 0, to = -1]) => codePoint >= from && codePoint <= to);
+}
+
+export type Wrapped = {
+  /** Lines a greedy wrap at spaces needs (like CSS `white-space: normal`). */
+  lines: number;
+  /** A single word is wider than the line, so it would be clipped whatever the line count. */
+  overflows: boolean;
+};
+
+/**
+ * How `text` wraps into lines of `width` px in a text style: greedy at spaces, measured with
+ * `textWidth`. CSS may also break after a hyphen, so this never counts fewer lines than the
+ * browser does.
+ */
+export function wrapText(
+  theme: Theme,
+  style: TextStyleName,
+  text: string,
+  width: number,
+  options: MeasureOptions = {},
+): Wrapped {
+  const words = text.split(' ').filter((w) => w.length > 0);
+  const fits = (line: string) => textWidth(theme, style, line, options) <= width + FIT_EPSILON_PX;
+  let lines = words.length > 0 ? 1 : 0;
+  let line = '';
+  for (const word of words) {
+    const next = line ? `${line} ${word}` : word;
+    if (line && !fits(next)) {
+      lines += 1;
+      line = word;
+    } else {
+      line = next;
+    }
+  }
+  return { lines, overflows: words.some((w) => !fits(w)) };
+}
+
+/** Sub-pixel slack for float noise when comparing a measured width with a room. */
+export const FIT_EPSILON_PX = 0.5;
+
+/** Whether one line of `text` fits in `room` px. */
+export function fitsLine(
+  theme: Theme,
+  style: TextStyleName,
+  text: string,
+  room: number,
+  options: MeasureOptions = {},
+): boolean {
+  return textWidth(theme, style, text, options) <= room + FIT_EPSILON_PX;
 }

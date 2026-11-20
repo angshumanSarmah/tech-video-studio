@@ -9,7 +9,7 @@ import {
   type TextStyleName,
   type Theme,
 } from '../theme/index.ts';
-import { textWidth, type FontMetricsTable } from './measure-text.ts';
+import { textWidth, wrapText, type FontMetricsTable } from './measure-text.ts';
 
 const publicDir = fileURLToPath(new URL('../../public/', import.meta.url));
 
@@ -68,8 +68,31 @@ describe('textWidth', () => {
       ),
     );
     const { size } = theme.text.footnote;
-    expect(textWidth(theme, 'footnote', 'ab', empty)).toBeCloseTo(
+    expect(textWidth(theme, 'footnote', 'ab', { metrics: empty })).toBeCloseTo(
       2 * theme.fonts.sans.advanceEm * size,
     );
+  });
+});
+
+describe('wrapText', () => {
+  const theme = getTheme('drafting-paper');
+  const word = (n: number) => 'x'.repeat(n);
+
+  it('breaks greedily at spaces, like CSS', () => {
+    const width = textWidth(theme, 'data', word(10));
+    expect(wrapText(theme, 'data', `${word(4)} ${word(5)}`, width)).toEqual({
+      lines: 1,
+      overflows: false,
+    });
+    expect(wrapText(theme, 'data', `${word(4)} ${word(5)} ${word(3)}`, width).lines).toBe(2);
+    expect(wrapText(theme, 'data', '', width).lines).toBe(0);
+  });
+
+  it('flags a word wider than the line', () => {
+    const width = textWidth(theme, 'data', word(10));
+    expect(wrapText(theme, 'data', `${word(3)} ${word(11)}`, width)).toEqual({
+      lines: 2,
+      overflows: true,
+    });
   });
 });

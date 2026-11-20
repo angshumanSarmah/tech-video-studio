@@ -18,6 +18,8 @@ type Props = {
   labelKey: string;
   /** Frame the current label appeared at. */
   labelFrom: number;
+  /** Width the label is cut at (`titleBlockSlots().viewportLabel`). */
+  labelRoom: number;
 };
 
 /**
@@ -26,7 +28,8 @@ type Props = {
  * tokens only. The board is laid out inside it, below the cell (`viewportBoard`). In `draw` enter
  * style themes the frame and cell rules draw on once from the start of the video (`hudDraw`).
  */
-export function CardViewport({ theme, rect, label, labelKey, labelFrom }: Props) {
+export function CardViewport(props: Props) {
+  const { theme, rect, label, labelKey, labelFrom, labelRoom } = props;
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const ink = theme.colours.ink.primary;
@@ -72,6 +75,8 @@ export function CardViewport({ theme, rect, label, labelKey, labelFrom }: Props)
           style={{
             ...textCss(theme, 'hud'),
             ...ellipsis,
+            flex: 'none',
+            maxWidth: labelRoom,
             ...enterStyle(progress, theme.space.xs),
             ...(live ? { opacity: progress * live.fill } : {}),
             color: ink,

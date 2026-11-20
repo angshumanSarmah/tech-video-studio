@@ -11,6 +11,7 @@ import { StoryClock } from './HeroMetric.tsx';
 import type { ChapterSpan } from './hud-state.ts';
 import { enterProgress, enterStyle } from './motion.ts';
 import { ellipsis } from './styles.ts';
+import { titleBlockSlots } from './hud-slots.ts';
 import { titleBlockLayout, viewportLabel, type TitleBlockVariant } from './title-block.ts';
 import { TitleBlock } from './TitleBlock.tsx';
 import { useHudModel, type HudProps } from './use-hud-model.ts';
@@ -30,6 +31,7 @@ export function TitleBlockHud({ variant, ...props }: Props) {
     useHudModel(props);
   const layout = useMemo(() => titleBlockLayout(theme, variant), [theme, variant]);
   const areas = useMemo(() => formatAreas(theme, spec.meta.format), [theme, spec.meta.format]);
+  const slots = useMemo(() => titleBlockSlots(theme, variant, spec), [theme, variant, spec]);
   const headlineBand = areas.headlineBand;
   const row = { display: 'flex', alignItems: 'center', gap: theme.space.md } as const;
   const showSheet = parts.stepTracker && chapter !== undefined;
@@ -46,6 +48,7 @@ export function TitleBlockHud({ variant, ...props }: Props) {
           })}
           labelKey={parts.chapterHeader && chapter ? chapter.chapterId : 'detail'}
           labelFrom={parts.chapterHeader && chapter ? chapter.from : start}
+          labelRoom={slots.viewportLabel}
         />
       ) : null}
       {parts.topBar || variant === 'header' ? (
@@ -59,14 +62,15 @@ export function TitleBlockHud({ variant, ...props }: Props) {
           channelHandle={channelHandle}
           sheet={showSheet ? { chapters, current: chapter } : null}
           from={start}
+          slots={slots}
         />
       ) : null}
       {
         <div style={{ ...rectCss(layout.metaRow), ...row, justifyContent: 'space-between' }}>
           {parts.chapterHeader && chapter ? (
-            <ChapterHeader theme={theme} chapter={chapter} accent={accent} />
+            <ChapterHeader theme={theme} chapter={chapter} accent={accent} room={slots.metaText} />
           ) : showSheet ? (
-            <StepName theme={theme} chapter={chapter} />
+            <StepName theme={theme} chapter={chapter} room={slots.metaText} />
           ) : (
             <div />
           )}
@@ -87,7 +91,13 @@ export function TitleBlockHud({ variant, ...props }: Props) {
         </div>
       ) : null}
       {parts.headline && cue && frame < cue.to ? (
-        <Headline key={cue.beatId} theme={theme} rect={headlineBand} cue={cue} />
+        <Headline
+          key={cue.beatId}
+          theme={theme}
+          rect={headlineBand}
+          cue={cue}
+          room={slots.headline}
+        />
       ) : null}
     </AbsoluteFill>
   );
@@ -97,7 +107,8 @@ export function TitleBlockHud({ variant, ...props }: Props) {
  * The current step's name, which the bar style shows beside "STEP n/N". Drawn only when the
  * chapter header is off, so the chapter is never named twice.
  */
-function StepName({ theme, chapter }: { theme: Theme; chapter: ChapterSpan }) {
+function StepName(props: { theme: Theme; chapter: ChapterSpan; room: number }) {
+  const { theme, chapter, room } = props;
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const progress = enterProgress(frame, chapter.from, fps);
@@ -107,6 +118,8 @@ function StepName({ theme, chapter }: { theme: Theme; chapter: ChapterSpan }) {
       style={{
         ...textCss(theme, 'hud'),
         ...ellipsis,
+        flex: 'none',
+        maxWidth: room,
         ...enterStyle(progress, theme.space.sm),
         color: theme.colours.ink.muted,
       }}

@@ -405,6 +405,19 @@ its lease in card). The per-anchor sheets stay the record of timing.
   a ruled viewport (thin ink border, a label cell top-left: the chapter name while the chapter
   header is on, else `DETAIL A`); the board sits inside it, below the cell (`viewportBoard`). `still:compare` renders it as the
   `rate-limiter-card` target.
+  - **HUD text never truncates silently.** Every HUD text that can be cut (ellipsis or line
+    clamp) has a pure slot width (`hud-slots.ts`: `barSlots`, `titleBlockSlots`): its row less
+    the measured width (`textWidth`) of what shares the row (pill, dimension, story clock at its
+    widest point value, step dots, handle). Components cap the text at that slot (`maxWidth`;
+    the text itself is `flex: none`, except the chapter header, which stays `flex: 1` so its box
+    does not clip the last glyph's antialiasing), and `hudTextWarnings(spec, theme, { seriesLabel,
+channelHandle })` measures the same strings (`subjectText`, `chapterHeaderText`,
+    `stepTrackerText`) against the same slots: `text_truncated` at `$.meta.title` (top bar,
+    strip subject, card header title in `TITLE_LINES`), `$.story.chapters[i].question|title`
+    (chapter header, step tracker or step name, card viewport label) and
+    `$.script[i].headline.text` (`HEADLINE_LINES`, greedy wrap at spaces: `wrapText`). The run
+    context is required (the series label and handle are not in the spec); the Curator runs it
+    next to `specLayoutWarnings`. A new HUD text that can be cut needs a slot and a check.
 - **Scene layer** (`src/scene`): `beatWorld` (pure) collects a beat's elements, expanded
   patterns and everything inherited through `continuesPrevious`, each with the events that act on
   it (resolved by the event engine, below) and its focus keys; `BeatScene` draws them with their registered components (through `WorldItemView`, which
@@ -477,7 +490,7 @@ message }` for the Curator): `too_many_elements` (mode `maxUnits`), `text_too_sm
     than its chain's footnote line; measured with `textWidth`; the path points at the text
     itself, e.g. `$.scenes[3].elements[1].props.subtitle` or `$.script[1].source`, or at the
     pattern instance). Never truncate text silently: a primitive that cuts text must declare
-    `clippedLines`. HUD text is not checked yet (docs/TODO.md). Tests run the invariants (no
+    `clippedLines` (HUD text: `hudTextWarnings`, see HUD). Tests run the invariants (no
     overlaps, inside the frame, clear of avoid zones, camera bounds, no `text_truncated`) over
     every fixture beat in both formats.
 - **`src/dev/` is temporary.** `DevSubtitles` is a stand-in until P1B.3 replaces it. Do not build

@@ -13,10 +13,13 @@ type Props = {
   channelHandle: string | null;
   /** First beat start (frame). */
   from: number;
+  /** Width the subject line is cut at (`barSlots().topic`). */
+  room: number;
 };
 
 /** "SERIES · TOPIC" in the series accent on the left, the channel handle on the right. */
-export function TopBar({ theme, rect, seriesLabel, topic, accent, channelHandle, from }: Props) {
+export function TopBar(props: Props) {
+  const { theme, rect, seriesLabel, topic, accent, channelHandle, from, room } = props;
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const { ink } = theme.colours;
@@ -32,7 +35,7 @@ export function TopBar({ theme, rect, seriesLabel, topic, accent, channelHandle,
         gap: theme.space.md,
       }}
     >
-      <div style={{ ...label, ...ellipsis, color: ink.primary }}>
+      <div style={{ ...label, ...ellipsis, flex: 'none', maxWidth: room, color: ink.primary }}>
         <span style={{ color: accent }}>{seriesLabel}</span>
         <span style={{ color: ink.faint }}> · </span>
         {topic}

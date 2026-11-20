@@ -5,7 +5,7 @@ import {
   type SpecError,
 } from '@explainer-studio/shared';
 import type { Registries } from '../catalog/registries.ts';
-import { textWidth } from '../fonts/measure-text.ts';
+import { FIT_EPSILON_PX, textWidth } from '../fonts/measure-text.ts';
 import type { ClippedLine } from '../primitives/types.ts';
 import { beatWorld, type WorldItem } from '../scene/beat-world.ts';
 import { footnoteText } from '../scene/source-footnote.ts';
@@ -21,9 +21,6 @@ import type { ChainLayout, SpecLayout } from './spec-layout.ts';
  */
 
 export const TEXT_TRUNCATED = 'text_truncated';
-
-/** Sub-pixel slack for float noise; a line wider than its room by more than this is cut. */
-const EPSILON_PX = 0.5;
 
 /** Any fps works: only which items exist matters here. */
 const WORLD_FPS = 30;
@@ -68,7 +65,7 @@ function footnoteWarnings(
   return chain.beatIds.flatMap((beatId) => {
     const text = footnoteText(spec, beatId);
     const width = text === undefined ? 0 : textWidth(theme, 'footnote', text);
-    if (text === undefined || width <= rect.width + EPSILON_PX) return [];
+    if (text === undefined || width <= rect.width + FIT_EPSILON_PX) return [];
     const index = spec.script.findIndex((s) => s.beatId === beatId);
     return [
       {
@@ -83,7 +80,7 @@ function footnoteWarnings(
 }
 
 function cutOff(theme: Theme, line: ClippedLine): boolean {
-  return textWidth(theme, line.style, line.text) > line.room + EPSILON_PX;
+  return textWidth(theme, line.style, line.text) > line.room + FIT_EPSILON_PX;
 }
 
 /**
