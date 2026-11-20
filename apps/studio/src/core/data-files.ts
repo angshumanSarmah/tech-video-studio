@@ -46,6 +46,16 @@ export function researchNotesPath(runId: number, stepId: number): string {
   return posix.join(runDir(runId), 'research', `notes-${stepId}.json`);
 }
 
+/** What one Director step read (`DirectorInputSchema`), besides the research notes. */
+export function directInputPath(runId: number, stepId: number): string {
+  return posix.join(runDir(runId), 'direct', `input-${stepId}.json`);
+}
+
+/** One Director step's plan (`DirectorPlanSchema`): the gate-2 input. */
+export function directPlanPath(runId: number, stepId: number): string {
+  return posix.join(runDir(runId), 'direct', `plan-${stepId}.json`);
+}
+
 /** Per-beat draft clips and their cache sidecars. */
 export function runBeatsDir(runId: number): string {
   return posix.join(runDir(runId), 'beats');

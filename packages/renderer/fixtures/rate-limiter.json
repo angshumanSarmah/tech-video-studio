@@ -58,7 +58,7 @@
       "beatId": "hook",
       "payoffBeatId": "payoff"
     },
-    "ending": { "kind": "callback", "cta": "Share with the teammate who DDoSed staging" }
+    "ending": { "kind": "callback_ending", "cta": "Share with the teammate who DDoSed staging" }
   },
   "hud": { "chapterHeader": true },
   "script": [

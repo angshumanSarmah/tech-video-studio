@@ -26,7 +26,8 @@
     "tts:setup": "bash tts-python/setup.sh",
     "tts:doctor": "tsx scripts/tts-doctor.ts",
     "tts:fixture": "tsx scripts/tts-fixture.ts",
-    "research:fixture": "tsx scripts/research-fixture.ts"
+    "research:fixture": "tsx scripts/research-fixture.ts",
+    "director:fixture": "tsx scripts/director-fixture.ts"
   },
   "dependencies": {
     "@explainer-studio/renderer": "workspace:*",

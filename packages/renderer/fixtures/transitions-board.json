@@ -15,7 +15,7 @@
   "story": {
     "devices": [],
     "ending": {
-      "kind": "summary"
+      "kind": "spec_card_ending"
     },
     "chapters": [
       {

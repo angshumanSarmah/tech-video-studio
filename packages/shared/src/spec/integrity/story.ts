@@ -1,3 +1,6 @@
+import { DEVICE_IDS, ENDING_DEVICES } from '../../catalogues/devices.ts';
+import { LAYOUT_MODE_IDS } from '../../catalogues/layout-modes.ts';
+import { METAPHOR_WORLD_IDS } from '../../catalogues/metaphor-worlds.ts';
 import type { VideoSpec } from '../shape.ts';
 import { findDuplicateIds, unknownReference, type SpecIssue } from './issue.ts';
 
@@ -16,6 +19,8 @@ export function checkStory({ story }: VideoSpec): SpecIssue[] {
     ...checkChapterRefs(story),
     ...checkBeatRefs(story),
     ...checkPlantedQuestion(story),
+    ...checkChosenDesign(story),
+    ...checkCatalogueIds(story),
     ...checkClockKeyframes(story),
   ];
 }
@@ -60,6 +65,7 @@ function checkBeatRefs(story: Story): SpecIssue[] {
     [['story', 'plantedQuestion', 'beatId'], story.plantedQuestion?.beatId],
     [['story', 'plantedQuestion', 'payoffBeatId'], story.plantedQuestion?.payoffBeatId],
     [['story', 'rejectedAlternative', 'beatId'], story.rejectedAlternative?.beatId],
+    [['story', 'rejectedAlternative', 'chosenBeatId'], story.rejectedAlternative?.chosenBeatId],
   ];
   return refs.flatMap(([path, id]) =>
     id === undefined || beatIds.has(id) ? [] : [unknownReference(path, 'beat', id)],
@@ -79,6 +85,47 @@ function checkPlantedQuestion(story: Story): SpecIssue[] {
       code: 'payoff_not_after_question',
       message: `Payoff beat "${question.payoffBeatId}" must come after "${question.beatId}".`,
     },
+  ];
+}
+
+/** The chosen design comes after the rejected alternative it replaces. */
+function checkChosenDesign(story: Story): SpecIssue[] {
+  const alternative = story.rejectedAlternative;
+  if (alternative?.chosenBeatId === undefined) return [];
+  const beatIndex = (id: string) => story.beats.findIndex((b) => b.id === id);
+  const rejected = beatIndex(alternative.beatId);
+  const chosen = beatIndex(alternative.chosenBeatId);
+  if (rejected < 0 || chosen < 0 || chosen > rejected) return [];
+  return [
+    {
+      path: ['story', 'rejectedAlternative', 'chosenBeatId'],
+      code: 'chosen_not_after_alternative',
+      message: `Chosen design beat "${alternative.chosenBeatId}" must come after the rejected alternative "${alternative.beatId}".`,
+    },
+  ];
+}
+
+/** Devices, ending devices, metaphor worlds and beat layout modes are catalogue ids. */
+function checkCatalogueIds(story: Story): SpecIssue[] {
+  const check = (
+    path: SpecIssue['path'],
+    what: string,
+    id: string | undefined,
+    known: readonly string[],
+  ) => (id === undefined || known.includes(id) ? [] : [unknownReference(path, what, id, known)]);
+  return [
+    ...story.devices.flatMap((id, i) => check(['story', 'devices', i], 'device', id, DEVICE_IDS)),
+    ...story.beats.flatMap((beat, i) => [
+      ...check(['story', 'beats', i, 'device'], 'device', beat.device, DEVICE_IDS),
+      ...check(
+        ['story', 'beats', i, 'layoutMode'],
+        'layout mode',
+        beat.layoutMode,
+        LAYOUT_MODE_IDS,
+      ),
+    ]),
+    ...check(['story', 'metaphorWorld'], 'metaphor world', story.metaphorWorld, METAPHOR_WORLD_IDS),
+    ...check(['story', 'ending', 'kind'], 'ending device', story.ending.kind, ENDING_DEVICES),
   ];
 }
 

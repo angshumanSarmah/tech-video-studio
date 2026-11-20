@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { PauseSecSchema, TtsSpeedSchema } from '../config/settings.ts';
 import { VideoLengthSecSchema, VideoSettingsOverrideSchema } from '../config/video.ts';
+import { VideoFormatSchema } from '../spec/meta.ts';
 
 /** Pipeline stages, in execution order. Exhaustive. */
 export const STAGES = [
@@ -69,6 +70,11 @@ export const RunSettingsSchema = z.strictObject({
    * the configured range (`settings.video`).
    */
   lengthOverrideSec: VideoLengthSecSchema.optional(),
+  /**
+   * `meta.format` for this run (`full` or `card`); omitted means the Director's recommendation
+   * (`plan.meta.format`) is used.
+   */
+  format: VideoFormatSchema.optional(),
   /** Per-run TTS overrides; anything omitted falls back to the app's `settings.tts`. */
   tts: z.strictObject({ speed: TtsSpeedSchema.optional() }).optional(),
   /** Per-run pause overrides (`TimingSettingsSchema`); omitted fields use the app's. */

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { SpecIdSchema } from './ids.ts';
+import { SourceLineSchema } from './script.ts';
 
 /** Story layer, written by the Director. Device, layout, pattern and world ids are catalogue ids. */
 
@@ -36,24 +37,53 @@ export type HeroMetric = z.infer<typeof HeroMetricSchema>;
 
 export const ChapterSchema = z.strictObject({
   id: SpecIdSchema,
-  title: z.string().min(1),
+  title: z.string().min(1).describe('Short chapter title shown in the HUD.'),
   /** Question form of the title, for question-driven chapters. */
-  question: z.string().min(1).optional(),
+  question: z
+    .string()
+    .min(1)
+    .optional()
+    .describe('The title as a viewer question; required on every chapter with question_chapters.'),
 });
 export type Chapter = z.infer<typeof ChapterSchema>;
 
 export const StoryBeatSchema = z.strictObject({
   id: SpecIdSchema,
   chapterId: SpecIdSchema,
-  intent: z.string().min(1),
-  device: SpecIdSchema.optional(),
-  targetSec: z.number().positive(),
+  intent: z
+    .string()
+    .min(1)
+    .describe('One sentence: what the viewer sees change in this beat, and why it matters.'),
+  device: SpecIdSchema.optional().describe('A narrative device id from the catalogue.'),
+  targetSec: z.number().positive().describe('Planned seconds of this beat.'),
   /** Research fact ids this beat relies on (resolved against research notes in P1C.5). */
-  factIds: z.array(SpecIdSchema).default([]),
+  factIds: z
+    .array(SpecIdSchema)
+    .default([])
+    .describe('Ids of the research facts ("fact-<n>") and numbers ("num-<n>") this beat uses.'),
   /** Suggestion for the Generator, which makes the final choice in the scene layer. */
-  layoutMode: SpecIdSchema.optional(),
+  layoutMode: SpecIdSchema.optional().describe(
+    "A layout mode id allowed for the video's topic class.",
+  ),
   /** Suggestions for the Generator, which makes the final choice in the scene layer. */
-  suggestedPatternIds: z.array(SpecIdSchema).default([]),
+  suggestedPatternIds: z
+    .array(SpecIdSchema)
+    .default([])
+    .describe('Pattern ids from the catalogue that show this beat; the Generator decides.'),
+  /** Glossary terms this beat introduces (the first time the video names them). */
+  newTerms: z
+    .array(z.string().trim().min(1))
+    .default([])
+    .describe(
+      'Glossary terms (exactly as the research glossary writes them) this beat introduces: at most one per beat.',
+    ),
+  /**
+   * Source line for a beat that shows a real incident or a sourced number; the Scriptwriter
+   * carries it into `script[].source`.
+   */
+  source: SourceLineSchema.optional().describe(
+    'Footnote for a real-incident beat, e.g. "<publisher> post-incident report, <date>", from the notes.',
+  ),
 });
 export type StoryBeat = z.infer<typeof StoryBeatSchema>;
 
@@ -62,20 +92,42 @@ export const PlantedQuestionSchema = z.strictObject({
   /** Beat that plants the question. */
   beatId: SpecIdSchema,
   /** Beat that answers it; must come after `beatId`. */
-  payoffBeatId: SpecIdSchema,
+  payoffBeatId: SpecIdSchema.describe('The beat that answers it; after beatId.'),
 });
 export type PlantedQuestion = z.infer<typeof PlantedQuestionSchema>;
 
 export const RejectedAlternativeSchema = z.strictObject({
   /** Beat that shows the rejected alternative. */
-  beatId: SpecIdSchema,
+  beatId: SpecIdSchema.describe('The beat that shows the rejected alternative.'),
   summary: z.string().min(1),
+  /** Beat that shows the chosen design; must come after `beatId`. */
+  chosenBeatId: SpecIdSchema.optional().describe(
+    'The beat that shows the chosen design instead; after beatId.',
+  ),
 });
 export type RejectedAlternative = z.infer<typeof RejectedAlternativeSchema>;
 
+/** Characters per spec card line. */
+export const SPEC_CARD_LINE_MAX = 40;
+
+/** The house ending: three short lines that summarise the design. */
+export const SpecCardSchema = z.strictObject({
+  lines: z
+    .array(z.string().trim().min(1).max(SPEC_CARD_LINE_MAX))
+    .length(3)
+    .describe('Exactly 3 short lines summarising the design, e.g. "<example-spec-line>".'),
+});
+export type SpecCard = z.infer<typeof SpecCardSchema>;
+
 export const EndingSchema = z.strictObject({
-  kind: SpecIdSchema,
-  cta: z.string().min(1).optional(),
+  /** An ending device (`ENDING_DEVICES`). */
+  kind: SpecIdSchema.describe(
+    'An ending device id: spec_card_ending, callback_ending, real_world_closure or cliffhanger_ending.',
+  ),
+  cta: z.string().min(1).optional().describe('The closing share or follow line, in our own words.'),
+  specCard: SpecCardSchema.optional(),
+  /** The series number shown with the spec card ("System Design #12"); filled by code. */
+  seriesNumber: z.number().int().positive().optional(),
 });
 export type Ending = z.infer<typeof EndingSchema>;
 
@@ -83,14 +135,27 @@ export const MissingPrimitiveRequestSchema = z.strictObject({
   name: z.string().min(1),
   description: z.string().min(1),
   /** Primitive or pattern id used instead. */
-  fallbackUsed: SpecIdSchema,
+  fallbackUsed: SpecIdSchema.describe('The primitive or pattern id used instead.'),
 });
 export type MissingPrimitiveRequest = z.infer<typeof MissingPrimitiveRequestSchema>;
 
+/** Characters in `story.runningExample`. */
+export const RUNNING_EXAMPLE_MAX = 200;
+
 export const StoryLayerSchema = z.strictObject({
-  devices: z.array(SpecIdSchema).default([]),
-  metaphorWorld: SpecIdSchema.optional(),
+  devices: z.array(SpecIdSchema).default([]).describe('Narrative device ids for the whole video.'),
+  metaphorWorld: SpecIdSchema.optional().describe('At most one metaphor world id.'),
   heroMetric: HeroMetricSchema.optional(),
+  /** The one concrete example (one user, one request) the video follows throughout. */
+  runningExample: z
+    .string()
+    .trim()
+    .min(1)
+    .max(RUNNING_EXAMPLE_MAX)
+    .optional()
+    .describe(
+      'One sentence: the concrete example followed all the way through (one user, one request).',
+    ),
   chapters: z.array(ChapterSchema).min(1),
   beats: z.array(StoryBeatSchema).min(1),
   plantedQuestion: PlantedQuestionSchema.optional(),

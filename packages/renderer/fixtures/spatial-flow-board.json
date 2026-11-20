@@ -76,7 +76,7 @@
       }
     ],
     "ending": {
-      "kind": "summary"
+      "kind": "spec_card_ending"
     }
   },
   "hud": {

@@ -10,7 +10,7 @@ import { beatLayoutMode, DEFAULT_LAYOUT_MODE } from '../layout/modes.ts';
 import { buildPatternRegistry, PATTERN_DEFINITIONS, PATTERNS } from '../patterns/registry.ts';
 import { buildPrimitiveRegistry, PRIMITIVE_DEFINITIONS } from '../primitives/registry.ts';
 import { buildCatalogue } from './catalogue.ts';
-import { catalogueBlock } from './prompt-block.ts';
+import { catalogueBlock, directorCatalogueBlock } from './prompt-block.ts';
 import { DEFAULT_REGISTRIES, type Registries } from './registries.ts';
 
 /** JSON lines of one closed-list section of the block. */
@@ -47,6 +47,45 @@ describe('catalogueBlock', () => {
 
   it('leaves assets out (the Generator gets a per-beat list)', () => {
     expect(catalogueBlock()).not.toMatch(/ASSETS/);
+  });
+});
+
+/** Estimated tokens at 4 characters each, as the source budget counts them. */
+const estimatedTokens = (text: string) => Math.ceil(text.length / 4);
+
+/** The Director's block stays small: summaries only (about 10k tokens). */
+const DIRECTOR_BLOCK_TOKEN_BUDGET = 12_000;
+
+describe('directorCatalogueBlock', () => {
+  it('is deterministic and independent of registry insertion order', () => {
+    const primitives = buildPrimitiveRegistry([...PRIMITIVE_DEFINITIONS].reverse());
+    const reversed: Registries = {
+      ...DEFAULT_REGISTRIES,
+      primitives,
+      patterns: buildPatternRegistry([...PATTERN_DEFINITIONS].reverse(), primitives),
+    };
+    expect(directorCatalogueBlock(reversed)).toBe(directorCatalogueBlock());
+  });
+
+  it('lists every primitive and pattern once, after the story catalogues', () => {
+    const block = directorCatalogueBlock();
+    const { primitives, patterns } = buildCatalogue();
+    expect(block.startsWith(`${renderStoryCatalogues()}\n\n## PRIMITIVES `)).toBe(true);
+    expect(jsonIds(block, 'PRIMITIVES')).toEqual(primitives.map((p) => p.id));
+    expect(jsonIds(block, 'PATTERNS')).toEqual(patterns.map((p) => p.id));
+  });
+
+  it('carries summaries only: no props, params or examples', () => {
+    const block = directorCatalogueBlock();
+    expect(block).not.toMatch(/"(props|params|example|targets)":/);
+    expect(block).toContain('"layoutMode":');
+    expect(block).toContain('"anchors":');
+  });
+
+  it(`stays under ${DIRECTOR_BLOCK_TOKEN_BUDGET} estimated tokens`, () => {
+    const tokens = estimatedTokens(directorCatalogueBlock());
+    expect(tokens).toBeLessThan(DIRECTOR_BLOCK_TOKEN_BUDGET);
+    expect(tokens).toBeLessThan(estimatedTokens(catalogueBlock()) / 2);
   });
 });
 

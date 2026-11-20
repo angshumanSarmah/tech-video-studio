@@ -4,19 +4,35 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 
 ## Open
 
-- [ ] **P1C.5 — Validate story ids against the catalogues.** `story.devices`,
-      `story.beats[].device`, `story.metaphorWorld` and story / scene layout modes outside the
-      topic class's `allowedLayoutModes` are free slugs today; add `unknown_reference` errors
-      (and a warning for a mode the class does not allow) in `withRegistryChecks`.
-- [ ] **P1C.5 — A smaller catalogue block for the Director.** `catalogueBlock()` is about 38k
-      tokens (chars/4): story catalogues 3.5k, primitives 12k, patterns 22k, mostly props and
-      params JSON Schemas the Director never fills. A summaries-only variant (ids, text, pattern
-      layout mode, formats, anchor names) is about 10k. The Generator needs the full block.
 - [ ] **P1C.5 — Record catalogue versions per call.** The block's `CATALOGUE VERSIONS` line
-      lands in the prompt file; a column on `llm_calls` would make it queryable.
-- [ ] **P1C.5 — Ending kinds vs devices.** `story.ending.kind` is a free slug (fixtures use
-      `summary`, `callback`); consider tying it to `spec_card_ending` / `callback_ending` /
-      `cliffhanger_ending`.
+      lands in the prompt file and the Director's step input (`catalogueVersions`); a column on
+      `llm_calls` would make it queryable.
+- [ ] **P1D.1 — Format on the New Run page.** `RunSettings.format` (`full` | `card`) overrides
+      the Director's `plan.meta.format`; the New Run form needs a choice ("Director decides",
+      full, card).
+- [ ] **P1C.9 — From plan to specs.** On gate 2 approval: `specFromPlan` per video (a
+      multi-part plan becomes one run per part: its beats, chapters, the planted question /
+      alternative inside it, the ending on the last part, `seriesNumber` per part), saved as
+      spec version 1; record `story.missingPrimitiveRequests` in the backlog table then (gate
+      edits respected); create the `beat_sheet` gate row; queue `direct` after research.
+- [ ] **P1C.10 — Record `device_layout` usage.** The Director's variety check reads
+      `usage_history` rows of kind `device_layout` (`<device>/<layout>`, `deviceLayoutCombo`)
+      next to device, layout and pattern; the post-export usage writer must record them.
+- [ ] **P1C.11 — Director references.** `directJobHandler` takes an optional `references`
+      provider (prompt section 4); wire retrieval to it.
+- [ ] **P1C.6 — Story fields for the Scriptwriter.** Copy `beats[].source` into
+      `script[].source`; use `newTerms` (gloss each the first time) and `runningExample`; write
+      the recap on `recap_opening` beats and the next part's question on `cliffhanger_ending`
+      beats.
+- [ ] **Renderer — Spec card.** `story.ending.specCard` (3 lines) and `seriesNumber` have no
+      primitive yet; `statement_card` is the fallback the Generator can use.
+- [ ] **LLM transport — Retry a cut-off body.** A live Director call failed with "Could not read
+      the response body: terminated" (the connection dropped mid-body, after ~0 tokens were
+      counted); it is not retried like a timeout or 5xx. Treat it as retryable in
+      `src/worker/http/retry.ts`.
+- [ ] **P1C.5 — Layout-mode warning for pattern-derived modes.** `layout_mode_not_allowed`
+      checks explicit story and scene modes only (shared cannot see patterns); a beat that takes
+      its pattern's mode (`beatLayoutMode`) could be checked in `withRegistryChecks`.
 - [ ] **P1C.4 — Device → pattern hints.** Devices do not suggest patterns (e.g.
       `brute_force_first` → `brute_force_then_index`); add an optional, registry-checked list if
       the Director picks poorly.

@@ -32,6 +32,8 @@ export const USAGE_KINDS = [
   'primitive',
   'metaphor_world',
   'topic_class',
+  /** A beat's narrative device with its layout mode, as `<device>/<layout>` (variety penalty). */
+  'device_layout',
 ] as const;
 export const UsageKindSchema = z.enum(USAGE_KINDS);
 export type UsageKind = z.infer<typeof UsageKindSchema>;

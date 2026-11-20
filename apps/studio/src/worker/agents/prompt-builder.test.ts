@@ -72,8 +72,8 @@ describe('buildPrompt', () => {
     );
     expect(order.every((i) => i >= 0)).toBe(true);
     expect(order).toEqual([...order].sort((a, b) => a - b));
-    const director = buildPrompt(templates, parts('director')).messages[0]!.content;
-    expect(director).not.toContain('## OUTPUT SHAPE');
+    const scriptwriter = buildPrompt(templates, parts('scriptwriter')).messages[0]!.content;
+    expect(scriptwriter).not.toContain('## OUTPUT SHAPE');
   });
 
   it('keeps the system message identical across runs with different input (cache prefix)', () => {

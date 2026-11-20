@@ -65,6 +65,47 @@ export function findRegistryErrors(
   spec: VideoSpec,
   registries: Registries = DEFAULT_REGISTRIES,
 ): SpecError[] {
+  return [...storyRegistryErrors(spec, registries), ...sceneRegistryErrors(spec, registries)];
+}
+
+/**
+ * The Story layer's registry ids: suggested patterns, and each missing-primitive request's
+ * fallback (a primitive or a pattern).
+ */
+function storyRegistryErrors(spec: VideoSpec, registries: Registries): SpecError[] {
+  const { story } = spec;
+  const fallbacks = new Map<string, unknown>([...registries.primitives, ...registries.patterns]);
+  return [
+    ...story.beats.flatMap((beat, i) =>
+      beat.suggestedPatternIds.flatMap((id, j) =>
+        registries.patterns.has(id)
+          ? []
+          : [
+              unknownId(
+                ['story', 'beats', i, 'suggestedPatternIds', j],
+                'pattern',
+                id,
+                registries.patterns,
+              ),
+            ],
+      ),
+    ),
+    ...story.missingPrimitiveRequests.flatMap((request, i) =>
+      fallbacks.has(request.fallbackUsed)
+        ? []
+        : [
+            unknownId(
+              ['story', 'missingPrimitiveRequests', i, 'fallbackUsed'],
+              'primitive or pattern',
+              request.fallbackUsed,
+              fallbacks,
+            ),
+          ],
+    ),
+  ];
+}
+
+function sceneRegistryErrors(spec: VideoSpec, registries: Registries): SpecError[] {
   const scenes = spec.scenes ?? [];
   const scopes = sceneScopes(scenes, registries);
   const words = wordsByBeat(spec);
@@ -127,7 +168,7 @@ function layoutModeErrors(scene: BeatScene, i: number): SpecError[] {
 
 function unknownId(
   path: Path,
-  what: 'primitive' | 'layout mode',
+  what: 'primitive' | 'pattern' | 'primitive or pattern' | 'layout mode',
   id: string,
   registry: ReadonlyMap<string, unknown>,
 ): SpecError {

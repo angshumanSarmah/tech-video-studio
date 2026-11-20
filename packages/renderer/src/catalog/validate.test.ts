@@ -49,6 +49,25 @@ describe('withRegistryChecks', () => {
     });
   });
 
+  it('rejects unknown story pattern suggestions and missing-primitive fallbacks', () => {
+    const input = fixtureSpec() as ReturnType<typeof fixtureSpec> & {
+      story: { beats: object[] };
+    };
+    Object.assign(input.story.beats[0] ?? {}, { suggestedPatternIds: ['fan_out', 'spin_wheel'] });
+    Object.assign(input.story, {
+      missingPrimitiveRequests: [
+        { name: 'a', description: 'b', fallbackUsed: 'counter' },
+        { name: 'c', description: 'd', fallbackUsed: 'fan_out' },
+        { name: 'e', description: 'f', fallbackUsed: 'magic_box' },
+      ],
+    });
+    const errors = check(input).errors.filter((e) => e.path.startsWith('$.story'));
+    expect(errors.map((e) => [e.path, e.code])).toEqual([
+      ['$.story.beats[0].suggestedPatternIds[1]', 'unknown_reference'],
+      ['$.story.missingPrimitiveRequests[2].fallbackUsed', 'unknown_reference'],
+    ]);
+  });
+
   it('rejects an unknown layout mode, listing the valid ones', () => {
     const input = fixtureSpec();
     Object.assign(input.scenes[0] ?? {}, { layoutMode: 'spiral' });

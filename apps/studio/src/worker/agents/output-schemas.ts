@@ -1,4 +1,4 @@
-import { ResearchNotesSchema } from '@explainer-studio/shared';
+import { DirectorPlanSchema, ResearchNotesSchema } from '@explainer-studio/shared';
 import type { z } from 'zod';
 import type { PromptRole } from './prompts/templates.ts';
 
@@ -9,4 +9,5 @@ import type { PromptRole } from './prompts/templates.ts';
  */
 export const ROLE_OUTPUT_SCHEMAS: Readonly<Partial<Record<PromptRole, z.ZodType>>> = {
   researcher: ResearchNotesSchema,
+  director: DirectorPlanSchema,
 };

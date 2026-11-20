@@ -48,7 +48,7 @@ export function validSpec(): VideoSpecInput {
         payoffBeatId: 'bucket-empty',
       },
       rejectedAlternative: { beatId: 'hook', summary: 'Scaling servers alone' },
-      ending: { kind: 'callback', cta: 'Share with the teammate who DDoSed staging' },
+      ending: { kind: 'callback_ending', cta: 'Share with the teammate who DDoSed staging' },
       missingPrimitiveRequests: [
         { name: 'bucket', description: 'A bucket that fills with tokens', fallbackUsed: 'counter' },
       ],

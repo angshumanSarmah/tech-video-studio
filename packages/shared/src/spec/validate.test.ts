@@ -475,3 +475,59 @@ describe('toJsonPath', () => {
     expect(toJsonPath([])).toBe('$');
   });
 });
+
+describe('validateVideoSpec: story catalogue ids', () => {
+  const codesAt = (errors: SpecError[]) => errors.map((e) => [e.path, e.code]);
+
+  it('reports unknown devices, layout modes, metaphor worlds and ending devices', () => {
+    const errors = errorsAfter((spec) => {
+      spec.story.devices = ['failure_before_fix', 'plot_twist'];
+      at(spec.story.beats, 1).device = 'flashback';
+      at(spec.story.beats, 1).layoutMode = 'spiral';
+      spec.story.metaphorWorld = 'zoo';
+      spec.story.ending.kind = 'callback';
+    });
+    expect(codesAt(errors)).toEqual([
+      ['$.story.devices[1]', 'unknown_reference'],
+      ['$.story.beats[1].device', 'unknown_reference'],
+      ['$.story.beats[1].layoutMode', 'unknown_reference'],
+      ['$.story.metaphorWorld', 'unknown_reference'],
+      ['$.story.ending.kind', 'unknown_reference'],
+    ]);
+    expect(errors[4]?.message).toContain('Use one of: spec_card_ending, callback_ending');
+  });
+
+  it('requires the chosen design after the rejected alternative', () => {
+    const before = errorsAfter((spec) => {
+      spec.story.rejectedAlternative = {
+        beatId: 'bucket-intro',
+        summary: 'x',
+        chosenBeatId: 'hook',
+      };
+    });
+    expect(codesAt(before)).toEqual([
+      ['$.story.rejectedAlternative.chosenBeatId', 'chosen_not_after_alternative'],
+    ]);
+    const unknown = errorsAfter((spec) => {
+      spec.story.rejectedAlternative = { beatId: 'hook', summary: 'x', chosenBeatId: 'nope' };
+    });
+    expect(codesAt(unknown)).toEqual([
+      ['$.story.rejectedAlternative.chosenBeatId', 'unknown_reference'],
+    ]);
+  });
+
+  it('warns on an explicit layout mode the topic class does not allow', () => {
+    const result = validateVideoSpec(
+      mutated((spec) => {
+        // `map` is not a concept layout mode.
+        at(spec.story.beats, 1).layoutMode = 'map';
+        at(spec.scenes, 1).layoutMode = 'map';
+      }),
+    );
+    expect(result.ok).toBe(true);
+    expect(codesAt(result.warnings)).toEqual([
+      ['$.story.beats[1].layoutMode', 'layout_mode_not_allowed'],
+      ['$.scenes[1].layoutMode', 'layout_mode_not_allowed'],
+    ]);
+  });
+});

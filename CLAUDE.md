@@ -124,7 +124,8 @@ Dev ports: the UI is on http://localhost:4310 (`WEB_PORT`, Vite, `strictPort`) a
   length stay within `VIDEO_LENGTH_LIMITS_SEC` (15–170 s); a timed track past 170 s is the error
   `timing_too_long`. Prompts state only the configured range (`settings.video`), never the cap.
 - `meta.format` is `full` (default) or `card` (title header, 16:9 diagram window, headline,
-  subtitles). It is a run setting: the LLM `meta` schema leaves it out.
+  subtitles). The Director recommends it (`plan.meta.format`); a run's `settings.format` wins.
+  The LLM `meta` spec part (`llmJsonSchema('meta')`) leaves it out.
 - A scene's `transitionIn` (cut, fade, slide, zoom-in, zoom-out) applies only to a beat that
   starts a new board; on a `continuesPrevious` beat it is ignored and warned
   (`transition_on_continuing_beat`). `zoomFrom` (with `zoom-in` only, never on a continuing or
@@ -144,8 +145,15 @@ narrative devices: `DEVICE_IDS`, `DeviceId`), `layout-modes` (ids, zones, `maxUn
 - **Layout mode data lives only here.** The renderer's `layout/modes.ts` joins each entry with
   its placement behaviour (`Record<LayoutModeId, …>`, so a mode without a placer fails
   typecheck); `LAYOUT_MODE_IDS` is re-exported from there.
-- Ids the code relies on are typed against the catalogue (`CHAPTER_DISPLAY_DEVICES` satisfies
-  `DeviceId`).
+- Ids the code relies on are typed against the catalogue (`CHAPTER_DISPLAY_DEVICES` and
+  `ENDING_DEVICES` satisfy `DeviceId`).
+- **Story ids are validated** in `validateVideoSpec` (`integrity/story.ts`): an unknown device
+  (`story.devices`, `beats[].device`), metaphor world, beat layout mode or ending device
+  (`story.ending.kind` must be one of `ENDING_DEVICES`) is an `unknown_reference` error; an
+  explicit layout mode (story beat or scene) outside the topic class's `allowedLayoutModes` is
+  the warning `layout_mode_not_allowed` (a beat that takes its pattern's mode is not checked).
+  `withRegistryChecks` adds `unknown_reference` for `suggestedPatternIds` and for a
+  `missingPrimitiveRequests[].fallbackUsed` that is neither a primitive nor a pattern.
 - **Prompt block:** `renderStoryCatalogues()` (shared, pure) writes a `CATALOGUE VERSIONS` line
   and one closed list per catalogue; `catalogueBlock(registries?)`
   (`@explainer-studio/renderer/catalog`) appends every primitive and pattern as compact JSON,
@@ -435,6 +443,57 @@ stepId?, aliases?, check?, signal?, log? })`** is the only way to call a model (
   in a scratch data dir (`<DATA_DIR>/research/fixture/rate-limiter/`, its own DB), prints the
   log, check result and cost, and with `--record` replaces the dry-run answer (every attempt,
   repairs included). `fixtures/oversized-source.ts` builds the long source of the budget test.
+
+### Director (`src/worker/agents/director`, job in `jobs/direct.ts`)
+
+- **`direct` job** (payload `{}`): reads the run's latest research notes (`latestResearch`; none
+  fails the job), its memory (`directorMemory`, `#core/services/director-memory.ts`: active style
+  rules scoped `director` or `all`, usage of the last `RECENT_VIDEOS` (5) exported videos, past
+  exported topics) and the run's length / parts / level / format settings, then calls
+  `callJson` with `DirectorPlanSchema` and `check: directorCheck(...)`. The prompt carries the
+  summaries-only catalogue (`directorCatalogueBlock()`, renderer: ids, family, summary, when /
+  when not; patterns also layout mode, formats and anchor names; no props or params, ~10k
+  tokens) and style rules as section 5; the user message holds topic, angle, series and its next
+  number (`nextSeriesNumber`), the length instruction (fixed `lengthOverrideSec`, else the
+  configured range), parts, format, recently used ids and combos, past topics and the notes
+  without chunk ids. References (P1C.11) come from an optional `references` dep: none yet.
+- **Steps and files** like the Researcher: one `run_steps` row per attempt (stage `direct`),
+  `runs/<id>/direct/input-<step>.json` (`DirectorInputSchema`) and `plan-<step>.json`. **Gate 2
+  input** is `latestDirection(db, dataDir, runId)` (`#core/services/direction.ts`). The job writes
+  no spec version: turning the plan into specs (and parts into runs) is P1C.9's.
+- **`DirectorPlan`** (`packages/shared/src/director`) is shaped like a spec: `meta` (title, topic
+  class, recommended `format`, `targetLengthSec` unless there are parts), `lengthReason`, `story`
+  (the Story layer; code fills `ending.seriesNumber`) and optional `parts` (`part`, `title`,
+  `mainIdea`, `beatIds`, `targetLengthSec`). `specFromPlan(plan, { id, series, formatOverride,
+seriesNumber })` makes the spec; with parts its `targetLengthSec` is the parts' total within the
+  hard limits. Plan lengths carry no hard cap in the schema (prompts state only the range).
+- **Story fields the Director fills:** `runningExample` (one sentence), `beats[].newTerms`
+  (glossary terms introduced), `beats[].source` (real-incident footnote, carried into the
+  script), `rejectedAlternative.chosenBeatId`, `ending.specCard` (3 lines of at most 40 chars).
+- **Checks** (`directorPlanProblems`, shared, pure; `directorCheck` adds the spec and registry
+  checks and `hudTextWarnings` on a placeholder renderable spec, paths pointing into the plan):
+  research ids exist (`unknown_fact`); new terms match the glossary case-insensitively
+  (`unknown_term`), at most 1 per beat and `NEW_TERM_LIMITS` distinct per level (3 / 5 / no
+  limit); `runningExample` at beginner; each video or part plans the override or a length in the
+  range, beats sum to it ±10%, a `lengthReason` above `lengthReasonAboveSec`; parts are allowed,
+  at most `maxParts`, numbered 1..N, cover every beat once in order, and keep each chapter,
+  planted question and rejected / chosen pair inside one part; devices get what they need
+  (`plantedQuestion`, `heroMetric`, chapter questions, a real incident's `source`, facts and an
+  incident in the notes); a `failure_before_fix` device or a `rejectedAlternative` with its
+  `chosenBeatId`; each video's hook (first beat after a recap) cites a `num-*` id when the notes
+  have numbers; the single video or last part closes with an ending device other than
+  `cliffhanger_ending` and its `ENDING_REQUIREMENTS` (spec card: `specCard` and `cta`; callback
+  and real-world closure: `cta`); earlier parts end on a `cliffhanger_ending` beat, parts 2+ open
+  on a `recap_opening` beat; more than `MAX_RECENT_COMBO_REUSE` (1) beats reusing a recent
+  `<device>/<layout>` combo (usage kind `device_layout`) flags each. The spec's
+  `target_length_mismatch` is dropped (the plan checks length per video or part).
+- **Fixture:** `agents/director/fixtures/rate-limiter/responses/director.json`, the dry-run plan
+  `jobs/direct.test.ts` replays after ingesting the Researcher's sources and replaying its recorded
+  answer. Hand-written until recorded: `pnpm --filter @explainer-studio/studio director:fixture
+[--level beginner|intermediate|expert] [--record]` does the same against the configured
+  Director model (the Researcher is replayed, never called) in
+  `<DATA_DIR>/director/fixture/rate-limiter/`, prints each attempt's issues, the Director's cost
+  and the plan, and with `--record` replaces the dry-run answer.
 
 API conventions: routes under `/api`, inputs validated with the `validate()` helper against schemas
 from `packages/shared/src/api`, list responses wrapped as `{ items }`, and every error is

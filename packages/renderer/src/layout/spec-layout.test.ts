@@ -73,7 +73,11 @@ describe('the layout fixture', () => {
       layoutModesBoardJson,
     );
     expect(result.errors).toEqual([]);
-    expect(result.warnings).toEqual([]);
+    // The board shows every layout mode, which no single topic class allows (`map` is not a
+    // concept mode): the only warning it may carry.
+    expect(result.warnings.map((w) => [w.path, w.code])).toEqual([
+      ['$.scenes[0].layoutMode', 'layout_mode_not_allowed'],
+    ]);
   });
 
   it('lays out every beat without layout warnings in the full format', () => {

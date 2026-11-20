@@ -68,7 +68,7 @@
       "beatId": "hook",
       "payoffBeatId": "payoff"
     },
-    "ending": { "kind": "callback", "cta": "Send this to whoever owns your API gateway" }
+    "ending": { "kind": "callback_ending", "cta": "Send this to whoever owns your API gateway" }
   },
   "script": [
     {

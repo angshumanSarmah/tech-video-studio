@@ -16,6 +16,7 @@ export const SPEC_ERROR_CODES = [
   'chapter_order',
   'empty_chapter',
   'payoff_not_after_question',
+  'chosen_not_after_alternative',
   'too_many_formula_cards',
   'continues_without_previous',
   'invalid_zoom_from',
@@ -38,6 +39,7 @@ export const SPEC_WARNING_CODES = [
   'target_length_mismatch',
   'transition_on_continuing_beat',
   'unknown_asset',
+  'layout_mode_not_allowed',
 ] as const;
 export type SpecWarningCode = (typeof SPEC_WARNING_CODES)[number];
 
@@ -59,6 +61,12 @@ export function findDuplicateIds(
   return issues;
 }
 
-export function unknownReference(path: SpecIssue['path'], what: string, id: string): SpecIssue {
-  return { path, code: 'unknown_reference', message: `Unknown ${what} "${id}".` };
+export function unknownReference(
+  path: SpecIssue['path'],
+  what: string,
+  id: string,
+  known?: readonly string[],
+): SpecIssue {
+  const hint = known ? ` Use one of: ${known.join(', ')}.` : '';
+  return { path, code: 'unknown_reference', message: `Unknown ${what} "${id}".${hint}` };
 }

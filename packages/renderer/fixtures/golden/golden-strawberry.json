@@ -47,7 +47,7 @@
       "payoffBeatId": "blind"
     },
     "ending": {
-      "kind": "callback",
+      "kind": "callback_ending",
       "cta": "Try it on your favourite model, then try spelling first"
     },
     "missingPrimitiveRequests": [

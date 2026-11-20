@@ -1,3 +1,4 @@
+import { directJobHandler, type DirectJobDeps } from './direct.ts';
 import type { JobHandler } from './handler.ts';
 import { ingestJobHandler, type IngestJobDeps } from './ingest.ts';
 import { noopJob } from './noop.ts';
@@ -24,7 +25,11 @@ export function createJobRegistry(handlers: readonly JobHandler[]): JobRegistry 
 }
 
 /** What handlers need from the worker process (handlers that need nothing ignore it). */
-export type WorkerDeps = RenderJobDeps & TtsJobDeps & IngestJobDeps & ResearchJobDeps;
+export type WorkerDeps = RenderJobDeps &
+  TtsJobDeps &
+  IngestJobDeps &
+  ResearchJobDeps &
+  DirectJobDeps;
 
 /** Every job type the worker runs. Add a handler here; nothing else changes. */
 export function createJobHandlers(deps: WorkerDeps): JobHandler[] {
@@ -32,6 +37,7 @@ export function createJobHandlers(deps: WorkerDeps): JobHandler[] {
     noopJob,
     ingestJobHandler(deps),
     researchJobHandler(deps),
+    directJobHandler(deps),
     ...renderJobHandlers(deps),
     ttsJobHandler(deps),
   ];

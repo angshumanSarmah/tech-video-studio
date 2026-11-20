@@ -51,6 +51,14 @@ export type CommandBubble = z.infer<typeof CommandBubbleSchema>;
  */
 export const SOURCE_MAX_LENGTH = 58;
 
+/** A beat's source line (without the "Source: " prefix the renderer adds). */
+export const SourceLineSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(SOURCE_MAX_LENGTH)
+  .regex(/^[^\n\r]*$/, 'One line, without line breaks.');
+
 export const BeatScriptSchema = z.strictObject({
   beatId: SpecIdSchema,
   narration: z.string().trim().min(1),
@@ -64,13 +72,7 @@ export const BeatScriptSchema = z.strictObject({
    * Source line drawn small in the stage corner ("Source: " is added by the renderer). Required
    * whenever the beat shows a real incident or a sourced number (enforced by the agent prompts).
    */
-  source: z
-    .string()
-    .trim()
-    .min(1)
-    .max(SOURCE_MAX_LENGTH)
-    .regex(/^[^\n\r]*$/, 'One line, without line breaks.')
-    .optional(),
+  source: SourceLineSchema.optional(),
 });
 export type BeatScript = z.infer<typeof BeatScriptSchema>;
 

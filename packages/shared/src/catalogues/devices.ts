@@ -36,6 +36,18 @@ export const DEVICE_IDS = [
 export const DeviceIdSchema = z.enum(DEVICE_IDS);
 export type DeviceId = z.infer<typeof DeviceIdSchema>;
 
+/**
+ * Devices a story may end on (`story.ending.kind`). A single video or the last part closes with
+ * any but `cliffhanger_ending`; earlier parts of a multi-part video end on `cliffhanger_ending`.
+ */
+export const ENDING_DEVICES = [
+  'spec_card_ending',
+  'callback_ending',
+  'real_world_closure',
+  'cliffhanger_ending',
+] as const satisfies readonly DeviceId[];
+export type EndingDevice = (typeof ENDING_DEVICES)[number];
+
 export const DeviceEntrySchema = DescribedFieldsSchema.extend({ id: DeviceIdSchema });
 export type DeviceEntry = z.infer<typeof DeviceEntrySchema>;
 

@@ -19,5 +19,6 @@ export * from './domain/library.ts';
 export * from './domain/llm-call.ts';
 export * from './domain/run.ts';
 export * from './domain/sources.ts';
+export * from './director/index.ts';
 export * from './research/index.ts';
 export * from './spec/index.ts';
