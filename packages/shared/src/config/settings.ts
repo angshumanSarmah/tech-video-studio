@@ -25,8 +25,11 @@ export const RenderPresetSchema = z.strictObject({
 export type RenderPreset = z.infer<typeof RenderPresetSchema>;
 
 export const RenderSettingsSchema = z.strictObject({
-  /** Frames rendered in parallel within one render job. Jobs themselves run one at a time. */
-  concurrency: z.number().int().min(1).max(16).default(4),
+  /**
+   * Frames rendered in parallel within one render job (one Chrome tab each). Jobs themselves run
+   * one at a time. The default suits a 16 GB laptop; `bench:render` reports peak memory.
+   */
+  concurrency: z.number().int().min(1).max(16).default(3),
   presets: z
     .strictObject({
       draft: RenderPresetSchema.default({ width: 540, height: 960, fps: 15 }),

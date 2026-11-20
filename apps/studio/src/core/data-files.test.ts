@@ -4,14 +4,21 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   assetSvgPath,
+  beatDraftMetaPath,
+  beatDraftPath,
+  beatStillPath,
   contentHash,
+  exportVideoPath,
   missingAssetsPath,
   readDataJson,
   readDataText,
   resolveDataPath,
   runDir,
+  runBeatsDir,
+  runDraftPath,
   runLogosDir,
   sourceTextPath,
+  specVersionPath,
   writeDataJson,
   writeDataText,
 } from './data-files.ts';
@@ -25,6 +32,16 @@ describe('data file paths', () => {
     expect(assetSvgPath('server')).toBe('assets/server.svg');
     expect(runLogosDir(4)).toBe('runs/4/logos');
     expect(missingAssetsPath(4)).toBe('runs/4/missing-assets.json');
+  });
+
+  it('builds render output paths', () => {
+    expect(specVersionPath(4, 2)).toBe('runs/4/specs/v2.json');
+    expect(runBeatsDir(4)).toBe('runs/4/beats');
+    expect(beatDraftPath(4, 'hook')).toBe('runs/4/beats/hook.draft.mp4');
+    expect(beatDraftMetaPath(4, 'hook')).toBe('runs/4/beats/hook.draft.json');
+    expect(runDraftPath(4)).toBe('runs/4/draft.mp4');
+    expect(beatStillPath(4, 'hook')).toBe('runs/4/stills/hook.png');
+    expect(exportVideoPath(4, 'rate-limiter')).toBe('exports/4/rate-limiter.mp4');
   });
 
   it('hashes text as sha256 hex', () => {

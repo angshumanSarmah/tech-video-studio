@@ -26,6 +26,41 @@ export function missingAssetsPath(runId: number): string {
   return posix.join(runDir(runId), 'missing-assets.json');
 }
 
+/** A spec version's JSON (`spec_versions.json_path`). */
+export function specVersionPath(runId: number, version: number): string {
+  return posix.join(runDir(runId), 'specs', `v${version}.json`);
+}
+
+/** Per-beat draft clips and their cache sidecars. */
+export function runBeatsDir(runId: number): string {
+  return posix.join(runDir(runId), 'beats');
+}
+
+/** One beat's draft clip (`render_beat_draft`). Beat ids are spec slugs, safe as file names. */
+export function beatDraftPath(runId: number, beatId: string): string {
+  return posix.join(runBeatsDir(runId), `${beatId}.draft.mp4`);
+}
+
+/** The cache key a beat's draft clip was rendered with (`DraftClipMetaSchema`). */
+export function beatDraftMetaPath(runId: number, beatId: string): string {
+  return posix.join(runBeatsDir(runId), `${beatId}.draft.json`);
+}
+
+/** The joined draft video with the whole narration (`render_draft`). */
+export function runDraftPath(runId: number): string {
+  return posix.join(runDir(runId), 'draft.mp4');
+}
+
+/** One preview still per beat at its key frame (`render_stills`). */
+export function beatStillPath(runId: number, beatId: string): string {
+  return posix.join(runDir(runId), 'stills', `${beatId}.png`);
+}
+
+/** The final video (`render_final`). */
+export function exportVideoPath(runId: number, slug: string): string {
+  return posix.join('exports', String(runId), `${slug}.mp4`);
+}
+
 /** Extracted source text is content-addressed so re-fetching never overwrites an older version. */
 export function sourceTextPath(topicId: number, sourceId: number, contentHash: string): string {
   return posix.join('topics', String(topicId), 'sources', String(sourceId), `${contentHash}.txt`);

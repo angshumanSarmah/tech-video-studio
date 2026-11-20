@@ -10,7 +10,7 @@ describe('SettingsSchema defaults', () => {
       speed: 1,
     });
     expect(settings.render).toEqual({
-      concurrency: 4,
+      concurrency: 3,
       presets: {
         draft: { width: 540, height: 960, fps: 15 },
         final: { width: 1080, height: 1920, fps: 30 },
@@ -25,7 +25,7 @@ describe('SettingsSchema defaults', () => {
     });
     expect(settings.render.presets.draft.width).toBe(720);
     expect(settings.render.presets.final.fps).toBe(30);
-    expect(settings.render.concurrency).toBe(4);
+    expect(settings.render.concurrency).toBe(3);
   });
 
   it('is idempotent: parsing its own output yields the same value', () => {
