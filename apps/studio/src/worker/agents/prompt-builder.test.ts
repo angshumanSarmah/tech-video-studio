@@ -101,6 +101,12 @@ describe('buildPrompt', () => {
     expect(render(buildPrompt(templates, parts('scriptwriter')))).toContain(
       'About 2.7 words per second',
     );
+    expect(render(buildPrompt(templates, parts('researcher')))).toContain(
+      'new to this topic (explanation level: beginner)',
+    );
+    expect(render(buildPrompt(templates, parts('curator')))).toContain(
+      'clarity at the beginner level',
+    );
   });
 
   it('changes the filled values with the settings, not the prompt', () => {

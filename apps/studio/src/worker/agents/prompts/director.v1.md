@@ -24,6 +24,9 @@ DO
   seconds sum to the target within 10%.
 - Avoid the device / layout / pattern combinations listed as recently used.
 - Prefer one persistent scene that grows across beats (continuesPrevious) over a new scene per beat.
+- Keep it easy to follow: one new idea per beat; at most 3 new terms in the whole video (from the
+  glossary); one concrete running example all the way through (one user, one request); show it
+  happening first, then name it. Use an analogy from the notes when it helps.
 DO NOT
 - Plan a beat that needs facts the notes don't have.
 - Use the same pattern on the same focus in two consecutive beats.

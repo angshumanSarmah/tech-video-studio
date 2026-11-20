@@ -21,7 +21,7 @@ export class PromptVariablesError extends Error {
 
 /**
  * The run's override, else the app's `settings.video` (whose schema defaults are 45, 150, 90,
- * true, 4, 2.7). The merge is validated again, so a run cannot set min above the app's max.
+ * true, 4, 2.7, beginner). The merge is validated again, so a run cannot set min above the app's max.
  */
 export function resolvePromptVariables(
   run: RunSettings | undefined,

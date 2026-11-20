@@ -352,7 +352,8 @@ stepId?, aliases?, check?, signal?, log? })`** is the only way to call a model (
   user message, so the static prefix caches. A new agent registers its output schema there and
   passes the same schema to `callJson`. `{{name}}`
   takes values from `resolvePromptVariables(run settings, settings.video)` (run override →
-  app settings → defaults 45, 150, 90, true, 4, 2.7); an unknown, unfilled or malformed
+  app settings → defaults 45, 150, 90, true, 4, 2.7, `beginner`; `explanationLevel` is
+  beginner | intermediate | expert and fills the preamble's audience line); an unknown, unfilled or malformed
   placeholder throws `PromptBuildError`. `__snapshots__/<role>.prompt.txt` holds each assembled
   prompt with the defaults: review the diff when one changes.
 
@@ -370,12 +371,15 @@ stepId?, aliases?, check?, signal?, log? })`** is the only way to call a model (
   left out) and `notes-<step>.json`. A step still `running` when the job starts again was
   interrupted and is marked failed. **Gate 1 input** is `latestResearch(db, dataDir, runId)`
   (`#core/services/research-notes.ts`): the newest `done` step's notes and input, validated.
-- **`ResearchNotes`** (`packages/shared/src/research`): mechanism (summary + steps), facts
+- **`ResearchNotes`** (`packages/shared/src/research`): mechanism (summary + steps),
+  `plainSummary` (the mechanism in plain words, no numbers), 1–2 `analogies` (`analogy`,
+  `matches`, `breaksDown`), `glossary` (`term`, `plainMeaning`, cited), facts
   (`fact-<n>`, confidence), numbers (`num-<n>`, `value` exactly as the chunk writes it, unit,
   context, one `sourceChunkId`, optional `asOf`), trade-offs, rejected alternatives,
   misconceptions, failure modes (edge case / failure mode / incident with date and publisher),
-  2–4 hooks and open questions (`disagreement` / `not_covered`). Every item cites chunks;
-  only open questions may cite none. Fact and number ids are slugs, so `factIds` and stat card
+  2–4 hooks and open questions (`disagreement` / `not_covered`). Every item cites chunks
+  except `plainSummary`, analogies and open questions with nothing to cite; text that cites
+  nothing may carry no number. Fact and number ids are slugs, so `factIds` and stat card
   `sourceRef`s can point at them.
 - **Checks** (`researchNotesProblems(notes, chunks)`, pure, shared so gate edits and imports
   run them too): `unknown_chunk` (a citation not among the chunks sent), `number_not_in_source`
@@ -384,7 +388,7 @@ stepId?, aliases?, check?, signal?, log? })`** is the only way to call a model (
   and `duplicate_id`. Numbers are digit runs with `.`/`,` groups, grouping commas ignored,
   whole tokens only (`numbers.ts`). **Digits glued to letters are identifiers and skipped**
   (`IPv4`, `L7`, `p99`, `SHA-256`, `HTTP/2`, `UTF-8`, `O(1)`); digits followed by letters stay
-  quantities (`50ms`, `10k`, `5xx`).
+  quantities (`50ms`, `10k`, `5xx`). Glossary entries are checked like any cited item.
 - **Source token budget** (`settings.research.sourceTokenBudget`, default 60,000 estimated
   tokens at 4 characters each; `select-chunks.ts`, pure): above it, each source gets a max-min
   fair share, keeps its first `KEEP_FIRST_CHUNKS` (2) chunks even past its share (so the budget
@@ -396,7 +400,7 @@ stepId?, aliases?, check?, signal?, log? })`** is the only way to call a model (
   (an article, a library README and a post-mortem that disagree on fail open vs closed) and
   `responses/researcher.json`, the dry-run answer `jobs/research.test.ts` replays. It is
   hand-written until recorded: `pnpm --filter @explainer-studio/studio research:fixture
-[--record]` runs ingestion and the Researcher on those sources against the configured model
+[--level beginner|intermediate|expert] [--record]` runs ingestion and the Researcher on those sources against the configured model
   in a scratch data dir (`<DATA_DIR>/research/fixture/rate-limiter/`, its own DB), prints the
   log, check result and cost, and with `--record` replaces the dry-run answer (every attempt,
   repairs included). `fixtures/oversized-source.ts` builds the long source of the budget test.

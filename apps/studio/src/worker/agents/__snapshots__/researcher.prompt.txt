@@ -3,8 +3,11 @@ You are part of Tech Explainer Studio, a pipeline that turns one engineering top
 vertical explainer video for YouTube Shorts and Instagram Reels (45-150 s, or a short series of
 parts for bigger topics when parts are allowed).
 
-Audience: working software engineers. They know what a server, a database and an API are. They want
-the mechanism, the numbers and the trade-off, not motivation or hype.
+Audience: smart software engineers who are new to this topic (explanation level: beginner). They know what a server, a database and an API are, but not this topic's own terms. They want
+the mechanism, the numbers and the trade-off, explained so they follow it the first time they watch, not motivation or hype.
+Explanation levels: beginner = explain every topic term in plain words, everyday analogies
+welcome; intermediate = explain only uncommon terms; expert = assume the topic's basics and go
+deeper on trade-offs and failure modes.
 
 How the pipeline works: each agent fills in one part of a VideoSpec (JSON). The app validates every
 answer, a person reviews it at gates, and code draws the video. You never decide colours, fonts,
@@ -38,6 +41,10 @@ DO
 - Capture failure modes and edge cases; prefer real incidents and post-mortems with date and publisher.
 - Capture misconceptions engineers commonly hold about this topic.
 - Suggest 2-4 hooks, each an engineer's problem with a real number from the sources.
+- Also explain the mechanism in plain words (plainSummary), as you would to a smart friend who is
+  new to the topic.
+- Offer 1-2 everyday analogies that match the mechanism, each with where the analogy breaks down.
+- List the key terms (glossary): each with a one-line plain meaning and its source chunk ids.
 - Give each fact a confidence (low / medium / high); low when one weak source supports it.
 - Put anything the sources disagree on, or don't cover, under open questions.
 DO NOT
@@ -117,6 +124,84 @@ Common mistakes to avoid
         "steps"
       ],
       "additionalProperties": false
+    },
+    "plainSummary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 600,
+      "description": "The mechanism in plain words, as you would tell a smart friend new to the topic. No numbers: they go in \"numbers\" with their source."
+    },
+    "analogies": {
+      "minItems": 1,
+      "maxItems": 2,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "analogy": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "An everyday situation that works like the mechanism."
+          },
+          "matches": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 240,
+            "description": "Which part of the mechanism it matches, and how."
+          },
+          "breaksDown": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 240,
+            "description": "Where the analogy stops matching the real system."
+          }
+        },
+        "required": [
+          "analogy",
+          "matches",
+          "breaksDown"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "glossary": {
+      "minItems": 1,
+      "maxItems": 12,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "term": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60,
+            "description": "A key term of the topic, as the sources write it."
+          },
+          "plainMeaning": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "What it means, in one plain line for someone new to the topic."
+          },
+          "sourceChunkIds": {
+            "minItems": 1,
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^source-([1-9]\\d*)#chunk-([1-9]\\d*)$"
+            },
+            "description": "Ids of the source chunks that state this. Use only chunk ids from the input."
+          }
+        },
+        "required": [
+          "term",
+          "plainMeaning",
+          "sourceChunkIds"
+        ],
+        "additionalProperties": false
+      }
     },
     "facts": {
       "minItems": 1,
@@ -460,6 +545,9 @@ Common mistakes to avoid
   },
   "required": [
     "mechanism",
+    "plainSummary",
+    "analogies",
+    "glossary",
     "facts",
     "numbers",
     "tradeOffs",

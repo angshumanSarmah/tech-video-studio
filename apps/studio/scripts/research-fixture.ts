@@ -1,16 +1,24 @@
 /**
- * `pnpm --filter @explainer-studio/studio research:fixture [--record]`: runs source ingestion
+ * `pnpm --filter @explainer-studio/studio research:fixture [--level <level>] [--record]`: runs
+ * source ingestion
  * and the Researcher on the invented rate-limiter sources against the configured model (needs
  * DEEPSEEK_API_KEY), in a scratch data dir with its own database:
  * <DATA_DIR>/research/fixture/rate-limiter/ (wiped first; the studio DB is not touched).
- * Prints the job log, the deterministic check result and the cost, and leaves the step's
- * input, notes and LLM call files there for review.
+ * `--level` sets the run's explanation level (beginner | intermediate | expert; default: the
+ * app's `settings.video`). Prints the job log, the plain summary and glossary terms, the
+ * deterministic check result and the cost, and leaves the step's input, notes and LLM call
+ * files there for review.
  * With --record, the run's Researcher responses (every attempt, repairs included) replace the
  * dry-run fixture that `research.test.ts` replays. Review the diff before committing.
  */
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import { researchNotesProblems } from '@explainer-studio/shared';
+import {
+  ExplanationLevelSchema,
+  researchNotesProblems,
+  type ExplanationLevel,
+  type ResearchNotes,
+} from '@explainer-studio/shared';
 import { loadConfig, type AppConfig } from '#core/config.ts';
 import { resolveDataPath } from '#core/data-files.ts';
 import { closeDatabase, migrationsDirFor, openDatabase, type Db } from '#core/db/client.ts';
@@ -105,9 +113,22 @@ function recordResponses(db: Db, dataDir: string, runId: number): number {
   return responses.length;
 }
 
+/** `--level <level>`, validated; undefined when not given. */
+function levelArg(argv: readonly string[]): ExplanationLevel | undefined {
+  const i = argv.indexOf('--level');
+  return i < 0 ? undefined : ExplanationLevelSchema.parse(argv[i + 1]);
+}
+
+function printNotes(notes: ResearchNotes): void {
+  console.log(`  plain summary: ${notes.plainSummary}`);
+  console.log(`  glossary: ${notes.glossary.map((g) => g.term).join(', ')}`);
+  for (const a of notes.analogies) console.log(`  analogy: ${a.analogy} (breaks: ${a.breaksDown})`);
+}
+
 async function main(): Promise<number> {
   const config = loadConfig();
   const record = process.argv.includes('--record');
+  const level = levelArg(process.argv);
   const dataDir = join(config.dataDir, 'research', 'fixture', 'rate-limiter');
   const shown = (path: string) => relative(config.workspaceRoot, path);
   rmSync(dataDir, { recursive: true, force: true });
@@ -115,9 +136,12 @@ async function main(): Promise<number> {
   const db = openDatabase(dbPath);
   try {
     const registry = registryFor(config, db, dataDir);
-    const seeded = seedRunWithUploads(db, dataDir, RATE_LIMITER_TOPIC, RATE_LIMITER_SOURCE_FILES);
+    const seeded = seedRunWithUploads(db, dataDir, RATE_LIMITER_TOPIC, RATE_LIMITER_SOURCE_FILES, {
+      settings: level ? { video: { explanationLevel: level } } : undefined,
+    });
+    const shownLevel = level ?? config.video.explanationLevel;
     console.log(
-      `rate-limiter fixture: ${seeded.sourceIds.length} sources, model ${config.llm.models.researcher}`,
+      `rate-limiter fixture: ${seeded.sourceIds.length} sources, model ${config.llm.models.researcher}, level ${shownLevel}`,
     );
     const ingestJob = listRunJobs(db, seeded.runId)[0]!.id;
     const ingested = await runJob(db, registry, ingestJob);
@@ -130,6 +154,7 @@ async function main(): Promise<number> {
     if (!researched) return 1;
 
     const result = latestResearch(db, dataDir, seeded.runId)!;
+    printNotes(result.notes);
     const problems = researchNotesProblems(result.notes, citableChunks(result.input));
     console.log(`  checks: ${problems.length === 0 ? 'pass' : `${problems.length} problem(s)`}`);
     for (const p of problems) console.log(`    ${p.path} ${p.code}: ${p.message}`);

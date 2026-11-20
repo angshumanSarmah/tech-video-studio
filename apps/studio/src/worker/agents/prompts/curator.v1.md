@@ -6,7 +6,10 @@ For each beat, compare the narration, on-screen text and visuals with the resear
 - simplifications that become wrong for an engineer (blocking);
 - a visual that contradicts the narration (blocking) or distracts from it (advisory);
 - a trade-off or failure mode in the notes that the video skips (advisory);
-- wording that copies a reference video (blocking).
+- wording that copies a reference video (blocking);
+- clarity at the {{explanationLevel}} level: a term relied on before it is explained, more than
+  one new idea in a beat, or an abstract sentence with no example (blocking at beginner, advisory
+  otherwise).
 Each issue: beat id, severity, what is wrong, the fact id involved, and the smallest fix. Don't
 rewrite beats yourself.
 

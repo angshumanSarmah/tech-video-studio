@@ -104,6 +104,18 @@ export const ResearchFailureModeSchema = z.strictObject({
   sourceChunkIds: ChunkIdsSchema,
 });
 
+export const ResearchAnalogySchema = z.strictObject({
+  analogy: text(200, 'An everyday situation that works like the mechanism.'),
+  matches: text(240, 'Which part of the mechanism it matches, and how.'),
+  breaksDown: text(240, 'Where the analogy stops matching the real system.'),
+});
+
+export const ResearchGlossaryEntrySchema = z.strictObject({
+  term: text(60, 'A key term of the topic, as the sources write it.'),
+  plainMeaning: text(200, 'What it means, in one plain line for someone new to the topic.'),
+  sourceChunkIds: ChunkIdsSchema,
+});
+
 export const ResearchHookSchema = z.strictObject({
   situation: text(200, "An engineer's concrete problem with a real number from the sources."),
   sourceChunkIds: ChunkIdsSchema,
@@ -122,6 +134,12 @@ export const ResearchOpenQuestionSchema = z.strictObject({
 
 export const ResearchNotesSchema = z.strictObject({
   mechanism: ResearchMechanismSchema,
+  plainSummary: text(
+    600,
+    'The mechanism in plain words, as you would tell a smart friend new to the topic. No numbers: they go in "numbers" with their source.',
+  ),
+  analogies: z.array(ResearchAnalogySchema).min(1).max(2),
+  glossary: z.array(ResearchGlossaryEntrySchema).min(1).max(12),
   facts: z.array(ResearchFactSchema).min(1).max(40),
   numbers: z.array(ResearchNumberSchema).max(40),
   tradeOffs: z.array(ResearchTradeOffSchema).max(12),

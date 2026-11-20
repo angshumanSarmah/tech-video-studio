@@ -34,7 +34,8 @@ const NOT_PROSE = new Set(['id', 'sourceChunkIds', 'sourceChunkId', 'value']);
  * - `unknown_chunk`: a citation that is not one of those chunks;
  * - `number_not_in_source`: a `numbers[]` value its cited chunk does not state;
  * - `unsourced_number`: a quantity in any text that none of the item's cited chunks states
- *   (identifiers such as `IPv4` or `p99` are skipped: `quantityTokens`);
+ *   (identifiers such as `IPv4` or `p99` are skipped: `quantityTokens`). Texts that cite
+ *   nothing (`plainSummary`, analogies, open questions without chunks) may carry no number;
  * - `duplicate_id`: two facts or two numbers with one id.
  * Agent output repairs these; gate edits and imports run the same check.
  */
@@ -138,7 +139,7 @@ function proseIssues(
       path,
       'unsourced_number',
       cited.length === 0
-        ? `"${token}" has no source: this item cites no chunk. Cite the chunk that states it, or remove the number.`
+        ? `"${token}" has no source here: this text cites no chunk, so it cannot carry a number. Remove it, or put it in an item that cites the chunk that states it.`
         : `"${token}" is not in the cited chunks (${cited.join(', ')}). Cite the chunk that states it, or remove the number.`,
     ),
   );

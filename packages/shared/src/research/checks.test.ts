@@ -24,6 +24,22 @@ function notes(patch: Partial<ResearchNotes> = {}): ResearchNotes {
       sourceChunkIds: [C1],
       steps: [{ text: 'Refill 10 tokens per second, up to 100.', sourceChunkIds: [C1] }],
     },
+    plainSummary: 'Every request spends a token; when the tokens run out, callers wait.',
+    analogies: [
+      {
+        analogy: 'Arcade tokens in a cup',
+        matches: 'Each game costs one token and the cup refills slowly.',
+        breaksDown: 'Nobody shares the cup across machines.',
+      },
+    ],
+    glossary: [
+      {
+        term: 'Token bucket',
+        plainMeaning: 'A counter that refills over time.',
+        sourceChunkIds: [C1],
+      },
+      { term: 'HTTP 429', plainMeaning: 'The "slow down" answer.', sourceChunkIds: [C1] },
+    ],
     facts: [
       {
         id: 'fact-1',
@@ -132,8 +148,48 @@ describe('researchNotesProblems', () => {
       {
         path: '$.openQuestions[0].question',
         code: 'unsourced_number',
-        message: expect.stringContaining('this item cites no chunk') as string,
+        message: expect.stringContaining('this text cites no chunk') as string,
       },
+    ]);
+  });
+
+  it('checks glossary entries like other cited items', () => {
+    const problems = researchNotesProblems(
+      notes({
+        glossary: [
+          { term: 'Refill rate', plainMeaning: 'About 25 tokens a second.', sourceChunkIds: [C1] },
+          {
+            term: 'Window log',
+            plainMeaning: 'A list of times.',
+            sourceChunkIds: ['source-7#chunk-2'],
+          },
+        ],
+      }),
+      CHUNKS,
+    );
+    expect(problems.map((p) => [p.path, p.code])).toEqual([
+      ['$.glossary[0].plainMeaning', 'unsourced_number'],
+      ['$.glossary[1].sourceChunkIds[0]', 'unknown_chunk'],
+    ]);
+  });
+
+  it('allows no numbers in texts that cite nothing: plain summary and analogies', () => {
+    const problems = researchNotesProblems(
+      notes({
+        plainSummary: 'A bucket of 100 tokens refills while you wait.',
+        analogies: [
+          {
+            analogy: 'A cup of 20 arcade tokens',
+            matches: 'Each game takes one.',
+            breaksDown: 'Arcades do not share cups.',
+          },
+        ],
+      }),
+      CHUNKS,
+    );
+    expect(problems.map((p) => [p.path, p.code])).toEqual([
+      ['$.plainSummary', 'unsourced_number'],
+      ['$.analogies[0].analogy', 'unsourced_number'],
     ]);
   });
 

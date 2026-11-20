@@ -12,6 +12,10 @@ DO
 - Capture failure modes and edge cases; prefer real incidents and post-mortems with date and publisher.
 - Capture misconceptions engineers commonly hold about this topic.
 - Suggest 2-4 hooks, each an engineer's problem with a real number from the sources.
+- Also explain the mechanism in plain words (plainSummary), as you would to a smart friend who is
+  new to the topic.
+- Offer 1-2 everyday analogies that match the mechanism, each with where the analogy breaks down.
+- List the key terms (glossary): each with a one-line plain meaning and its source chunk ids.
 - Give each fact a confidence (low / medium / high); low when one weak source supports it.
 - Put anything the sources disagree on, or don't cover, under open questions.
 DO NOT

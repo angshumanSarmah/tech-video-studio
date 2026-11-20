@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { copyFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { basename, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { RunSettingsInput } from '@explainer-studio/shared';
 import { eq } from 'drizzle-orm';
 import { resolveDataPath, sourceUploadPath } from '#core/data-files.ts';
 import type { Db } from '#core/db/client.ts';
@@ -49,13 +50,14 @@ export function seedRunWithUploads(
   dataDir: string,
   topic: { readonly title: string; readonly notes?: string },
   files: readonly string[],
-  seriesTag = 'system-design',
+  options: { readonly seriesTag?: string; readonly settings?: RunSettingsInput } = {},
 ): SeededRun {
+  const seriesTag = options.seriesTag ?? 'system-design';
   const topicId = createTopic(db, topic).id;
   const sourceIds = files.map((file) => uploadSource(db, dataDir, topicId, file));
   const seriesRow = db.select().from(series).where(eq(series.tag, seriesTag)).get();
   if (!seriesRow) throw new Error(`No series with tag ${seriesTag}`);
-  const { run } = startRun(db, { topicId, seriesId: seriesRow.id });
+  const { run } = startRun(db, { topicId, seriesId: seriesRow.id, settings: options.settings });
   return { topicId, runId: run.id, sourceIds };
 }
 

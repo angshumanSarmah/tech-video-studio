@@ -13,6 +13,14 @@ export const VideoLengthSecSchema = z
   .min(VIDEO_LENGTH_LIMITS_SEC.min)
   .max(VIDEO_LENGTH_LIMITS_SEC.max);
 
+/**
+ * How much the video explains (`{{explanationLevel}}` in the preamble): beginner = every topic
+ * term in plain words; intermediate = only uncommon terms; expert = the topic's basics assumed.
+ */
+export const EXPLANATION_LEVELS = ['beginner', 'intermediate', 'expert'] as const;
+export const ExplanationLevelSchema = z.enum(EXPLANATION_LEVELS);
+export type ExplanationLevel = z.infer<typeof ExplanationLevelSchema>;
+
 /** App defaults for the values agent prompts are filled with (`{{name}}` in the prompt files). */
 export const DEFAULT_VIDEO_SETTINGS = {
   lengthMinSec: 45,
@@ -21,6 +29,7 @@ export const DEFAULT_VIDEO_SETTINGS = {
   allowParts: true,
   maxParts: 4,
   wordsPerSec: 2.7,
+  explanationLevel: 'beginner',
 } as const;
 
 /** One field per prompt variable, without defaults (the run override reuses them). */
@@ -36,6 +45,8 @@ const videoFields = {
   maxParts: z.number().int().min(2).max(6),
   /** The Scriptwriter's narration pace (Kokoro at speed 1.0 is about 2.7). */
   wordsPerSec: z.number().min(1.5).max(4),
+  /** Who the video is for; every agent's preamble states it. */
+  explanationLevel: ExplanationLevelSchema,
 };
 
 type VideoOrderInput = { lengthMinSec: number; lengthMaxSec: number; lengthReasonAboveSec: number };
@@ -57,7 +68,7 @@ function checkLengthOrder(video: VideoOrderInput, ctx: z.RefinementCtx): void {
   }
 }
 
-/** App settings for length, parts and pace; every field has a default. */
+/** App settings for length, parts, pace and explanation level; every field has a default. */
 export const VideoSettingsSchema = z
   .strictObject({
     lengthMinSec: videoFields.lengthMinSec.default(DEFAULT_VIDEO_SETTINGS.lengthMinSec),
@@ -68,6 +79,7 @@ export const VideoSettingsSchema = z
     allowParts: videoFields.allowParts.default(DEFAULT_VIDEO_SETTINGS.allowParts),
     maxParts: videoFields.maxParts.default(DEFAULT_VIDEO_SETTINGS.maxParts),
     wordsPerSec: videoFields.wordsPerSec.default(DEFAULT_VIDEO_SETTINGS.wordsPerSec),
+    explanationLevel: videoFields.explanationLevel.default(DEFAULT_VIDEO_SETTINGS.explanationLevel),
   })
   .superRefine(checkLengthOrder);
 

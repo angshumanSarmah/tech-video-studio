@@ -145,6 +145,7 @@ async function writeNotes(
 function summarize(notes: ResearchNotes): string {
   return (
     `Research notes: ${notes.facts.length} facts, ${notes.numbers.length} numbers, ` +
+    `${notes.glossary.length} glossary terms, ${notes.analogies.length} analogies, ` +
     `${notes.failureModes.length} failure modes, ${notes.openQuestions.length} open questions.`
   );
 }

@@ -30,8 +30,13 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       creates the `gates` row (`research`), sets the run `awaiting_review` unless auto-approved,
       and reads `latestResearch` for the gate.
 - [ ] **P1D.3 — Research gate view.** Show `input.omittedChunks` (what the source budget left
-      out, per source) next to the notes; "exclude a fact" needs a field on `ResearchFact` (or a
-      gate-side list) and edits must pass `researchNotesProblems` against the step's input.
+      out, per source) next to the notes. **Exclusions are a gate-side list** (fact ids, kept
+      with the gate decision), never a field on `ResearchFact`: downstream agents read the
+      notes minus the exclusions. **A fact edited at gate 1 is saved as a new notes version
+      by the user** (the model's notes stay as written); edits must pass
+      `researchNotesProblems` against the step's input. Needs a notes-version record (author
+      `user`) next to the research step, and `latestResearch` (or a new reader) to apply the
+      newest version and the exclusions.
 - [ ] **P1C.3 — Pinned title and date.** `loadRunSources` takes title and fetch date from the
       source row (its latest version), not the pinned version; store both on `run_sources` if a
       re-fetch between runs ever makes that matter.

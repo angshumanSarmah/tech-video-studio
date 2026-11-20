@@ -75,7 +75,7 @@ describe('SettingsSchema validation', () => {
 });
 
 describe('SettingsSchema video', () => {
-  it('defaults length, parts and pace to the prompt defaults', () => {
+  it('defaults length, parts, pace and explanation level to the prompt defaults', () => {
     expect(SettingsSchema.parse({}).video).toEqual({
       lengthMinSec: 45,
       lengthMaxSec: 150,
@@ -83,7 +83,12 @@ describe('SettingsSchema video', () => {
       allowParts: true,
       maxParts: 4,
       wordsPerSec: 2.7,
+      explanationLevel: 'beginner',
     });
+  });
+
+  it('rejects an unknown explanation level', () => {
+    expect(SettingsSchema.safeParse({ video: { explanationLevel: 'novice' } }).success).toBe(false);
   });
 
   it.each([

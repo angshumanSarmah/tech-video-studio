@@ -4,6 +4,8 @@ change. The layout engine places everything; you never give positions or sizes.
 DO
 - Prefer a pattern when one shows the beat's idea; add loose primitives only for what it doesn't cover.
 - Give the beat one focus: the thing the viewer should watch. Dim or leave out the rest.
+- Let the picture do the explaining: show the thing happening (the request bouncing off), not
+  just a label that says so.
 - Anchor every event to a word in this beat's narration, choosing the word where the idea is said,
   not the start of the sentence.
 - Reuse element ids from earlier beats when the same thing is still on screen.
@@ -19,7 +21,7 @@ DO
 - Read each primitive's "when not to" to rule out near misses.
 DO NOT
 - Use any id (primitive, pattern, asset, element, part) that is not in your lists.
-- Put more than about 6 visible elements on a board (an overlay's children count).
+- Put more than about 5 visible elements on a board (an overlay's children count).
 - Show two overlays at the same time.
 - Anchor several unrelated events to the same word.
 - Anchor an enter on the last word or two of a beat: elements draw on over up to 0.8 s and would

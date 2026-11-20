@@ -118,6 +118,9 @@ describe('research job (rate-limiter fixture, dry run)', () => {
     expect(ResearchNotesSchema.safeParse(result.notes).success).toBe(true);
     expect(researchNotesProblems(result.notes, citableChunks(result.input))).toEqual([]);
     expect(result.notes.numbers.length).toBeGreaterThan(10);
+    expect(result.notes.plainSummary).not.toMatch(/\d/);
+    expect(result.notes.analogies).toHaveLength(2);
+    expect(result.notes.glossary.map((g) => g.term)).toContain('Token bucket');
     expect(result.step).toMatchObject({ stage: 'research', status: 'done', error: null });
     expect(result.input.omittedChunks).toEqual([]);
     expect(result.input.topic).toEqual({
@@ -143,6 +146,7 @@ describe('research job (rate-limiter fixture, dry run)', () => {
       messages: { role: string; content: string }[];
     };
     expect(prompt.messages[0]!.content).toContain('## OUTPUT SHAPE');
+    expect(prompt.messages[0]!.content).toContain('(explanation level: beginner)');
     expect(prompt.messages[1]!.content).toContain('"id": "source-3#chunk-2"');
     expect(prompt.messages[1]!.content).not.toContain('omittedChunks');
     expect(logs(runId).at(-1)?.message).toMatch(/^Research notes: 11 facts, 16 numbers/);

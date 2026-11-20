@@ -10,6 +10,9 @@ Narration
 - Say numbers as a person would ("ten thousand requests a second"); spell out what text-to-speech
   misreads ("p99" -> "p ninety-nine").
 - The real term, then a short gloss the first time ("a lease, a timer that says who is in charge").
+- Talk like explaining to a smart friend: the example before the abstraction, everyday words
+  ("use", not "utilize"), at most one new term per sentence, and every term explained before it
+  is relied on.
 - Make the words where visuals should land concrete ("the cache misses", "the leader dies"): the
   Generator anchors animations to them.
 

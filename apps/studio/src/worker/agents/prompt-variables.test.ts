@@ -15,7 +15,7 @@ describe('resolvePromptVariables', () => {
     );
   });
 
-  it('uses the defaults 45, 150, 90, true, 4, 2.7 without overrides', () => {
+  it('uses the defaults 45, 150, 90, true, 4, 2.7, beginner without overrides', () => {
     expect(resolvePromptVariables(undefined, appDefaults)).toEqual({
       lengthMinSec: 45,
       lengthMaxSec: 150,
@@ -23,7 +23,13 @@ describe('resolvePromptVariables', () => {
       allowParts: true,
       maxParts: 4,
       wordsPerSec: 2.7,
+      explanationLevel: 'beginner',
     });
+  });
+
+  it('takes the run’s explanation level over the app’s', () => {
+    const run = RunSettingsSchema.parse({ video: { explanationLevel: 'expert' } });
+    expect(resolvePromptVariables(run, appDefaults).explanationLevel).toBe('expert');
   });
 
   it('takes app settings over defaults, and the run override over both', () => {
