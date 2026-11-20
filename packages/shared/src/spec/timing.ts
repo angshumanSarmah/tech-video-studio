@@ -36,7 +36,7 @@ export const ResolvedEventTimeSchema = z.strictObject({
 export type ResolvedEventTime = z.infer<typeof ResolvedEventTimeSchema>;
 
 export const TimingLayerSchema = z.strictObject({
-  /** Narration track, relative to the run's data dir. */
+  /** Narration WAV (one track, 0 s = the first frame), relative to the data dir. */
   audioFile: z.string().min(1),
   beats: z.array(BeatTimingSchema).min(1),
   events: z.array(ResolvedEventTimeSchema).default([]),

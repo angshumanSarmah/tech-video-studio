@@ -19,3 +19,4 @@ export * from './catalogue.ts';
 export * from './render-inputs.ts';
 export * from './key-frame.ts';
 export { beatFrameSpans, secToFrame, totalFrames, type BeatFrameSpan } from '../timing/frames.ts';
+export type { BeatFromSpecProps, SeriesProps, VideoFromSpecProps } from '../compositions/props.ts';

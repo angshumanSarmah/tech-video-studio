@@ -26,6 +26,8 @@
     "@explainer-studio/renderer": "workspace:*",
     "@explainer-studio/shared": "workspace:*",
     "@hono/node-server": "catalog:",
+    "@remotion/bundler": "catalog:",
+    "@remotion/renderer": "catalog:",
     "better-sqlite3": "catalog:",
     "drizzle-orm": "catalog:",
     "fast-xml-parser": "catalog:",

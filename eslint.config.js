@@ -61,8 +61,8 @@ export default tseslint.config(
   {
     files: ['apps/studio/src/server/**'],
     rules: forbidImports(
-      'The server must not import worker or web code; enqueue jobs instead.',
-      '^#(worker|web)/|/(worker|web)/',
+      'The server must not import worker or web code, or render (@remotion/renderer, @remotion/bundler); enqueue jobs instead.',
+      '^#(worker|web)/|/(worker|web)/|^@remotion/(renderer|bundler)',
     ),
   },
   {
@@ -82,8 +82,8 @@ export default tseslint.config(
   {
     files: ['apps/studio/src/core/**'],
     rules: forbidImports(
-      'core is shared by server and worker; it must not depend on either.',
-      '^#(server|worker|web)/|/(server|worker|web)/',
+      'core is shared by server and worker; it must not depend on either. Rendering (@remotion/renderer, @remotion/bundler) runs only in the worker.',
+      '^#(server|worker|web)/|/(server|worker|web)/|^@remotion/(renderer|bundler)',
     ),
   },
 
