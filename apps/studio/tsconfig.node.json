@@ -12,6 +12,7 @@
     "scripts",
     "vite.config.ts",
     "vitest.config.ts",
+    "vitest.visual.config.ts",
     "tsup.config.ts",
     "drizzle.config.ts"
   ]

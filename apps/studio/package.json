@@ -20,6 +20,7 @@
     "db:migrate": "tsx src/core/db/migrate-cli.ts",
     "typecheck": "vue-tsc --build",
     "test": "vitest run",
+    "test:visual": "vitest run --config vitest.visual.config.ts",
     "gen:theme": "tsx scripts/generate-theme-css.ts",
     "bench:render": "tsx scripts/benchmark-render.ts"
   },

@@ -51,7 +51,8 @@ the version pinned in `packageManager`. Re-run it after switching Node versions;
 globally.
 
 Commands (from the repo root): `pnpm dev` (server, worker and Vite via `concurrently`),
-`pnpm build`, `pnpm typecheck`, `pnpm lint`, `pnpm format`, `pnpm test`.
+`pnpm build`, `pnpm typecheck`, `pnpm lint`, `pnpm format`, `pnpm test`. The visual regression
+test is separate: `pnpm --filter @explainer-studio/studio test:visual` (see "Golden fixtures").
 
 Dev ports: the UI is on http://localhost:4310 (`WEB_PORT`, Vite, `strictPort`) and the API on 4311
 (`PORT`, Hono). Vite proxies `/api` to `PORT`; its default comes from `EnvSchema`.
@@ -366,6 +367,20 @@ its lease in card). The per-anchor sheets stay the record of timing.
   (`fixtures/transitions-board.json`) has one beat per transition, including the semantic zoom
   from "Redis server" into its "hash table", plus a focus event, held and default highlights, a
   scan, a lock / release and an overlay taking focus. `allFixtureSpecs` lists every fixture spec.
+- **Golden fixtures** (`fixtures/golden/`, `goldenFixtures`; Studio: `GoldenRateLimiter`,
+  `GoldenStrawberry`) are complete hand-authored Shorts with estimated timing, one per series,
+  held to the agent-output bar: no validation or layout warnings in `full`
+  (`catalog/golden-fixtures.test.ts`). They are the visual regression set:
+  `apps/studio/scripts/golden/golden.visual.ts` (`test:visual`, its own Vitest config, not part
+  of `pnpm test`) renders each through the render service (`renderStills` at the default draft
+  preset, then `renderDraft`) and compares every beat's still with
+  `apps/studio/golden/<fixture>/<beat>.png`: a pixel differs past 24/255 on any channel, an
+  image fails past 20 differing pixels (`image-diff.ts`; one changed glyph is ~60). Failures
+  write the still and a red diff image to `<DATA_DIR>/visual/<fixture>/`. After an intended
+  visual change, refresh with `UPDATE_GOLDEN=1` and review the PNG diff before committing. The
+  saved images are macOS renders: same-machine runs are byte-identical, other platforms are not.
+  PNGs go through the bundled ffmpeg (`png.ts`: `image2` + `rawvideo`, as the build has no
+  `rawvideo` format).
 - **HUD** (`src/hud`): top bar, step tracker, hero metric pill, chapter header, story clock and
   headline. Slots come from `hudLayout(theme)` (derived from `safeAreas`); what each part shows at
   a frame comes from pure functions in `hud-state.ts`. Parts are toggled per video in `spec.hud`

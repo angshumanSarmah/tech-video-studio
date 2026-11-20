@@ -4,6 +4,25 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 
 ## Open
 
+- [ ] **P1A.13 — Golden images are platform-specific.** `apps/studio/golden/` holds macOS
+      renders; Chrome rasterises text differently on Linux, so a Linux CI run would fail. Before
+      adding CI, render the goldens in a pinned container (or keep one set per platform).
+- [ ] **P1A.13 — `token_strip` primitive.** The strawberry fixture builds its token strip from
+      `tag`s in a `pipeline` (the word, then the chunks stacked as stages, then the ids) and
+      records the request in `story.missingPrimitiveRequests`. A real strip would draw the word
+      with token boundaries over it and each id under its chunk, in one row.
+- [ ] **Renderer — Source footnotes truncate silently.** `script[].source` allows 80
+      characters (`SOURCE_MAX_LENGTH`), but the footnote line ends at the bottom-right avoid
+      zone: at 540×960 about 67 characters fit after "Source: ", and the rest is cut with an
+      ellipsis, with no warning. A full citation (authors, title, venue) can lose its venue and
+      year. Add a fit warning (measured like `text_too_small`) or wrap the line.
+- [ ] **Renderer — Key frame ignores typing and running effects.** `beatKeyFrame` waits for each
+      event's preset duration only, so a `data_block` or `command_bubble` entering near a beat's
+      end is caught mid-typing in stills (the strawberry fixture pulses its `data_block` on the
+      last word to settle it). Let primitives report how long an action's effect runs.
+- [ ] **Renderer — Connectors into one sink share a start point.** In `golden-rate-limiter`'s
+      `fleet-fix`, `api-a → shared` and `api-b → shared` leave from the same point between the two
+      cards and read as one line. Routing should start each from its own card's edge.
 - [ ] **Theme — Fill strength on paper.** Semantic fills take the theme's colour
       (`semanticFill`) at each primitive's own alpha (0.16–0.45), not the theme's fill alpha
       (0.55 for focus), so a focus zone or segment is a pale yellow at rest. Add a per-theme

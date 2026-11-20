@@ -1,0 +1,536 @@
+{
+  "schemaVersion": 1,
+  "meta": {
+    "id": "golden-rate-limiter",
+    "series": "system-design",
+    "title": "How a rate limiter works",
+    "topicClass": "concept",
+    "targetLengthSec": 80
+  },
+  "story": {
+    "devices": ["question_chapters", "failure_before_fix", "planted_question"],
+    "heroMetric": { "label": "Limit", "value": "100 req/min" },
+    "chapters": [
+      { "id": "why", "title": "The flood", "question": "Why limit at all?" },
+      { "id": "count", "title": "Counting", "question": "Why not log every request?" },
+      { "id": "bucket", "title": "Token bucket", "question": "How does a bucket refill?" },
+      { "id": "store", "title": "Shared counter", "question": "Where does the count live?" },
+      { "id": "fleet", "title": "Many servers", "question": "What about many servers?" },
+      { "id": "payoff", "title": "Why it holds", "question": "So why did the API fall over?" }
+    ],
+    "beats": [
+      {
+        "id": "hook",
+        "chapterId": "why",
+        "intent": "One buggy script floods the API and every user gets errors",
+        "device": "failure_before_fix",
+        "targetSec": 9
+      },
+      {
+        "id": "brute",
+        "chapterId": "count",
+        "intent": "Logging every request costs a row each; a counter costs one number",
+        "targetSec": 13
+      },
+      {
+        "id": "bucket",
+        "chapterId": "bucket",
+        "intent": "Requests spend tokens; an empty bucket answers 429 until the refill",
+        "targetSec": 15
+      },
+      {
+        "id": "store",
+        "chapterId": "store",
+        "intent": "The count lives in Redis: INCR per request, EXPIRE per window",
+        "targetSec": 11
+      },
+      {
+        "id": "fleet",
+        "chapterId": "fleet",
+        "intent": "Per-server counters let a user through once per server",
+        "targetSec": 12
+      },
+      {
+        "id": "fleet-fix",
+        "chapterId": "fleet",
+        "intent": "Every server asks one shared Redis, so the limit holds",
+        "targetSec": 8
+      },
+      {
+        "id": "payoff",
+        "chapterId": "payoff",
+        "intent": "The flood stops at the limiter instead of the API",
+        "targetSec": 12
+      }
+    ],
+    "plantedQuestion": {
+      "text": "Why did the API fall over?",
+      "beatId": "hook",
+      "payoffBeatId": "payoff"
+    },
+    "ending": { "kind": "callback", "cta": "Send this to whoever owns your API gateway" }
+  },
+  "script": [
+    {
+      "beatId": "hook",
+      "narration": "One buggy script sends ten thousand requests a second at your API. It slows, then falls over, and every real user gets an error.",
+      "headline": {
+        "text": "One client can take down everyone",
+        "semantic": "problem",
+        "at": { "type": "word_text", "text": "falls" }
+      },
+      "tags": ["503"]
+    },
+    {
+      "beatId": "brute",
+      "narration": "The brute force way logs every request and counts the rows each time. A hundred requests means a hundred rows per user. One counter per user does the same job with a single number.",
+      "headline": { "text": "Counter = one number per user", "semantic": "concept" },
+      "tags": ["100 rows", "1 number"]
+    },
+    {
+      "beatId": "bucket",
+      "narration": "A token bucket gives each user a hundred tokens. Every request spends one. At zero, the next request gets a 429. A timer refills the bucket every minute, so a short burst is fine, but a flood is not.",
+      "headline": { "text": "Token bucket = bursts ok, floods not", "semantic": "concept" },
+      "tags": ["429"]
+    },
+    {
+      "beatId": "store",
+      "narration": "Keep that count in Redis. Each request runs INCR on the user's key, and EXPIRE clears it after sixty seconds. One fast round trip, one number per user.",
+      "headline": { "text": "INCR to count, EXPIRE to reset", "semantic": "decision" },
+      "commandBubble": { "text": "INCR rate:user-7f3" },
+      "tags": ["EXPIRE 60"]
+    },
+    {
+      "beatId": "fleet",
+      "narration": "Now run two copies of the API. If each server counts on its own, a user gets a hundred requests on each one. Two hundred get through, double the limit.",
+      "headline": {
+        "text": "Local counters = limit times servers",
+        "semantic": "problem",
+        "at": { "type": "word_text", "text": "double" }
+      },
+      "tags": ["200 allowed"]
+    },
+    {
+      "beatId": "fleet-fix",
+      "narration": "The fix is the shared counter from before. Both servers ask the same Redis, so the limit holds whichever server answers.",
+      "headline": { "text": "One shared count for every server", "semantic": "resolution" },
+      "tags": ["100 total"]
+    },
+    {
+      "beatId": "payoff",
+      "narration": "Remember the flood? Without a limiter it knocks the API over. Put the limiter in front, and only a steady trickle reaches your servers, while every other user stays online.",
+      "headline": { "text": "The flood stops at the limiter", "semantic": "resolution" }
+    }
+  ],
+  "scenes": [
+    {
+      "beatId": "hook",
+      "kind": "board",
+      "layoutMode": "pipeline",
+      "elements": [
+        {
+          "id": "script",
+          "primitive": "node_card",
+          "props": { "title": "Script", "icon": "terminal" },
+          "zone": "source"
+        },
+        {
+          "id": "api",
+          "primitive": "node_card",
+          "props": { "title": "API", "icon": "server" },
+          "zone": "sink"
+        },
+        { "id": "calls", "primitive": "connector", "props": { "from": "script", "to": "api" } },
+        {
+          "id": "rps",
+          "primitive": "counter",
+          "props": {
+            "value": 10000,
+            "unit": "req/s",
+            "pin": { "to": "calls", "side": "middle" }
+          }
+        },
+        {
+          "id": "down",
+          "primitive": "tag",
+          "props": {
+            "text": "503",
+            "semantic": "problem",
+            "pin": { "to": "api", "side": "bottom" }
+          }
+        }
+      ],
+      "events": [
+        { "at": { "type": "word", "index": 0 }, "action": "enter", "targets": ["script"] },
+        { "at": { "type": "word_text", "text": "sends" }, "action": "enter", "targets": ["api"] },
+        {
+          "at": { "type": "word_text", "text": "thousand" },
+          "action": "enter",
+          "targets": ["calls", "rps"]
+        },
+        {
+          "at": { "type": "word_text", "text": "requests" },
+          "action": "count",
+          "targets": ["rps"]
+        },
+        { "at": { "type": "word_text", "text": "falls" }, "action": "reject", "targets": ["api"] },
+        { "at": { "type": "word_text", "text": "real" }, "action": "enter", "targets": ["down"] },
+        { "at": { "type": "word_text", "text": "error" }, "action": "pulse", "targets": ["down"] }
+      ],
+      "focus": ["api", "rps"]
+    },
+    {
+      "beatId": "brute",
+      "kind": "board",
+      "transitionIn": "slide",
+      "patterns": [
+        {
+          "id": "versus",
+          "pattern": "versus_split",
+          "params": {
+            "event": "100 REQUESTS",
+            "left": {
+              "title": "Request log",
+              "icon": "list",
+              "verdict": "100 ROWS",
+              "outcome": "problem"
+            },
+            "right": {
+              "title": "Counter",
+              "icon": "hash",
+              "verdict": "1 NUMBER",
+              "outcome": "ok"
+            },
+            "at": {
+              "show": { "type": "word_text", "text": "brute" },
+              "event": { "type": "word_text", "text": "hundred" },
+              "verdict": { "type": "word_text", "text": "counter" }
+            }
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": { "type": "word_text", "text": "single" },
+          "action": "highlight",
+          "targets": ["versus/right-verdict"]
+        }
+      ],
+      "focus": ["versus"]
+    },
+    {
+      "beatId": "bucket",
+      "kind": "board",
+      "layoutMode": "centered_focus",
+      "transitionIn": "fade",
+      "elements": [
+        {
+          "id": "tokens",
+          "primitive": "counter",
+          "props": { "value": 0, "from": 100, "unit": "tokens", "label": "left this minute" },
+          "zone": "center"
+        },
+        {
+          "id": "reply",
+          "primitive": "tag",
+          "props": {
+            "text": "429",
+            "semantic": "problem",
+            "pin": { "to": "tokens", "side": "bottom" }
+          }
+        },
+        {
+          "id": "refill",
+          "primitive": "timer_ring",
+          "props": { "durationSec": 60, "label": "refill" },
+          "zone": "around"
+        }
+      ],
+      "events": [
+        {
+          "at": { "type": "word_text", "text": "bucket" },
+          "action": "enter",
+          "targets": ["tokens"]
+        },
+        {
+          "at": { "type": "word_text", "text": "spends" },
+          "action": "count",
+          "targets": ["tokens"]
+        },
+        {
+          "at": { "type": "word_text", "text": "zero" },
+          "action": "reject",
+          "targets": ["tokens"]
+        },
+        { "at": { "type": "word_text", "text": "429" }, "action": "enter", "targets": ["reply"] },
+        {
+          "at": { "type": "word_text", "text": "timer" },
+          "action": "enter",
+          "targets": ["refill"]
+        },
+        {
+          "at": { "type": "word_text", "text": "refills" },
+          "action": "count",
+          "targets": ["refill"]
+        },
+        {
+          "at": { "type": "word_text", "text": "burst" },
+          "action": "recover",
+          "targets": ["tokens"]
+        }
+      ],
+      "focus": ["tokens", "refill"]
+    },
+    {
+      "beatId": "store",
+      "kind": "board",
+      "layoutMode": "pipeline",
+      "transitionIn": "fade",
+      "elements": [
+        {
+          "id": "api",
+          "primitive": "node_card",
+          "props": { "title": "API", "icon": "server" },
+          "zone": "source"
+        },
+        {
+          "id": "redis",
+          "primitive": "node_card",
+          "props": { "title": "Redis", "subtitle": "shared counter", "icon": "memory" },
+          "zone": "sink"
+        },
+        {
+          "id": "incr",
+          "primitive": "connector",
+          "props": { "from": "api", "to": "redis", "label": "INCR" }
+        },
+        {
+          "id": "cmd",
+          "primitive": "command_bubble",
+          "props": { "text": "INCR rate:user-7f3" },
+          "zone": "aside"
+        },
+        {
+          "id": "ttl",
+          "primitive": "tag",
+          "props": {
+            "text": "EXPIRE 60",
+            "semantic": "concept",
+            "pin": { "to": "redis", "side": "bottom" }
+          }
+        }
+      ],
+      "events": [
+        { "at": { "type": "word", "index": 0 }, "action": "enter", "targets": ["api"] },
+        {
+          "at": { "type": "word_text", "text": "redis" },
+          "action": "enter",
+          "targets": ["redis"]
+        },
+        { "at": { "type": "word_text", "text": "runs" }, "action": "enter", "targets": ["incr"] },
+        {
+          "at": { "type": "word_text", "text": "incr" },
+          "action": "enter",
+          "targets": ["cmd"]
+        },
+        { "at": { "type": "word_text", "text": "incr" }, "action": "move", "targets": ["incr"] },
+        {
+          "at": { "type": "word_text", "text": "expire" },
+          "action": "enter",
+          "targets": ["ttl"]
+        },
+        {
+          "at": { "type": "word_text", "text": "trip" },
+          "action": "highlight",
+          "targets": ["redis"]
+        }
+      ],
+      "focus": ["redis", "cmd"]
+    },
+    {
+      "beatId": "fleet",
+      "kind": "board",
+      "layoutMode": "pipeline",
+      "transitionIn": "fade",
+      "elements": [
+        {
+          "id": "user",
+          "primitive": "node_card",
+          "props": { "title": "User", "icon": "user" },
+          "zone": "source"
+        },
+        {
+          "id": "api-a",
+          "primitive": "node_card",
+          "props": { "title": "API 1", "icon": "server" },
+          "zone": "stage"
+        },
+        {
+          "id": "api-b",
+          "primitive": "node_card",
+          "props": { "title": "API 2", "icon": "server" },
+          "zone": "stage"
+        },
+        { "id": "to-a", "primitive": "connector", "props": { "from": "user", "to": "api-a" } },
+        { "id": "to-b", "primitive": "connector", "props": { "from": "user", "to": "api-b" } },
+        {
+          "id": "count-a",
+          "primitive": "tag",
+          "props": {
+            "text": "100 OK",
+            "semantic": "neutral",
+            "pin": { "to": "api-a", "side": "bottom" }
+          }
+        },
+        {
+          "id": "count-b",
+          "primitive": "tag",
+          "props": {
+            "text": "100 OK",
+            "semantic": "neutral",
+            "pin": { "to": "api-b", "side": "bottom" }
+          }
+        },
+        {
+          "id": "leak",
+          "primitive": "counter",
+          "props": {
+            "value": 200,
+            "unit": "req/min",
+            "label": "let through",
+            "semantic": "problem"
+          },
+          "zone": "aside"
+        }
+      ],
+      "events": [
+        { "at": { "type": "word", "index": 0 }, "action": "enter", "targets": ["user"] },
+        {
+          "at": { "type": "word_text", "text": "copies" },
+          "action": "enter",
+          "targets": ["api-a", "api-b"]
+        },
+        {
+          "at": { "type": "word_text", "text": "api" },
+          "action": "enter",
+          "targets": ["to-a", "to-b"]
+        },
+        {
+          "at": { "type": "word_text", "text": "counts" },
+          "action": "enter",
+          "targets": ["count-a", "count-b"]
+        },
+        {
+          "at": { "type": "word_text", "text": "hundred", "occurrence": 2 },
+          "action": "enter",
+          "targets": ["leak"]
+        },
+        {
+          "at": { "type": "word_text", "text": "hundred", "occurrence": 2 },
+          "action": "count",
+          "targets": ["leak"]
+        },
+        {
+          "at": { "type": "word_text", "text": "double" },
+          "action": "reject",
+          "targets": ["leak"]
+        }
+      ],
+      "focus": ["leak"]
+    },
+    {
+      "beatId": "fleet-fix",
+      "kind": "board",
+      "continuesPrevious": true,
+      "elements": [
+        {
+          "id": "shared",
+          "primitive": "node_card",
+          "props": { "title": "Redis", "subtitle": "shared counter", "icon": "memory" },
+          "zone": "sink"
+        },
+        {
+          "id": "a-shared",
+          "primitive": "connector",
+          "props": { "from": "api-a", "to": "shared" }
+        },
+        {
+          "id": "b-shared",
+          "primitive": "connector",
+          "props": { "from": "api-b", "to": "shared" }
+        },
+        {
+          "id": "total",
+          "primitive": "tag",
+          "props": {
+            "text": "100 TOTAL",
+            "semantic": "ok",
+            "pin": { "to": "shared", "side": "bottom" }
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": { "type": "word", "index": 0 },
+          "action": "exit",
+          "targets": ["count-a", "count-b", "leak"]
+        },
+        {
+          "at": { "type": "word_text", "text": "shared" },
+          "action": "enter",
+          "targets": ["shared"]
+        },
+        {
+          "at": { "type": "word_text", "text": "servers" },
+          "action": "enter",
+          "targets": ["a-shared", "b-shared"]
+        },
+        {
+          "at": { "type": "word_text", "text": "ask" },
+          "action": "move",
+          "targets": ["a-shared", "b-shared"]
+        },
+        {
+          "at": { "type": "word_text", "text": "limit" },
+          "action": "enter",
+          "targets": ["total"]
+        },
+        {
+          "at": { "type": "word_text", "text": "holds" },
+          "action": "focus",
+          "targets": ["shared", "total"]
+        }
+      ]
+    },
+    {
+      "beatId": "payoff",
+      "kind": "board",
+      "transitionIn": "zoom-out",
+      "patterns": [
+        {
+          "id": "flood",
+          "pattern": "flood_then_funnel",
+          "params": {
+            "source": { "title": "Script", "icon": "terminal" },
+            "target": { "title": "API", "icon": "server" },
+            "layer": { "title": "Rate limiter", "icon": "shield" },
+            "rate": { "value": 10000, "unit": "req/s" },
+            "at": {
+              "flood": { "type": "word_text", "text": "flood" },
+              "overwhelm": { "type": "word_text", "text": "knocks" },
+              "funnel": { "type": "word_text", "text": "front" }
+            }
+          }
+        }
+      ],
+      "events": [
+        {
+          "at": { "type": "word_text", "text": "online" },
+          "action": "highlight",
+          "targets": ["flood/target"]
+        }
+      ],
+      "focus": ["flood"]
+    }
+  ]
+}

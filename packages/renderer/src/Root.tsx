@@ -1,7 +1,10 @@
 import { Composition, Still } from 'remotion';
 import {
+  aiFixtureSeries,
   fixtureChannelHandle,
   fixtureSeries,
+  goldenRateLimiterSpec,
+  goldenStrawberrySpec,
   insetRevealBoardSpec,
   layoutModesBoardCardSpec,
   layoutModesBoardSpec,
@@ -53,6 +56,18 @@ const patternDecisionDefaults: VideoFromSpecProps = {
 const layoutModesDefaults: VideoFromSpecProps = { ...videoDefaults, spec: layoutModesBoardSpec };
 const transitionsDefaults: VideoFromSpecProps = { ...videoDefaults, spec: transitionsBoardSpec };
 
+/** Golden fixtures (P1A.13): the visual regression set, one complete Short per series. */
+const goldenRateLimiterDefaults: VideoFromSpecProps = {
+  ...videoDefaults,
+  spec: goldenRateLimiterSpec,
+};
+
+const goldenStrawberryDefaults: VideoFromSpecProps = {
+  ...videoDefaults,
+  spec: goldenStrawberrySpec,
+  series: aiFixtureSeries,
+};
+
 const layoutModesCardDefaults: VideoFromSpecProps = {
   ...videoDefaults,
   spec: layoutModesBoardCardSpec,
@@ -81,6 +96,26 @@ export function Root() {
         durationInFrames={1}
         defaultProps={beatDefaults}
         calculateMetadata={calculateBeatMetadata}
+      />
+      <Composition
+        id="GoldenRateLimiter"
+        component={VideoFromSpec}
+        width={canvas.width}
+        height={canvas.height}
+        fps={FINAL_FPS}
+        durationInFrames={1}
+        defaultProps={goldenRateLimiterDefaults}
+        calculateMetadata={calculateVideoMetadata}
+      />
+      <Composition
+        id="GoldenStrawberry"
+        component={VideoFromSpec}
+        width={canvas.width}
+        height={canvas.height}
+        fps={FINAL_FPS}
+        durationInFrames={1}
+        defaultProps={goldenStrawberryDefaults}
+        calculateMetadata={calculateVideoMetadata}
       />
       <Composition
         id="LayoutModesBoard"

@@ -1,0 +1,281 @@
+{
+  "schemaVersion": 1,
+  "meta": {
+    "id": "golden-strawberry",
+    "series": "ai",
+    "title": "Why LLMs can't count the r's in strawberry",
+    "topicClass": "ai-ml",
+    "targetLengthSec": 50
+  },
+  "story": {
+    "devices": ["planted_question"],
+    "heroMetric": { "label": "r's in strawberry", "value": "3" },
+    "chapters": [
+      { "id": "ask", "title": "The question" },
+      { "id": "tokens", "title": "Tokens" },
+      { "id": "fix", "title": "The fix" }
+    ],
+    "beats": [
+      {
+        "id": "hook",
+        "chapterId": "ask",
+        "intent": "A model is asked to count letters it never sees",
+        "targetSec": 10
+      },
+      {
+        "id": "tokens",
+        "chapterId": "tokens",
+        "intent": "Subword tokenization splits the word into chunks and swaps each for a number",
+        "targetSec": 10
+      },
+      {
+        "id": "blind",
+        "chapterId": "tokens",
+        "intent": "The model sees ids, not letters, so it must recall each token's spelling",
+        "targetSec": 15
+      },
+      {
+        "id": "fix",
+        "chapterId": "fix",
+        "intent": "Spelling the word out gives one token per letter, and the count works",
+        "targetSec": 12
+      }
+    ],
+    "plantedQuestion": {
+      "text": "So how can it count what it can't even see?",
+      "beatId": "hook",
+      "payoffBeatId": "blind"
+    },
+    "ending": {
+      "kind": "callback",
+      "cta": "Try it on your favourite model, then try spelling first"
+    },
+    "missingPrimitiveRequests": [
+      {
+        "name": "token_strip",
+        "description": "A word with token boundaries drawn over it, each chunk a chip with its id under it",
+        "fallbackUsed": "tag"
+      }
+    ]
+  },
+  "script": [
+    {
+      "beatId": "hook",
+      "narration": "Ask a model how many r's are in strawberry, and it's counting blind: it never sees letters. So how can it count what it can't even see?",
+      "headline": {
+        "text": "Counting what it can't see",
+        "semantic": "problem",
+        "at": { "type": "word_text", "text": "blind" }
+      }
+    },
+    {
+      "beatId": "tokens",
+      "narration": "Models don't read letters. A tokenizer chops text into subword chunks, so strawberry becomes something like straw and berry. Each chunk is swapped for a number.",
+      "headline": { "text": "Token = a chunk, not a letter", "semantic": "concept" },
+      "tags": ["straw", "berry"],
+      "source": "Sennrich et al., \"NMT of Rare Words with Subword Units\", ACL 2016"
+    },
+    {
+      "beatId": "blind",
+      "narration": "The model only ever sees those numbers. One r hides inside straw, two inside berry, and nothing in a number says so. It has to remember how each token is spelled, and that memory is fuzzy.",
+      "headline": {
+        "text": "It sees ids, never letters",
+        "semantic": "problem",
+        "at": { "type": "word_text", "text": "numbers" }
+      }
+    },
+    {
+      "beatId": "fix",
+      "narration": "The fix is to make it spell first. Ask for one letter per line, and each letter becomes its own token. Now it can count them, and the answer is three.",
+      "headline": { "text": "Spell it out, then count", "semantic": "resolution" },
+      "tags": ["1 letter = 1 token"]
+    }
+  ],
+  "scenes": [
+    {
+      "beatId": "hook",
+      "kind": "board",
+      "layoutMode": "centered_focus",
+      "elements": [
+        {
+          "id": "model",
+          "primitive": "node_card",
+          "props": { "title": "LLM", "icon": "bot" },
+          "zone": "center"
+        },
+        {
+          "id": "prompt",
+          "primitive": "command_bubble",
+          "props": { "text": "How many r's in strawberry?", "semantic": "neutral" },
+          "zone": "around"
+        },
+        {
+          "id": "unseen",
+          "primitive": "tag",
+          "props": {
+            "text": "Sees no letters",
+            "semantic": "problem",
+            "pin": { "to": "model", "side": "bottom" }
+          }
+        }
+      ],
+      "events": [
+        { "at": { "type": "word", "index": 0 }, "action": "enter", "targets": ["prompt"] },
+        { "at": { "type": "word_text", "text": "model" }, "action": "enter", "targets": ["model"] },
+        { "at": { "type": "word_text", "text": "blind" }, "action": "pulse", "targets": ["model"] },
+        {
+          "at": { "type": "word_text", "text": "never" },
+          "action": "enter",
+          "targets": ["unseen"]
+        },
+        { "at": { "type": "word_text", "text": "see" }, "action": "pulse", "targets": ["unseen"] }
+      ],
+      "focus": ["model"]
+    },
+    {
+      "beatId": "tokens",
+      "kind": "board",
+      "layoutMode": "pipeline",
+      "transitionIn": "fade",
+      "elements": [
+        {
+          "id": "word",
+          "primitive": "tag",
+          "props": { "text": "strawberry", "semantic": "neutral" },
+          "zone": "source"
+        },
+        {
+          "id": "tok-1",
+          "primitive": "tag",
+          "props": { "text": "straw", "semantic": "concept" },
+          "zone": "stage"
+        },
+        {
+          "id": "tok-2",
+          "primitive": "tag",
+          "props": { "text": "berry", "semantic": "concept" },
+          "zone": "stage"
+        },
+        {
+          "id": "ids",
+          "primitive": "data_block",
+          "props": {
+            "title": "Token ids (example)",
+            "fields": [
+              { "key": "straw", "value": 1201 },
+              { "key": "berry", "value": 40517 }
+            ]
+          },
+          "zone": "sink"
+        }
+      ],
+      "events": [
+        {
+          "at": { "type": "word_text", "text": "tokenizer" },
+          "action": "enter",
+          "targets": ["word"]
+        },
+        { "at": { "type": "word_text", "text": "straw" }, "action": "enter", "targets": ["tok-1"] },
+        {
+          "at": { "type": "word_text", "text": "berry" },
+          "action": "enter",
+          "targets": ["tok-2"]
+        },
+        { "at": { "type": "word_text", "text": "each" }, "action": "enter", "targets": ["ids"] },
+        { "at": { "type": "word_text", "text": "number" }, "action": "pulse", "targets": ["ids"] }
+      ],
+      "focus": []
+    },
+    {
+      "beatId": "blind",
+      "kind": "board",
+      "continuesPrevious": true,
+      "elements": [
+        {
+          "id": "reader",
+          "primitive": "node_card",
+          "props": { "title": "LLM", "subtitle": "sees ids only", "icon": "bot" },
+          "zone": "sink"
+        },
+        { "id": "feed", "primitive": "connector", "props": { "from": "ids", "to": "reader" } }
+      ],
+      "events": [
+        {
+          "at": { "type": "word_text", "text": "model" },
+          "action": "enter",
+          "targets": ["reader"]
+        },
+        { "at": { "type": "word_text", "text": "sees" }, "action": "enter", "targets": ["feed"] },
+        { "at": { "type": "word_text", "text": "numbers" }, "action": "move", "targets": ["feed"] },
+        { "at": { "type": "word_text", "text": "numbers" }, "action": "dim", "targets": ["word"] },
+        {
+          "at": { "type": "word_text", "text": "straw" },
+          "action": "highlight",
+          "targets": ["tok-1"]
+        },
+        {
+          "at": { "type": "word_text", "text": "berry" },
+          "action": "highlight",
+          "targets": ["tok-2"]
+        },
+        {
+          "at": { "type": "word_text", "text": "remember" },
+          "action": "focus",
+          "targets": ["reader"]
+        },
+        {
+          "at": { "type": "word_text", "text": "fuzzy" },
+          "action": "reject",
+          "targets": ["reader"]
+        }
+      ]
+    },
+    {
+      "beatId": "fix",
+      "kind": "board",
+      "layoutMode": "centered_focus",
+      "transitionIn": "slide",
+      "elements": [
+        {
+          "id": "tally",
+          "primitive": "counter",
+          "props": {
+            "value": 3,
+            "unit": "r's",
+            "label": "counted letter by letter",
+            "semantic": "ok"
+          },
+          "zone": "center"
+        },
+        {
+          "id": "spelled",
+          "primitive": "tag",
+          "props": { "text": "s t r a w b e r r y", "semantic": "concept" },
+          "zone": "around"
+        },
+        {
+          "id": "rule",
+          "primitive": "tag",
+          "props": { "text": "1 letter = 1 token", "semantic": "focus" },
+          "zone": "aside"
+        }
+      ],
+      "events": [
+        {
+          "at": { "type": "word_text", "text": "spell" },
+          "action": "enter",
+          "targets": ["spelled"]
+        },
+        { "at": { "type": "word_text", "text": "token" }, "action": "enter", "targets": ["rule"] },
+        {
+          "at": { "type": "word_text", "text": "count" },
+          "action": "enter",
+          "targets": ["tally"]
+        },
+        { "at": { "type": "word_text", "text": "them" }, "action": "count", "targets": ["tally"] },
+        { "at": { "type": "word_text", "text": "three" }, "action": "pulse", "targets": ["tally"] }
+      ],
+      "focus": ["tally"]
+    }
+  ]
+}

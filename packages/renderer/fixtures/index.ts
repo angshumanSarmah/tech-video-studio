@@ -1,6 +1,8 @@
 import { parseRenderableSpec } from '../src/compositions/metadata.ts';
 import type { SeriesProps } from '../src/compositions/props.ts';
 import type { RenderableVideoSpec, VideoFormat } from '@explainer-studio/shared';
+import goldenRateLimiterJson from './golden/golden-rate-limiter.json';
+import goldenStrawberryJson from './golden/golden-strawberry.json';
 import insetRevealBoardJson from './inset-reveal-board.json';
 import layoutModesBoardJson from './layout-modes-board.json';
 import patternDecisionBoardJson from './pattern-decision-board.json';
@@ -80,9 +82,27 @@ export const layoutModesBoardCardSpec = withFormat(layoutModesBoardSpec, 'card')
  */
 export const transitionsBoardSpec = parseRenderableSpec(transitionsBoardJson);
 
+/**
+ * Golden fixtures (P1A.13): two complete, hand-authored Shorts with estimated timing, one per
+ * series, written the way the agents should write them (no validation or layout warnings in the
+ * full format). They are the visual regression set: `test:visual` in the studio renders a still
+ * per beat and compares it with the saved image in `apps/studio/golden/<id>/`. Changing one of
+ * them changes those images (refresh them with `UPDATE_GOLDEN=1`).
+ *
+ * - `golden-rate-limiter` (System Design): question chapters, hero metric, tags, counters, a
+ *   timer ring, `versus_split`, a `continuesPrevious` chain and `flood_then_funnel`.
+ * - `golden-strawberry` (AI): the step tracker, a token strip built from tags (a placeholder for
+ *   the `token_strip` primitive it records in `missingPrimitiveRequests`) and a source footnote.
+ */
+export const goldenRateLimiterSpec = parseRenderableSpec(goldenRateLimiterJson);
+
+export const goldenStrawberrySpec = parseRenderableSpec(goldenStrawberryJson);
+
 /** Every fixture spec with scenes, for checks that run over all of them. */
 export const allFixtureSpecs = [
   rateLimiterSpec,
+  goldenRateLimiterSpec,
+  goldenStrawberrySpec,
   ...primitiveBoardSpecs,
   ...patternBoardSpecs,
   layoutModesBoardSpec,
@@ -94,3 +114,19 @@ export const fixtureSeries: SeriesProps = { label: 'System Design', accentColour
 
 /** Example channel handle; real values come from the DB `channels.handle` at render time. */
 export const fixtureChannelHandle = '@explainer.studio';
+
+/** Series of the AI golden fixture (the seeded `ai` series). */
+export const aiFixtureSeries: SeriesProps = { label: 'AI', accentColour: '#B07CFF' };
+
+/** A golden fixture: the parsed spec, its raw JSON (for validation checks) and its series. */
+export interface GoldenFixture {
+  readonly spec: RenderableVideoSpec;
+  readonly json: unknown;
+  readonly series: SeriesProps;
+}
+
+/** The golden fixtures with the series each renders under. */
+export const goldenFixtures: readonly GoldenFixture[] = [
+  { spec: goldenRateLimiterSpec, json: goldenRateLimiterJson, series: fixtureSeries },
+  { spec: goldenStrawberrySpec, json: goldenStrawberryJson, series: aiFixtureSeries },
+];
