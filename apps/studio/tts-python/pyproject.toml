@@ -1,0 +1,23 @@
+[project]
+name = "explainer-studio-tts"
+version = "0.0.0"
+description = "Kokoro-82M TTS server for Explainer Studio (JSON lines over stdin/stdout)."
+requires-python = "==3.12.*"
+dependencies = [
+  "kokoro",
+  "misaki[en]",
+  "torch",
+  "transformers",
+  "spacy",
+  "soundfile",
+  "numpy",
+  "huggingface-hub",
+  "en-core-web-sm",
+]
+
+[tool.uv]
+package = false
+exclude-newer = "2026-11-06T00:00:00Z"
+
+[tool.uv.sources]
+en-core-web-sm = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl" }

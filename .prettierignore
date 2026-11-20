@@ -12,3 +12,8 @@ apps/studio/src/web/theme.generated.css
 docs/catalogue.md
 docs/catalogue.json
 packages/renderer/src/fonts/metrics.generated.json
+
+# Kokoro TTS env (uv-managed Python, venv, downloaded models; see apps/studio/tts-python)
+apps/studio/tts-python/.venv
+apps/studio/tts-python/.uv-python
+apps/studio/tts-python/models
