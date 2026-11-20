@@ -26,10 +26,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       beats.
 - [ ] **Renderer — Spec card.** `story.ending.specCard` (3 lines) and `seriesNumber` have no
       primitive yet; `statement_card` is the fallback the Generator can use.
-- [ ] **LLM transport — Retry a cut-off body.** A live Director call failed with "Could not read
-      the response body: terminated" (the connection dropped mid-body, after ~0 tokens were
-      counted); it is not retried like a timeout or 5xx. Treat it as retryable in
-      `src/worker/http/retry.ts`.
 - [ ] **P1C.5 — Layout-mode warning for pattern-derived modes.** `layout_mode_not_allowed`
       checks explicit story and scene modes only (shared cannot see patterns); a beat that takes
       its pattern's mode (`beatLayoutMode`) could be checked in `withRegistryChecks`.

@@ -167,6 +167,7 @@ async function writePlan(
       ? {}
       : { lengthOverrideSec: input.length.overrideSec }),
     recentCombos: input.memory.recent.combos,
+    series: { name: series.name, label: series.label },
     spec: {
       id: `run-${run.id}`,
       series: series.tag,

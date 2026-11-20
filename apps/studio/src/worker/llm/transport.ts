@@ -6,7 +6,7 @@ import type { LlmTransport, TransportRequest, TransportResponse } from './types.
 
 /** A request that failed: an HTTP error status (`status`), a network error or a bad body. */
 export class LlmRequestError extends Error {
-  override readonly name = 'LlmRequestError';
+  override readonly name: string = 'LlmRequestError';
   constructor(
     message: string,
     readonly status: number | null = null,
@@ -14,6 +14,14 @@ export class LlmRequestError extends Error {
   ) {
     super(message, options);
   }
+}
+
+/**
+ * The connection dropped while the response body was streaming in (e.g. "terminated"). Retried
+ * with backoff like a 5xx: the server answered, the network lost the rest.
+ */
+export class LlmBodyCutOffError extends LlmRequestError {
+  override readonly name = 'LlmBodyCutOffError';
 }
 
 export class LlmTimeoutError extends Error {
@@ -88,11 +96,18 @@ export function httpTransport(options: HttpTransportOptions): LlmTransport {
   const sleep = options.sleep ?? abortableSleep;
   const now = options.now ?? Date.now;
 
-  async function postOnce(request: TransportRequest, apiKey: string): Promise<Response> {
+  const timedOut = (request: TransportRequest) =>
+    new LlmTimeoutError(`No response from ${request.model} within ${options.timeoutMs} ms`);
+
+  /** The response and the timeout that also covers reading its body. */
+  async function postOnce(
+    request: TransportRequest,
+    apiKey: string,
+  ): Promise<{ response: Response; timeout: AbortSignal }> {
     const timeout = AbortSignal.timeout(options.timeoutMs);
     const signal = request.signal ? AbortSignal.any([request.signal, timeout]) : timeout;
     try {
-      return await doFetch(chatCompletionsUrl(options.baseUrl), {
+      const response = await doFetch(chatCompletionsUrl(options.baseUrl), {
         method: 'POST',
         headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
         body: JSON.stringify({
@@ -103,13 +118,10 @@ export function httpTransport(options: HttpTransportOptions): LlmTransport {
         }),
         signal,
       });
+      return { response, timeout };
     } catch (error) {
       if (request.signal?.aborted) throw request.signal.reason;
-      if (timeout.aborted) {
-        throw new LlmTimeoutError(
-          `No response from ${request.model} within ${options.timeoutMs} ms`,
-        );
-      }
+      if (timeout.aborted) throw timedOut(request);
       throw new LlmRequestError(
         redact(`Request failed: ${(error as Error).message}`, apiKey),
         null,
@@ -120,12 +132,32 @@ export function httpTransport(options: HttpTransportOptions): LlmTransport {
     }
   }
 
-  async function readBody(response: Response, request: TransportRequest): Promise<string> {
+  async function readBody(
+    response: Response,
+    timeout: AbortSignal,
+    request: TransportRequest,
+  ): Promise<string> {
     try {
       return await response.text();
     } catch (error) {
       if (request.signal?.aborted) throw request.signal.reason;
-      throw new LlmRequestError(`Could not read the response body: ${(error as Error).message}`);
+      if (timeout.aborted) throw timedOut(request);
+      throw new LlmBodyCutOffError(
+        `Could not read the response body: ${(error as Error).message}`,
+        response.status,
+        { cause: error },
+      );
+    }
+  }
+
+  /** One request: the status and body, or null when the body was cut off and may be retried. */
+  async function attempt(request: TransportRequest, apiKey: string, lastTry: boolean) {
+    const { response, timeout } = await postOnce(request, apiKey);
+    try {
+      return { response, body: await readBody(response, timeout, request) };
+    } catch (error) {
+      if (error instanceof LlmBodyCutOffError && !lastTry) return null;
+      throw error;
     }
   }
 
@@ -138,8 +170,15 @@ export function httpTransport(options: HttpTransportOptions): LlmTransport {
         );
       }
       for (let retry = 0; ; retry++) {
-        const response = await postOnce(request, apiKey);
-        const body = await readBody(response, request);
+        const result = await attempt(request, apiKey, retry >= MAX_HTTP_RETRIES);
+        if (result === null) {
+          await sleep(
+            retryDelayMs(null, retry, now())!,
+            request.signal ?? new AbortController().signal,
+          );
+          continue;
+        }
+        const { response, body } = result;
         if (response.ok) return toResponse(body);
         const message = redact(`HTTP ${response.status}: ${body.slice(0, 500)}`, apiKey);
         if (!isRetryableStatus(response.status) || retry >= MAX_HTTP_RETRIES) {

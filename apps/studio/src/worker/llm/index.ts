@@ -6,7 +6,12 @@ export * from './client.ts';
 export { callCostUsd, isOffPeak } from './cost.ts';
 export * from './dry-run.ts';
 export { normalizeJsonText, normalizeValue, type FieldAlias } from './normalize.ts';
-export { LlmConfigError, LlmRequestError, LlmTimeoutError } from './transport.ts';
+export {
+  LlmBodyCutOffError,
+  LlmConfigError,
+  LlmRequestError,
+  LlmTimeoutError,
+} from './transport.ts';
 export type * from './types.ts';
 
 /** The real transport for the configured endpoint (`AppConfig.llm`: key already resolved). */

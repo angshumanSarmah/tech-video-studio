@@ -3,6 +3,7 @@ import { MAX_RETRY_AFTER_MS } from '../http/retry.ts';
 import {
   completion,
   completionBody,
+  cutOffResponse,
   hangUntilAborted,
   jsonResponse,
   scriptedFetch,
@@ -10,6 +11,7 @@ import {
 import {
   chatCompletionsUrl,
   httpTransport,
+  LlmBodyCutOffError,
   LlmConfigError,
   LlmRequestError,
   LlmTimeoutError,
@@ -132,6 +134,29 @@ describe('httpTransport retries', () => {
     expect(error).toBeInstanceOf(LlmRequestError);
     expect(error).toMatchObject({ status: 502 });
     expect((error as Error).message).toContain('still down');
+    expect(requests).toHaveLength(3);
+  });
+
+  it('retries a body cut off mid-stream with backoff, like a 5xx', async () => {
+    const { fetch, requests } = scriptedFetch([cutOffResponse(), completion('{}')]);
+    const { t, sleeps } = transport(fetch);
+    await expect(t.send(request)).resolves.toMatchObject({ content: '{}' });
+    expect(requests).toHaveLength(2);
+    expect(sleeps).toEqual([1_000]);
+  });
+
+  it('gives up on a body cut off on every try', async () => {
+    const { fetch, requests } = scriptedFetch([
+      cutOffResponse(),
+      cutOffResponse(),
+      cutOffResponse(),
+    ]);
+    const error = await transport(fetch)
+      .t.send(request)
+      .catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(LlmBodyCutOffError);
+    expect(error).toBeInstanceOf(LlmRequestError);
+    expect((error as Error).message).toBe('Could not read the response body: terminated');
     expect(requests).toHaveLength(3);
   });
 

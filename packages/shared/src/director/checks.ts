@@ -1,6 +1,7 @@
 import { ENDING_DEVICES, type EndingDevice } from '../catalogues/devices.ts';
 import type { ExplanationLevel, VideoSettings } from '../config/video.ts';
 import type { ResearchNotes } from '../research/notes.ts';
+import { normalizeNumber, quantityTokens } from '../research/numbers.ts';
 import { TARGET_LENGTH_TOLERANCE } from '../spec/integrity/warnings.ts';
 import { toJsonPath } from '../spec/validate.ts';
 import type { DirectorPlan } from './plan.ts';
@@ -41,6 +42,12 @@ export const DIRECTOR_PROBLEM_CODES = [
   'no_failure_or_alternative',
   'chosen_design_missing',
   'hook_without_number',
+  'hook_too_many_numbers',
+  'payoff_too_soon',
+  'device_overused',
+  'cta_has_number',
+  'cta_has_series_label',
+  'spec_card_number_not_in_notes',
   'ending_kind',
   'spec_card_missing',
   'cta_missing',
@@ -65,6 +72,8 @@ export interface DirectorCheckContext {
   readonly lengthOverrideSec?: number;
   /** `<device>/<layout>` combos used in recent videos (`device_layout` usage). */
   readonly recentCombos: readonly string[];
+  /** The run's series: its name and label may not appear in the CTA (code adds them). */
+  readonly series: { readonly name: string; readonly label: string };
 }
 
 /** Distinct new glossary terms a whole video (or plan) may introduce, per explanation level. */
@@ -76,6 +85,18 @@ export const NEW_TERM_LIMITS: Readonly<Record<ExplanationLevel, number>> = {
 
 /** Beats per plan that may reuse a recent device/layout combo before it is a problem. */
 export const MAX_RECENT_COMBO_REUSE = 1;
+
+/** Research numbers (`num-*`) a hook beat may cite: one or two, not a list. */
+export const MAX_HOOK_NUMBERS = 2;
+
+/** Beats between a planted question and its payoff, at least ("pay it off late"). */
+export const MIN_PAYOFF_GAP_BEATS = 2;
+
+/** Beats one device may appear on. */
+export const MAX_BEATS_PER_DEVICE = 2;
+
+/** Devices every part needs on its own beat, so a multi-part plan may repeat them. */
+const PER_PART_DEVICES: readonly string[] = ['recap_opening', 'cliffhanger_ending'];
 
 /** What each closing ending needs in `story.ending`. */
 export const ENDING_REQUIREMENTS: Readonly<
@@ -119,9 +140,13 @@ export function directorPlanProblems(
     ...videos.flatMap((video) => lengthProblems(plan, video, ctx)),
     ...partScopeProblems(plan),
     ...deviceRequirementProblems(plan, ctx.notes),
+    ...payoffGapProblems(plan),
+    ...deviceReuseProblems(plan),
     ...failureOrAlternativeProblems(plan),
     ...videos.flatMap((video) => hookProblems(plan, video, ctx.notes)),
     ...endingProblems(plan, videos),
+    ...ctaProblems(plan, ctx.series),
+    ...specCardNumberProblems(plan, ctx.notes),
     ...varietyProblems(plan, ctx.recentCombos),
   ];
 }
@@ -530,17 +555,66 @@ function hookProblems(
   video: PlannedVideo,
   notes: ResearchNotes,
 ): DirectorProblem[] {
-  if (notes.numbers.length === 0) return [];
   const hookIndex = video.beats.find((i) => plan.story.beats[i]?.device !== 'recap_opening');
   const hook = hookIndex === undefined ? undefined : plan.story.beats[hookIndex];
-  if (!hook || hook.factIds.some((id) => id.startsWith('num-'))) return [];
+  if (!hook) return [];
+  const path: Path = ['story', 'beats', hookIndex!, 'factIds'];
+  const cited = hook.factIds.filter((id) => id.startsWith('num-'));
+  if (cited.length > MAX_HOOK_NUMBERS) {
+    return [
+      problem(
+        path,
+        'hook_too_many_numbers',
+        `${video.label}'s hook "${hook.id}" cites ${cited.length} research numbers ` +
+          `(${cited.join(', ')}); one or two make the problem, at most ${MAX_HOOK_NUMBERS}.`,
+      ),
+    ];
+  }
+  if (notes.numbers.length === 0 || cited.length > 0) return [];
   return [
     problem(
-      ['story', 'beats', hookIndex!, 'factIds'],
+      path,
       'hook_without_number',
       `${video.label}'s hook "${hook.id}" cites no research number: an engineer's problem with a real number ("num-<n>").`,
     ),
   ];
+}
+
+/** The payoff comes late: at least `MIN_PAYOFF_GAP_BEATS` beats after the planted question. */
+function payoffGapProblems(plan: DirectorPlan): DirectorProblem[] {
+  const question = plan.story.plantedQuestion;
+  if (!question) return [];
+  const index = (id: string) => plan.story.beats.findIndex((b) => b.id === id);
+  const planted = index(question.beatId);
+  const payoff = index(question.payoffBeatId);
+  // Unknown beats and a payoff before the question are spec errors.
+  if (planted < 0 || payoff <= planted || payoff - planted >= MIN_PAYOFF_GAP_BEATS) return [];
+  return [
+    problem(
+      ['story', 'plantedQuestion', 'payoffBeatId'],
+      'payoff_too_soon',
+      `The payoff "${question.payoffBeatId}" comes right after the question in "${question.beatId}"; ` +
+        `pay it off at least ${MIN_PAYOFF_GAP_BEATS} beats later.`,
+    ),
+  ];
+}
+
+/** One device on at most `MAX_BEATS_PER_DEVICE` beats (per-part recaps and cliffhangers aside). */
+function deviceReuseProblems(plan: DirectorPlan): DirectorProblem[] {
+  const seen = new Map<string, number>();
+  return plan.story.beats.flatMap((beat, i) => {
+    if (!beat.device || PER_PART_DEVICES.includes(beat.device)) return [];
+    const count = (seen.get(beat.device) ?? 0) + 1;
+    seen.set(beat.device, count);
+    if (count <= MAX_BEATS_PER_DEVICE) return [];
+    return [
+      problem(
+        ['story', 'beats', i, 'device'],
+        'device_overused',
+        `"${beat.device}" is already on ${MAX_BEATS_PER_DEVICE} beats; use another device or none here.`,
+      ),
+    ];
+  });
 }
 
 // --- Endings ----------------------------------------------------------------------------------
@@ -618,6 +692,57 @@ function partEdgeProblems(plan: DirectorPlan, videos: readonly PlannedVideo[]): 
       );
     }
     return problems;
+  });
+}
+
+/** The share line is our words only: code adds the series label and number. */
+function ctaProblems(
+  plan: DirectorPlan,
+  series: DirectorCheckContext['series'],
+): DirectorProblem[] {
+  const cta = plan.story.ending.cta;
+  if (!cta) return [];
+  const path: Path = ['story', 'ending', 'cta'];
+  const problems: DirectorProblem[] = [];
+  if (/\d/.test(cta)) {
+    problems.push(
+      problem(
+        path,
+        'cta_has_number',
+        'The cta has digits; code adds the series number. Remove them.',
+      ),
+    );
+  }
+  const folded = foldTerm(cta);
+  const named = [series.label, series.name].find((s) => s.trim() && folded.includes(foldTerm(s)));
+  if (named) {
+    problems.push(
+      problem(
+        path,
+        'cta_has_series_label',
+        `The cta names the series ("${named}"); code adds it next to the spec card. Remove it.`,
+      ),
+    );
+  }
+  return problems;
+}
+
+/** Numbers on the spec card are research values, compared as `number_not_in_source` does. */
+function specCardNumberProblems(plan: DirectorPlan, notes: ResearchNotes): DirectorProblem[] {
+  const listed = new Set(
+    notes.numbers.flatMap((n) => quantityTokens(n.value).map(normalizeNumber)),
+  );
+  return (plan.story.ending.specCard?.lines ?? []).flatMap((line, i) => {
+    const missing = [
+      ...new Set(quantityTokens(line).filter((t) => !listed.has(normalizeNumber(t)))),
+    ];
+    return missing.map((token) =>
+      problem(
+        ['story', 'ending', 'specCard', 'lines', i],
+        'spec_card_number_not_in_notes',
+        `"${token}" is not a research number value; use a value from the notes as written, or no number.`,
+      ),
+    );
   });
 }
 

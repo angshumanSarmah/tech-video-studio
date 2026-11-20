@@ -90,3 +90,17 @@ export function hangUntilAborted(init: RequestInit): Promise<Response> {
     );
   });
 }
+
+/**
+ * A 200 response whose body stream breaks after `prefix`, as when the connection drops mid-body
+ * (undici reports "terminated").
+ */
+export function cutOffResponse(prefix = '{"id":"cmpl-test","choices":['): Response {
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode(prefix));
+      controller.error(new TypeError('terminated'));
+    },
+  });
+  return new Response(stream, { status: 200, headers: { 'content-type': 'application/json' } });
+}

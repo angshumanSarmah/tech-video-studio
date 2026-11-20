@@ -33,15 +33,18 @@ different from the previous ones.
 
 House voice
 - Hook within 3 seconds: an engineer's problem with a real number from the notes, never "how does
-  X work?".
+  X work?". One or two numbers in the hook, not a list.
 - One idea per beat; 5-8 beats for 60 s (each beat needs about 6-10 s of narration).
 - At least once: failure before the fix, or a rejected alternative before the chosen design.
-- Plant a question early and pay it off late when the topic allows.
+- Plant a question early and pay it off late (at least two beats later) when the topic allows.
+- Use any one device in at most two beats (a real-incident hook and its aftermath count as two).
+  Every real_incident beat carries a source line.
 - End with a 3-line spec card summarising the design, the series number, then a share or follow
-  line in our own words.
+  line in our own words, with no numbers or series label in it (code adds the series number).
 - meta.format: "card" for a short single-concept or real-incident video, "full" for a multi-step build.
 - Length: 45-150 s by topic depth; over 90 s only with a
-  one-line reason in the plan. If parts are allowed (true) and the topic
+  one-line reason in the plan. Default to the shortest length that fully explains one main idea;
+  most single-topic videos fit 60-90 s. If parts are allowed (true) and the topic
   needs more than about 150 s, split it into 2-4 parts: each part has one main idea, its own hook
   and beats; earlier parts end on a cliffhanger, and only the last part ends with the spec card
   for the whole topic.

@@ -4,7 +4,10 @@ import { ResearchNotesSchema, type ResearchNotes } from '../research/notes.ts';
 import { validateVideoSpec } from '../spec/validate.ts';
 import {
   directorPlanProblems,
+  MAX_BEATS_PER_DEVICE,
+  MAX_HOOK_NUMBERS,
   MAX_RECENT_COMBO_REUSE,
+  MIN_PAYOFF_GAP_BEATS,
   type DirectorCheckContext,
 } from './checks.ts';
 import { DirectorPlanSchema, type DirectorPlan } from './plan.ts';
@@ -131,7 +134,13 @@ function plan(): DirectorPlan {
 const video = (patch: Partial<VideoSettings> = {}) => VideoSettingsSchema.parse(patch);
 
 function ctx(patch: Partial<DirectorCheckContext> = {}): DirectorCheckContext {
-  return { notes: notes(), video: video(), recentCombos: [], ...patch };
+  return {
+    notes: notes(),
+    video: video(),
+    recentCombos: [],
+    series: { name: 'System Design', label: 'SYSTEM DESIGN' },
+    ...patch,
+  };
 }
 
 function problemsAfter(mutate: (p: DirectorPlan) => void, context = ctx()) {
@@ -157,7 +166,7 @@ function twoParts(p: DirectorPlan): void {
   shed!.targetSec = 15;
   end!.targetSec = 15;
   p.story.devices = ['failure_before_fix'];
-  p.story.plantedQuestion = { text: 'What breaks?', beatId: 'queue', payoffBeatId: 'shed' };
+  p.story.plantedQuestion = { text: 'What breaks?', beatId: 'queue', payoffBeatId: 'end' };
   p.parts = [
     {
       part: 1,
@@ -449,6 +458,61 @@ describe('directorPlanProblems', () => {
     it('never closes the video (or the last part) on a cliffhanger', () => {
       expect(problemsAfter((p) => (p.story.ending.kind = 'cliffhanger_ending'))).toEqual([
         ['$.story.ending.kind', 'ending_kind'],
+      ]);
+    });
+  });
+
+  describe('tighter story', () => {
+    it(`caps the hook at ${MAX_HOOK_NUMBERS} research numbers`, () => {
+      expect(problemsAfter((p) => (p.story.beats[0]!.factIds = ['num-1', 'num-2']))).toEqual([]);
+      expect(
+        problemsAfter((p) => (p.story.beats[0]!.factIds = ['num-1', 'fact-1', 'num-2', 'num-1'])),
+      ).toEqual([['$.story.beats[0].factIds', 'hook_too_many_numbers']]);
+    });
+
+    it(`pays the planted question off at least ${MIN_PAYOFF_GAP_BEATS} beats later`, () => {
+      expect(problemsAfter((p) => (p.story.plantedQuestion!.payoffBeatId = 'queue'))).toEqual([]);
+      expect(problemsAfter((p) => (p.story.plantedQuestion!.payoffBeatId = 'break'))).toEqual([
+        ['$.story.plantedQuestion.payoffBeatId', 'payoff_too_soon'],
+      ]);
+    });
+
+    it(`uses one device on at most ${MAX_BEATS_PER_DEVICE} beats`, () => {
+      const thrice = (p: DirectorPlan) => {
+        p.story.beats[2]!.device = 'failure_before_fix';
+        p.story.beats[3]!.device = 'failure_before_fix';
+      };
+      expect(problemsAfter(thrice)).toEqual([['$.story.beats[3].device', 'device_overused']]);
+    });
+
+    it('lets every part have its own recap and cliffhanger', () => {
+      const codes = problemsAfter((p) => {
+        for (const i of [1, 2, 3]) p.story.beats[i]!.device = 'recap_opening';
+      }).map(([, code]) => code);
+      expect(codes).not.toContain('device_overused');
+    });
+
+    it('keeps digits and the series name or label out of the CTA', () => {
+      expect(
+        problemsAfter((p) => (p.story.ending.cta = 'System design #12: follow along')),
+      ).toEqual([
+        ['$.story.ending.cta', 'cta_has_number'],
+        ['$.story.ending.cta', 'cta_has_series_label'],
+      ]);
+      expect(
+        problemsAfter((p) => (p.story.ending.cta = 'Follow for the SYSTEM  DESIGN deep dives')),
+      ).toEqual([['$.story.ending.cta', 'cta_has_series_label']]);
+    });
+
+    it('allows only research number values on the spec card', () => {
+      expect(
+        problemsAfter((p) => (p.story.ending.specCard!.lines[0] = 'Queue: 500 requests, 20 ms')),
+      ).toEqual([]);
+      expect(
+        problemsAfter((p) => (p.story.ending.specCard!.lines[1] = 'Drain 1,000/s in p99 at 30 ms')),
+      ).toEqual([
+        ['$.story.ending.specCard.lines[1]', 'spec_card_number_not_in_notes'],
+        ['$.story.ending.specCard.lines[1]', 'spec_card_number_not_in_notes'],
       ]);
     });
   });

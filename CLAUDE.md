@@ -355,7 +355,8 @@ stepId?, aliases?, check?, signal?, log? })`** is the only way to call a model (
   `MAX_REPAIR_ATTEMPTS` (2) times, then `LlmOutputInvalidError`.
 - **Transports:** `httpTransport` (`createLlmTransport(config.llm)`) posts to
   `<baseUrl>/chat/completions` in JSON mode. It retries 429/5xx up to 2 times (1 s, 2 s, or
-  `Retry-After` up to 60 s; `src/worker/http/retry.ts`), separately from repairs. Each request times out after
+  `Retry-After` up to 60 s; `src/worker/http/retry.ts`), and a body cut off mid-stream
+  (`LlmBodyCutOffError`) like a 5xx, separately from repairs. Each request times out after
   `llm.requestTimeoutSec` (300) and honours the caller's `signal`. A missing key fails before
   any request. `dryRunTransport(fixtures)` / `loadDryRunFixtures(dir)` replay recorded responses
   per role, in order, and run through the same validation, logging and cost.
@@ -481,7 +482,11 @@ seriesNumber })` makes the spec; with parts its `targetLengthSec` is the parts' 
   (`plantedQuestion`, `heroMetric`, chapter questions, a real incident's `source`, facts and an
   incident in the notes); a `failure_before_fix` device or a `rejectedAlternative` with its
   `chosenBeatId`; each video's hook (first beat after a recap) cites a `num-*` id when the notes
-  have numbers; the single video or last part closes with an ending device other than
+  have numbers, and at most `MAX_HOOK_NUMBERS` (2); the planted question's payoff is at least
+  `MIN_PAYOFF_GAP_BEATS` (2) beats later; a device sits on at most `MAX_BEATS_PER_DEVICE` (2)
+  beats (`recap_opening` and `cliffhanger_ending` aside, one per part); the `cta` has no digits
+  and not the series name or label (code adds them); spec card numbers are research number
+  values (`quantityTokens`, as the plain summary check); the single video or last part closes with an ending device other than
   `cliffhanger_ending` and its `ENDING_REQUIREMENTS` (spec card: `specCard` and `cta`; callback
   and real-world closure: `cta`); earlier parts end on a `cliffhanger_ending` beat, parts 2+ open
   on a `recap_opening` beat; more than `MAX_RECENT_COMBO_REUSE` (1) beats reusing a recent
