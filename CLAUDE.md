@@ -482,13 +482,18 @@ seriesNumber })` makes the spec; with parts its `targetLengthSec` is the parts' 
   planted question and rejected / chosen pair inside one part; devices get what they need
   (`plantedQuestion`, `heroMetric`, chapter questions, a real incident's `source`, facts and an
   incident in the notes); a `failure_before_fix` device or a `rejectedAlternative` with its
-  `chosenBeatId`; each video's hook (first beat after a recap) cites a `num-*` id when the notes
-  have numbers, and at most `MAX_HOOK_NUMBERS` (2); the planted question's payoff is at least
+  `chosenBeatId`; each video's hook (first beat after a recap) names its one or two research
+  numbers in `beats[].hookNumberIds` (schema `maxItems` `MAX_HOOK_NUMBERS`, 2) when the notes have
+  numbers, with no `num-*` left in its `factIds` (`hook_numbers_in_fact_ids`), and only hooks
+  carry `hookNumberIds` (`hook_numbers_off_hook`); every number in the plan's prose (beat
+  intents, planted question, rejected alternative, chapter titles and questions, running
+  example, hero metric and story clock labels, spec card lines) is a research number value or a
+  date the notes give (`number_not_in_notes`, `quantityTokens` as the Researcher's check: no
+  derived numbers, identifiers such as p99 or HTTP 429 skipped); the planted question's payoff is at least
   `MIN_PAYOFF_GAP_BEATS` (2) beats later; a device sits on at most `MAX_BEATS_PER_DEVICE` (2)
   beats (`recap_opening` and `cliffhanger_ending` aside, one per part) and every device in
   `story.devices` is on at least one beat (`devices_unused`); the `cta` has no digits
-  and not the series name or label (code adds them); spec card numbers are research number
-  values (`quantityTokens`, as the plain summary check); the single video or last part closes with an ending device other than
+  and not the series name or label (code adds them); the single video or last part closes with an ending device other than
   `cliffhanger_ending` and its `ENDING_REQUIREMENTS` (spec card: `specCard` and `cta`; callback
   and real-world closure: `cta`); earlier parts end on a `cliffhanger_ending` beat, parts 2+ open
   on a `recap_opening` beat; more than `MAX_RECENT_COMBO_REUSE` (1) beats reusing a recent
@@ -729,7 +734,10 @@ channelHandle })` measures the same strings (`subjectText`, `chapterHeaderText`,
     characters fit (`describeRoom` / `roomInChars` in `src/fonts/measure-text.ts`, from the
     style's real advances over a sample phrase), so a model can act on it. When something shares
     the text's row (the handle, the story clock: `RowShare`s on `barSlots` / `titleBlockSlots`,
-    the same list the slot is computed from), the message names each and the px it uses.
+    the same list the slot is computed from), the message names each and the px it uses. The
+    hero metric is checked against its row too (`metric` slot: the row less the step marker and
+    the pill or dimension chrome), at `$.story.heroMetric`: it is drawn whole, so too long runs
+    into the marker.
     `CHAPTER_TITLE_MAX_CHARS` (shared; in the chapter title's schema description) is what the
     narrowest chapter-title slot of the default theme holds (the card viewport label); a test
     recomputes it. `HERO_METRIC_MAX_CHARS` (label and value together; in their schema

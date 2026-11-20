@@ -127,7 +127,7 @@ function printPlan(plan: DirectorPlan, notes: ResearchNotes): void {
   if (plan.lengthReason) console.log(`  length reason: ${plan.lengthReason}`);
   console.log(`  devices: ${story.devices.join(', ')}`);
   if (hook) {
-    const numbers = hook.factIds
+    const numbers = (hook.hookNumberIds ?? [])
       .filter((id) => values.has(id))
       .map((id) => `${id} = ${values.get(id)}`);
     console.log(`  hook: ${hook.intent} [${numbers.join('; ')}]`);
@@ -156,7 +156,7 @@ function printPlan(plan: DirectorPlan, notes: ResearchNotes): void {
       b.source ? `source: ${b.source}` : '',
     ].filter(Boolean);
     console.log(`    ${b.id} [${b.chapterId}] ${b.targetSec} s | ${extras.join(' | ')}`);
-    console.log(`      ${b.intent} (${b.factIds.join(', ')})`);
+    console.log(`      ${b.intent} (${[...(b.hookNumberIds ?? []), ...b.factIds].join(', ')})`);
   }
   const { ending } = story;
   console.log(`  ending: ${ending.kind}`);

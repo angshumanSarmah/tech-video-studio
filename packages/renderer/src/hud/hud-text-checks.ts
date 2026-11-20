@@ -4,7 +4,13 @@ import {
   type RenderableVideoSpec,
   type SpecError,
 } from '@explainer-studio/shared';
-import { describeRoom, fitsLine, textWidth, wrapText } from '../fonts/measure-text.ts';
+import {
+  describeRoom,
+  FIT_EPSILON_PX,
+  fitsLine,
+  textWidth,
+  wrapText,
+} from '../fonts/measure-text.ts';
 import { TEXT_TRUNCATED } from '../layout/text-fit.ts';
 import type { TextStyleName, Theme } from '../theme/index.ts';
 import { beatFrameSpans } from '../timing/frames.ts';
@@ -15,6 +21,7 @@ import {
   HEADLINE_LINES,
   subjectText,
   titleBlockSlots,
+  pillText,
   type HudContext,
   type RowShare,
 } from './hud-slots.ts';
@@ -75,6 +82,7 @@ function barChecks(
       ? subjectCheck(spec, theme, context, slots.topic, 'top bar', slots.shares.topic)
       : []),
     ...chapterRowChecks(parts, theme, chapters, slots.chapter, slots.shares.chapter),
+    ...metricCheck(spec, theme, slots.metric, slots.shares.metric, 'pill'),
   ];
 }
 
@@ -93,7 +101,10 @@ function titleBlockChecks(
       : parts.topBar
         ? subjectCheck(spec, theme, context, slots.subject, 'title block', [])
         : [];
-  const meta = chapterRowChecks(parts, theme, chapters, slots.chapter, slots.shares.chapter);
+  const meta = [
+    ...chapterRowChecks(parts, theme, chapters, slots.chapter, slots.shares.chapter),
+    ...metricCheck(spec, theme, slots.metric, slots.shares.metric, 'dimension'),
+  ];
   const viewport =
     variant === 'header' && parts.chapterHeader
       ? chapters.flatMap((c) =>
@@ -125,6 +136,38 @@ function subjectCheck(
     what: `The ${where}'s subject line`,
     shares,
   });
+}
+
+/**
+ * The hero metric on its row beside the step marker: the pill's "LABEL · VALUE" (bar) or the
+ * dimension's label and value (title block). It is drawn whole, so a metric past its room runs
+ * into the marker; reported as `text_truncated` like cut text.
+ */
+function metricCheck(
+  spec: RenderableVideoSpec,
+  theme: Theme,
+  room: number,
+  shares: readonly RowShare[],
+  shape: 'pill' | 'dimension',
+): SpecError[] {
+  const metric = spec.story.heroMetric;
+  if (!metric || !visibleHudParts(spec).heroMetric) return [];
+  const shown = pillText(metric);
+  const width =
+    shape === 'pill'
+      ? textWidth(theme, 'hud', shown)
+      : textWidth(theme, 'hud', metric.label) + textWidth(theme, 'hud', metric.value);
+  if (width <= room + FIT_EPSILON_PX) return [];
+  return [
+    truncated(
+      { path: toJsonPath(['story', 'heroMetric']), what: `The hero metric ${shape}` },
+      `"${shown}" is ${px(width)} wide, but its slot has ${describeRoom(theme, 'hud', room)}; ` +
+        `it would run into what shares its row.${crowding(shares, room)}`,
+      shares.length
+        ? 'Shorten its label or value, or what shares its row.'
+        : 'Shorten its label or value.',
+    ),
+  ];
 }
 
 /** The chapter row: the chapter header, or the current step's name when the header is off. */

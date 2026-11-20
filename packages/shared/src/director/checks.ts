@@ -4,6 +4,7 @@ import type { ResearchNotes } from '../research/notes.ts';
 import { normalizeNumber, quantityTokens } from '../research/numbers.ts';
 import { TARGET_LENGTH_TOLERANCE } from '../spec/integrity/warnings.ts';
 import { toJsonPath } from '../spec/validate.ts';
+import { MAX_HOOK_NUMBERS } from '../spec/story.ts';
 import type { DirectorPlan } from './plan.ts';
 
 /**
@@ -42,13 +43,14 @@ export const DIRECTOR_PROBLEM_CODES = [
   'no_failure_or_alternative',
   'chosen_design_missing',
   'hook_without_number',
-  'hook_too_many_numbers',
+  'hook_numbers_in_fact_ids',
+  'hook_numbers_off_hook',
   'payoff_too_soon',
   'device_overused',
   'devices_unused',
   'cta_has_number',
   'cta_has_series_label',
-  'spec_card_number_not_in_notes',
+  'number_not_in_notes',
   'ending_kind',
   'spec_card_missing',
   'cta_missing',
@@ -86,9 +88,6 @@ export const NEW_TERM_LIMITS: Readonly<Record<ExplanationLevel, number>> = {
 
 /** Beats per plan that may reuse a recent device/layout combo before it is a problem. */
 export const MAX_RECENT_COMBO_REUSE = 1;
-
-/** Research numbers (`num-*`) a hook beat may cite: one or two, not a list. */
-export const MAX_HOOK_NUMBERS = 2;
 
 /** Beats between a planted question and its payoff, at least ("pay it off late"). */
 export const MIN_PAYOFF_GAP_BEATS = 2;
@@ -146,9 +145,10 @@ export function directorPlanProblems(
     ...unusedDeviceProblems(plan),
     ...failureOrAlternativeProblems(plan),
     ...videos.flatMap((video) => hookProblems(plan, video, ctx.notes)),
+    ...strayHookNumberProblems(plan, videos),
     ...endingProblems(plan, videos),
     ...ctaProblems(plan, ctx.series),
-    ...specCardNumberProblems(plan, ctx.notes),
+    ...proseNumberProblems(plan, ctx.notes),
     ...varietyProblems(plan, ctx.recentCombos),
   ];
 }
@@ -190,19 +190,22 @@ function devicesUsed(plan: DirectorPlan): Set<string> {
 
 function factIdProblems(plan: DirectorPlan, notes: ResearchNotes): DirectorProblem[] {
   const known = new Set([...notes.facts.map((f) => f.id), ...notes.numbers.map((n) => n.id)]);
-  return plan.story.beats.flatMap((beat, i) =>
-    beat.factIds.flatMap((id, j) =>
-      known.has(id)
-        ? []
-        : [
-            problem(
-              ['story', 'beats', i, 'factIds', j],
-              'unknown_fact',
-              `Unknown research id "${id}". Use only "fact-<n>" and "num-<n>" ids from the research notes.`,
-            ),
-          ],
+  const unknown = (path: Path, id: string) =>
+    known.has(id)
+      ? []
+      : [
+          problem(
+            path,
+            'unknown_fact',
+            `Unknown research id "${id}". Use only "fact-<n>" and "num-<n>" ids from the research notes.`,
+          ),
+        ];
+  return plan.story.beats.flatMap((beat, i) => [
+    ...beat.factIds.flatMap((id, j) => unknown(['story', 'beats', i, 'factIds', j], id)),
+    ...(beat.hookNumberIds ?? []).flatMap((id, j) =>
+      unknown(['story', 'beats', i, 'hookNumberIds', j], id),
     ),
-  );
+  ]);
 }
 
 /** Case and spacing do not matter when a beat names a glossary term. */
@@ -551,35 +554,65 @@ function failureOrAlternativeProblems(plan: DirectorPlan): DirectorProblem[] {
   ];
 }
 
-/** Each video's hook (its first beat after any recap) uses a research number, when there are any. */
+/** A video's hook: its first beat after any recap. */
+function hookIndexOf(plan: DirectorPlan, video: PlannedVideo): number | undefined {
+  return video.beats.find((i) => plan.story.beats[i]?.device !== 'recap_opening');
+}
+
+/**
+ * Each video's hook names its one or two research numbers in `hookNumberIds` (the schema caps
+ * them), when the notes have numbers, and lists no `num-*` in its `factIds`.
+ */
 function hookProblems(
   plan: DirectorPlan,
   video: PlannedVideo,
   notes: ResearchNotes,
 ): DirectorProblem[] {
-  const hookIndex = video.beats.find((i) => plan.story.beats[i]?.device !== 'recap_opening');
+  const hookIndex = hookIndexOf(plan, video);
   const hook = hookIndex === undefined ? undefined : plan.story.beats[hookIndex];
-  if (!hook) return [];
-  const path: Path = ['story', 'beats', hookIndex!, 'factIds'];
-  const cited = hook.factIds.filter((id) => id.startsWith('num-'));
-  if (cited.length > MAX_HOOK_NUMBERS) {
-    return [
+  if (hookIndex === undefined || !hook) return [];
+  const path: Path = ['story', 'beats', hookIndex];
+  const problems: DirectorProblem[] = [];
+  const inFacts = hook.factIds.filter((id) => id.startsWith('num-'));
+  if (inFacts.length > 0) {
+    problems.push(
       problem(
-        path,
-        'hook_too_many_numbers',
-        `${video.label}'s hook "${hook.id}" cites ${cited.length} research numbers ` +
-          `(${cited.join(', ')}); one or two make the problem, at most ${MAX_HOOK_NUMBERS}.`,
+        [...path, 'factIds'],
+        'hook_numbers_in_fact_ids',
+        `${video.label}'s hook "${hook.id}" lists numbers in factIds (${inFacts.join(', ')}): ` +
+          `put its one or two numbers in hookNumberIds (at most ${MAX_HOOK_NUMBERS}) and drop the rest.`,
       ),
-    ];
+    );
   }
-  if (notes.numbers.length === 0 || cited.length > 0) return [];
-  return [
-    problem(
-      path,
-      'hook_without_number',
-      `${video.label}'s hook "${hook.id}" cites no research number: an engineer's problem with a real number ("num-<n>").`,
-    ),
-  ];
+  if (notes.numbers.length > 0 && !hook.hookNumberIds?.length) {
+    problems.push(
+      problem(
+        [...path, 'hookNumberIds'],
+        'hook_without_number',
+        `${video.label}'s hook "${hook.id}" names no research number: an engineer's problem with a real number (hookNumberIds: "num-<n>").`,
+      ),
+    );
+  }
+  return problems;
+}
+
+/** `hookNumberIds` belong to hooks only. */
+function strayHookNumberProblems(
+  plan: DirectorPlan,
+  videos: readonly PlannedVideo[],
+): DirectorProblem[] {
+  const hooks = new Set(videos.map((v) => hookIndexOf(plan, v)));
+  return plan.story.beats.flatMap((beat, i) =>
+    beat.hookNumberIds && !hooks.has(i)
+      ? [
+          problem(
+            ['story', 'beats', i, 'hookNumberIds'],
+            'hook_numbers_off_hook',
+            `Beat "${beat.id}" is not a hook: cite its numbers in factIds, not hookNumberIds.`,
+          ),
+        ]
+      : [],
+  );
 }
 
 /** The payoff comes late: at least `MIN_PAYOFF_GAP_BEATS` beats after the planted question. */
@@ -746,20 +779,61 @@ function ctaProblems(
   return problems;
 }
 
-/** Numbers on the spec card are research values, compared as `number_not_in_source` does. */
-function specCardNumberProblems(plan: DirectorPlan, notes: ResearchNotes): DirectorProblem[] {
-  const listed = new Set(
-    notes.numbers.flatMap((n) => quantityTokens(n.value).map(normalizeNumber)),
-  );
-  return (plan.story.ending.specCard?.lines ?? []).flatMap((line, i) => {
+/**
+ * The plan's prose, with its paths: everything the model writes in words that viewers may see or
+ * later agents copy (beat intents, the hook among them; questions, summaries, titles, the running
+ * example, the hero metric and the spec card).
+ */
+function proseFields(plan: DirectorPlan): [Path, string][] {
+  const { story } = plan;
+  const fields: [Path, string | undefined][] = [
+    ...story.beats.map((b, i): [Path, string] => [['story', 'beats', i, 'intent'], b.intent]),
+    [['story', 'plantedQuestion', 'text'], story.plantedQuestion?.text],
+    [['story', 'rejectedAlternative', 'summary'], story.rejectedAlternative?.summary],
+    ...story.chapters.flatMap((c, i): [Path, string | undefined][] => [
+      [['story', 'chapters', i, 'title'], c.title],
+      [['story', 'chapters', i, 'question'], c.question],
+    ]),
+    [['story', 'runningExample'], story.runningExample],
+    [['story', 'heroMetric', 'label'], story.heroMetric?.label],
+    [['story', 'heroMetric', 'value'], story.heroMetric?.value],
+    [['story', 'heroMetric', 'storyClock', 'from'], story.heroMetric?.storyClock?.from],
+    [['story', 'heroMetric', 'storyClock', 'to'], story.heroMetric?.storyClock?.to],
+    ...(story.ending.specCard?.lines ?? []).map((line, i): [Path, string] => [
+      ['story', 'ending', 'specCard', 'lines', i],
+      line,
+    ]),
+  ];
+  return fields.flatMap(([path, text]) => (text ? [[path, text] as [Path, string]] : []));
+}
+
+/**
+ * Number tokens the notes state as values: every `numbers[].value`, plus the dates the notes give
+ * (a number's `asOf`, an incident's date), so a dated incident can be named. Compared as the
+ * Researcher's `number_not_in_source` does (`quantityTokens`: identifiers such as p99, IPv4 or
+ * HTTP 429 are skipped; grouping commas ignored).
+ */
+function noteNumberTokens(notes: ResearchNotes): Set<string> {
+  const texts = [
+    ...notes.numbers.flatMap((n) => [n.value, n.asOf ?? '']),
+    ...notes.failureModes.map((f) => f.incident?.date ?? ''),
+  ];
+  return new Set(texts.flatMap((t) => quantityTokens(t).map(normalizeNumber)));
+}
+
+/** Every number in the plan's prose is a research value as written: none derived or invented. */
+function proseNumberProblems(plan: DirectorPlan, notes: ResearchNotes): DirectorProblem[] {
+  const listed = noteNumberTokens(notes);
+  return proseFields(plan).flatMap(([path, text]) => {
     const missing = [
-      ...new Set(quantityTokens(line).filter((t) => !listed.has(normalizeNumber(t)))),
+      ...new Set(quantityTokens(text).filter((t) => !listed.has(normalizeNumber(t)))),
     ];
     return missing.map((token) =>
       problem(
-        ['story', 'ending', 'specCard', 'lines', i],
-        'spec_card_number_not_in_notes',
-        `"${token}" is not a research number value; use a value from the notes as written, or no number.`,
+        path,
+        'number_not_in_notes',
+        `"${token}" is not a research number value. Use numbers from the notes as written; ` +
+          'never derive one (no products, sums or conversions), or leave the number out.',
       ),
     );
   });

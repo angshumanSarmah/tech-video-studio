@@ -77,6 +77,9 @@ export const ChapterSchema = z.strictObject({
 });
 export type Chapter = z.infer<typeof ChapterSchema>;
 
+/** Research numbers a hook may cite (`hookNumberIds`): one or two make the problem, not a list. */
+export const MAX_HOOK_NUMBERS = 2;
+
 export const StoryBeatSchema = z.strictObject({
   id: SpecIdSchema,
   chapterId: SpecIdSchema,
@@ -91,6 +94,18 @@ export const StoryBeatSchema = z.strictObject({
     .array(SpecIdSchema)
     .default([])
     .describe('Ids of the research facts ("fact-<n>") and numbers ("num-<n>") this beat uses.'),
+  /**
+   * The hook beat only (a video's first beat after any recap): the research numbers that make
+   * the problem. Its `factIds` then hold no `num-*` ids, so the cap cannot be bypassed.
+   */
+  hookNumberIds: z
+    .array(z.string().regex(/^num-[1-9]\d*$/, 'Use "num-<n>".'))
+    .min(1)
+    .max(MAX_HOOK_NUMBERS)
+    .optional()
+    .describe(
+      'Hook beat only: the one or two research numbers ("num-<n>") that make the engineer\'s problem. The hook\'s factIds then list no "num-<n>" ids.',
+    ),
   /** Suggestion for the Generator, which makes the final choice in the scene layer. */
   layoutMode: SpecIdSchema.optional().describe(
     "A layout mode id allowed for the video's topic class.",

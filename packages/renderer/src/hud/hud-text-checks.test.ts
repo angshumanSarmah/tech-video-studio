@@ -133,6 +133,33 @@ describe('hudTextWarnings', () => {
     );
   });
 
+  it('checks the hero metric against its row, naming the step marker beside it', () => {
+    const metric = {
+      label: 'Requests the shared store counts per second',
+      value: '2 million requests per second',
+    };
+    const spec = {
+      ...goldenStrawberrySpec,
+      story: { ...goldenStrawberrySpec.story, heroMetric: metric },
+    };
+    for (const [theme, marker] of [
+      [paper, 'the step marker (3 dots)'],
+      [dark, 'the step marker ("STEP 3/3" and 3 dots)'],
+    ] as const) {
+      const warning = hudTextWarnings(spec, theme, contextFor(spec)).find(
+        (w) => w.path === '$.story.heroMetric',
+      );
+      expect(warning?.code).toBe(TEXT_TRUNCATED);
+      expect(warning?.message).toContain(`row is shared: ${marker} uses`);
+      expect(warning?.message).toMatch(/Shorten its label or value, or what shares its row\.$/);
+    }
+    const short = {
+      ...spec,
+      story: { ...spec.story, heroMetric: { label: 'Tokens', value: '3' } },
+    };
+    expect(paths(short)).toEqual([]);
+  });
+
   it('warns at an over-long chapter title in the card viewport label', () => {
     const spec = withChapter(withFormat(goldenRateLimiterSpec, 'card'), 'count', { title: LONG });
     expect(paths(spec)).toEqual(['$.story.chapters[1].title']);

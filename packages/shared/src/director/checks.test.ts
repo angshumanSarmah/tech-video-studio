@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
+import { z } from 'zod';
 import { VideoSettingsSchema, type VideoSettings } from '../config/video.ts';
 import { ResearchNotesSchema, type ResearchNotes } from '../research/notes.ts';
+import { MAX_HOOK_NUMBERS } from '../spec/story.ts';
 import { validateVideoSpec } from '../spec/validate.ts';
 import {
   directorPlanProblems,
   MAX_BEATS_PER_DEVICE,
-  MAX_HOOK_NUMBERS,
   MAX_RECENT_COMBO_REUSE,
   MIN_PAYOFF_GAP_BEATS,
   type DirectorCheckContext,
@@ -86,7 +87,7 @@ function plan(): DirectorPlan {
           intent: 'A burst hits',
           device: 'contention_hook',
           targetSec: 10,
-          factIds: ['num-1'],
+          hookNumberIds: ['num-1'],
           layoutMode: 'centered_focus',
         },
         {
@@ -162,7 +163,8 @@ function twoParts(p: DirectorPlan): void {
   queue!.device = 'recap_opening';
   queue!.factIds = ['fact-1'];
   queue!.targetSec = 15;
-  shed!.factIds = ['fact-2', 'num-2'];
+  shed!.factIds = ['fact-2'];
+  shed!.hookNumberIds = ['num-2'];
   shed!.device = 'failure_before_fix';
   shed!.targetSec = 15;
   end!.targetSec = 15;
@@ -345,7 +347,8 @@ describe('directorPlanProblems', () => {
           twoParts(p);
           p.story.beats[1]!.device = undefined;
           p.story.beats[2]!.device = 'roadmap';
-          p.story.beats[2]!.factIds = ['num-1'];
+          p.story.beats[2]!.hookNumberIds = ['num-1'];
+          delete p.story.beats[3]!.hookNumberIds;
         }),
       ).toEqual([
         ['$.story.beats[1].device', 'cliffhanger_missing'],
@@ -414,13 +417,34 @@ describe('directorPlanProblems', () => {
   });
 
   describe('hook', () => {
-    it('cites a research number when the notes have any', () => {
-      const drop = (p: DirectorPlan) => (p.story.beats[0]!.factIds = ['fact-1']);
-      expect(problemsAfter(drop)).toEqual([['$.story.beats[0].factIds', 'hook_without_number']]);
+    it('names one or two research numbers in hookNumberIds when the notes have any', () => {
+      const drop = (p: DirectorPlan) => delete p.story.beats[0]!.hookNumberIds;
+      expect(problemsAfter(drop)).toEqual([
+        ['$.story.beats[0].hookNumberIds', 'hook_without_number'],
+      ]);
       const withoutNumbers = problemsAfter(drop, ctx({ notes: notes({ numbers: [] }) }));
-      expect(withoutNumbers).not.toContainEqual([
-        '$.story.beats[0].factIds',
-        'hook_without_number',
+      expect(withoutNumbers.map(([, code]) => code)).not.toContain('hook_without_number');
+    });
+
+    it(`caps hookNumberIds at ${MAX_HOOK_NUMBERS} in the schema itself`, () => {
+      const p = plan();
+      p.story.beats[0]!.hookNumberIds = ['num-1', 'num-2', 'num-1'];
+      const parsed = DirectorPlanSchema.safeParse(p);
+      expect(parsed.success).toBe(false);
+      expect(parsed.error?.issues[0]?.path).toEqual(['story', 'beats', 0, 'hookNumberIds']);
+      const schema = JSON.stringify(z.toJSONSchema(DirectorPlanSchema, { io: 'input' }));
+      expect(schema).toContain(`"maxItems":${MAX_HOOK_NUMBERS}`);
+    });
+
+    it('keeps the hook’s numbers out of its factIds, and hookNumberIds on hooks only', () => {
+      expect(
+        problemsAfter((p) => {
+          p.story.beats[0]!.factIds = ['fact-1', 'num-2', 'num-1'];
+          p.story.beats[2]!.hookNumberIds = ['num-2'];
+        }),
+      ).toEqual([
+        ['$.story.beats[0].factIds', 'hook_numbers_in_fact_ids'],
+        ['$.story.beats[2].hookNumberIds', 'hook_numbers_off_hook'],
       ]);
     });
 
@@ -430,9 +454,9 @@ describe('directorPlanProblems', () => {
       expect(
         problemsAfter((p) => {
           twoParts(p);
-          p.story.beats[3]!.factIds = ['fact-2'];
+          delete p.story.beats[3]!.hookNumberIds;
         }),
-      ).toEqual([['$.story.beats[3].factIds', 'hook_without_number']]);
+      ).toEqual([['$.story.beats[3].hookNumberIds', 'hook_without_number']]);
     });
   });
 
@@ -472,13 +496,6 @@ describe('directorPlanProblems', () => {
   });
 
   describe('tighter story', () => {
-    it(`caps the hook at ${MAX_HOOK_NUMBERS} research numbers`, () => {
-      expect(problemsAfter((p) => (p.story.beats[0]!.factIds = ['num-1', 'num-2']))).toEqual([]);
-      expect(
-        problemsAfter((p) => (p.story.beats[0]!.factIds = ['num-1', 'fact-1', 'num-2', 'num-1'])),
-      ).toEqual([['$.story.beats[0].factIds', 'hook_too_many_numbers']]);
-    });
-
     it(`pays the planted question off at least ${MIN_PAYOFF_GAP_BEATS} beats later`, () => {
       expect(problemsAfter((p) => (p.story.plantedQuestion!.payoffBeatId = 'queue'))).toEqual([]);
       expect(problemsAfter((p) => (p.story.plantedQuestion!.payoffBeatId = 'break'))).toEqual([
@@ -513,6 +530,37 @@ describe('directorPlanProblems', () => {
       ).toEqual([['$.story.ending.cta', 'cta_has_series_label']]);
     });
 
+    it('allows only research number values (and note dates) in every prose field', () => {
+      expect(
+        problemsAfter((p) => {
+          p.story.beats[1]!.intent = '500 requests arrive; the p99 wait is 20 ms with HTTP 503';
+          p.story.runningExample = 'One request in a burst of 500 waits 20 ms.';
+          p.story.beats[3]!.intent = 'The <example-date> outage sheds load';
+        }),
+      ).toEqual([]);
+      expect(
+        problemsAfter((p) => {
+          p.story.beats[1]!.intent = '500 requests × 20 = 10,000 waiting';
+          p.story.plantedQuestion!.text = 'Why do 40 requests fail?';
+          p.story.rejectedAlternative = {
+            beatId: 'break',
+            summary: 'Scale to 3 servers',
+            chosenBeatId: 'queue',
+          };
+          p.story.chapters[0]!.question = 'Why 7 seconds?';
+          p.story.runningExample = 'Key 7781 sends a burst.';
+          p.story.heroMetric = { label: 'Burst', value: '600 requests' };
+        }),
+      ).toEqual([
+        ['$.story.beats[1].intent', 'number_not_in_notes'],
+        ['$.story.plantedQuestion.text', 'number_not_in_notes'],
+        ['$.story.rejectedAlternative.summary', 'number_not_in_notes'],
+        ['$.story.chapters[0].question', 'number_not_in_notes'],
+        ['$.story.runningExample', 'number_not_in_notes'],
+        ['$.story.heroMetric.value', 'number_not_in_notes'],
+      ]);
+    });
+
     it('allows only research number values on the spec card', () => {
       expect(
         problemsAfter((p) => (p.story.ending.specCard!.lines[0] = 'Queue: 500 requests, 20 ms')),
@@ -520,8 +568,8 @@ describe('directorPlanProblems', () => {
       expect(
         problemsAfter((p) => (p.story.ending.specCard!.lines[1] = 'Drain 1,000/s in p99 at 30 ms')),
       ).toEqual([
-        ['$.story.ending.specCard.lines[1]', 'spec_card_number_not_in_notes'],
-        ['$.story.ending.specCard.lines[1]', 'spec_card_number_not_in_notes'],
+        ['$.story.ending.specCard.lines[1]', 'number_not_in_notes'],
+        ['$.story.ending.specCard.lines[1]', 'number_not_in_notes'],
       ]);
     });
   });

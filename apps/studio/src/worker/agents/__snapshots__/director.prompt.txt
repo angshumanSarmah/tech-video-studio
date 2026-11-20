@@ -295,6 +295,16 @@ Common mistakes to avoid
                   "pattern": "^[a-z0-9][a-z0-9_-]*$"
                 }
               },
+              "hookNumberIds": {
+                "description": "Hook beat only: the one or two research numbers (\"num-<n>\") that make the engineer's problem. The hook's factIds then list no \"num-<n>\" ids.",
+                "minItems": 1,
+                "maxItems": 2,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^num-[1-9]\\d*$"
+                }
+              },
               "layoutMode": {
                 "description": "A layout mode id allowed for the video's topic class.",
                 "type": "string",

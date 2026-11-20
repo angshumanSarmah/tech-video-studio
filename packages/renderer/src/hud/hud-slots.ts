@@ -40,8 +40,10 @@ export type BarSlots = {
   chapter: number;
   /** Headline line width (two lines). */
   headline: number;
+  /** The hero metric pill's text ("LABEL · VALUE") beside the step marker. */
+  metric: number;
   /** What shares each text's row (empty when nothing does). */
-  shares: { topic: RowShare[]; chapter: RowShare[] };
+  shares: { topic: RowShare[]; chapter: RowShare[]; metric: RowShare[] };
 };
 
 /** `hud.style: 'title-block'` (`strip`, full format) and the card format's `header`. */
@@ -59,8 +61,10 @@ export type TitleBlockSlots = {
   viewportLabel: number;
   /** Headline line width (two lines). */
   headline: number;
-  /** What shares the chapter row (empty when nothing does). */
-  shares: { chapter: RowShare[] };
+  /** The hero metric dimension's label and value together, beside the step dots. */
+  metric: number;
+  /** What shares each text's row (empty when nothing does). */
+  shares: { chapter: RowShare[]; metric: RowShare[] };
 };
 
 export function barSlots(theme: Theme, spec: RenderableVideoSpec, ctx: HudContext): BarSlots {
@@ -68,11 +72,13 @@ export function barSlots(theme: Theme, spec: RenderableVideoSpec, ctx: HudContex
   const shares = {
     topic: handleShares(theme, ctx.channelHandle),
     chapter: clockShares(theme, spec),
+    metric: markerShares(theme, spec, true),
   };
   return {
     topic: layout.topBar.width - used(shares.topic),
     chapter: layout.chapterRow.width - used(shares.chapter),
     headline: layout.headline.width,
+    metric: layout.metaRow.width - used(shares.metric) - pillChrome(theme),
     shares,
   };
 }
@@ -87,13 +93,14 @@ export function titleBlockSlots(
   const areas = formatAreas(theme, spec.meta.format);
   const cell = layout.block.width - 2 * stroke.thin - 2 * space.sm;
   const viewport = areas.viewport?.width ?? 0;
-  const shares = { chapter: clockShares(theme, spec) };
+  const shares = { chapter: clockShares(theme, spec), metric: markerShares(theme, spec, false) };
   return {
     subject: cell,
     title: cell,
     chapter: layout.chapterRow.width - used(shares.chapter),
     viewportLabel: viewport / 2 - 2 * space.sm - stroke.thin,
     headline: areas.headlineBand.width,
+    metric: layout.metaRow.width - used(shares.metric) - dimensionChrome(theme),
     shares,
   };
 }
@@ -108,6 +115,30 @@ function handleShares(theme: Theme, handle: string | null): RowShare[] {
   return [
     { what: `the channel handle "${handle}"`, px: handleWidth(theme, handle) + theme.space.md },
   ];
+}
+
+/**
+ * The step marker beside the hero metric: one dot per shown chapter, after "STEP n/N" at its
+ * widest in the bar style (`label`). None while the step tracker is off.
+ */
+function markerShares(theme: Theme, spec: RenderableVideoSpec, label: boolean): RowShare[] {
+  const count = shownChapterCount(spec);
+  if (!visibleHudParts(spec).stepTracker || count === 0) return [];
+  const { space } = theme;
+  const dots = count * STEP_DOT + (count - 1) * space.xs;
+  const widestLabel = Math.max(
+    ...Array.from({ length: count }, (_, i) => textWidth(theme, 'hud', stepLabel(i, count))),
+  );
+  const marker = label ? widestLabel + space.sm + dots : dots;
+  const what = label
+    ? `the step marker ("${stepLabel(count - 1, count)}" and ${count} dots)`
+    : `the step marker (${count} dots)`;
+  return [{ what, px: marker + space.md }];
+}
+
+/** The hero metric pill less its text: horizontal padding and border. */
+export function pillChrome(theme: Theme): number {
+  return 2 * theme.space.md + 2 * theme.stroke.thin;
 }
 
 /** The story clock (at its widest reading) beside the chapter row's text. */
