@@ -20,7 +20,8 @@
     "db:migrate": "tsx src/core/db/migrate-cli.ts",
     "typecheck": "vue-tsc --build",
     "test": "vitest run",
-    "gen:theme": "tsx scripts/generate-theme-css.ts"
+    "gen:theme": "tsx scripts/generate-theme-css.ts",
+    "bench:render": "tsx scripts/benchmark-render.ts"
   },
   "dependencies": {
     "@explainer-studio/renderer": "workspace:*",

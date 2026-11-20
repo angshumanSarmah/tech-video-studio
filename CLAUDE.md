@@ -169,6 +169,37 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
 - **Crash recovery** assumes a single worker: on startup every `running` job is stale. It is
   requeued, or failed once it has used `MAX_JOB_ATTEMPTS` (3) hard crashes. There is no
   heartbeat or lease; add one before running a second worker.
+- **Handlers get dependencies** through `createJobHandlers({ db, dataDir, tools })`
+  (`jobs/registry.ts`); `JobContext` carries only the job, payload, progress, log and signal.
+
+### Render service (`src/worker/render`, jobs in `jobs/render.ts`)
+
+- **Jobs:** `render_beat_draft` (`{ beatId }`), `render_draft`, `render_final`, `render_stills`
+  (`failsRun: false`). The run is `job.run_id`; each reads the run's newest spec version
+  (`loadRunRenderInput`: series and handle from the DB, assets via `prepareRenderAssets`,
+  narration at `timing.audioFile`, relative to the data dir). Outputs: `runs/<id>/beats/<beat>.draft.mp4`
+  (+ `.draft.json` cache key), `runs/<id>/draft.mp4`, `runs/<id>/stills/<beat>.png`,
+  `exports/<id>/<topic-slug>.mp4`.
+- **Remotion renders silently; ffmpeg muxes narration.** Each beat clip gets its own slice (its
+  frame span's offsets), the joined draft and the final get the whole WAV from 0 s. Video is
+  always stream-copied (H.264 yuv420p from Remotion); audio is AAC 48 kHz, `+faststart`.
+- **ffmpeg** is Remotion's bundled binary, run only through `render/ffmpeg.ts` (internal
+  `RenderInternals.callFf`; the build is trimmed, so check a filter exists before using it).
+- **Bundle once per process** (`getRendererBundle`); one browser per job. Remotion sits behind
+  `RenderEngine` (`engine.ts`), so handlers are tested with fakes (`render/testing.ts`). Only
+  the worker may import `@remotion/renderer` / `@remotion/bundler` (ESLint).
+- **Draft cache:** a beat clip is re-rendered only when its key changes: `beatRenderInputs` (its
+  `continuesPrevious` chain, every beat's span and chapter, global fields, the next semantic
+  zoom), the chain's assets, props, preset, encoding, `rendererSourceHash()` and the hash of
+  its narration slice. `render_draft` refuses to join when beat spans do not sum to the video.
+- **Finals refuse** (`finalRenderBlockers`): no timing, registry errors, `unknown_asset`,
+  missing logos or asset files that failed to load. Placeholders and markers are draft-only.
+- **Outputs are atomic** (`writeAtomically`: a `.partial` file, then rename) and `ctx.signal`
+  cancels Remotion and ffmpeg.
+- `pnpm --filter @explainer-studio/studio bench:render [--concurrency N]` renders the
+  rate-limiter fixture (cold draft, one-beat edit, unchanged draft, final, stills) with a
+  synthetic narration track, prints time and peak RSS (process tree, Chrome included) per phase,
+  and checks streams, frame counts, `+faststart` and that the output's silences match the source.
 
 API conventions: routes under `/api`, inputs validated with the `validate()` helper against schemas
 from `packages/shared/src/api`, list responses wrapped as `{ items }`, and every error is
@@ -303,7 +334,8 @@ its lease in card). The per-anchor sheets stay the record of timing.
   Remotion's `schema` prop is not used (Zod 3 vs 4); `calculateMetadata` validates the spec with
   `validateRenderableVideoSpec`, throws its structured errors, and sets duration and fps.
 - **`audioSrc` is a URL** (http(s) or `staticFile()`), never a filesystem path: Remotion renders
-  in a browser. `null` renders silently (preview before TTS).
+  in a browser. `null` renders silently (preview before TTS). The render service always passes
+  `null` and muxes the narration with ffmpeg afterwards. `draft: true` draws the "DRAFT" badge.
 - **Timing is seconds in the spec, frames only in the renderer.** `effectiveTiming(spec)` and
   `resolveAnchorSec` live in `packages/shared` (the worker needs them too); `src/timing/frames.ts`
   converts to frames at the composition's fps (final 30, draft 15). Without `spec.timing`, timing

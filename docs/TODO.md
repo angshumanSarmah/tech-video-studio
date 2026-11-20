@@ -45,9 +45,24 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       then the worker only moves a run to `failed` when one of its jobs fails (unless the handler
       sets `failsRun: false`); `queued → running`, gate pauses and `done` belong to the
       orchestrator, as does resuming a run from its last finished `run_steps` row.
-- [ ] **P1A.12 / P1B.1 — Honour `ctx.signal` in long-running handlers.** Pass it to Remotion's
-      `cancelSignal` in renders and kill the Kokoro subprocess on abort; otherwise a dev restart
-      becomes a hard kill and uses up an attempt.
+- [ ] **P1B.1 — Honour `ctx.signal` in the TTS handler.** Kill the Kokoro subprocess on abort
+      (render jobs already pass it to Remotion and ffmpeg); otherwise a dev restart becomes a
+      hard kill and uses up an attempt.
+- [ ] **P1B.3 / P1C.9 — Exports row.** `render_final` writes `exports/<id>/<slug>.mp4` only. Write
+      the SRT next to it (P1B.3), then insert the `exports` row (`srt_path` is required; duration
+      and cost from the run). The row makes the run undeletable, so insert it only for a
+      finished export.
+- [ ] **P1C.9 / P1D — Queueing render jobs.** Nothing queues `render_beat_draft`,
+      `render_draft`, `render_final` or `render_stills` yet (the orchestrator and the gate UI
+      will). Jobs read the run's newest spec version when they run; add `specVersion` to the
+      payload if a gate must render exactly the version that was reviewed.
+- [ ] **Worker — Bundle cache on disk.** The Remotion bundle is built once per worker process
+      (`render/bundle.ts`), so every `tsx watch` restart rebuilds it on the next render. If that
+      gets slow, keep it under the data dir keyed by `rendererSourceHash()`.
+- [ ] **Remotion upgrades — ffmpeg adapter.** `render/ffmpeg.ts` runs Remotion's bundled
+      ffmpeg through `RenderInternals.callFf` (internal API). After a Remotion upgrade, run
+      `bench:render`: it checks `ffmpeg -version` through the adapter first. The bundled build is
+      trimmed (no `ametadata`, for example); check a filter exists before relying on it.
 - [ ] **Worker — Retries and backoff.** A handler error fails the job at once; `attempts` only
       counts hard crashes. Add per-handler retry with `run_after` backoff when a stage needs it
       (e.g. transient LLM or fetch errors).
@@ -69,22 +84,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       response and treat a masked value in PUT as "unchanged". Show when `DEEPSEEK_API_KEY` in
       `.env` overrides the stored key. Save via `saveConfig()` from `#core/config.ts`, passing
       settings (not the resolved `AppConfig`, which carries the env key).
-- [ ] **P1A.12 — Render props and narration audio.**
-  - Build `VideoFromSpecProps` / `BeatFromSpecProps` (`@explainer-studio/renderer`): resolve
-    `series` (label, accent) from the DB `series` row, pass `fps` from the preset (draft 15,
-    final 30), and validate the spec with `validateRenderableVideoSpec()` before bundling so
-    errors reach the run as structured issues (`calculateMetadata` re-validates and throws).
-  - Remotion renders in a browser, so `audioSrc` must be an http(s) URL or a `staticFile()`
-    path, never `timing.audioFile` (a path relative to the data dir). Serve the run's audio via
-    the studio server (or copy it into Remotion's public dir) and pass that URL.
-  - Pass `channelHandle` from the run's channel (`channels.handle`; null hides it).
-  - Pass `assets` from `prepareRenderAssets(db, dataDir, runId, spec)`
-    (`#core/assets/render-assets.ts`), and after every render call `recordMissingAssets` with its
-    `missing` (per-beat drafts pass their `beatIds`), so the gate 3 panel (P1D.10) and P1C.12
-    read one list. Log its `problems` (asset files that failed to load) to the run.
-  - Before rendering, check that `audioSrc` loads (e.g. a `HEAD`/range request that returns an
-    audio content type) and fail the render with a clear error if it does not. A spec with
-    timing must never render silently; `audioSrc: null` is only for previews before TTS.
 - [ ] **P1B.3 — Delete `src/dev/`.** `DevSubtitles` is the last temporary layer in the renderer.
       P1B.3 replaces it and deletes `src/dev/`; `src/dev/dev-layers.test.ts` fails once
       `src/subtitles/` exists and anything outside `src/dev` still uses it (keep the subtitle
@@ -94,13 +93,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       Generator output (its errors feed the repair loop like any other), and scene-gate saves must
       run it too, so a spec cannot pass a gate with unknown primitives, bad props or unsupported
       actions.
-- [ ] **P1A.12 — Final renders refuse registry errors.** Studio and drafts draw unknown ids and
-      invalid props as red error markers (`src/scene/BeatScene.tsx`). A final render must refuse
-      any spec that fails `withRegistryChecks(validateRenderableVideoSpec(spec), spec)` and report
-      the structured errors to the run, so a marker can never reach an exported MP4.
-  - It must also refuse a spec with any `unknown_asset` warning (a warning everywhere else), or
-    any unfilled logo slot (`prepareRenderAssets(...).missing` not empty, or `problems` from a
-    logo file that failed its checks): placeholders are draft-only and never reach an export.
 - [ ] **P1C.4 — Asset list from the DB.** The catalogue's asset section (`buildCatalogue`)
       comes from `registries.assets`, which is the seed library by default. The Generator must
       build its closed asset list from the DB's approved rows at run time (`loadAssetLibrary`,

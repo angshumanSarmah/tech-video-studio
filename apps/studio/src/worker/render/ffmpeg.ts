@@ -5,6 +5,7 @@ import { makeCancelSignal, RenderInternals } from '@remotion/renderer';
  * `@remotion/renderer` (no system ffmpeg needed), through `RenderInternals.callFf`, which is
  * internal API: the exact pinned Remotion version keeps it stable, and if an upgrade breaks it,
  * only this file changes. `bench:render` checks `ffmpeg -version` through here first.
+ * Remotion runs the binary from its own directory: pass absolute paths only.
  */
 
 export type FfBinary = 'ffmpeg' | 'ffprobe';
