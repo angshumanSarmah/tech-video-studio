@@ -9,6 +9,7 @@ import {
   DirectorPlanSchema,
   specFromPlan,
   validateVideoSpec,
+  VideoSpecShapeSchema,
   type DirectorCheckContext,
   type PlanSpecContext,
   type RenderableVideoSpec,
@@ -45,7 +46,7 @@ export function directorCheck(deps: DirectorCheckDeps): (value: unknown) => Outp
     return [
       ...directorPlanProblems(plan, deps),
       ...specIssues,
-      ...(result.ok ? hudIssues(result.spec, deps.hud) : []),
+      ...hudIssues(result.ok ? result.spec : specShape(spec), deps.hud),
     ].map(toOutputIssue);
   };
 }
@@ -54,9 +55,27 @@ function toOutputIssue(issue: { path: string; code: string; message: string }): 
   return { path: issue.path, code: issue.code, message: issue.message };
 }
 
-/** HUD text checks need a renderable spec; placeholder layers stand in for script and scenes. */
-function hudIssues(spec: VideoSpec, hud: HudContext): SpecError[] {
-  return hudTextWarnings(hudPreviewSpec(spec), getTheme(), hud);
+/**
+ * The spec's structure when it fails only on cross-references (an unknown id, a keyframe on the
+ * first beat), so its HUD text is still checked and every problem goes into one repair.
+ */
+function specShape(spec: unknown): VideoSpec | undefined {
+  const shape = VideoSpecShapeSchema.safeParse(spec);
+  return shape.success ? shape.data : undefined;
+}
+
+/**
+ * HUD text checks need a renderable spec; placeholder layers stand in for script and scenes. On a
+ * spec with reference errors the HUD may not lay out (e.g. a beat in an unknown chapter): then
+ * there is nothing to add, and the next attempt checks it.
+ */
+function hudIssues(spec: VideoSpec | undefined, hud: HudContext): SpecError[] {
+  if (!spec) return [];
+  try {
+    return hudTextWarnings(hudPreviewSpec(spec), getTheme(), hud);
+  } catch {
+    return [];
+  }
 }
 
 /**

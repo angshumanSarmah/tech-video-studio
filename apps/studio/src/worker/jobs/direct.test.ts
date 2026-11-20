@@ -198,6 +198,28 @@ describe('direct job (rate-limiter fixture, dry run)', () => {
     expect(repair).toContain('$.meta.title');
   });
 
+  it('checks HUD text even when the spec has other errors, so one repair covers both', async () => {
+    const both = answer((plan) => {
+      plan.meta.title =
+        'Rate limiters explained from token buckets to shared stores and the incident that broke checkout';
+      plan.story.heroMetric = {
+        label: 'Contract',
+        value: '300 rps',
+        storyClock: {
+          from: 'Failover',
+          to: 'Fix',
+          startValue: 0,
+          endValue: 2820,
+          keyframes: [{ beatId: 'hook', value: 0 }],
+        },
+      };
+    });
+    const { runId } = await direct(registry([both, goodAnswer]));
+    const repair = promptOf(directorCalls(runId)[1]!.promptPath).messages.at(-1)!.content;
+    expect(repair).toContain('$.story.heroMetric.storyClock.keyframes[0].beatId');
+    expect(repair).toMatch(/\$\.meta\.title: .*\(about \d+ characters\)/);
+  });
+
   it('fails the step and the job when the plan is still invalid after every repair', async () => {
     const bad = answer((plan) => delete plan.story.runningExample);
     const { runId, job } = await direct(registry([bad, bad, bad]));

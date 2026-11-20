@@ -1,16 +1,13 @@
 import { useMemo } from 'react';
-import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion';
+import { AbsoluteFill } from 'remotion';
 import { rectCss } from '../layers/rect-css.ts';
 import { formatAreas } from '../layout/format.ts';
-import { textCss, type Theme } from '../theme/index.ts';
 import { CardViewport } from './CardViewport.tsx';
 import { ChapterHeader } from './ChapterHeader.tsx';
 import { DimensionMetric } from './DimensionMetric.tsx';
+import { StepMarker, StepName } from './StepTracker.tsx';
 import { Headline } from './Headline.tsx';
 import { StoryClock } from './HeroMetric.tsx';
-import type { ChapterSpan } from './hud-state.ts';
-import { enterProgress, enterStyle } from './motion.ts';
-import { ellipsis } from './styles.ts';
 import { titleBlockSlots } from './hud-slots.ts';
 import { titleBlockLayout, viewportLabel, type TitleBlockVariant } from './title-block.ts';
 import { TitleBlock } from './TitleBlock.tsx';
@@ -35,6 +32,8 @@ export function TitleBlockHud({ variant, ...props }: Props) {
   const headlineBand = areas.headlineBand;
   const row = { display: 'flex', alignItems: 'center', gap: theme.space.md } as const;
   const showSheet = parts.stepTracker && chapter !== undefined;
+  /** The step name has the clock row, unless the chapter header already names the chapter. */
+  const showStepName = showSheet && !parts.chapterHeader;
 
   return (
     <AbsoluteFill>
@@ -70,7 +69,13 @@ export function TitleBlockHud({ variant, ...props }: Props) {
           {parts.chapterHeader && chapter ? (
             <ChapterHeader theme={theme} chapter={chapter} accent={accent} room={slots.metaText} />
           ) : showSheet ? (
-            <StepName theme={theme} chapter={chapter} room={slots.metaText} />
+            <StepMarker
+              theme={theme}
+              chapters={chapters}
+              current={chapter}
+              accent={accent}
+              label={false}
+            />
           ) : (
             <div />
           )}
@@ -79,15 +84,22 @@ export function TitleBlockHud({ variant, ...props }: Props) {
           ) : null}
         </div>
       }
-      {parts.storyClock && clock ? (
-        <div style={{ ...rectCss(layout.clockRow), ...row, justifyContent: 'flex-end' }}>
-          <StoryClock
-            theme={theme}
-            fromLabel={clock.from}
-            toLabel={clock.to}
-            points={points}
-            from={pinnedFrom}
-          />
+      {showStepName || (parts.storyClock && clock) ? (
+        <div style={{ ...rectCss(layout.clockRow), ...row, justifyContent: 'space-between' }}>
+          {showStepName ? (
+            <StepName theme={theme} chapter={chapter} room={slots.stepName} />
+          ) : (
+            <div />
+          )}
+          {parts.storyClock && clock ? (
+            <StoryClock
+              theme={theme}
+              fromLabel={clock.from}
+              toLabel={clock.to}
+              points={points}
+              from={pinnedFrom}
+            />
+          ) : null}
         </div>
       ) : null}
       {parts.headline && cue && frame < cue.to ? (
@@ -100,31 +112,5 @@ export function TitleBlockHud({ variant, ...props }: Props) {
         />
       ) : null}
     </AbsoluteFill>
-  );
-}
-
-/**
- * The current step's name, which the bar style shows beside "STEP n/N". Drawn only when the
- * chapter header is off, so the chapter is never named twice.
- */
-function StepName(props: { theme: Theme; chapter: ChapterSpan; room: number }) {
-  const { theme, chapter, room } = props;
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const progress = enterProgress(frame, chapter.from, fps);
-  return (
-    <div
-      key={chapter.chapterId}
-      style={{
-        ...textCss(theme, 'hud'),
-        ...ellipsis,
-        flex: 'none',
-        maxWidth: room,
-        ...enterStyle(progress, theme.space.sm),
-        color: theme.colours.ink.muted,
-      }}
-    >
-      {chapter.title}
-    </div>
   );
 }

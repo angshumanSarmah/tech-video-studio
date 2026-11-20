@@ -63,6 +63,7 @@ DO NOT
 - Plan a beat that needs facts the notes don't have.
 - Use the same pattern on the same focus in two consecutive beats.
 - Spend more than one beat on only a headline or a stat card.
+- Make the same point in two beats: each beat must move the story forward.
 - Follow a reference video's beats one-to-one or reuse its examples, names or punchlines.
 
 Common mistakes to avoid
@@ -176,6 +177,7 @@ Common mistakes to avoid
                 },
                 "keyframes": {
                   "default": [],
+                  "description": "Optional pacing, in story order. Never on the first beat: its value is startValue.",
                   "type": "array",
                   "items": {
                     "type": "object",
@@ -183,7 +185,8 @@ Common mistakes to avoid
                       "beatId": {
                         "type": "string",
                         "maxLength": 64,
-                        "pattern": "^[a-z0-9][a-z0-9_-]*$"
+                        "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                        "description": "A beat after the first one: never the first beat, whose value is startValue."
                       },
                       "value": {
                         "type": "number",
@@ -233,7 +236,7 @@ Common mistakes to avoid
               "title": {
                 "type": "string",
                 "minLength": 1,
-                "description": "Short chapter title shown in the HUD."
+                "description": "Short chapter title shown in the HUD: at most about 28 characters, or it is cut off."
               },
               "question": {
                 "description": "The title as a viewer question; required on every chapter with question_chapters.",

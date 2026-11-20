@@ -9,7 +9,13 @@ import {
   type TextStyleName,
   type Theme,
 } from '../theme/index.ts';
-import { textWidth, wrapText, type FontMetricsTable } from './measure-text.ts';
+import {
+  describeRoom,
+  roomInChars,
+  textWidth,
+  wrapText,
+  type FontMetricsTable,
+} from './measure-text.ts';
 
 const publicDir = fileURLToPath(new URL('../../public/', import.meta.url));
 
@@ -70,6 +76,25 @@ describe('textWidth', () => {
     const { size } = theme.text.footnote;
     expect(textWidth(theme, 'footnote', 'ab', { metrics: empty })).toBeCloseTo(
       2 * theme.fonts.sans.advanceEm * size,
+    );
+  });
+});
+
+describe('roomInChars', () => {
+  it('counts about how many everyday characters fit, case transform included', () => {
+    const theme = getTheme();
+    const text = 'Refill rate per key';
+    const room = textWidth(theme, 'hud', text);
+    expect(Math.abs(roomInChars(theme, 'hud', room) - text.length)).toBeLessThanOrEqual(3);
+    expect(roomInChars(theme, 'hud', 0)).toBe(0);
+    // Wider glyphs (display) fit fewer characters in the same room.
+    expect(roomInChars(theme, 'title', 600)).toBeLessThan(roomInChars(theme, 'footnote', 600));
+  });
+
+  it('states a room in px and characters', () => {
+    const theme = getTheme();
+    expect(describeRoom(theme, 'hud', 123.4)).toBe(
+      `123 px (about ${roomInChars(theme, 'hud', 123.4)} characters)`,
     );
   });
 });

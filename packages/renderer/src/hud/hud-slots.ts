@@ -27,9 +27,10 @@ export const STEP_DOT = 14;
 export type BarSlots = {
   /** "SERIES · TOPIC" beside the handle. */
   topic: number;
-  /** "STEP n/N · NAME" beside the dots and the pill. */
-  stepText: number;
-  /** "— n · QUESTION" beside the story clock. */
+  /**
+   * The chapter row beside the story clock: "— n · QUESTION" (chapter header), or the current
+   * step's name when the header is off (the step tracker's dots sit on the row above).
+   */
   chapter: number;
   /** Headline line width (two lines). */
   headline: number;
@@ -41,8 +42,10 @@ export type TitleBlockSlots = {
   subject: number;
   /** The header's title cell, per line (`TITLE_LINES` lines). */
   title: number;
-  /** The chapter header or step name beside the hero metric dimension. */
+  /** The chapter header beside the hero metric dimension. */
   metaText: number;
+  /** The current step's name on the clock row, beside the story clock (header off). */
+  stepName: number;
   /** The card viewport's label cell. */
   viewportLabel: number;
   /** Headline line width (two lines). */
@@ -53,15 +56,11 @@ export function barSlots(theme: Theme, spec: RenderableVideoSpec, ctx: HudContex
   const { space } = theme;
   const layout = hudLayout(theme);
   const parts = visibleHudParts(spec);
-  const metric = parts.heroMetric ? spec.story.heroMetric : undefined;
   const clock = parts.storyClock ? spec.story.heroMetric?.storyClock : undefined;
   const handle = ctx.channelHandle ? handleWidth(theme, ctx.channelHandle) + space.md : 0;
-  const pill = metric ? pillWidth(theme, metric) + space.md : 0;
-  const dots = stepDotsWidth(theme, shownChapterCount(spec)) + space.sm;
   return {
     topic: layout.topBar.width - handle,
-    stepText: layout.metaRow.width - pill - dots,
-    chapter: layout.chapterRow.width - (clock ? storyClockWidth(theme, clock) + space.md : 0),
+    chapter: layout.chapterRow.width - clockRoom(theme, clock),
     headline: layout.headline.width,
   };
 }
@@ -76,12 +75,14 @@ export function titleBlockSlots(
   const areas = formatAreas(theme, spec.meta.format);
   const parts = visibleHudParts(spec);
   const metric = parts.heroMetric ? spec.story.heroMetric : undefined;
+  const clock = parts.storyClock ? spec.story.heroMetric?.storyClock : undefined;
   const cell = layout.block.width - 2 * stroke.thin - 2 * space.sm;
   const viewport = areas.viewport?.width ?? 0;
   return {
     subject: cell,
     title: cell,
     metaText: layout.metaRow.width - (metric ? dimensionWidth(theme, metric) + space.md : 0),
+    stepName: layout.clockRow.width - clockRoom(theme, clock),
     viewportLabel: viewport / 2 - 2 * space.sm - stroke.thin,
     headline: areas.headlineBand.width,
   };
@@ -108,11 +109,6 @@ export function stepLabel(index: number, count: number): string {
   return `STEP ${index + 1}/${count}`;
 }
 
-/** The step tracker line. */
-export function stepTrackerText(chapter: Pick<ChapterSpan, 'index' | 'title'>, count: number) {
-  return `${stepLabel(chapter.index, count)} · ${chapter.title}`;
-}
-
 /** The hero metric pill's text. */
 export function pillText(metric: HeroMetric): string {
   return `${metric.label} · ${metric.value}`;
@@ -128,13 +124,9 @@ function handleWidth(theme: Theme, handle: string): number {
   return textWidth(theme, 'hud', handle, { uppercase: false });
 }
 
-/** The pill: its text, padding and border. */
-function pillWidth(theme: Theme, metric: HeroMetric): number {
-  return textWidth(theme, 'hud', pillText(metric)) + 2 * theme.space.md + 2 * theme.stroke.thin;
-}
-
-function stepDotsWidth(theme: Theme, count: number): number {
-  return count * STEP_DOT + Math.max(0, count - 1) * theme.space.xs;
+/** What a row gives the story clock beside it (none without a clock). */
+function clockRoom(theme: Theme, clock: StoryClock | undefined): number {
+  return clock ? storyClockWidth(theme, clock) + theme.space.md : 0;
 }
 
 /**

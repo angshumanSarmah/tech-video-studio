@@ -6,7 +6,9 @@ import { SourceLineSchema } from './script.ts';
 
 /** The story clock's value (story-time seconds) at the start of a beat. */
 export const StoryClockKeyframeSchema = z.strictObject({
-  beatId: SpecIdSchema,
+  beatId: SpecIdSchema.describe(
+    'A beat after the first one: never the first beat, whose value is startValue.',
+  ),
   value: z.number().min(0),
 });
 export type StoryClockKeyframe = z.infer<typeof StoryClockKeyframeSchema>;
@@ -22,7 +24,10 @@ export const StoryClockSchema = z.strictObject({
   startValue: z.number().min(0),
   endValue: z.number().min(0),
   /** Optional pacing: in story order, never on the first beat (that is `startValue`). */
-  keyframes: z.array(StoryClockKeyframeSchema).default([]),
+  keyframes: z
+    .array(StoryClockKeyframeSchema)
+    .default([])
+    .describe('Optional pacing, in story order. Never on the first beat: its value is startValue.'),
 });
 export type StoryClock = z.infer<typeof StoryClockSchema>;
 
@@ -35,9 +40,22 @@ export const HeroMetricSchema = z.strictObject({
 });
 export type HeroMetric = z.infer<typeof HeroMetricSchema>;
 
+/**
+ * About how many characters of a chapter title the HUD shows without cutting it, in the default
+ * theme: the narrowest place a title appears (the card viewport's label cell; the step name has
+ * more room), with nothing sharing its row. A renderer test recomputes it (`roomInChars`). A hint
+ * for prompts: `hudTextWarnings` measures the real text.
+ */
+export const CHAPTER_TITLE_MAX_CHARS = 28;
+
 export const ChapterSchema = z.strictObject({
   id: SpecIdSchema,
-  title: z.string().min(1).describe('Short chapter title shown in the HUD.'),
+  title: z
+    .string()
+    .min(1)
+    .describe(
+      `Short chapter title shown in the HUD: at most about ${CHAPTER_TITLE_MAX_CHARS} characters, or it is cut off.`,
+    ),
   /** Question form of the title, for question-driven chapters. */
   question: z
     .string()

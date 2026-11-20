@@ -12,7 +12,8 @@ import {
 import { TEXT_TRUNCATED } from '../layout/text-fit.ts';
 import { getTheme, listThemes } from '../theme/index.ts';
 import { hudLayout } from './hud-layout.ts';
-import { barSlots, storyClockWidth, type HudContext } from './hud-slots.ts';
+import { barSlots, storyClockWidth, titleBlockSlots, type HudContext } from './hud-slots.ts';
+import { titleBlockLayout } from './title-block.ts';
 import { hudTextWarnings } from './hud-text-checks.ts';
 
 const paper = getTheme('drafting-paper');
@@ -48,7 +49,7 @@ describe('hudTextWarnings', () => {
     const spec = withChapter(goldenRateLimiterSpec, 'fleet', { question: LONG });
     expect(paths(spec)).toEqual(['$.story.chapters[4].question']);
     expect(hudTextWarnings(spec, paper, contextFor(spec))[0]?.message).toMatch(
-      /^Chapter "fleet": the chapter header "— 5 · What happens.*" is \d+ px wide, but its slot has \d+ px/,
+      /^Chapter "fleet": the chapter header "— 5 · What happens.*" is \d+ px wide, but its slot has \d+ px \(about \d+ characters\)/,
     );
   });
 
@@ -62,7 +63,7 @@ describe('hudTextWarnings', () => {
     };
     expect(paths(titled)).toEqual(['$.meta.title']);
     expect(hudTextWarnings(titled, paper, contextFor(card))[0]?.message).toMatch(
-      /^The card header title .* needs \d lines of \d+ px, but the HUD shows 2/,
+      /^The card header title .* needs \d lines of \d+ px \(about \d+ characters\), but the HUD shows 2/,
     );
   });
 
@@ -78,9 +79,24 @@ describe('hudTextWarnings', () => {
     expect(paths({ ...goldenRateLimiterSpec, script })).toEqual(['$.script[0].headline.text']);
   });
 
-  it('warns at an over-long chapter title in the bar style step tracker', () => {
+  it('warns at an over-long chapter title as the step name, in both HUD styles', () => {
     const spec = withChapter(goldenStrawberrySpec, 'tokens', { title: LONG });
     expect(paths(spec, dark)).toEqual(['$.story.chapters[1].title']);
+    expect(paths(spec, paper)).toEqual(['$.story.chapters[1].title']);
+    expect(hudTextWarnings(spec, paper, contextFor(spec))[0]?.message).toMatch(
+      /^Chapter "tokens": the step name ".*" is \d+ px wide, but its slot has \d+ px \(about \d+ characters\)/,
+    );
+  });
+
+  it('gives the step name its row whatever the hero metric (only the clock shares it)', () => {
+    const spec = goldenStrawberrySpec;
+    const context = contextFor(spec);
+    const metric = { label: 'A very long metric label', value: '1,00,000 tokens per second' };
+    const withMetric = { ...spec, story: { ...spec.story, heroMetric: metric } };
+    expect(barSlots(dark, withMetric, context).chapter).toBe(hudLayout(dark).chapterRow.width);
+    expect(titleBlockSlots(paper, 'strip', withMetric).stepName).toBe(
+      titleBlockLayout(paper, 'strip').clockRow.width,
+    );
   });
 
   it('warns at an over-long chapter title in the card viewport label', () => {

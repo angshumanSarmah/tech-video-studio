@@ -5,7 +5,7 @@ import {
   type SpecError,
 } from '@explainer-studio/shared';
 import type { Registries } from '../catalog/registries.ts';
-import { FIT_EPSILON_PX, textWidth } from '../fonts/measure-text.ts';
+import { describeRoom, FIT_EPSILON_PX, textWidth } from '../fonts/measure-text.ts';
 import type { ClippedLine } from '../primitives/types.ts';
 import { beatWorld, type WorldItem } from '../scene/beat-world.ts';
 import { footnoteText } from '../scene/source-footnote.ts';
@@ -73,7 +73,7 @@ function footnoteWarnings(
         code: TEXT_TRUNCATED,
         message:
           `Beat "${beatId}": the source line "${text}" is ${px(width)} wide, but the footnote ` +
-          `line has ${px(rect.width)}; it would be cut off. Shorten the source.`,
+          `line has ${describeRoom(theme, 'footnote', rect.width)}; it would be cut off. Shorten the source.`,
       },
     ];
   });
@@ -110,7 +110,8 @@ function elementWarning(
     code: TEXT_TRUNCATED,
     message:
       `Beat "${origin.beatId}", element "${key}"${where}: "${line.text}" is ${px(width)} wide, ` +
-      `but it has ${px(line.room)} at its placed size; it would be cut off. Shorten it.`,
+      `but it has ${describeRoom(theme, line.style, line.room)} at its placed size; it would be cut ` +
+      'off. Shorten it.',
   };
 }
 

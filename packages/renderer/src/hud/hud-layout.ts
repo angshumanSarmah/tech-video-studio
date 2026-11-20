@@ -5,8 +5,9 @@ import { safeAreas, type Rect, type TextStyleName, type Theme } from '../theme/i
  * recalibrated top bar moves the whole HUD with it. Rows stack from the top of the HUD band:
  *
  *   topBar      SERIES · TOPIC                          @handle
- *   metaRow     STEP 2/3 · NAME ● ● ○              [ PILL · VALUE ]
+ *   metaRow     STEP 2/3 ● ● ○                     [ PILL · VALUE ]
  *   chapterRow  — 2 · CHAPTER QUESTION?          FROM → TO · 1:52
+ *               (or, with the chapter header off, the current step's name)
  *
  * The headline has its own band at the top of the stage (`safeAreas().headlineBand`).
  */

@@ -4,7 +4,7 @@ import {
   type RenderableVideoSpec,
   type SpecError,
 } from '@explainer-studio/shared';
-import { fitsLine, textWidth, wrapText } from '../fonts/measure-text.ts';
+import { describeRoom, fitsLine, textWidth, wrapText } from '../fonts/measure-text.ts';
 import { TEXT_TRUNCATED } from '../layout/text-fit.ts';
 import type { TextStyleName, Theme } from '../theme/index.ts';
 import { beatFrameSpans } from '../timing/frames.ts';
@@ -13,7 +13,6 @@ import {
   barSlots,
   chapterHeaderText,
   HEADLINE_LINES,
-  stepTrackerText,
   subjectText,
   titleBlockSlots,
   type HudContext,
@@ -72,15 +71,11 @@ function barChecks(
   const slots = barSlots(theme, spec, context);
   return [
     ...(parts.topBar ? subjectCheck(spec, theme, context, slots.topic, 'top bar') : []),
-    ...(parts.stepTracker
-      ? chapters.flatMap((c) =>
-          lineCheck(theme, 'hud', stepTrackerText(c, chapters.length), slots.stepText, {
-            path: chapterPath(c, 'title'),
-            what: `Chapter "${c.chapterId}": the step tracker line`,
-          }),
-        )
-      : []),
-    ...(parts.chapterHeader ? chapterHeaderChecks(theme, chapters, slots.chapter) : []),
+    ...(parts.chapterHeader
+      ? chapterHeaderChecks(theme, chapters, slots.chapter)
+      : parts.stepTracker
+        ? stepNameChecks(theme, chapters, slots.chapter)
+        : []),
   ];
 }
 
@@ -102,12 +97,7 @@ function titleBlockChecks(
   const meta = parts.chapterHeader
     ? chapterHeaderChecks(theme, chapters, slots.metaText)
     : parts.stepTracker
-      ? chapters.flatMap((c) =>
-          lineCheck(theme, 'hud', c.title, slots.metaText, {
-            path: chapterPath(c, 'title'),
-            what: `Chapter "${c.chapterId}": the step name`,
-          }),
-        )
+      ? stepNameChecks(theme, chapters, slots.stepName)
       : [];
   const viewport =
     variant === 'header' && parts.chapterHeader
@@ -138,6 +128,16 @@ function subjectCheck(
     path: toJsonPath(['meta', 'title']),
     what: `The ${where}'s subject line`,
   });
+}
+
+/** The current step's name, on its own row (the chapter header is off). */
+function stepNameChecks(theme: Theme, chapters: readonly ChapterSpan[], room: number): SpecError[] {
+  return chapters.flatMap((c) =>
+    lineCheck(theme, 'hud', c.title, room, {
+      path: chapterPath(c, 'title'),
+      what: `Chapter "${c.chapterId}": the step name`,
+    }),
+  );
 }
 
 function chapterHeaderChecks(
@@ -187,7 +187,8 @@ function lineCheck(
   return [
     truncated(
       target,
-      `"${text}" is ${px(width)} wide, but its slot has ${px(room)}; it would be cut off.`,
+      `"${text}" is ${px(width)} wide, but its slot has ${describeRoom(theme, style, room)}; ` +
+        'it would be cut off.',
     ),
   ];
 }
@@ -202,9 +203,10 @@ function blockCheck(
 ): SpecError[] {
   const wrapped = wrapText(theme, style, text, width);
   if (wrapped.lines <= maxLines && !wrapped.overflows) return [];
+  const line = describeRoom(theme, style, width);
   const why = wrapped.overflows
-    ? `has a word wider than its ${px(width)} line`
-    : `needs ${wrapped.lines} lines of ${px(width)}, but the HUD shows ${maxLines}`;
+    ? `has a word wider than its ${line} line`
+    : `needs ${wrapped.lines} lines of ${line}, but the HUD shows ${maxLines}`;
   return [truncated(target, `"${text}" ${why}; it would be cut off.`)];
 }
 

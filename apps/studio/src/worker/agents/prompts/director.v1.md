@@ -34,6 +34,7 @@ DO NOT
 - Plan a beat that needs facts the notes don't have.
 - Use the same pattern on the same focus in two consecutive beats.
 - Spend more than one beat on only a headline or a stat card.
+- Make the same point in two beats: each beat must move the story forward.
 - Follow a reference video's beats one-to-one or reuse its examples, names or punchlines.
 
 Common mistakes to avoid

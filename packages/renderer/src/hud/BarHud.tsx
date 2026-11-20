@@ -6,7 +6,7 @@ import { Headline } from './Headline.tsx';
 import { HeroMetricPill, StoryClock } from './HeroMetric.tsx';
 import { hudLayout } from './hud-layout.ts';
 import { barSlots } from './hud-slots.ts';
-import { StepTracker } from './StepTracker.tsx';
+import { StepMarker, StepName } from './StepTracker.tsx';
 import { TopBar } from './TopBar.tsx';
 import { useHudModel, type HudProps } from './use-hud-model.ts';
 
@@ -38,13 +38,7 @@ export function BarHud(props: HudProps) {
       ) : null}
       <div style={{ ...rectCss(layout.metaRow), ...row, justifyContent: 'space-between' }}>
         {parts.stepTracker && chapter ? (
-          <StepTracker
-            theme={theme}
-            chapters={chapters}
-            current={chapter}
-            accent={accent}
-            room={slots.stepText}
-          />
+          <StepMarker theme={theme} chapters={chapters} current={chapter} accent={accent} label />
         ) : (
           <div />
         )}
@@ -55,6 +49,8 @@ export function BarHud(props: HudProps) {
       <div style={{ ...rectCss(layout.chapterRow), ...row, justifyContent: 'space-between' }}>
         {parts.chapterHeader && chapter ? (
           <ChapterHeader theme={theme} chapter={chapter} accent={accent} room={slots.chapter} />
+        ) : parts.stepTracker && chapter ? (
+          <StepName theme={theme} chapter={chapter} room={slots.chapter} />
         ) : (
           <div />
         )}

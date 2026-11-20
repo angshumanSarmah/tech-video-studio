@@ -10,7 +10,8 @@ import { lineHeightPx } from './hud-layout.ts';
  *           │ SHEET 2/3                                 │ REV A │ @handle│
  *           └───────────────────────────────────────────┴───────┴────────┘
  *           metaRow   — 2 · CHAPTER QUESTION?        LABEL ├── VALUE ──┤
- *           clockRow                                    FROM → TO · 1:52
+ *                     (or, with the chapter header off, the step dots ● ● ○)
+ *           clockRow  STEP NAME (header off)            FROM → TO · 1:52
  *
  *   header  ┌────────────────────────────────────────────────────────────┐
  *           │ VIDEO TITLE, UP TO                                         │
@@ -39,9 +40,9 @@ export type TitleBlockLayout = {
   block: Rect;
   /** The top cell's height, its bottom divider included (subject line or title). */
   topHeight: number;
-  /** Chapter header (left) and the hero metric dimension (right). */
+  /** Chapter header or step dots (left) and the hero metric dimension (right). */
   metaRow: Rect;
-  /** The story clock (right). */
+  /** The current step's name (left, when the chapter header is off) and the story clock (right). */
   clockRow: Rect;
 };
 

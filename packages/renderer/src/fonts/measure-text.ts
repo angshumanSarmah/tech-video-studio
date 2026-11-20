@@ -134,3 +134,34 @@ export function fitsLine(
 ): boolean {
   return textWidth(theme, style, text, options) <= room + FIT_EPSILON_PX;
 }
+
+/**
+ * Invented English text of everyday letters and spaces, whose average advance stands for a
+ * typical label when a room is stated in characters.
+ */
+const SAMPLE_TEXT = 'Shared store refills one bucket per key while the gateway waits';
+
+/**
+ * About how many characters of everyday text fit in `room` px in a text style (its case
+ * transform and letter spacing included): for messages and prompt hints, never for fit
+ * decisions (`fitsLine` measures the real text).
+ */
+export function roomInChars(
+  theme: Theme,
+  style: TextStyleName,
+  room: number,
+  options: MeasureOptions = {},
+): number {
+  const average = textWidth(theme, style, SAMPLE_TEXT, options) / SAMPLE_TEXT.length;
+  return Math.max(0, Math.floor(room / average));
+}
+
+/** "123 px (about 8 characters)": a room as `text_truncated` messages state it. */
+export function describeRoom(
+  theme: Theme,
+  style: TextStyleName,
+  room: number,
+  options: MeasureOptions = {},
+): string {
+  return `${Math.round(room)} px (about ${roomInChars(theme, style, room, options)} characters)`;
+}

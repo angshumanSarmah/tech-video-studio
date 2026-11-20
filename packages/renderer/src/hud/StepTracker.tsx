@@ -4,47 +4,45 @@ import { BoxMark } from '../emphasis/Mark.tsx';
 import { textCss, tintFor, type Theme } from '../theme/index.ts';
 import type { ChapterSpan } from './hud-state.ts';
 import { enterProgress, enterStyle } from './motion.ts';
-import { STEP_DOT } from './hud-slots.ts';
+import { STEP_DOT, stepLabel } from './hud-slots.ts';
 import { ellipsis } from './styles.ts';
 
-type Props = {
+type MarkerProps = {
   theme: Theme;
   chapters: readonly ChapterSpan[];
   current: ChapterSpan;
   accent: string;
-  /** Width the "STEP n/N · NAME" line is cut at (`barSlots().stepText`). */
-  room: number;
+  /** Draw "STEP n/N" before the dots (the bar style; the title block has its SHEET cell). */
+  label: boolean;
 };
 
 /**
- * "STEP 2/3 · NAME" plus one dot per chapter; the current dot fills as its chapter starts. The
- * filled dots carry the theme's emphasis (glow), or in mark themes the current step is marked.
+ * The step tracker's marker: one dot per step (the current dot fills as its chapter starts),
+ * after "STEP 2/3" in the bar style. The filled dots carry the theme's emphasis (glow), or in mark
+ * themes the step label is marked. The current step's name has its own row (`StepName`).
  */
-export function StepTracker({ theme, chapters, current, accent, room }: Props) {
+export function StepMarker({ theme, chapters, current, accent, label }: MarkerProps) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const progress = enterProgress(frame, current.from, fps);
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: theme.space.sm, flex: 'none' }}>
-      <div
-        key={current.chapterId}
-        style={{
-          ...textCss(theme, 'hud'),
-          ...ellipsis,
-          flex: 'none',
-          maxWidth: room,
-          ...enterStyle(progress, theme.space.sm),
-          color: theme.colours.ink.muted,
-        }}
-      >
-        <span style={{ ...markHostCss(theme), color: theme.colours.ink.primary }}>
-          <BoxMark theme={theme} levels={{ highlight: progress }} radius={4} />
-          {/* Same text as `stepLabel`, kept as separate nodes so the rendered glyphs do not change. */}
-          STEP {current.index + 1}/{chapters.length}
-        </span>
-        {' · '}
-        {current.title}
-      </div>
+      {label ? (
+        <div
+          key={current.chapterId}
+          style={{
+            ...textCss(theme, 'hud'),
+            flex: 'none',
+            ...enterStyle(progress, theme.space.sm),
+            color: theme.colours.ink.primary,
+          }}
+        >
+          <span style={markHostCss(theme)}>
+            <BoxMark theme={theme} levels={{ highlight: progress }} radius={4} />
+            {stepLabel(current.index, chapters.length)}
+          </span>
+        </div>
+      ) : null}
       <div style={{ display: 'flex', gap: theme.space.xs, flex: 'none' }}>
         {chapters.map((chapter) => (
           <Dot
@@ -57,6 +55,33 @@ export function StepTracker({ theme, chapters, current, accent, room }: Props) {
           />
         ))}
       </div>
+    </div>
+  );
+}
+
+/**
+ * The current step's name, alone on its row but for the story clock (`barSlots().chapter`,
+ * `titleBlockSlots().stepName`). Drawn only when the chapter header is off, so the chapter is
+ * never named twice.
+ */
+export function StepName(props: { theme: Theme; chapter: ChapterSpan; room: number }) {
+  const { theme, chapter, room } = props;
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const progress = enterProgress(frame, chapter.from, fps);
+  return (
+    <div
+      key={chapter.chapterId}
+      style={{
+        ...textCss(theme, 'hud'),
+        ...ellipsis,
+        flex: 'none',
+        maxWidth: room,
+        ...enterStyle(progress, theme.space.sm),
+        color: theme.colours.ink.muted,
+      }}
+    >
+      {chapter.title}
     </div>
   );
 }

@@ -472,7 +472,8 @@ seriesNumber })` makes the spec; with parts its `targetLengthSec` is the parts' 
   (glossary terms introduced), `beats[].source` (real-incident footnote, carried into the
   script), `rejectedAlternative.chosenBeatId`, `ending.specCard` (3 lines of at most 40 chars).
 - **Checks** (`directorPlanProblems`, shared, pure; `directorCheck` adds the spec and registry
-  checks and `hudTextWarnings` on a placeholder renderable spec, paths pointing into the plan):
+  checks and `hudTextWarnings` on a placeholder renderable spec, also when the spec has reference
+  errors (its shape is checked), so one repair covers both; paths pointing into the plan):
   research ids exist (`unknown_fact`); new terms match the glossary case-insensitively
   (`unknown_term`), at most 1 per beat and `NEW_TERM_LIMITS` distinct per level (3 / 5 / no
   limit); `runningExample` at beginner; each video or part plans the override or a length in the
@@ -691,11 +692,15 @@ its lease in card). The per-anchor sheets stay the record of timing.
   `resolveHud` resolves from `story.devices` (`question_chapters` → header only, else tracker
   only); an explicit true/false is a user override and wins. Every HUD animation starts at a frame
   resolved from a word or beat-edge anchor (`headline.at`, chapter and beat starts).
+  **Step tracker** (`StepTracker.tsx`): `StepMarker` draws a dot per step (plus `STEP n/N` in
+  the bar style) on the metric row; `StepName` draws only the current step's name on the row
+  below (bar: the chapter row; title-block: the clock row), which it shares with nothing but the
+  story clock. With the chapter header on, the header takes that row and the name is not drawn.
   The theme's `hud.style` picks how the same data is drawn (`Hud` dispatches; `useHudModel` is
   shared): `bar` (blueprint-dark, `BarHud`) or `title-block` (drafting-paper, `TitleBlockHud`):
   a ruled title block (`SERIES · TOPIC` over `SHEET n/N | REV A | handle`; SHEET is the step
-  tracker), the hero metric as a dimension (`DimensionMetric`), then the chapter header and
-  story clock. Its slots come from `titleBlockLayout(theme, variant)`. `TitleBlock` has a
+  tracker's label), the hero metric as a dimension (`DimensionMetric`) beside the chapter header
+  or the step dots, then the step name and story clock. Its slots come from `titleBlockLayout(theme, variant)`. `TitleBlock` has a
   `header` variant (the title in display type over the cells): with `meta.format: "card"`, `Hud`
   draws it in every theme, with the same chapter / metric and clock rows, in the card header
   region (`formatAreas`); the headline goes under the window. `CardViewport` draws the window as
@@ -704,17 +709,23 @@ its lease in card). The per-anchor sheets stay the record of timing.
   `rate-limiter-card` target.
   - **HUD text never truncates silently.** Every HUD text that can be cut (ellipsis or line
     clamp) has a pure slot width (`hud-slots.ts`: `barSlots`, `titleBlockSlots`): its row less
-    the measured width (`textWidth`) of what shares the row (pill, dimension, story clock at its
-    widest point value, step dots, handle). Components cap the text at that slot (`maxWidth`;
+    the measured width (`textWidth`) of what shares the row (dimension, story clock at its
+    widest point value, handle). Components cap the text at that slot (`maxWidth`;
     the text itself is `flex: none`, except the chapter header, which stays `flex: 1` so its box
     does not clip the last glyph's antialiasing), and `hudTextWarnings(spec, theme, { seriesLabel,
-channelHandle })` measures the same strings (`subjectText`, `chapterHeaderText`,
-    `stepTrackerText`) against the same slots: `text_truncated` at `$.meta.title` (top bar,
+channelHandle })` measures the same strings (`subjectText`, `chapterHeaderText`, the step
+    name) against the same slots: `text_truncated` at `$.meta.title` (top bar,
     strip subject, card header title in `TITLE_LINES`), `$.story.chapters[i].question|title`
-    (chapter header, step tracker or step name, card viewport label) and
+    (chapter header, step name, card viewport label) and
     `$.script[i].headline.text` (`HEADLINE_LINES`, greedy wrap at spaces: `wrapText`). The run
     context is required (the series label and handle are not in the spec); the Curator runs it
     next to `specLayoutWarnings`. A new HUD text that can be cut needs a slot and a check.
+    Every `text_truncated` message (HUD and layout) states its room in px and about how many
+    characters fit (`describeRoom` / `roomInChars` in `src/fonts/measure-text.ts`, from the
+    style's real advances over a sample phrase), so a model can act on it.
+    `CHAPTER_TITLE_MAX_CHARS` (shared; in the chapter title's schema description) is what the
+    narrowest chapter-title slot of the default theme holds (the card viewport label); a test
+    recomputes it.
 - **Subtitles** (`src/subtitles`): word-by-word karaoke captions in the format's
   `subtitleBand` (`formatAreas`; card has its own). `buildSubtitleCues(spec, theme)` (pure,
   exported through `catalog`) is the single source for the burned-in captions and the SRT.
