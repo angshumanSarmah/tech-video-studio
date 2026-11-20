@@ -88,7 +88,7 @@ describe('markdown extraction', () => {
 });
 
 describe('PDF extraction', () => {
-  it('reads every page of the text layer and the Info title', async () => {
+  it('reads every page of the text layer, titled by its largest text without an Info title', async () => {
     const doc = await extractDocument({
       bytes: fixture('hashing-notes.pdf'),
       format: 'pdf',
@@ -110,6 +110,38 @@ describe('PDF extraction', () => {
       url: URL_,
     });
     expect(normalizeText(doc.text)).toBe('');
+    expect(doc.title).toBeNull();
+  });
+
+  it('ignores rotated text, such as an ID stamp up the margin', async () => {
+    const doc = await extractDocument({
+      bytes: buildPdf({
+        pages: [
+          [
+            { text: 'example-archive:2611.00042v3 [cs.DB]', size: 30, rotated: true },
+            { text: 'Ring Rebalancing Notes', size: 18 },
+            'Body text.',
+          ],
+        ],
+      }),
+      format: 'pdf',
+      contentType: null,
+      url: URL_,
+    });
+    expect(doc.title).toBe('Ring Rebalancing Notes');
+  });
+
+  it('prefers the Info title over the largest text', async () => {
+    const doc = await extractDocument({
+      bytes: buildPdf({
+        title: 'Ring Notes (Info)',
+        pages: [[{ text: 'A Large Heading', size: 24 }, 'Body text.']],
+      }),
+      format: 'pdf',
+      contentType: null,
+      url: URL_,
+    });
+    expect(doc.title).toBe('Ring Notes (Info)');
   });
 
   it('fails as unreadable when pdf.js cannot open the file', async () => {

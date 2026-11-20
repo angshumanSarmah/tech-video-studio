@@ -207,7 +207,9 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   `content-visibility: hidden` from inline styles and the page's own `<style>` rules), so hidden
   text never reaches the Researcher; then Readability and `domToText` (`#` headings, `- ` items,
   `a | b` rows, fenced `pre`). Markdown is kept minus HTML comments (`markdown.ts`). PDF: the text
-  layer via `unpdf` (`pdf.ts`). Every format then goes through `normalizeText` (NFC, invisible
+  layer via `unpdf` (`pdf.ts`); its title is the Info title, else the first run of the largest
+  upright text on page 1 (`pdf-title.ts`, ≤ 120 chars; rotated margin stamps are skipped), else
+  the URL's file name (`urlFallbackTitle`) or the upload's name. Every format then goes through `normalizeText` (NFC, invisible
   and control characters removed, whitespace canonical); under `MIN_TEXT_CHARS` (200) is `empty`.
 - **Chunks** (`chunk.ts`, pure): whole paragraphs packed to about 1,200 characters (max 2,000;
   longer paragraphs split at sentence ends), a `#` heading never ends a chunk, a short tail joins

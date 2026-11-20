@@ -81,13 +81,32 @@ async function loadUrl(raw: string, signal: AbortSignal, deps?: FetchDeps): Prom
     name: posix.basename(url.pathname),
   };
   const body = await fetchSource(request, signal, deps);
+  const format = detectFormat(body.bytes, body.contentType, request.name);
   return {
     bytes: body.bytes,
     contentType: body.contentType,
-    format: detectFormat(body.bytes, body.contentType, request.name),
+    format,
     url: body.url,
-    fallbackTitle: `${url.hostname}${url.pathname === '/' ? '' : url.pathname}`,
+    fallbackTitle: urlFallbackTitle(url, format),
   };
+}
+
+/**
+ * The title when the document has none: a PDF's file name from the URL (only a `.pdf` extension
+ * is dropped, so `/pdf/1706.03762` keeps its dots), else host and path.
+ */
+export function urlFallbackTitle(url: URL, format: DocumentFormat): string {
+  const fileName = safeDecode(posix.basename(url.pathname));
+  if (format === 'pdf' && fileName !== '') return fileName.replace(/\.pdf$/i, '');
+  return `${url.hostname}${url.pathname === '/' ? '' : url.pathname}`;
+}
+
+function safeDecode(segment: string): string {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return segment;
+  }
 }
 
 function loadUpload(dataDir: string, filePath: string): Loaded {

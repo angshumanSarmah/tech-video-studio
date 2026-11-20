@@ -1,16 +1,27 @@
 /**
- * Builds a minimal, valid PDF (Helvetica text, one content stream per page, an Info title), so
- * the saved fixture can be regenerated and tests can make edge cases (no text layer).
+ * Builds a minimal, valid PDF (Helvetica text in any size, one content stream per page, an
+ * optional Info title), so the saved fixture can be regenerated and tests can make edge cases
+ * (no text layer, no title).
  * Regenerate the fixture with: `pnpm exec tsx src/worker/ingest/fixtures/pdf-builder.ts`.
  */
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
+/**
+ * A line of text: plain (body size, 11 pt) or with its own font size. A `rotated` line is set
+ * apart, running up the left margin (like a repository's ID stamp). ASCII only.
+ */
+export type PdfLine =
+  string | { readonly text: string; readonly size: number; readonly rotated?: boolean };
+
 export interface PdfSpec {
+  /** The Info dictionary's title; omitted, the PDF has none. */
   readonly title?: string;
-  /** Lines per page; an empty string is a blank line. ASCII only. */
-  readonly pages: readonly (readonly string[])[];
+  /** Lines per page; an empty string is a blank line. */
+  readonly pages: readonly (readonly PdfLine[])[];
 }
+
+const BODY_SIZE = 11;
 
 export function buildPdf({ title, pages }: PdfSpec): Uint8Array {
   const pageIds = pages.map((_, i) => 5 + i * 2);
@@ -42,22 +53,35 @@ export function buildPdf({ title, pages }: PdfSpec): Uint8Array {
   return new TextEncoder().encode(body);
 }
 
-function contentStream(lines: readonly string[]): string {
-  if (lines.length === 0) return '';
-  const ops = lines.map((line) => (line === '' ? 'T*' : `(${escape(line)}) Tj T*`));
-  return `BT /F1 11 Tf 15 TL 72 740 Td ${ops.join(' ')} ET`;
+function contentStream(lines: readonly PdfLine[]): string {
+  const sized = lines.map((line) =>
+    typeof line === 'string' ? { text: line, size: BODY_SIZE, rotated: false } : line,
+  );
+  const upright = sized.filter((line) => !line.rotated);
+  const ops = upright.map(({ text, size }) => {
+    const leading = Math.round(size * 1.4);
+    return `/F1 ${size} Tf ${leading} TL ${text === '' ? '' : `(${escape(text)}) Tj `}T*`;
+  });
+  const stamps = sized
+    .filter((line) => line.rotated)
+    .map(({ text, size }) => `BT /F1 ${size} Tf 0 1 -1 0 36 200 Tm (${escape(text)}) Tj ET`);
+  const body = upright.length > 0 ? [`BT 72 740 Td ${ops.join(' ')} ET`] : [];
+  return [...body, ...stamps].join('\n');
 }
 
 function escape(text: string): string {
   return text.replace(/[\\()]/g, (c) => `\\${c}`);
 }
 
-/** The saved fixture: an invented two-page note on consistent hashing. */
+/**
+ * The saved fixture: an invented two-page note on consistent hashing. It has no Info title, so
+ * its title comes from its largest text: a heading set over two lines.
+ */
 export const FIXTURE_PDF: PdfSpec = {
-  title: 'Consistent Hashing Field Notes',
   pages: [
     [
-      'Consistent Hashing Field Notes',
+      { text: 'Consistent Hashing', size: 22 },
+      { text: 'Field Notes', size: 22 },
       '',
       'A hash ring maps both keys and servers onto the same circle of 2^32 positions.',
       'Each key belongs to the first server found clockwise from the key position.',
@@ -69,7 +93,7 @@ export const FIXTURE_PDF: PdfSpec = {
       'plus or minus 8 percent of the mean across 12 servers.',
     ],
     [
-      'Failure handling',
+      { text: 'Failure handling', size: 16 },
       '',
       'When a server leaves, its keys fall to the next server clockwise.',
       'Replication places each key on the next 3 distinct physical servers.',

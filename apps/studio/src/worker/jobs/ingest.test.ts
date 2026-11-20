@@ -19,6 +19,7 @@ import { createTopic } from '#core/db/repositories/topics.ts';
 import { series } from '#core/db/schema.ts';
 import { createTestDb, type TestDb } from '#core/db/testing.ts';
 import { startRun } from '#core/services/runs.ts';
+import { buildPdf } from '../ingest/fixtures/pdf-builder.ts';
 import { body, fakeWeb, status, type FakeWeb } from '../ingest/testing.ts';
 import { runNextJob } from '../runner.ts';
 import { ingestJobHandler } from './ingest.ts';
@@ -188,5 +189,14 @@ describe('ingest job', () => {
     const source = getSource(t.db, sourceIds[0]!)!;
     expect(source.errorCode).toBe('empty');
     expect(source.error).toMatch(/probably built by JavaScript/);
+  });
+
+  it('titles a PDF with no title and no text on page 1 by its URL file name', async () => {
+    const url = 'https://papers.example.com/pdf/ring-notes.pdf';
+    const sentence = 'A hash ring moves only the keys next to a server that joins or leaves.';
+    const pdf = buildPdf({ pages: [[], Array.from({ length: 6 }, () => sentence)] });
+    const { sourceIds } = startRunWith([{ url }]);
+    await runIngest(fakeWeb({ [url]: body(pdf, 'application/pdf') }));
+    expect(getSource(t.db, sourceIds[0]!)!.title).toBe('ring-notes');
   });
 });
