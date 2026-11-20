@@ -40,6 +40,7 @@ apps/studio/            one Node app, three entrypoints
   src/core/             Node-only code shared by server + worker (config, data dirs)
   src/web/              Vue 3 + Vite SPA (Vue Router, Pinia, Tailwind v4; see "Web app")
   drizzle/              generated SQL migrations (drizzle-kit)
+  tts-python/           Kokoro-82M env (uv, pinned) and its JSON-lines server (see "TTS")
 packages/shared/        Zod schemas, catalogues, inferred types (consumed as TS source)
 packages/renderer/      Remotion compositions (React), the theme system and the asset library (see "Renderer")
 data/                   runtime data: SQLite DB, runs/, topics/, assets/, exports/ (gitignored)
@@ -53,6 +54,7 @@ globally.
 Commands (from the repo root): `pnpm dev` (server, worker and Vite via `concurrently`),
 `pnpm build`, `pnpm typecheck`, `pnpm lint`, `pnpm format`, `pnpm test`. The visual regression
 test is separate: `pnpm --filter @explainer-studio/studio test:visual` (see "Golden fixtures").
+TTS: `pnpm tts:setup` (needs `uv`; installs nothing global) and `pnpm tts:doctor` (see "TTS").
 
 Dev ports: the UI is on http://localhost:4310 (`WEB_PORT`, Vite, `strictPort`) and the API on 4311
 (`PORT`, Hono). Vite proxies `/api` to `PORT`; its default comes from `EnvSchema`.
@@ -206,6 +208,45 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   rate-limiter fixture (cold draft, one-beat edit, unchanged draft, final, stills) with a
   synthetic narration track, prints time and peak RSS (process tree, Chrome included) per phase,
   and checks streams, frame counts, `+faststart` and that the output's silences match the source.
+
+### TTS (`src/worker/tts`, Python in `tts-python/`)
+
+- **`TtsProvider.synthesize(text, voice, speed, { signal })`** returns `{ wavPath, words,
+durationSec, cached }`, one call per beat. `words` has one entry per `narrationWords(text)` word
+  (that normalized text), in seconds from the start of `wavPath` (24 kHz mono 16-bit PCM, owned
+  by the cache: copy it, never edit it). Voice and speed come from `resolveTtsOptions(run
+settings, settings.tts)`: speed is the run's `tts.speed`, else `settings.tts.speed` (1.0).
+- **Kokoro-82M runs in Python** (`tts-python/kokoro_server.py`), started lazily by the worker and
+  reused: JSON lines over stdin/stdout (`ready`/`fatal` handshake, then `synthesize`). The real
+  stdout is reserved for the protocol. Env pinned by `uv.lock` (Python 3.12 in `.uv-python/`),
+  model files by `models.lock.json` (revision + sha256); runtime loads only `models/`, offline,
+  on CPU. Only English voices (`a*`, `b*`): Kokoro times tokens only for those.
+- **Supervisor** (`kokoro-client.ts`, `tts-process.ts`): calls are serialised; startup and
+  per-request timeouts; errors carry the server's stderr tail; a process that dies, hangs or
+  breaks the protocol is restarted once and the call retried, a second failure is thrown. An
+  error the server reports for a request is not retried; an abort kills the process.
+- **Word timings** come from Kokoro's own per-token `start_ts`/`end_ts` (no forced aligner).
+  `alignWords` places each token in the spoken text and spans each word over its tokens. **A
+  word with no spoken token fails the synthesis** (`word not spoken: X`); never interpolate
+  (Kokoro drops words it cannot read). Kokoro gives a following pause to the word before it, so
+  `trimToSpeech` pulls word edges in to audible speech (WAV RMS envelope) where a silence of
+  ≥ 60 ms sits inside the span. `wordTimingProblems` checks coverage, order and bounds.
+- **Pronunciations** (`<DATA_DIR>/config/pronunciations.json`, `PronunciationsSchema`; missing
+  file = `DEFAULT_PRONUNCIATIONS`) respell one whitespace token at a time before synthesis
+  (edge punctuation and `'s` kept; a key with capitals matches only that case). The plan keeps
+  each original word's range in the spoken text, so timings map back to the original words.
+- **Cache** (`<DATA_DIR>/tts/cache/<key>.wav|json`, shared by runs): the key hashes text, spoken
+  text, voice (+ its file hash), speed, `TTS_PIPELINE_VERSION` and the model identity read from
+  `uv.lock` and `models.lock.json`, so a hit never starts Python; the running server must report
+  the same identity. Only checked results are cached. Bump `TTS_PIPELINE_VERSION` when mapping,
+  trimming or the server output changes.
+- `pnpm tts:doctor` checks uv, Python, `uv sync --check`, model checksums, the bundled espeak-ng
+  (it reads words missing from misaki's dictionary; the server refuses to start without it), a
+  test synthesis and the real-time factor. `… tts:fixture` synthesises the rate-limiter fixture
+  per beat into `<DATA_DIR>/tts/fixture/rate-limiter/` (WAV, words, Audacity label track for
+  spot checks) and one sentence per sample voice into `<DATA_DIR>/tts/voice-samples/`.
+- Tests never need Python: `testing/fake-tts-server.ts` speaks the same protocol (Node runs it
+  with type stripping) and can crash, hang, fail at startup or drop a word.
 
 API conventions: routes under `/api`, inputs validated with the `validate()` helper against schemas
 from `packages/shared/src/api`, list responses wrapped as `{ items }`, and every error is

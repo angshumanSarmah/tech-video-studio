@@ -19,7 +19,8 @@ pnpm tts:doctor   # env, model checksums, espeak-ng fallback, test synthesis, re
   0.9.4's `KPipeline` sets `start_ts` / `end_ts` on every misaki token from the duration predictor,
   the same durations that size the audio, so no forced aligner is needed. Times are relative to
   each chunk Kokoro splits the text into; the server offsets them onto the whole WAV. Non-English
-  voices have no timestamps and are refused.
+  voices have no timestamps and are refused. The Node side pulls word edges in to audible speech where
+  Kokoro gives a pause to the word before it (`speech-trim.ts`).
 - **espeak-ng** reads words missing from misaki's dictionary. It is the `libespeak-ng` bundled by
   the pinned `espeakng-loader` wheel (in `.venv`), not a system install. Kokoro silently drops
   such words when espeak-ng fails to load, so the server refuses to start without it, and the

@@ -67,9 +67,21 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       then the worker only moves a run to `failed` when one of its jobs fails (unless the handler
       sets `failsRun: false`); `queued → running`, gate pauses and `done` belong to the
       orchestrator, as does resuming a run from its last finished `run_steps` row.
-- [ ] **P1B.1 — Honour `ctx.signal` in the TTS handler.** Kill the Kokoro subprocess on abort
-      (render jobs already pass it to Remotion and ffmpeg); otherwise a dev restart becomes a
-      hard kill and uses up an attempt.
+- [ ] **P1B.2 / P1C.9 — TTS job handler.** P1B.1 ships the provider (`createKokoroTts`) and
+      scripts, no job. The timing step's handler synthesises each beat with
+      `resolveTtsOptions(run.settings, config.tts)` and must pass `ctx.signal` (the provider
+      kills the Kokoro process on abort, so a dev restart does not use up an attempt). Create the
+      provider once per worker process and `close()` it on shutdown.
+- [ ] **P1B.1 — Pronunciation editing.** `readPronunciations` only reads. Settings (GET/PUT
+      `/api/pronunciations`) needs a `savePronunciations` (atomic, validated) in core. Keys are
+      single tokens; multi-word keys ("Kafka Streams") and misaki's inline IPA override
+      (`[Redis](/ɹˈɛdɪs/)`, exact where a respelling is not) are not supported yet.
+- [ ] **P1B.1 — Symbols and currency.** A `$` or `₹` token has no phonemes of its own (misaki
+      folds `$10` into "ten dollars"; check how `₹500` is read). Dictionary keys must start and
+      end with a letter or digit, so symbols cannot be respelled yet; the Scriptwriter should
+      write amounts as words where it matters.
+- [ ] **P1B.1 — TTS cache growth.** `<DATA_DIR>/tts/cache` is never pruned (~0.5 MB per beat).
+      Add a cleanup (entries no spec version references) if it grows.
 - [ ] **P1B.3 / P1C.9 — Exports row.** `render_final` writes `exports/<id>/<slug>.mp4` only. Write
       the SRT next to it (P1B.3), then insert the `exports` row (`srt_path` is required; duration
       and cost from the run). The row makes the run undeletable, so insert it only for a
@@ -194,14 +206,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       overlay, and every container today (`inset_panel`) is an overlay, so containment cannot
       cycle. If a non-overlay container is ever added, add a cycle check (in `nestContained`
       and as a validation error): A contains B contains A would drop both from the scene.
-- [ ] **P1B.1 / P1B.2 — Word contract.** Word anchors and `timing.beats[].words` count words with
-      `narrationWords()` from `packages/shared`. Map TTS tokens back onto that list so the
-      timed word count equals it (enforced by `validateVideoSpec`). Cases the mapping must
-      handle, where one narration word is several TTS tokens (pinned in `narration.test.ts`):
-  - hyphenated words: `write-through` is one word;
-  - numbers with separators or decimals: `1,00,000` and `19.4` are one word each, though TTS
-    reads them as several;
-  - em dashes without spaces: `fast—cheap` is one word, `fast — cheap` is two.
 - [ ] **P1C.6 — Dashes in narration.** The Scriptwriter puts spaces around dashes (`fast — cheap`)
       so each side is its own word and can be an anchor. Add it to the Scriptwriter's DO rules
       and have the normalizer or a deterministic check flag unspaced dashes.

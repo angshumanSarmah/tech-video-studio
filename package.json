@@ -12,7 +12,9 @@
     "typecheck": "pnpm -r --if-present typecheck",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
-    "test": "pnpm -r --if-present test"
+    "test": "pnpm -r --if-present test",
+    "tts:setup": "pnpm --filter @explainer-studio/studio tts:setup",
+    "tts:doctor": "pnpm --filter @explainer-studio/studio tts:doctor"
   },
   "devDependencies": {
     "@eslint/js": "catalog:",
