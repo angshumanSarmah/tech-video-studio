@@ -347,6 +347,11 @@ describe('validateVideoSpec: cross-references', () => {
       { path: '$.timing.beats[1].startSec', code: 'timing_overlap' },
     ],
     [
+      'a track that ends before its last beat',
+      (spec) => (spec.timing.endSec = 9.5),
+      { path: '$.timing.endSec', code: 'timing_end_before_beats' },
+    ],
+    [
       'a timed word outside its beat',
       (spec) => (at(at(spec.timing.beats, 0).words, 9).endSec = 4.5),
       { path: '$.timing.beats[0].words[9]', code: 'timing_word_outside_beat' },

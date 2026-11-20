@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { END_TAIL_SEC } from '../spec/effective-timing.ts';
 import { SettingsSchema } from './settings.ts';
 
 describe('SettingsSchema defaults', () => {
@@ -17,6 +18,18 @@ describe('SettingsSchema defaults', () => {
       },
     });
     expect(settings.llm.models.director).toBe('deepseek-v4-pro');
+  });
+
+  it('defaults the timing pauses to none, with the usual end tail', () => {
+    expect(SettingsSchema.parse({}).timing).toEqual({
+      beatGapSec: 0,
+      landingSec: 0,
+      endTailSec: END_TAIL_SEC,
+    });
+  });
+
+  it.each([-0.1, 3.5])('rejects a pause of %s s', (beatGapSec) => {
+    expect(SettingsSchema.safeParse({ timing: { beatGapSec } }).success).toBe(false);
   });
 
   it('fills defaults around a partial override', () => {

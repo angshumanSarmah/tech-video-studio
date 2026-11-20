@@ -6,10 +6,16 @@ import type { BeatTiming, TimedWord } from './timing.ts';
 /** Speaking rate used to estimate timing before TTS exists. */
 export const ESTIMATED_WORDS_PER_SEC = 2.6;
 
-/** Silence between estimated beats; matches the timing assembly's default gap (P1B.2). */
+/**
+ * Silence between estimated beats (previews before TTS only). Real timing takes its gap from
+ * `settings.timing.beatGapSec`; this estimate is kept so preview fixtures do not shift.
+ */
 export const ESTIMATED_BEAT_GAP_SEC = 0.15;
 
-/** Held after the last beat so the video does not cut on the final word. */
+/**
+ * Held after the last beat so the video does not cut on the final word: the default of
+ * `settings.timing.endTailSec`, and the tail of a timing layer without `endSec` (estimates).
+ */
 export const END_TAIL_SEC = 0.5;
 
 /** Timing the renderer draws from: the real timing layer, or an estimate when TTS has not run. */
@@ -52,5 +58,5 @@ export function effectiveTiming(spec: RenderableVideoSpec): EffectiveTiming {
   const estimated = !spec.timing;
   const beats = spec.timing?.beats ?? estimateBeatTimings(spec.script);
   const lastEnd = beats.at(-1)?.endSec ?? 0;
-  return { estimated, beats, endSec: lastEnd + END_TAIL_SEC };
+  return { estimated, beats, endSec: spec.timing?.endSec ?? lastEnd + END_TAIL_SEC };
 }

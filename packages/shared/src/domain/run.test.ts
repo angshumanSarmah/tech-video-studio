@@ -35,6 +35,13 @@ describe('RunSettingsSchema', () => {
     expect(RunSettingsSchema.parse({ tts: {} }).tts).toEqual({});
   });
 
+  it('keeps per-run timing pause overrides without filling the rest', () => {
+    expect(RunSettingsSchema.parse({ timing: { landingSec: 0.6 } }).timing).toEqual({
+      landingSec: 0.6,
+    });
+    expect(RunSettingsSchema.safeParse({ timing: { beatGapSec: 4 } }).success).toBe(false);
+  });
+
   it.each([0.4, 2.1])('rejects TTS speed %s', (speed) => {
     expect(RunSettingsSchema.safeParse({ tts: { speed } }).success).toBe(false);
   });

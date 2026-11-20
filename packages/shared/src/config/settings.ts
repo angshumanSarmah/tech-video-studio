@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { END_TAIL_SEC } from '../spec/effective-timing.ts';
 import { LlmSettingsSchema } from './llm.ts';
 
 /** Kokoro's speed multiplier (1 = the voice's natural pace). */
@@ -13,6 +14,28 @@ export const TtsSettingsSchema = z.strictObject({
 });
 
 export type TtsSettings = z.infer<typeof TtsSettingsSchema>;
+
+/** A pause in seconds on the narration track (the audio gets matching silence). */
+export const PauseSecSchema = z.number().min(0).max(3);
+
+/**
+ * Pauses the timing step puts on the narration track, as silence the visuals hold through. Every
+ * value flows into the timing layer (`timing.pauses`, beat starts and `timing.endSec`); a run's
+ * `settings.timing` overrides any of them.
+ */
+export const TimingSettingsSchema = z.strictObject({
+  /** Silence between one beat's narration (or landing hold) and the next beat. */
+  beatGapSec: PauseSecSchema.default(0),
+  /**
+   * Hold after a beat's last event has settled (played out, draws included) before the next beat
+   * starts: the finished board stays on screen. 0 = off. Applies once the beat has scenes.
+   */
+  landingSec: PauseSecSchema.default(0),
+  /** Held after the last beat so the video does not cut on the final word. */
+  endTailSec: PauseSecSchema.default(END_TAIL_SEC),
+});
+
+export type TimingSettings = z.infer<typeof TimingSettingsSchema>;
 
 const EvenDimensionSchema = z
   .number()
@@ -52,6 +75,7 @@ export type RenderSettings = z.infer<typeof RenderSettingsSchema>;
 export const SettingsSchema = z.strictObject({
   llm: LlmSettingsSchema.prefault({}),
   tts: TtsSettingsSchema.prefault({}),
+  timing: TimingSettingsSchema.prefault({}),
   render: RenderSettingsSchema.prefault({}),
 });
 

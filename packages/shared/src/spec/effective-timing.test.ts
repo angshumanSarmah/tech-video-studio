@@ -54,6 +54,12 @@ describe('effectiveTiming', () => {
     expect(timing.endSec).toBe(10 + END_TAIL_SEC);
   });
 
+  it("ends at the timing layer's endSec when it has one", () => {
+    const spec = renderable(true);
+    const timing = effectiveTiming({ ...spec, timing: { ...spec.timing!, endSec: 12.25 } });
+    expect(timing.endSec).toBe(12.25);
+  });
+
   it('estimates when the timing layer is missing', () => {
     const timing = effectiveTiming(renderable(false));
     expect(timing.estimated).toBe(true);

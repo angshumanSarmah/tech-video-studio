@@ -10,6 +10,7 @@ export function checkTiming(spec: VideoSpec): SpecIssue[] {
   return [
     ...checkBeatCoverage(spec, timing.beats, ['timing', 'beats']),
     ...checkBeatSpans(timing.beats),
+    ...checkTrackEnd(timing),
     ...timing.beats.flatMap((beat, i) => checkWords(spec, beat, i)),
     ...checkEventRefs(spec, timing),
   ];
@@ -28,6 +29,19 @@ function checkBeatSpans(beats: readonly BeatTiming[]): SpecIssue[] {
       },
     ];
   });
+}
+
+/** The track does not end before its last beat's narration. */
+function checkTrackEnd(timing: TimingLayer): SpecIssue[] {
+  const last = timing.beats.at(-1);
+  if (timing.endSec === undefined || !last || timing.endSec >= last.endSec) return [];
+  return [
+    {
+      path: ['timing', 'endSec'],
+      code: 'timing_end_before_beats',
+      message: `The track ends at ${timing.endSec}s, before beat "${last.beatId}" ends (${last.endSec}s).`,
+    },
+  ];
 }
 
 /** Words match the narration's word count and stay inside their beat, in order. */
