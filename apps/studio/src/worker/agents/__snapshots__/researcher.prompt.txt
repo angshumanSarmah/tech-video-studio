@@ -257,7 +257,7 @@ Common mistakes to avoid
       }
     },
     "numbers": {
-      "maxItems": 40,
+      "maxItems": 30,
       "type": "array",
       "items": {
         "type": "object",
@@ -424,7 +424,7 @@ Common mistakes to avoid
       }
     },
     "failureModes": {
-      "maxItems": 12,
+      "maxItems": 10,
       "type": "array",
       "items": {
         "type": "object",
@@ -513,7 +513,7 @@ Common mistakes to avoid
       }
     },
     "openQuestions": {
-      "maxItems": 12,
+      "maxItems": 10,
       "type": "array",
       "items": {
         "type": "object",

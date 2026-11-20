@@ -141,12 +141,12 @@ export const ResearchNotesSchema = z.strictObject({
   analogies: z.array(ResearchAnalogySchema).min(1).max(2),
   glossary: z.array(ResearchGlossaryEntrySchema).min(1).max(12),
   facts: z.array(ResearchFactSchema).min(1).max(40),
-  numbers: z.array(ResearchNumberSchema).max(40),
+  numbers: z.array(ResearchNumberSchema).max(30),
   tradeOffs: z.array(ResearchTradeOffSchema).max(12),
   rejectedAlternatives: z.array(ResearchRejectedAlternativeSchema).max(12),
   misconceptions: z.array(ResearchMisconceptionSchema).max(12),
-  failureModes: z.array(ResearchFailureModeSchema).max(12),
+  failureModes: z.array(ResearchFailureModeSchema).max(10),
   hooks: z.array(ResearchHookSchema).min(2).max(4),
-  openQuestions: z.array(ResearchOpenQuestionSchema).max(12),
+  openQuestions: z.array(ResearchOpenQuestionSchema).max(10),
 });
 export type ResearchNotes = z.infer<typeof ResearchNotesSchema>;
