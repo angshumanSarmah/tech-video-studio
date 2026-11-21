@@ -3,6 +3,7 @@ import { DirectorPlanSchema, type DirectorPlan } from '../director/plan.ts';
 import { ResearchNotesSchema, type ResearchNotes } from '../research/notes.ts';
 import { scriptProblems, sentences, wordBudgets } from './checks.ts';
 import type { ScriptCheckContext } from './context.ts';
+import { headlineWords } from './screen-checks.ts';
 import { ScriptwriterOutputSchema, type ScriptwriterOutput } from './output.ts';
 
 const C = ['source-1#chunk-1'];
@@ -280,13 +281,47 @@ describe('scriptProblems', () => {
     expect(codes(out)).toEqual([]);
   });
 
-  it('flags a headline that shares more than half its words with an earlier one', () => {
-    const out = output();
-    out.script[0]!.headline = { text: 'Bursts fill the queue', semantic: 'problem' };
-    out.script[2]!.headline = { text: 'A flood of bursts fills every queue', semantic: 'problem' };
-    expect(codes(out)).toEqual(['headline_repeated $.script[2].headline.text']);
-    out.script[2]!.headline = { text: 'Floods need the network edge', semantic: 'problem' };
-    expect(codes(out)).toEqual([]);
+  describe('headline_repeated', () => {
+    /** Codes when b1 and b3 carry these headlines (b2 keeps its concept headline). */
+    const repeated = (first: string, third: string) => {
+      const out = output();
+      out.script[0]!.headline = { text: first, semantic: 'problem' };
+      out.script[2]!.headline = { text: third, semantic: 'problem' };
+      return codes(out);
+    };
+    const FIRES = ['headline_repeated $.script[2].headline.text'];
+
+    it('flags longer headlines sharing more than half the shorter one’s content words', () => {
+      expect(
+        repeated('Bursts fill the shared queue fast', 'A flood of bursts fills every shared queue'),
+      ).toEqual(FIRES);
+      expect(repeated('Bursts fill the shared queue fast', 'Floods need the network edge')).toEqual(
+        [],
+      );
+    });
+
+    it('flags two headlines that differ only in word order', () => {
+      expect(repeated('Fail open multiplies the limit', 'The limit multiplies, fail open')).toEqual(
+        FIRES,
+      );
+      expect(repeated('Shared store wins', 'Wins: shared store')).toEqual(FIRES);
+    });
+
+    it('flags short headlines (3 or fewer content words) only when the words are the same', () => {
+      expect(repeated("'the' = one token", 'token = one text piece, one id')).toEqual([]);
+      expect(repeated('Shared store wins', 'Shared store fails')).toEqual([]);
+    });
+
+    it('ignores stopwords, number words, digits and quoted example words', () => {
+      expect([...headlineWords("'the' = one token")]).toEqual(['token']);
+      expect([...headlineWords('Two hundred tokens in 2.5 ms')]).toEqual(['token', 'ms']);
+      expect(repeated('500 requests wait', 'Two million requests wait')).toEqual(FIRES);
+      expect([...headlineWords("The model's own tokenizer")]).toEqual([
+        'model',
+        'own',
+        'tokenizer',
+      ]);
+    });
   });
 
   it('requires the main term in the first two beats at the beginner level', () => {

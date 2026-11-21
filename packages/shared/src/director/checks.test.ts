@@ -302,6 +302,15 @@ describe('directorPlanProblems', () => {
         p.story.beats[0]!.newTerms = ['QUEUE']; // a repeat counts once
       };
       expect(problemsAfter(four)).toEqual([['$.story.beats', 'too_many_new_terms']]);
+      const p = plan();
+      four(p);
+      const message = directorPlanProblems(p, ctx()).find((x) => x.code === 'too_many_new_terms');
+      expect(message?.message).toBe(
+        'The beats introduce 4 distinct terms (hook: "QUEUE"; break: "queue"; queue: ' +
+          '"Backlog"; shed: "Shedding"; end: "Drain rate"); at the beginner level the ' +
+          'video introduces at most 3: keep the 3 the story depends on; describe the others in ' +
+          'plain words without naming them (e.g. "the limiter let everything through").',
+      );
       expect(
         problemsAfter(four, ctx({ video: video({ explanationLevel: 'intermediate' }) })),
       ).toEqual([]);

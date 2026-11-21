@@ -361,12 +361,18 @@ function newTermProblems(plan: DirectorPlan, ctx: DirectorCheckContext): Directo
   const level = ctx.video.explanationLevel;
   const limit = NEW_TERM_LIMITS[level];
   if (introduced.size > limit) {
+    const byBeat = plan.story.beats
+      .filter((b) => b.newTerms.length > 0)
+      .map((b) => `${b.id}: ${b.newTerms.map((t) => `"${t}"`).join(', ')}`)
+      .join('; ');
     problems.push(
       problem(
         ['story', 'beats'],
         'too_many_new_terms',
-        `The beats introduce ${introduced.size} distinct terms (${[...introduced].join(', ')}); ` +
-          `at the ${level} level the video introduces at most ${limit}.`,
+        `The beats introduce ${introduced.size} distinct terms (${byBeat}); at the ${level} ` +
+          `level the video introduces at most ${limit}: keep the ${limit} the story depends on; ` +
+          'describe the others in plain words without naming them (e.g. "the limiter let ' +
+          'everything through").',
       ),
     );
   }

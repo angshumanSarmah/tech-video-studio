@@ -104,6 +104,14 @@ const NUMBER_WORDS = new Set([
   'dozen',
 ]);
 
+/** Whether a word is a number word ("one", "twenty-four", "thousand"), everyday ones included. */
+export function isNumberWord(word: string): boolean {
+  return word
+    .toLowerCase()
+    .split('-')
+    .some((part) => NUMBER_WORDS.has(part));
+}
+
 /** Number words texts without a source may still use, alone ("two tills", not "twenty-two"). */
 export const EVERYDAY_NUMBER_WORDS: ReadonlySet<string> = new Set(['one', 'two', 'three']);
 

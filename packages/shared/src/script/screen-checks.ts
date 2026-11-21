@@ -4,6 +4,7 @@ import type { ResearchNotes } from '../research/notes.ts';
 import type { BeatScript } from '../spec/script.ts';
 import { planVideos, problem, type ScriptProblem, type ScriptToCheck } from './context.ts';
 import { MAX_STAT_CARDS_PER_BEAT, MAX_STAT_CARDS_PER_VIDEO } from './limits.ts';
+import { isNumberWord } from '../research/numbers.ts';
 import { numberKey, numberMentions } from './number-mentions.ts';
 import { mentionsTerm } from './terms.ts';
 
@@ -175,27 +176,54 @@ const STOPWORDS = new Set(
   ),
 );
 
-/** A headline's content words, lowercased and singular. */
-function headlineWords(text: string): Set<string> {
-  const words = text.toLowerCase().match(/[\p{L}\d]+/gu) ?? [];
+/** Text in quotes is an example word ("'the' = one token"), not a claim the headline makes. */
+const QUOTED = /(^|[\s(=:,;])['‘"“][^'’"”]+['’"”](?=$|[\s).,:;!?=])/gu;
+
+/**
+ * A headline's content words, lowercased and singular: no stopwords, number words, digits or
+ * quoted example words.
+ */
+export function headlineWords(text: string): Set<string> {
+  const words =
+    text
+      .replace(QUOTED, '$1')
+      // A possessive "'s" is not a word ("the model's own tokenizer").
+      .replace(/['’]s(?![\p{L}\d])/gu, '')
+      .toLowerCase()
+      .match(/[\p{L}\d]+(?:-[\p{L}\d]+)*/gu) ?? [];
   return new Set(
     words
-      .filter((w) => !STOPWORDS.has(w))
+      .filter((w) => !STOPWORDS.has(w) && !isNumberWord(w) && !/\d/.test(w))
       .map((w) => (w.length > 3 && w.endsWith('s') && !w.endsWith('ss') ? w.slice(0, -1) : w)),
   );
 }
 
-/** No two headlines share more than half the content words of the shorter one. */
+/** Headlines this short repeat each other only when they say exactly the same words. */
+export const SHORT_HEADLINE_WORDS = 3;
+
+/**
+ * Whether two headlines' content words repeat: the same set when either has
+ * `SHORT_HEADLINE_WORDS` or fewer (two short headlines often share a word by chance), else more
+ * than half the shorter one's words shared.
+ */
+function headlinesRepeat(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
+  if (a.size === 0 || b.size === 0) return false;
+  const shared = [...a].filter((w) => b.has(w)).length;
+  if (Math.min(a.size, b.size) <= SHORT_HEADLINE_WORDS) {
+    return shared === a.size && shared === b.size;
+  }
+  return shared * 2 > Math.min(a.size, b.size);
+}
+
+/** No two headlines repeat each other's content words (`headlinesRepeat`). */
 export function repeatedHeadlineProblems(output: ScriptToCheck): ScriptProblem[] {
   const heads = output.script.map((b) => (b.headline ? headlineWords(b.headline.text) : undefined));
   return output.script.flatMap((beat, j) => {
     const mine = heads[j];
-    if (!mine || mine.size === 0) return [];
-    const i = heads.slice(0, j).findIndex((theirs) => {
-      if (!theirs || theirs.size === 0) return false;
-      const shared = [...mine].filter((w) => theirs.has(w)).length;
-      return shared * 2 > Math.min(mine.size, theirs.size);
-    });
+    if (!mine) return [];
+    const i = heads
+      .slice(0, j)
+      .findIndex((theirs) => theirs !== undefined && headlinesRepeat(mine, theirs));
     if (i < 0) return [];
     const earlier = output.script[i]!;
     return [
