@@ -599,7 +599,8 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   `scriptwriter:fixture` take `--topic <id>` (default `rate-limiter`) and write to
   `<DATA_DIR>/<agent>/fixture/<topic>/`; an earlier role replays its recording for the topic, or
   runs live when there is none (`chainTransport`), so an unrecorded topic runs the whole chain.
-  `--record` writes only the script's own role. The job tests use the rate limiter.
+  `--record` writes only the script's own role, and with `--max-repairs <n>` only when that role
+  needed at most `n` repairs (`shouldRecord`). The job tests use the rate limiter.
 
 API conventions: routes under `/api`, inputs validated with the `validate()` helper against schemas
 from `packages/shared/src/api`, list responses wrapped as `{ items }`, and every error is

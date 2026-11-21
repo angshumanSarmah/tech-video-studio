@@ -1,6 +1,6 @@
 /**
  * `pnpm --filter @explainer-studio/studio scriptwriter:fixture [--topic <topic>] [--level <level>]
- * [--record]`: runs the Scriptwriter on a fixture topic (`rate-limiter`, the default, or
+ * [--record [--max-repairs <n>]]`: runs the Scriptwriter on a fixture topic (`rate-limiter`, the default, or
  * `tokenizer`) against the configured model (needs DEEPSEEK_API_KEY), in a scratch data dir with
  * its own database: <DATA_DIR>/scriptwriter/fixture/<topic>/ (wiped first; the studio DB is not
  * touched). The sources are ingested, then the Researcher and the Director replay their recorded
@@ -45,6 +45,7 @@ import {
   roleCalls,
   runJob as runAgentJob,
   seedFixtureRun,
+  shouldRecord,
   topicArg,
 } from './agent-fixture.ts';
 
@@ -155,7 +156,7 @@ async function main(): Promise<number> {
     printResult(db, dataDir, runId, chain.live.includes('director'));
     const repairs = roleCalls(db, runId, 'scriptwriter').length - 1;
     console.log(`\n  checks: pass after ${repairs} repair(s)`);
-    if (process.argv.includes('--record')) {
+    if (shouldRecord(process.argv, repairs)) {
       const target = `${shown(fixtureResponsesDir('scriptwriter', topic.id))}/scriptwriter.json`;
       record(topic, db, dataDir, runId, target);
     }

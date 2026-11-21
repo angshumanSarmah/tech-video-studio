@@ -398,13 +398,11 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **P1C.6 — Ordinals.** `numberMentions` does not read ordinals ("fourteenth", "the
       ninth"), so a date spoken that way is not checked against the notes. "second" and "first"
       are ordinary words too often to read blindly.
-- [ ] **Re-record the rate-limiter Scriptwriter fixture.** Its recording cites b5's source as
-      the bare "quotaflow"; `jobs/script.test.ts` (`withBareSourceRepair`) appends the repair
-      `source_label_bare` asks for until `scriptwriter:fixture --record` runs again.
-- [ ] **Re-record after `director@v2` / `scriptwriter@v3`.** The rate-limiter fixtures were
-      recorded with `director@v1` (no `story.hook`, so it parses as `problem`) and
-      `scriptwriter@v2`. Re-record the Director (and then the Scriptwriter) so the fixtures show
-      the new prompts, including a hook kind chosen by the model; record the tokenizer chain too.
+- [ ] **Re-record the rate-limiter Director (`director@v2`) and the tokenizer Scriptwriter.**
+      Both needed 2 repairs at beginner, so they were not recorded (`--max-repairs 1`). The
+      rate-limiter Director fixture is still `director@v1` (no `story.hook`, parsed as
+      `problem`); its Scriptwriter fixture is `scriptwriter@v3` on that plan. The tokenizer has
+      Researcher and Director recordings, no Scriptwriter one yet.
 - [ ] **Bare sources: multi-word names.** `isBareSourceLine` catches one word and URL site
       names; a multi-word library title used alone ("Token Kit") is not caught, since it cannot
       be told apart from an article title.

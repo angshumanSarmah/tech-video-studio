@@ -1,6 +1,6 @@
 /**
  * `pnpm --filter @explainer-studio/studio research:fixture [--topic <topic>] [--level <level>]
- * [--record]`: runs source ingestion and the Researcher on a fixture topic's invented sources
+ * [--record [--max-repairs <n>]]`: runs source ingestion and the Researcher on a fixture topic's invented sources
  * (`rate-limiter`, the default, or `tokenizer`) against the configured model (needs
  * DEEPSEEK_API_KEY), in a scratch data dir with its own database:
  * <DATA_DIR>/research/fixture/<topic>/ (wiped first; the studio DB is not touched).
@@ -34,6 +34,7 @@ import {
   roleCalls,
   runJob as runAgentJob,
   seedFixtureRun,
+  shouldRecord,
   topicArg,
 } from './agent-fixture.ts';
 
@@ -97,7 +98,8 @@ async function main(): Promise<number> {
     const problems = researchNotesProblems(result.notes, citableChunks(result.input));
     console.log(`  checks: ${problems.length === 0 ? 'pass' : `${problems.length} problem(s)`}`);
     for (const p of problems) console.log(`    ${p.path} ${p.code}: ${p.message}`);
-    if (process.argv.includes('--record')) {
+    const repairs = roleCalls(db, seeded.runId, 'researcher').length - 1;
+    if (problems.length === 0 && shouldRecord(process.argv, repairs)) {
       const dir = fixtureResponsesDir('researcher', topic.id);
       const n = recordResponses(
         dataDir,

@@ -216,7 +216,7 @@ export function printPlan(plan: DirectorPlan, notes: ResearchNotes): void {
     const numbers = (hook.hookNumberIds ?? [])
       .filter((id) => values.has(id))
       .map((id) => `${id} = ${values.get(id)}`);
-    console.log(`  hook: ${hook.intent} [${numbers.join('; ')}]`);
+    console.log(`  hook (${story.hook.kind}): ${hook.intent} [${numbers.join('; ')}]`);
   }
   console.log(`  running example: ${story.runningExample ?? '(none)'}`);
   if (story.plantedQuestion) {
@@ -252,4 +252,20 @@ export function printPlan(plan: DirectorPlan, notes: ResearchNotes): void {
   for (const m of story.missingPrimitiveRequests) {
     console.log(`  missing primitive: ${m.name}: ${m.description} (fallback ${m.fallbackUsed})`);
   }
+}
+
+/**
+ * Whether to record this run: `--record` given and the role needed at most `--max-repairs <n>`
+ * repairs (any number when the flag is absent). Prints why when it does not record.
+ */
+export function shouldRecord(argv: readonly string[], repairs: number): boolean {
+  if (!argv.includes('--record')) return false;
+  const i = argv.indexOf('--max-repairs');
+  const max = i < 0 ? Number.POSITIVE_INFINITY : Number(argv[i + 1]);
+  if (!Number.isInteger(max) && max !== Number.POSITIVE_INFINITY) {
+    throw new Error(`--max-repairs needs a whole number; got ${argv[i + 1] ?? '(none)'}`);
+  }
+  if (repairs <= max) return true;
+  console.log(`  not recorded: ${repairs} repair(s), more than --max-repairs ${max}`);
+  return false;
 }

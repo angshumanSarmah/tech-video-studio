@@ -1,6 +1,6 @@
 /**
  * `pnpm --filter @explainer-studio/studio director:fixture [--topic <topic>] [--level <level>]
- * [--record]`: runs the Director on a fixture topic (`rate-limiter`, the default, or
+ * [--record [--max-repairs <n>]]`: runs the Director on a fixture topic (`rate-limiter`, the default, or
  * `tokenizer`) against the configured model (needs DEEPSEEK_API_KEY), in a scratch data dir with
  * its own database: <DATA_DIR>/director/fixture/<topic>/ (wiped first; the studio DB is not
  * touched). The sources are ingested, then the Researcher replays its recorded answer for the
@@ -36,6 +36,7 @@ import {
   roleCalls,
   runJob as runAgentJob,
   seedFixtureRun,
+  shouldRecord,
   topicArg,
 } from './agent-fixture.ts';
 
@@ -98,7 +99,7 @@ async function main(): Promise<number> {
     printPlan(plan, latestResearch(db, dataDir, runId)!.notes);
     const calls = roleCalls(db, runId, 'director');
     console.log(`\n  checks: pass after ${calls.length - 1} repair(s)`);
-    if (process.argv.includes('--record')) {
+    if (shouldRecord(process.argv, calls.length - 1)) {
       const dir = fixtureResponsesDir('director', topic.id);
       const n = recordResponses(dataDir, calls, dir, 'director');
       console.log(`  recorded ${n} response(s) -> ${shown(dir)}/director.json`);
