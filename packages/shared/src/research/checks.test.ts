@@ -89,6 +89,27 @@ describe('researchNotesProblems', () => {
     expect(researchNotesProblems(notes(), CHUNKS)).toEqual([]);
   });
 
+  it('needs every number value to be a number: digits or a spoken amount, not a vague one', () => {
+    const withValue = (value: string) =>
+      researchNotesProblems(
+        notes({
+          numbers: [{ id: 'num-1', value, unit: 'keys', context: 'store size', sourceChunkId: C2 }],
+        }),
+        CHUNKS,
+      ).filter((p) => p.code === 'number_value_not_numeric');
+    expect(withValue('One million')).toEqual([]);
+    expect(withValue('1,000')).toEqual([]);
+    for (const vague of ['thousands', 'many', 'a few']) {
+      expect(withValue(vague)).toEqual([
+        {
+          path: '$.numbers[0].value',
+          code: 'number_value_not_numeric',
+          message: `"${vague}" is not a number: vague amounts go in facts, not numbers.`,
+        },
+      ]);
+    }
+  });
+
   it('flags a quantity that is not in the item’s own cited chunks', () => {
     const problems = researchNotesProblems(
       notes({

@@ -50,6 +50,20 @@ describe('numberMentions', () => {
     ]);
   });
 
+  it('marks a number followed by a unit of measure as measured', () => {
+    const mentions = numberMentions(
+      'two seconds, one millisecond, three times the limit, two nodes, 2 million requests, 80 ms',
+    );
+    expect(mentions.map((m) => [m.text, m.everyday, m.measured])).toEqual([
+      ['two', true, true],
+      ['one', true, true],
+      ['three', true, true],
+      ['two', true, false],
+      ['2 million', false, false],
+      ['80', false, true],
+    ]);
+  });
+
   it('skips identifiers, spoken or in digits', () => {
     expect(values('p99 latency, p ninety-nine latency, IPv4, HTTP 429')).toEqual([]);
     expect(values('HTTP four twenty-nine, status five oh three')).toEqual([]);

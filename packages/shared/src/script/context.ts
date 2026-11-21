@@ -12,6 +12,7 @@ export const SCRIPT_PROBLEM_CODES = [
   'sentence_too_long',
   'numbers_per_sentence',
   'numbers_per_beat',
+  'digits_in_narration',
   'number_not_in_notes',
   'stat_card_not_a_number',
   'stat_card_value_mismatch',

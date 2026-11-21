@@ -89,6 +89,7 @@ export function scriptProblems(output: ScriptToCheck, ctx: ScriptCheckContext): 
   return [
     ...budgetProblems(output, ctx),
     ...sentenceProblems(output, ctx, dateOnlyKeys(ctx.notes)),
+    ...digitProblems(output),
     ...output.script.flatMap((beat, i) => numberProblems(beat, i, values)),
     ...numbersPerBeatProblems(output, ctx),
     ...statCardProblems(output, ctx),
@@ -167,7 +168,7 @@ function sentenceProblems(
       const path = ['script', i, 'narration'];
       const where = `Beat "${beat.beatId}", sentence ${n + 1} (${quoted(sentence)})`;
       const words = narrationWords(sentence).length;
-      const numbers = oneNumber ? quantities(sentence, dates) : [];
+      const numbers = oneNumber ? sentenceNumbers(sentence, dates) : [];
       return [
         ...(words > MAX_SENTENCE_WORDS
           ? [
@@ -184,7 +185,7 @@ function sentenceProblems(
               problem(
                 path,
                 'numbers_per_sentence',
-                `${where} says ${numbers.length} numbers (${numbers.map((m) => `"${m.text}"`).join(', ')}); ` +
+                `${where} says ${numbers.length} numbers (${numbers.map((m) => `"${m}"`).join(', ')}); ` +
                   `at the ${level} level a sentence carries at most one number: split it without ` +
                   `going over the beat's budget${room}; drop a detail if the split needs words.`,
               ),
@@ -200,6 +201,60 @@ function sentenceProblems(
 /** The numbers a text says that count toward a density limit: no everyday words, no dates. */
 function quantities(text: string, dates: ReadonlySet<string>): NumberMention[] {
   return countedMentions(text).filter((m) => !dates.has(numberKey(m.value)));
+}
+
+/** "from <X>" right before the first number of a range ("from about one millisecond"). */
+const RANGE_FROM = /(?:^|[^\p{L}])from\s+(?:about\s+|around\s+|roughly\s+)?$/iu;
+/** "<unit> to" between a range's two numbers ("milliseconds to", "to"). */
+const RANGE_TO = /^[\s\p{L}-]{0,30}?(?:^|[^\p{L}])to\s+(?:about\s+|around\s+|roughly\s+)?$/iu;
+
+/**
+ * The numbers a sentence says, as the viewer hears them (a lone "one", "two" or "three" only
+ * with a unit: "two seconds", not "two nodes"): a "from X to Y" range is one number
+ * (one change), so "from two hundred milliseconds to two seconds" counts once; "two hundred
+ * milliseconds and two seconds" counts twice. Each value is still checked against the notes.
+ */
+function sentenceNumbers(sentence: string, dates: ReadonlySet<string>): string[] {
+  // A lone everyday word counts here when a unit follows it: "two seconds" is a number.
+  const mentions = numberMentions(sentence).filter(
+    (m) => (!m.everyday || m.measured) && !dates.has(numberKey(m.value)),
+  );
+  const numbers: string[] = [];
+  for (let i = 0; i < mentions.length; i += 1) {
+    const a = mentions[i]!;
+    const b = mentions[i + 1];
+    const end = a.index + a.text.length;
+    const range =
+      b !== undefined &&
+      RANGE_FROM.test(sentence.slice(0, a.index)) &&
+      RANGE_TO.test(sentence.slice(end, b.index));
+    numbers.push(range ? `from ${a.text} to ${b.text}` : a.text);
+    if (range) i += 1;
+  }
+  return numbers;
+}
+
+/** A token of narration that holds a digit, without the punctuation around it. */
+function digitTokens(narration: string): string[] {
+  const tokens = narration
+    .split(/\s+/)
+    .filter((t) => /\d/.test(t))
+    .map((t) => t.replace(/^[("'“‘[]+|[)"'”’.,;:!?\]]+$/gu, ''));
+  return [...new Set(tokens)];
+}
+
+/** Narration is spoken: numbers are written as words, so text-to-speech reads them as meant. */
+function digitProblems(output: ScriptToCheck): ScriptProblem[] {
+  return output.script.flatMap((beat, i) =>
+    digitTokens(beat.narration).map((token) =>
+      problem(
+        ['script', i, 'narration'],
+        'digits_in_narration',
+        `Beat "${beat.beatId}"'s narration writes "${token}" in digits: write it as spoken ` +
+          `(e.g. 'one point three').`,
+      ),
+    ),
+  );
 }
 
 /**

@@ -376,6 +376,54 @@ describe('scriptProblems', () => {
     ]);
   });
 
+  it('flags digits in narration, and leaves stat cards, tags and source lines alone', () => {
+    const out = output();
+    out.script[2]!.narration = `Then 2 million requests arrive (p99 rose). ${words(7)}.`;
+    out.script[2]!.tags = ['2M REQUESTS'];
+    expect(codes(out)).toEqual([
+      'digits_in_narration $.script[2].narration',
+      'digits_in_narration $.script[2].narration',
+    ]);
+    const [first] = scriptProblems(out, ctx());
+    expect(first?.message).toBe(
+      `Beat "b3"'s narration writes "2" in digits: write it as spoken (e.g. 'one point three').`,
+    );
+    // The base script has digits only in a stat card ("2.5 ms") and a source line.
+    expect(codes(output())).toEqual([]);
+  });
+
+  it('counts a "from X to Y" range as one number in a sentence', () => {
+    const base = notes();
+    const extra = (id: string, value: string, unit: string) => ({
+      id,
+      value,
+      unit,
+      context: 'latency',
+      sourceChunkId: C[0]!,
+    });
+    const withRange = ctx({
+      notes: {
+        ...base,
+        numbers: [...base.numbers, extra('num-4', '200', 'ms'), extra('num-5', '2', 'seconds')],
+      },
+    });
+    const sentence = (text: string) => {
+      const out = output();
+      out.script[2]!.narration = text;
+      return codes(out, withRange);
+    };
+    expect(
+      sentence(`Calls went from two hundred milliseconds to two seconds. ${words(4)}.`),
+    ).toEqual([]);
+    expect(sentence(`Calls took two hundred milliseconds and two seconds. ${words(5)}.`)).toEqual([
+      'numbers_per_sentence $.script[2].narration',
+    ]);
+    // Both ends of a range are still research values.
+    expect(
+      sentence(`Calls went from two hundred milliseconds to eight seconds. ${words(4)}.`),
+    ).toEqual(['number_not_in_notes $.script[2].narration']);
+  });
+
   it('keeps a planned source line word for word', () => {
     const out = output();
     out.script[2]!.source = '<example-publisher> report';

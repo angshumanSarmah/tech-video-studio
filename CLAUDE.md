@@ -424,7 +424,8 @@ stepId?, aliases?, check?, signal?, log? })`** is the only way to call a model (
   a number's `asOf` and an incident's `date` may come from any chunk of the cited source;
   analogies and open questions that cite nothing also carry no number written as a word,
   `numberWordTokens`, everyday "one", "two" and "three" excepted, so "twenty-two" still fails)
-  and `duplicate_id`. Numbers are digit runs with `.`/`,` groups, grouping commas ignored,
+  `duplicate_id` and `number_value_not_numeric` (a `numbers[].value` has a digit or reads as a
+  spoken number, `numberMentions`; "thousands" or "many" belong in facts). Numbers are digit runs with `.`/`,` groups, grouping commas ignored,
   whole tokens only (`numbers.ts`). **Digits glued to letters are identifiers and skipped**
   (`IPv4`, `L7`, `p99`, `SHA-256`, `HTTP/2`, `UTF-8`, `O(1)`), and so is a status code (100-599)
   after "HTTP", "status" or "error" (`HTTP 429`); digits followed by letters stay quantities
@@ -555,9 +556,11 @@ researchStepId)`, not the newest research), the run's level and pace (`resolvePr
   tail is not taken. Words are `narrationWords`.
 - **Checks** (`scriptProblems`, shared, pure, on any script layer): `narration_over_budget` /
   `_under_budget`, `sentence_too_long` (over `MAX_SENTENCE_WORDS`, 20), `numbers_per_sentence`
-  (beginner only), `numbers_per_beat` (beginner: at most `MAX_NUMBERS_PER_BEAT` distinct values
-  in a narration; both density checks leave out lone everyday words and values the notes give
-  only as dates), `number_not_in_notes` (narration, headline, tags, stat card labels, formula
+  (beginner only; a "from X to Y" range is one number, and a lone "one", "two" or "three" counts
+  when a unit follows it, `NumberMention.measured`: "two seconds"), `numbers_per_beat` (beginner:
+  at most `MAX_NUMBERS_PER_BEAT` distinct values in a narration; both density checks leave out
+  lone everyday words and values the notes give only as dates), `digits_in_narration` (narration
+  has no digits; stat cards, tags and source lines may), `number_not_in_notes` (narration, headline, tags, stat card labels, formula
   caption, command; not sources or LaTeX), `stat_card_not_a_number`, `stat_card_value_mismatch`,
   `hook_number_missing` (the beat with `hookNumberIds` says each), `new_term_missing` /
   `new_term_too_early` (`mentionsTerm`, `script/terms.ts`: whole words, any case, each word

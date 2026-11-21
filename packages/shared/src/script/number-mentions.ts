@@ -17,6 +17,8 @@ export interface NumberMention {
   readonly index: number;
   /** A lone "one", "two" or "three": everyday words more often than counts. */
   readonly everyday: boolean;
+  /** A unit of measure follows it ("two seconds", "one millisecond", "three times"). */
+  readonly measured: boolean;
 }
 
 const UNITS: Readonly<Record<string, number>> = {
@@ -209,6 +211,7 @@ function digitMention(text: string, tokens: readonly Token[], i: number) {
     value: Number(normalizeNumber(token.text)) * (scale ?? 1),
     index: token.index,
     everyday: false,
+    measured: measures(text, scale ? next! : token, tokens[scale ? i + 2 : i + 1]),
   };
   return { mention, next: scale ? i + 2 : i + 1 };
 }
@@ -219,6 +222,28 @@ function spokenIdentifier(text: string, before: Token | undefined, first: Token,
   const word = before.text.toLowerCase();
   if (word.length === 1 && !LETTER_WORDS.has(word)) return true;
   return STATUS_LEADS.has(word) && Number.isInteger(value) && value >= 100 && value <= 599;
+}
+
+/**
+ * Units of measure after a number: "two seconds", "one millisecond", "three times the limit"
+ * (but "two nodes", "one shared store" stay everyday words).
+ */
+const MEASURE_UNITS = new Set(
+  (
+    'ms millisecond milliseconds second seconds minute minutes hour hours day days week weeks ' +
+    'month months year years percent byte bytes kb mb gb tb kilobyte kilobytes megabyte ' +
+    'megabytes gigabyte gigabytes times'
+  ).split(' '),
+);
+
+/** Whether the word right after a number (spaces between) is a unit of measure. */
+function measures(text: string, last: Token, next: Token | undefined): boolean {
+  return (
+    next !== undefined &&
+    !next.digits &&
+    joined(text, last, next) &&
+    MEASURE_UNITS.has(next.text.toLowerCase())
+  );
 }
 
 const isRunWord = (word: string) =>
@@ -255,6 +280,7 @@ function spokenMentions(text: string, tokens: readonly Token[], from: number, to
         value: parsed.value,
         index: first.index,
         everyday: parsed.next - k === 1 && EVERYDAY.has(words[k]!),
+        measured: measures(text, last, tokens[from + parsed.next]),
       });
     }
     k = parsed.next;

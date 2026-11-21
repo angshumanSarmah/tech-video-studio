@@ -1,5 +1,6 @@
 import { toJsonPath, type SpecError } from '../spec/validate.ts';
 import { parseSourceChunkId } from '../domain/sources.ts';
+import { numberMentions } from '../script/number-mentions.ts';
 import {
   foldText,
   normalizeNumber,
@@ -16,6 +17,7 @@ export const RESEARCH_ISSUE_CODES = [
   'number_not_in_source',
   'unsourced_number',
   'duplicate_id',
+  'number_value_not_numeric',
 ] as const;
 export type ResearchIssueCode = (typeof RESEARCH_ISSUE_CODES)[number];
 
@@ -86,8 +88,25 @@ export function researchNotesProblems(
     ...openQuestionWordIssues(asList(root.openQuestions)),
     ...plainSummaryIssues(asString(root.plainSummary), numbers),
     ...numbers.flatMap((n, i) => numberValueIssues(n, ['numbers', i, 'value'], index)),
+    ...numbers.flatMap((n, i) => numericValueIssues(n, ['numbers', i, 'value'])),
     ...duplicateIds(asList(root.facts), 'facts'),
     ...duplicateIds(numbers, 'numbers'),
+  ];
+}
+
+/**
+ * A number's value states an amount: digits, or a spoken number ("ten thousand"). A vague
+ * amount ("thousands", "many", "a few") is no value at all: no check or stat card can match it.
+ */
+function numericValueIssues(entry: unknown, path: Path): ResearchIssue[] {
+  const value = asString(asObject(entry)?.value);
+  if (value === null || /\d/.test(value) || numberMentions(value).length > 0) return [];
+  return [
+    issue(
+      path,
+      'number_value_not_numeric',
+      `"${value}" is not a number: vague amounts go in facts, not numbers.`,
+    ),
   ];
 }
 

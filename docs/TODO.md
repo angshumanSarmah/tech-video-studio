@@ -398,13 +398,10 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **P1C.6 — Ordinals.** `numberMentions` does not read ordinals ("fourteenth", "the
       ninth"), so a date spoken that way is not checked against the notes. "second" and "first"
       are ordinary words too often to read blindly.
-- [ ] **Researcher: vague quantities as numbers.** The tokenizer notes record "thousands" (steps)
-      as a number value (`num-3`); `numberMentions` reads no value from it, so a stat card on it
-      can never match. `researchNotesProblems` should reject a `numbers[].value` with no digits or
-      number words.
-- [ ] **Scriptwriter: digits in narration.** The prompt asks for numbers spelled as spoken, but
-      nothing checks it; the tokenizer recording says "1.3 per word" and "all 256 byte values".
-      A check (or a TTS-side respelling) would keep Kokoro from reading digits its own way.
 - [ ] **Bare sources: multi-word names.** `isBareSourceLine` catches one word and URL site
       names; a multi-word library title used alone ("Token Kit") is not caught, since it cannot
       be told apart from an article title.
+- [ ] **Re-record the tokenizer Researcher and Scriptwriter.** The Researcher recording has a
+      vague number value (`num-3` "thousands", `number_value_not_numeric`) and the Scriptwriter
+      recording writes digits in narration (`digits_in_narration`: b1, b3, b4, b6). Neither is
+      replayed by the job tests, which use the rate limiter.
