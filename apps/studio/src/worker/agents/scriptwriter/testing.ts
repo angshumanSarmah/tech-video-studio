@@ -1,4 +1,4 @@
-import { fileURLToPath } from 'node:url';
+import { fixtureResponsesDir } from '../fixture-topics.ts';
 
 /**
  * Test and script helpers for the Scriptwriter (`script.test.ts`, `scriptwriter:fixture`). Its
@@ -10,6 +10,4 @@ import { fileURLToPath } from 'node:url';
  * Scriptwriter answers for the rate-limiter plan (`loadDryRunFixtures`). Hand-written until
  * recorded with `scriptwriter:fixture --record`.
  */
-export const SCRIPTWRITER_RESPONSES_DIR = fileURLToPath(
-  new URL('./fixtures/rate-limiter/responses', import.meta.url),
-);
+export const SCRIPTWRITER_RESPONSES_DIR = fixtureResponsesDir('scriptwriter', 'rate-limiter');

@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto';
 import { copyFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { basename, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import type { RunSettingsInput } from '@explainer-studio/shared';
 import { eq } from 'drizzle-orm';
 import { resolveDataPath, sourceUploadPath } from '#core/data-files.ts';
@@ -10,30 +9,22 @@ import { createSource } from '#core/db/repositories/sources.ts';
 import { createTopic } from '#core/db/repositories/topics.ts';
 import { series } from '#core/db/schema.ts';
 import { startRun } from '#core/services/runs.ts';
+import { fixtureResponsesDir, fixtureTopic } from '../fixture-topics.ts';
 
 /**
  * Test and script helpers for the Researcher (`research.test.ts`, `research:fixture`). Not
  * imported by any entrypoint.
  */
 
-export const RATE_LIMITER_FIXTURE_DIR = fileURLToPath(
-  new URL('./fixtures/rate-limiter/', import.meta.url),
-);
+const RATE_LIMITER = fixtureTopic('rate-limiter');
 
 /** Invented sources, added in this order (so a fresh DB gives them ids 1, 2, 3). */
-export const RATE_LIMITER_SOURCE_FILES = [
-  'token-bucket-field-guide.md',
-  'quotaflow-readme.md',
-  'larkspur-checkout-incident.md',
-].map((name) => `${RATE_LIMITER_FIXTURE_DIR}sources/${name}`);
+export const RATE_LIMITER_SOURCE_FILES = RATE_LIMITER.sourceFiles;
 
-export const RATE_LIMITER_TOPIC = {
-  title: 'Rate limiters',
-  notes: 'Token bucket in a shared store, and what breaks when the store gets slow.',
-} as const;
+export const RATE_LIMITER_TOPIC = RATE_LIMITER.topic;
 
 /** Recorded Researcher responses for the fixture (`loadDryRunFixtures`). */
-export const RATE_LIMITER_RESPONSES_DIR = `${RATE_LIMITER_FIXTURE_DIR}responses`;
+export const RATE_LIMITER_RESPONSES_DIR = fixtureResponsesDir('researcher', 'rate-limiter');
 
 export interface SeededRun {
   readonly topicId: number;

@@ -1,4 +1,4 @@
-import { fileURLToPath } from 'node:url';
+import { fixtureResponsesDir } from '../fixture-topics.ts';
 
 /**
  * Test and script helpers for the Director (`direct.test.ts`, `director:fixture`). Its input is
@@ -7,6 +7,4 @@ import { fileURLToPath } from 'node:url';
  */
 
 /** Director answers for the rate-limiter notes (`loadDryRunFixtures`). */
-export const DIRECTOR_RESPONSES_DIR = fileURLToPath(
-  new URL('./fixtures/rate-limiter/responses', import.meta.url),
-);
+export const DIRECTOR_RESPONSES_DIR = fixtureResponsesDir('director', 'rate-limiter');

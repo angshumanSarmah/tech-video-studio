@@ -582,6 +582,14 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   `<DATA_DIR>/scriptwriter/fixture/rate-limiter/` and prints each attempt's issues, the cost and
   each beat's budget vs words, headline, narration, tags, stat cards and source. The fixture
   scripts share `scripts/agent-fixture.ts`.
+- **Fixture topics** (`agents/fixture-topics.ts`, `FIXTURE_TOPIC_IDS`): `rate-limiter` (System
+  Design; incident, many numbers) and `tokenizer` (AI; concept, no incident, few numbers). Each
+  has invented sources in `researcher/fixtures/<topic>/sources/` and per-role recordings in
+  `<role>/fixtures/<topic>/responses/<role>.json`. `research:fixture`, `director:fixture` and
+  `scriptwriter:fixture` take `--topic <id>` (default `rate-limiter`) and write to
+  `<DATA_DIR>/<agent>/fixture/<topic>/`; an earlier role replays its recording for the topic, or
+  runs live when there is none (`chainTransport`), so an unrecorded topic runs the whole chain.
+  `--record` writes only the script's own role. The job tests use the rate limiter.
 
 API conventions: routes under `/api`, inputs validated with the `validate()` helper against schemas
 from `packages/shared/src/api`, list responses wrapped as `{ items }`, and every error is
