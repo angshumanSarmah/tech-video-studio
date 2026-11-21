@@ -1,5 +1,6 @@
 import { join } from 'node:path';
 import {
+  DirectorPlanSchema,
   narrationWords,
   ScriptwriterOutputSchema,
   SettingsSchema,
@@ -157,7 +158,7 @@ describe('script job (rate-limiter fixture, dry run)', () => {
       stepId: result.step.id,
       promptVersion: promptId('scriptwriter'),
     });
-    expect(promptId('scriptwriter')).toBe('scriptwriter@v3');
+    expect(promptId('scriptwriter')).toBe('scriptwriter@v4');
     const [system, user] = promptOf(calls[0]!.promptPath).messages;
     expect(system!.content).toContain('Role: Scriptwriter.');
     expect(system!.content).toContain('## OUTPUT SHAPE');
@@ -176,25 +177,32 @@ describe('script job (rate-limiter fixture, dry run)', () => {
   });
 
   it('repairs failed checks through the LLM client', async () => {
+    // A term the recorded plan introduces after its first beat, used one beat too early.
+    const beats = DirectorPlanSchema.parse(JSON.parse(director.at(-1)!.content!)).story.beats;
+    const k = beats.findIndex((b, i) => i > 0 && b.newTerms.length > 0);
+    const term = beats[k]!.newTerms[0]!;
     const bad = answer(({ script }) => {
-      script[0]!.narration = 'Checkout sent its provider far too much traffic. The limiter was on.';
+      script[0]!.narration = 'Checkout broke. The limiter was on.';
       script[1]!.headline = { text: 'Resets let 900 extra through', semantic: 'problem' };
       script[2]!.statCards = [{ value: '100 tokens', label: 'capacity', sourceRef: 'num-99' }];
-      script[2]!.narration += ' An atomic script would not help.';
+      script[k - 1]!.narration += ` A ${term} would not help.`;
       script[6]!.tags = ['A TAG FAR TOO LONG FOR ITS LITTLE BOX'];
     });
     const { runId, job } = await write(registry([bad, goodAnswer]));
     expect(job.status).toBe('done');
+    const hookWords = narrationWords(
+      (JSON.parse(bad.content!) as ScriptwriterOutput).script[0]!.narration,
+    ).length;
 
     const calls = scriptCalls(runId);
     expect(calls.map((c) => c.error)).toEqual([expect.stringMatching(/^Invalid output/), null]);
     const repair = promptOf(calls[1]!.promptPath).messages.at(-1)!.content;
     for (const expected of [
-      '$.script[0].narration: Beat "b1" has 12 words',
+      `$.script[0].narration: Beat "b1" has ${hookWords} words`,
       'The hook never says num-',
       '$.script[1].headline.text',
       '$.script[2].statCards[0].sourceRef',
-      'Beat "b3" uses "atomic script" before beat "b4" introduces it',
+      `Beat "${beats[k - 1]!.id}" uses "${term}" before beat "${beats[k]!.id}" introduces it`,
       '$.script[6].tags[0]',
     ]) {
       expect(repair).toContain(expected);

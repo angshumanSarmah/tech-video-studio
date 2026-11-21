@@ -398,11 +398,13 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **P1C.6 — Ordinals.** `numberMentions` does not read ordinals ("fourteenth", "the
       ninth"), so a date spoken that way is not checked against the notes. "second" and "first"
       are ordinary words too often to read blindly.
-- [ ] **Re-record the rate-limiter Director (`director@v2`) and the tokenizer Scriptwriter.**
-      Both needed 2 repairs at beginner, so they were not recorded (`--max-repairs 1`). The
-      rate-limiter Director fixture is still `director@v1` (no `story.hook`, parsed as
-      `problem`); its Scriptwriter fixture is `scriptwriter@v3` on that plan. The tokenizer has
-      Researcher and Director recordings, no Scriptwriter one yet.
+- [ ] **Researcher: vague quantities as numbers.** The tokenizer notes record "thousands" (steps)
+      as a number value (`num-3`); `numberMentions` reads no value from it, so a stat card on it
+      can never match. `researchNotesProblems` should reject a `numbers[].value` with no digits or
+      number words.
+- [ ] **Scriptwriter: digits in narration.** The prompt asks for numbers spelled as spoken, but
+      nothing checks it; the tokenizer recording says "1.3 per word" and "all 256 byte values".
+      A check (or a TTS-side respelling) would keep Kokoro from reading digits its own way.
 - [ ] **Bare sources: multi-word names.** `isBareSourceLine` catches one word and URL site
       names; a multi-word library title used alone ("Token Kit") is not caught, since it cannot
       be told apart from an article title.

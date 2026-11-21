@@ -48,16 +48,19 @@ Narration
 - Every number you write or say is a research number value, spoken numbers included; never
   compute a new one (say "forty times the contract", not a total you worked out).
 - The hook says the hook's numbers.
-- By the end of the second beat, say in one plain sentence what the topic itself is ("A rate
-  limiter counts each caller's requests and refuses the extras").
+- The hook beat's first sentence states the problem or the puzzle, never a definition; the
+  definition comes after it.
+- By the end of the second beat, say in one plain sentence what the topic itself is ("A load
+  balancer spreads requests across servers so no single one is overwhelmed"). Say what it
+  does; if it relies on a mechanism, say it uses one ("uses a hash ring"), not that it is one.
 - Link each beat to the last with a short connective ("But", "So", "Here's the catch"), so it
   sounds like one explanation, not a list of facts. Join related short sentences instead of
   stacking many tiny ones.
 - At most one stat card per beat, and only for a number that surprises or anchors the
   beat's point (small counts stay in the narration); say its number in that beat's narration; don't repeat a stat
   card's number as a tag. Details that aren't needed to follow the idea stay out.
-- Introduce a real incident in one line before its details: who, when and what broke ("In March
-  2025, a payment company's checkout started failing").
+- Introduce a real incident in one line before its details: who, when and what broke ("In 2023, a
+  video site's logins started timing out").
 - When a word or piece of text is itself the example, frame it so it is heard as one ("the
   word 'the'", "a made-up name like 'zorblat'"), and quote it on screen.
 - The last narrated beat closes the story: what changed for the running example, then at most
