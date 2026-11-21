@@ -85,7 +85,7 @@ describe('buildPrompt', () => {
   it('records the preamble and role prompt versions', () => {
     expect(buildPrompt(templates, parts('scriptwriter')).versions).toEqual({
       preamble: 'preamble@v1',
-      role: 'scriptwriter@v4',
+      role: 'scriptwriter@v5',
     });
   });
 

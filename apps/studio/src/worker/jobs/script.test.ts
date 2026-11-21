@@ -16,6 +16,7 @@ import { getRunStep } from '#core/db/repositories/run-steps.ts';
 import { memoryRules } from '#core/db/schema.ts';
 import { createTestDb, type TestDb } from '#core/db/testing.ts';
 import { latestDirection } from '#core/services/direction.ts';
+import { latestResearch } from '#core/services/research-notes.ts';
 import { latestScript } from '#core/services/script.ts';
 import { findWorkspaceRoot } from '#core/workspace-root.ts';
 import { DIRECTOR_RESPONSES_DIR } from '../agents/director/testing.ts';
@@ -147,7 +148,14 @@ describe('script job (rate-limiter fixture, dry run)', () => {
     expect(result.input.budgets.map((b) => b.beatId)).toEqual(
       direction.plan.story.beats.map((b) => b.id),
     );
-    expect(result.input.budgets[0]).toMatchObject({ targetSec: 8, words: 22, min: 18, max: 25 });
+    // b1's budget: its planned seconds × 2.7 words/s, ±15%.
+    const first = direction.plan.story.beats[0]!.targetSec;
+    expect(result.input.budgets[0]).toMatchObject({
+      targetSec: first,
+      words: Math.round(first * 2.7),
+      min: Math.round(first * 2.7 * 0.85),
+      max: Math.round(first * 2.7 * 1.15),
+    });
 
     const calls = scriptCalls(runId);
     // The recorded answers in order (repairs included), the last one passing.
@@ -158,7 +166,7 @@ describe('script job (rate-limiter fixture, dry run)', () => {
       stepId: result.step.id,
       promptVersion: promptId('scriptwriter'),
     });
-    expect(promptId('scriptwriter')).toBe('scriptwriter@v4');
+    expect(promptId('scriptwriter')).toBe('scriptwriter@v5');
     const [system, user] = promptOf(calls[0]!.promptPath).messages;
     expect(system!.content).toContain('Role: Scriptwriter.');
     expect(system!.content).toContain('## OUTPUT SHAPE');
@@ -167,9 +175,12 @@ describe('script job (rate-limiter fixture, dry run)', () => {
     expect(message).toContain(direction.plan.story.runningExample!);
     expect(message).toContain('"wordBudget"');
     expect(message).toContain('"hookNumbers"');
-    expect(message).toContain(
-      'A bucket of permission tokens that refills at a fixed rate; each request spends one token.',
-    );
+    // Each new term arrives with its glossary meaning.
+    const termBeat = direction.plan.story.beats.find((b) => b.newTerms.length > 0)!;
+    const meaning = latestResearch(t.db, t.dataDir, runId)!.notes.glossary.find(
+      (g) => g.term.toLowerCase() === termBeat.newTerms[0]!.toLowerCase(),
+    )!.plainMeaning;
+    expect(message).toContain(JSON.stringify(meaning));
     expect(message).toContain('"source": "A field guide to token-bucket rate limiting"');
     expect(message).not.toContain('source-1#chunk-1');
 
@@ -267,16 +278,23 @@ describe('script job (rate-limiter fixture, dry run)', () => {
     };
     expect(input.styleRules).toEqual(['<example-script-rule>', '<example-shared-rule>']);
     expect(input.explanationLevel).toBe('expert');
-    expect(input.budgets[0]).toMatchObject({ narrationSec: 7, words: 14 });
-    expect(input.budgets.at(-1)).toMatchObject({ narrationSec: 10, words: 20 });
+    // 2 words/s; the 1 s gap comes off every beat but the last.
+    const beats = DirectorPlanSchema.parse(JSON.parse(director.at(-1)!.content!)).story.beats;
+    const [firstSec, lastSec] = [beats[0]!.targetSec, beats.at(-1)!.targetSec];
+    expect(input.budgets[0]).toMatchObject({
+      narrationSec: firstSec - 1,
+      words: (firstSec - 1) * 2,
+    });
+    expect(input.budgets.at(-1)).toMatchObject({ narrationSec: lastSec, words: lastSec * 2 });
 
     const [system] = promptOf(scriptCalls(runId)[0]!.promptPath).messages;
     expect(system!.content).toContain('- <example-script-rule>');
     expect(system!.content).not.toContain('<example-director-rule>');
     const repair = promptOf(scriptCalls(runId)[1]!.promptPath).messages.at(-1)!.content;
     const firstWords = narrationWords(goodScript().script[0]!.narration).length;
+    const [min, max] = [0.85, 1.15].map((f) => Math.round((firstSec - 1) * 2 * f));
     expect(repair).toContain(
-      `$.script[0].narration: Beat "b1" has ${firstWords} words; its budget is 12-16`,
+      `$.script[0].narration: Beat "b1" has ${firstWords} words; its budget is ${min}-${max}`,
     );
   });
 });

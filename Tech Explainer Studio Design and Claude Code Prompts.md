@@ -695,6 +695,8 @@ DO
 - Select, don't transcribe: about 15-25 facts and at most 20 numbers, only what a
   {{lengthMinSec}}-{{lengthMaxSec}} s video could use; merge near-duplicates.
 - Record every number with unit, context, source chunk id and as-of date when the source gives one.
+  A number's value is a real quantity ("40", "2.5", "ten thousand"); vague amounts such as
+  "thousands" or "many" go in facts, not numbers.
   Any number you write anywhere else (facts, summary, hooks) must be one of these, written the same
   way, in an item that cites the same chunk. Analogies, and open questions that cite nothing,
   contain no numbers at all, not even written as words (everyday "one", "two" or "three" are fine).
@@ -770,6 +772,8 @@ DO
   happening first, then name it. Use an analogy from the notes when it helps.
 - A beat relies only on terms introduced in that beat or earlier (in its intent, tags and
   headline). If an earlier beat needs a term, introduce it there instead of talking around it.
+- Keep the story in one system: a fact about a different company or example is labelled as
+  such or left out, and two systems' numbers never mix in one story.
 DO NOT
 - Plan a beat that needs facts the notes don't have.
 - Use the same pattern on the same focus in two consecutive beats.
@@ -798,8 +802,10 @@ Narration
   seconds minus its pauses (beat gap, landing hold), within 15%.
 - In a multi-part video: from part 2 on, open with a recap of at most 2 sentences; every part but
   the last ends on a cliffhanger line that names the next part's question.
-- Short sentences (under 15 words), one idea each, at most one number per sentence.
-- Say numbers as a person would ("ten thousand requests a second"); spell out what text-to-speech
+- Short sentences (under 15 words), one idea each, at most one number per sentence; a
+  before-and-after pair counts as one ("from two hundred milliseconds to two seconds").
+- Write numbers in words, as a person says them ("ten thousand requests a second"),
+  never as digits; spell out what text-to-speech
   misreads ("p99" -> "p ninety-nine").
 - The real term, then a short gloss the first time ("a lease, a timer that says who is in charge").
 - Talk like explaining to a smart friend: the example before the abstraction, everyday words

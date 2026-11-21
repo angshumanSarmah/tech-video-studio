@@ -170,8 +170,10 @@ describe('research job (rate-limiter fixture, dry run)', () => {
     const repair = readDataJson(t.dataDir, calls[1]!.promptPath) as {
       messages: { content: string }[];
     };
+    const cited = (JSON.parse(recordedContent) as { facts: { sourceChunkIds: string[] }[] })
+      .facts[0]!.sourceChunkIds;
     expect(repair.messages.at(-1)!.content).toContain(
-      '$.facts[0].statement: "37" is not in the cited chunks (source-1#chunk-1)',
+      `$.facts[0].statement: "37" is not in the cited chunks (${cited.join(', ')})`,
     );
     expect(logs(runId).map((l) => l.message)).toContainEqual(
       expect.stringContaining('researcher: invalid output (1 issue(s)); repair 1/2'),

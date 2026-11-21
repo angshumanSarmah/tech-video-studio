@@ -156,7 +156,8 @@ describe('direct job (rate-limiter fixture, dry run)', () => {
     expect(system!.content).toContain('## PATTERNS (exhaustive');
     expect(system!.content).not.toContain('"params":');
     expect(system!.content).not.toContain('## STYLE RULES');
-    expect(user!.content).toContain('"id": "num-24"');
+    // Every research number reaches the Director, by id.
+    expect(user!.content).toContain(`"id": "${result.plan.story.beats[0]!.hookNumberIds![0]}"`);
     expect(user!.content).not.toContain('sourceChunkId');
     expect(user!.content).toContain('Decide within 45-150 s');
 

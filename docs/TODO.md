@@ -401,7 +401,13 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **Bare sources: multi-word names.** `isBareSourceLine` catches one word and URL site
       names; a multi-word library title used alone ("Token Kit") is not caught, since it cannot
       be told apart from an article title.
-- [ ] **Re-record the tokenizer Researcher and Scriptwriter.** The Researcher recording has a
-      vague number value (`num-3` "thousands", `number_value_not_numeric`) and the Scriptwriter
-      recording writes digits in narration (`digits_in_narration`: b1, b3, b4, b6). Neither is
-      replayed by the job tests, which use the rate limiter.
+- [ ] **Number caps count values, not research numbers.** `beatResearchNumbers` keys by value,
+      so one number whose value lists several ("one, one and three" tokens, tokenizer `num-7`)
+      counts as two; the Director's puzzle hook was flagged "2 research numbers (num-7, num-7)".
+      Count each `num-*` id once, and only intent values no cited id holds.
+- [ ] **One system per story: no check yet.** The rate-limiter recording (`director@v3`,
+      `scriptwriter@v5`) still puts the field guide's example numbers (100 tokens, 10 a second,
+      24 nodes, 0.4 ms: the invented Hollowmere gateway) next to Larkspur Pay's incident without
+      labelling them; no company is named, but the numbers read as one system. A check could
+      flag a beat whose cited numbers come from a different source than the incident's, unless
+      the narration labels it.

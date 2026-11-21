@@ -66,6 +66,8 @@ DO
   happening first, then name it. Use an analogy from the notes when it helps.
 - A beat relies only on terms introduced in that beat or earlier (in its intent, tags and
   headline). If an earlier beat needs a term, introduce it there instead of talking around it.
+- Keep the story in one system: a fact about a different company or example is labelled as
+  such or left out, and two systems' numbers never mix in one story.
 DO NOT
 - Plan a beat that needs facts the notes don't have.
 - Use the same pattern on the same focus in two consecutive beats.

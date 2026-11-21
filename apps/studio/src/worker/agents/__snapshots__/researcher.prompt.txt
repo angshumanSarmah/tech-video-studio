@@ -39,6 +39,8 @@ DO
 - Select, don't transcribe: about 15-25 facts and at most 20 numbers, only what a
   45-150 s video could use; merge near-duplicates.
 - Record every number with unit, context, source chunk id and as-of date when the source gives one.
+  A number's value is a real quantity ("40", "2.5", "ten thousand"); vague amounts such as
+  "thousands" or "many" go in facts, not numbers.
   Any number you write anywhere else (facts, summary, hooks) must be one of these, written the same
   way, in an item that cites the same chunk. Analogies, and open questions that cite nothing,
   contain no numbers at all, not even written as words (everyday "one", "two" or "three" are fine).

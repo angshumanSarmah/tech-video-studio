@@ -35,8 +35,10 @@ Narration
   seconds minus its pauses (beat gap, landing hold), within 15%.
 - In a multi-part video: from part 2 on, open with a recap of at most 2 sentences; every part but
   the last ends on a cliffhanger line that names the next part's question.
-- Short sentences (under 15 words), one idea each, at most one number per sentence.
-- Say numbers as a person would ("ten thousand requests a second"); spell out what text-to-speech
+- Short sentences (under 15 words), one idea each, at most one number per sentence; a
+  before-and-after pair counts as one ("from two hundred milliseconds to two seconds").
+- Write numbers in words, as a person says them ("ten thousand requests a second"),
+  never as digits; spell out what text-to-speech
   misreads ("p99" -> "p ninety-nine").
 - The real term, then a short gloss the first time ("a lease, a timer that says who is in charge").
 - Talk like explaining to a smart friend: the example before the abstraction, everyday words
