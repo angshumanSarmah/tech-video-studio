@@ -484,6 +484,56 @@ describe('directorPlanProblems', () => {
   });
 
   describe('hook', () => {
+    it('is a problem hook when a plan (an old recording) has no hook field', () => {
+      expect(plan().story.hook).toEqual({ kind: 'problem' });
+      const p = plan() as { story: { hook?: unknown } };
+      delete p.story.hook;
+      expect(DirectorPlanSchema.parse(p).story.hook).toEqual({ kind: 'problem' });
+      expect(
+        DirectorPlanSchema.parse({ ...plan(), story: { ...plan().story, hook: {} } }).story.hook,
+      ).toEqual({ kind: 'problem' });
+    });
+
+    it('puzzle: a question with at most one research number, none required', () => {
+      const puzzle = (intent: string, ids?: string[]) => (p: DirectorPlan) => {
+        p.story.hook = { kind: 'puzzle' };
+        p.story.beats[0]!.intent = intent;
+        if (ids) p.story.beats[0]!.hookNumberIds = ids;
+        else delete p.story.beats[0]!.hookNumberIds;
+      };
+      expect(problemsAfter(puzzle('Why does a burst not fail every request?'))).toEqual([]);
+      expect(problemsAfter(puzzle('Why do 500 requests not break it?', ['num-1']))).toEqual([]);
+      expect(problemsAfter(puzzle('A burst hits', ['num-1']))).toEqual([
+        ['$.story.beats[0].intent', 'hook_not_question'],
+      ]);
+      // A number the intent states counts with the ids, as for every beat.
+      expect(
+        problemsAfter(puzzle('Why do 500 requests stall when each waits 20 ms?', ['num-1'])),
+      ).toEqual([['$.story.beats[0].hookNumberIds', 'hook_too_many_numbers']]);
+      expect(problemsAfter(puzzle('Why do 500 requests stall?', ['num-1', 'num-2']))).toEqual([
+        ['$.story.beats[0].hookNumberIds', 'hook_too_many_numbers'],
+      ]);
+    });
+
+    it('problem: one or two research numbers, whatever the topic class', () => {
+      const problemHook = (topicClass: DirectorPlan['meta']['topicClass']) => (p: DirectorPlan) => {
+        p.meta.topicClass = topicClass;
+        p.story.hook = { kind: 'problem' };
+        delete p.story.beats[0]!.hookNumberIds;
+      };
+      expect(problemsAfter(problemHook('concept'))).toContainEqual([
+        '$.story.beats[0].hookNumberIds',
+        'hook_without_number',
+      ]);
+      // A question does not make a problem hook a puzzle: it still needs its numbers.
+      expect(
+        problemsAfter((p) => {
+          problemHook('concept')(p);
+          p.story.beats[0]!.intent = 'Why does a burst hit?';
+        }),
+      ).toContainEqual(['$.story.beats[0].hookNumberIds', 'hook_without_number']);
+    });
+
     it('names one or two research numbers in hookNumberIds when the notes have any', () => {
       const drop = (p: DirectorPlan) => delete p.story.beats[0]!.hookNumberIds;
       expect(problemsAfter(drop)).toEqual([

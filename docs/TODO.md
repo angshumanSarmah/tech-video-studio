@@ -401,10 +401,10 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **Re-record the rate-limiter Scriptwriter fixture.** Its recording cites b5's source as
       the bare "quotaflow"; `jobs/script.test.ts` (`withBareSourceRepair`) appends the repair
       `source_label_bare` asks for until `scriptwriter:fixture --record` runs again.
-- [ ] **Design doc: hook kinds.** The re-exported doc (held in a local `git stash`, not
-      committed) asks the Director for `hook.kind` (problem | puzzle), adds Scriptwriter rules
-      (framing example words, the last beat closes the story) and bare-source wording. It needs a
-      `hook` field on the plan, `director.v2.md`, `scriptwriter.v3.md` and re-recorded fixtures.
+- [ ] **Re-record after `director@v2` / `scriptwriter@v3`.** The rate-limiter fixtures were
+      recorded with `director@v1` (no `story.hook`, so it parses as `problem`) and
+      `scriptwriter@v2`. Re-record the Director (and then the Scriptwriter) so the fixtures show
+      the new prompts, including a hook kind chosen by the model; record the tokenizer chain too.
 - [ ] **Bare sources: multi-word names.** `isBareSourceLine` catches one word and URL site
       names; a multi-word library title used alone ("Token Kit") is not caught, since it cannot
       be told apart from an article title.

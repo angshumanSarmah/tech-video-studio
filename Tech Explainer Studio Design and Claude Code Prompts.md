@@ -135,7 +135,7 @@ The channel borrows storytelling techniques from reference videos, never their l
 
 **Our voice**
 
-- Hook: an engineer's problem with real numbers ("10 million requests, one Redis box. What breaks first?"), not "how does this app work?".
+- Hook: an engineer's problem with real numbers ("10 million requests, one Redis box. What breaks first?"), not "how does this app work?". For a concept, a puzzle hook works too: the question the mechanism answers.
 - Ending: a 3-line spec card summarising the design, plus the series number ("System Design #12"), then a share or follow line in our own words.
 - Optional polish after P1A.8: the title-block HUD (P1A.8b) and elements drawn on as they enter (P1A.8c).
 
@@ -736,13 +736,18 @@ pattern and layout for each beat. You are most responsible for the video being i
 different from the previous ones.
 
 House voice
-- Hook within 3 seconds: an engineer's problem with a real number from the notes, never "how does
-  X work?". One or two numbers in the hook, not a list.
+- Hook within 3 seconds that creates tension, never "how does X work?". Set hook.kind:
+  "problem" for a system under load or an incident: an engineer's problem with one or two real
+  numbers from the notes, not a list. "puzzle" when the mechanism itself is the interesting part:
+  the question it answers ("Why does adding one cache server make most lookups miss?"), with a
+  number only if the number is the puzzle. Either way the hook leads into the mechanism, not
+  away from it.
 - One idea per beat; 5-8 beats for 60 s (each beat needs about 6-10 s of narration).
 - At least once: failure before the fix, or a rejected alternative before the chosen design.
 - Plant a question early and pay it off late (at least two beats later) when the topic allows.
 - Use any one device in at most two beats (a real-incident hook and its aftermath count as two).
-  Every real_incident beat carries a source line.
+  Every real_incident beat carries a source line; a source line names the publisher and
+  what it is ("Acme engineering blog", "libfoo README"), never a bare name.
 - End with a 3-line spec card summarising the design, the series number, then a share or follow
   line in our own words, with no numbers or series label in it (code adds the series number).
 - meta.format: "card" for a short single-concept or real-incident video, "full" for a multi-step build.
@@ -763,6 +768,8 @@ DO
 - Keep it easy to follow: one new idea per beat; at most 3 new terms in the whole video (from the
   glossary); one concrete running example all the way through (one user, one request); show it
   happening first, then name it. Use an analogy from the notes when it helps.
+- A beat relies only on terms introduced in that beat or earlier (in its intent, tags and
+  headline). If an earlier beat needs a term, introduce it there instead of talking around it.
 DO NOT
 - Plan a beat that needs facts the notes don't have.
 - Use the same pattern on the same focus in two consecutive beats.
@@ -809,10 +816,15 @@ Narration
 - Link each beat to the last with a short connective ("But", "So", "Here's the catch"), so it
   sounds like one explanation, not a list of facts. Join related short sentences instead of
   stacking many tiny ones.
-- At most one stat card per beat; say its number in that beat's narration; don't repeat a stat
+- At most one stat card per beat, and only for a number that surprises or anchors the
+  beat's point (small counts stay in the narration); say its number in that beat's narration; don't repeat a stat
   card's number as a tag. Details that aren't needed to follow the idea stay out.
 - Introduce a real incident in one line before its details: who, when and what broke ("In March
   2025, a payment company's checkout started failing").
+- When a word or piece of text is itself the example, frame it so it is heard as one ("the
+  word 'the'", "a made-up name like 'zorblat'"), and quote it on screen.
+- The last narrated beat closes the story: what changed for the running example, then at most
+  one line of takeaway. The spec card carries the summary; don't read it out.
 - Make the words where visuals should land concrete ("the cache misses", "the leader dies"): the
   Generator anchors animations to them.
 
@@ -1016,7 +1028,7 @@ Implement the Director. Input: research notes, topic, series, target length (or 
 needs more),
 catalogue prompt block, 2–3 retrieved reference videos (P1C.11), memory context (style rules,
 recently used devices/layouts/patterns to avoid, past topics).
-Output (Story layer of VideoSpec): topic class, metaphor world (optional), devices, hero metric,
+Output (Story layer of VideoSpec): topic class, hook (kind: problem or puzzle), metaphor world (optional), devices, hero metric,
 chapters (question form when the device is used), beats (id, chapter, intent, device, suggested
 pattern ids and layout mode, which research facts it uses, target seconds), planted question and
 its payoff beat, at least one rejected alternative shown before the chosen design, ending/CTA,
@@ -1027,7 +1039,8 @@ For a multi-part topic, output parts: [{ part, title, mainIdea, beatIds }] shari
 research notes; each part becomes its own run (P1C.9). The configured length range applies to each part.
 Use the role's stronger model. Enforce variety: penalise reuse of the last 5 videos' device/layout combos.
 House voice (see Originality): the hook states an engineer's problem with real numbers ("10 million
-requests, one Redis box. What breaks first?"), not "how does this app work?". The ending is a
+requests, one Redis box. What breaks first?"), not "how does this app work?". A concept may open on a puzzle instead: the question the
+mechanism answers. The ending is a
 3-line spec card summarising the design plus the series number ("System Design #12"), then a
 share or follow line in our own words. Choose meta.format: "card" suits short single-concept or
 real-incident videos, "full" suits multi-step builds. For a real incident, use dated facts from the

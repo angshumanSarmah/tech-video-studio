@@ -32,13 +32,18 @@ pattern and layout for each beat. You are most responsible for the video being i
 different from the previous ones.
 
 House voice
-- Hook within 3 seconds: an engineer's problem with a real number from the notes, never "how does
-  X work?". One or two numbers in the hook, not a list.
+- Hook within 3 seconds that creates tension, never "how does X work?". Set hook.kind:
+  "problem" for a system under load or an incident: an engineer's problem with one or two real
+  numbers from the notes, not a list. "puzzle" when the mechanism itself is the interesting part:
+  the question it answers ("Why does adding one cache server make most lookups miss?"), with a
+  number only if the number is the puzzle. Either way the hook leads into the mechanism, not
+  away from it.
 - One idea per beat; 5-8 beats for 60 s (each beat needs about 6-10 s of narration).
 - At least once: failure before the fix, or a rejected alternative before the chosen design.
 - Plant a question early and pay it off late (at least two beats later) when the topic allows.
 - Use any one device in at most two beats (a real-incident hook and its aftermath count as two).
-  Every real_incident beat carries a source line.
+  Every real_incident beat carries a source line; a source line names the publisher and
+  what it is ("Acme engineering blog", "libfoo README"), never a bare name.
 - End with a 3-line spec card summarising the design, the series number, then a share or follow
   line in our own words, with no numbers or series label in it (code adds the series number).
 - meta.format: "card" for a short single-concept or real-incident video, "full" for a multi-step build.
@@ -59,6 +64,8 @@ DO
 - Keep it easy to follow: one new idea per beat; at most 3 new terms in the whole video (from the
   glossary); one concrete running example all the way through (one user, one request); show it
   happening first, then name it. Use an analogy from the notes when it helps.
+- A beat relies only on terms introduced in that beat or earlier (in its intent, tags and
+  headline). If an earlier beat needs a term, introduce it there instead of talking around it.
 DO NOT
 - Plan a beat that needs facts the notes don't have.
 - Use the same pattern on the same focus in two consecutive beats.
@@ -138,6 +145,23 @@ Common mistakes to avoid
             "maxLength": 64,
             "pattern": "^[a-z0-9][a-z0-9_-]*$"
           }
+        },
+        "hook": {
+          "default": {},
+          "type": "object",
+          "properties": {
+            "kind": {
+              "default": "problem",
+              "description": "Always set it. \"problem\": a system under load or an incident; the hook beat names one or two research numbers in hookNumberIds (at most 2). \"puzzle\": the mechanism itself is the interesting part; the hook beat's intent is the question the mechanism answers, ending in \"?\", with at most 1 research number and only if the number is the puzzle.",
+              "type": "string",
+              "enum": [
+                "problem",
+                "puzzle"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "description": "How the video opens. Set hook.kind on every plan: \"problem\" or \"puzzle\"."
         },
         "metaphorWorld": {
           "description": "At most one metaphor world id.",

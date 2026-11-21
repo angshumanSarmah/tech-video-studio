@@ -14,6 +14,8 @@ import {
   MAX_BEATS_PER_PATTERN,
   MAX_BEATS_PER_SCENE,
   MAX_HOOK_NUMBERS,
+  MAX_PUZZLE_HOOK_NUMBERS,
+  type StoryBeat,
   MAX_SCENES_PER_LAYOUT_MODE,
 } from '../spec/story.ts';
 import type { DirectorPlan } from './plan.ts';
@@ -57,6 +59,8 @@ export const DIRECTOR_PROBLEM_CODES = [
   'no_failure_or_alternative',
   'chosen_design_missing',
   'hook_without_number',
+  'hook_not_question',
+  'hook_too_many_numbers',
   'hook_numbers_in_fact_ids',
   'hook_numbers_off_hook',
   'payoff_too_soon',
@@ -268,6 +272,29 @@ function factCountProblems(plan: DirectorPlan, level: ExplanationLevel): Directo
 }
 
 /**
+ * The distinct research numbers a beat uses, by value: its `num-*` ids (hook numbers included)
+ * and the research values its intent states (dates and everyday words aside). Values map to a
+ * label for messages: the id, or the number as the intent writes it.
+ */
+function beatResearchNumbers(beat: StoryBeat, notes: ResearchNotes): Map<string, string> {
+  const values = new Map(notes.numbers.map((n) => [n.id, n.value]));
+  const research = numberValueKeys(notes);
+  const ids = [
+    ...(beat.hookNumberIds ?? []),
+    ...beat.factIds.filter((id) => id.startsWith('num-')),
+  ];
+  const used = new Map<string, string>();
+  for (const id of ids) {
+    for (const m of numberMentions(values.get(id) ?? '')) used.set(numberKey(m.value), id);
+  }
+  for (const m of numberMentions(beat.intent)) {
+    const key = numberKey(m.value);
+    if (!m.everyday && research.has(key) && !used.has(key)) used.set(key, `"${m.text}"`);
+  }
+  return used;
+}
+
+/**
  * A beat uses at most the level's number of distinct research numbers: the values of its
  * `num-*` ids (hook numbers included) and the research values its intent states, compared by
  * value (a number the intent states without citing it counts too; dates do not). The intent is
@@ -280,21 +307,8 @@ function numberCountProblems(
 ): DirectorProblem[] {
   const limit = MAX_NUMBERS_PER_BEAT[level];
   if (!Number.isFinite(limit)) return [];
-  const values = new Map(notes.numbers.map((n) => [n.id, n.value]));
-  const research = numberValueKeys(notes);
   return plan.story.beats.flatMap((beat, i) => {
-    const ids = [
-      ...(beat.hookNumberIds ?? []),
-      ...beat.factIds.filter((id) => id.startsWith('num-')),
-    ];
-    const used = new Map<string, string>();
-    for (const id of ids) {
-      for (const m of numberMentions(values.get(id) ?? '')) used.set(numberKey(m.value), id);
-    }
-    for (const m of numberMentions(beat.intent)) {
-      const key = numberKey(m.value);
-      if (!m.everyday && research.has(key) && !used.has(key)) used.set(key, `"${m.text}"`);
-    }
+    const used = beatResearchNumbers(beat, notes);
     if (used.size <= limit) return [];
     return [
       problem(
@@ -737,8 +751,11 @@ function hookIndexOf(plan: DirectorPlan, video: PlannedVideo): number | undefine
 }
 
 /**
- * Each video's hook names its one or two research numbers in `hookNumberIds` (the schema caps
- * them), when the notes have numbers, and lists no `num-*` in its `factIds`.
+ * Each video's hook keeps its numbers in `hookNumberIds`, never in `factIds`, and opens the way
+ * `story.hook.kind` says: a `problem` names one or two research numbers (the schema caps them)
+ * when the notes have numbers; a `puzzle` asks the question the mechanism answers (its intent
+ * has a "?") with at most `MAX_PUZZLE_HOOK_NUMBERS` research number. The topic class plays no
+ * part: either kind suits any topic.
  */
 function hookProblems(
   plan: DirectorPlan,
@@ -761,6 +778,8 @@ function hookProblems(
       ),
     );
   }
+  if (plan.story.hook.kind === 'puzzle')
+    return [...problems, ...puzzleHookProblems(hook, path, video, notes)];
   if (notes.numbers.length > 0 && !hook.hookNumberIds?.length) {
     problems.push(
       problem(
@@ -771,6 +790,42 @@ function hookProblems(
     );
   }
   return problems;
+}
+
+/** A puzzle hook is a question, with a number only when the number is the puzzle. */
+function puzzleHookProblems(
+  hook: StoryBeat,
+  path: Path,
+  video: PlannedVideo,
+  notes: ResearchNotes,
+): DirectorProblem[] {
+  const where = `${video.label}'s hook "${hook.id}"`;
+  const numbers = beatResearchNumbers(hook, notes);
+  return [
+    ...(hook.intent.includes('?')
+      ? []
+      : [
+          problem(
+            [...path, 'intent'],
+            'hook_not_question',
+            `${where} is a puzzle hook (story.hook.kind "puzzle"): phrase its intent as the ` +
+              'question the mechanism answers, ending in "?". Or set kind "problem" and give it ' +
+              'one or two research numbers.',
+          ),
+        ]),
+    ...(numbers.size > MAX_PUZZLE_HOOK_NUMBERS
+      ? [
+          problem(
+            [...path, 'hookNumberIds'],
+            'hook_too_many_numbers',
+            `${where} is a puzzle hook with ${numbers.size} research numbers ` +
+              `(${[...numbers.values()].join(', ')}); a puzzle uses at most ` +
+              `${MAX_PUZZLE_HOOK_NUMBERS}, and only if the number is the puzzle. Keep one, or set ` +
+              'kind "problem".',
+          ),
+        ]
+      : []),
+  ];
 }
 
 /** `hookNumberIds` belong to hooks only. */

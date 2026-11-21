@@ -216,11 +216,30 @@ export const MissingPrimitiveRequestSchema = z.strictObject({
 });
 export type MissingPrimitiveRequest = z.infer<typeof MissingPrimitiveRequestSchema>;
 
+/** How a video opens: on an engineer's problem with numbers, or on the question a mechanism answers. */
+export const HOOK_KINDS = ['problem', 'puzzle'] as const;
+export const HookKindSchema = z.enum(HOOK_KINDS);
+export type HookKind = z.infer<typeof HookKindSchema>;
+
+/** Research numbers a puzzle hook may use: a number only when the number is the puzzle. */
+export const MAX_PUZZLE_HOOK_NUMBERS = 1;
+
+export const HookSchema = z.strictObject({
+  kind: HookKindSchema.default('problem').describe(
+    `Always set it. "problem": a system under load or an incident; the hook beat names one or two research numbers in hookNumberIds (at most ${MAX_HOOK_NUMBERS}). "puzzle": the mechanism itself is the interesting part; the hook beat's intent is the question the mechanism answers, ending in "?", with at most ${MAX_PUZZLE_HOOK_NUMBERS} research number and only if the number is the puzzle.`,
+  ),
+});
+export type Hook = z.infer<typeof HookSchema>;
+
 /** Characters in `story.runningExample`. */
 export const RUNNING_EXAMPLE_MAX = 200;
 
 export const StoryLayerSchema = z.strictObject({
   devices: z.array(SpecIdSchema).default([]).describe('Narrative device ids for the whole video.'),
+  /** How the hook opens; plans and specs from before hook kinds parse as `problem`. */
+  hook: HookSchema.describe(
+    'How the video opens. Set hook.kind on every plan: "problem" or "puzzle".',
+  ).prefault({}),
   metaphorWorld: SpecIdSchema.optional().describe('At most one metaphor world id.'),
   heroMetric: HeroMetricSchema.optional(),
   /** The one concrete example (one user, one request) the video follows throughout. */

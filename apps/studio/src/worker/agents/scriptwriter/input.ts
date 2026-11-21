@@ -46,6 +46,7 @@ export function scriptwriterUserMessage(input: ScriptwriterMessage): string {
     explanationLevel: input.level,
     format: input.format,
     title: plan.meta.title,
+    hook: story.hook,
     runningExample: story.runningExample ?? null,
     heroMetric: story.heroMetric ?? null,
     plantedQuestion: story.plantedQuestion ?? null,

@@ -492,9 +492,13 @@ seriesNumber })` makes the spec; with parts its `targetLengthSec` is the parts' 
   planted question and rejected / chosen pair inside one part; devices get what they need
   (`plantedQuestion`, `heroMetric`, chapter questions, a real incident's `source`, facts and an
   incident in the notes); a `failure_before_fix` device or a `rejectedAlternative` with its
-  `chosenBeatId`; each video's hook (first beat after a recap) names its one or two research
-  numbers in `beats[].hookNumberIds` (schema `maxItems` `MAX_HOOK_NUMBERS`, 2) when the notes have
-  numbers, with no `num-*` left in its `factIds` (`hook_numbers_in_fact_ids`), and only hooks
+  `chosenBeatId`; each video's hook (first beat after a recap) opens as `story.hook.kind` says
+  (`HOOK_KINDS`; missing in older plans and specs = `problem`; the topic class plays no part): a
+  `problem` hook names its one or two research numbers in `beats[].hookNumberIds` (schema
+  `maxItems` `MAX_HOOK_NUMBERS`, 2) when the notes have numbers (`hook_without_number`); a
+  `puzzle` hook's intent is a question with a "?" (`hook_not_question`) using at most
+  `MAX_PUZZLE_HOOK_NUMBERS` (1) research number, ids and intent values together
+  (`hook_too_many_numbers`); either way no `num-*` is left in its `factIds` (`hook_numbers_in_fact_ids`), and only hooks
   carry `hookNumberIds` (`hook_numbers_off_hook`); every number in the plan's prose (beat
   intents, planted question, rejected alternative, chapter titles and questions, running
   example, hero metric and story clock labels, spec card lines) is a research number value or a
