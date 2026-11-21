@@ -481,7 +481,12 @@ seriesNumber })` makes the spec; with parts its `targetLengthSec` is the parts' 
   `hookNumberIds` and the research values its intent states, compared by value
   (`numberMentions`, `script/note-values.ts`; dates aside) (`too_many_numbers_in_beat`; both limits are hinted in `factIds`' schema description); new terms match the glossary case-insensitively
   (`unknown_term`), at most 1 per beat and `NEW_TERM_LIMITS` distinct per level (3 / 5 / no
-  limit); `runningExample` at beginner; each video or part plans the override or a length in the
+  limit); no beat's intent, source line, chapter title or question (from the chapter's first
+  beat) or hero metric (from the first beat) names a later beat's new term (`term_before_intro`;
+  `containsPhrase`, `text/phrase.ts`: whole words, any case, plain plural); a beat's `source` is
+  not bare (`source_label_bare`: one word, or only a source's site or library name,
+  `bareSourceNames` / `isBareSourceLine` in `research/source-names.ts`; the Scriptwriter checks
+  its lines the same way); `runningExample` at beginner; each video or part plans the override or a length in the
   range, beats sum to it ±10%, a `lengthReason` above `lengthReasonAboveSec`; parts are allowed,
   at most `maxParts`, numbered 1..N, cover every beat once in order, and keep each chapter,
   planted question and rejected / chosen pair inside one part; devices get what they need
@@ -498,7 +503,8 @@ seriesNumber })` makes the spec; with parts its `targetLengthSec` is the parts' 
   `MIN_PAYOFF_GAP_BEATS` (2) beats later; a device sits on at most `MAX_BEATS_PER_DEVICE` (2)
   beats (`recap_opening` and `cliffhanger_ending` aside, one per part) and every device in
   `story.devices` is on at least one beat (`devices_unused`); the `cta` has no digits
-  and not the series name or label (code adds them); the single video or last part closes with an ending device other than
+  and not the series name or label as whole words (code adds them; "AI" is not found in
+  "explain"); the single video or last part closes with an ending device other than
   `cliffhanger_ending` and its `ENDING_REQUIREMENTS` (spec card: `specCard` and `cta`; callback
   and real-world closure: `cta`); earlier parts end on a `cliffhanger_ending` beat, parts 2+ open
   on a `recap_opening` beat; more than `MAX_RECENT_COMBO_REUSE` (1) beats reusing a recent
@@ -554,8 +560,8 @@ researchStepId)`, not the newest research), the run's level and pace (`resolvePr
   singular or with `s|es|ed|ing`), `topic_not_defined` (beginner: the first
   `TOPIC_DEFINED_BY_BEAT` (2) beats of each video name `mainTerm`, the longest of the topic title
   and glossary terms that `meta.title` names, else the topic title; skipped when a later beat's
-  `newTerms` introduce it) `source_missing` (a planned `source`, or stat cards) and `source_changed` (a planned
-  `source` is kept word for word). Budget and per-sentence messages name the rule a fix tends to
+  `newTerms` introduce it) `source_missing` (a planned `source`, or stat cards) `source_changed` (a planned
+  `source` is kept word for word, unless it is bare) and `source_label_bare`. Budget and per-sentence messages name the rule a fix tends to
   break (one number per sentence; the beat's words left), so repairs do not oscillate. On-screen
   checks (`script/screen-checks.ts`): `stat_cards_per_beat` (`MAX_STAT_CARDS_PER_BEAT`, 1),
   `stat_cards_per_video` (`MAX_STAT_CARDS_PER_VIDEO`, 4, per part), `stat_card_not_spoken`
@@ -825,8 +831,10 @@ channelHandle })` measures the same strings (`subjectText`, `chapterHeaderText`,
     narrowest chapter-title slot of the default theme holds (the card viewport label); a test
     recomputes it. `HERO_METRIC_MAX_CHARS` (label and value together; in their schema
     descriptions) is what the default theme's metric row holds beside a 5-step marker, and
-    `TITLE_MAX_CHARS` (in the Director's `meta.title` description) what its subject line holds
-    after the longest seeded series label; tests recompute both.
+    `TITLE_MAX_CHARS` what its subject line holds after the longest seeded series label; tests
+    recompute both. The Director's title hint is per series: `titleRoomChars(theme, label)`
+    (`hud/title-room.ts`, the same slots `hudTextWarnings` measures: 44 after "SYSTEM DESIGN · ",
+    55 after "AI · ") goes into `DirectorInput.titleMaxChars` and the user message's `title` line.
 - **Subtitles** (`src/subtitles`): word-by-word karaoke captions in the format's
   `subtitleBand` (`formatAreas`; card has its own). `buildSubtitleCues(spec, theme)` (pure,
   exported through `catalog`) is the single source for the burned-in captions and the SRT.

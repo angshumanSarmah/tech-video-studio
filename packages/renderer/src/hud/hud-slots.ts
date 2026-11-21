@@ -91,7 +91,7 @@ export function titleBlockSlots(
   const { space, stroke } = theme;
   const layout = titleBlockLayout(theme, variant);
   const areas = formatAreas(theme, spec.meta.format);
-  const cell = layout.block.width - 2 * stroke.thin - 2 * space.sm;
+  const cell = titleCellWidth(theme, variant);
   const viewport = areas.viewport?.width ?? 0;
   const shares = { chapter: clockShares(theme, spec), metric: markerShares(theme, spec, false) };
   return {
@@ -103,6 +103,12 @@ export function titleBlockSlots(
     metric: layout.metaRow.width - used(shares.metric) - dimensionChrome(theme),
     shares,
   };
+}
+
+/** The title block's text cell: the subject line (strip) or the title (header), in px. */
+export function titleCellWidth(theme: Theme, variant: TitleBlockVariant): number {
+  const { space, stroke } = theme;
+  return titleBlockLayout(theme, variant).block.width - 2 * stroke.thin - 2 * space.sm;
 }
 
 function used(shares: readonly RowShare[]): number {

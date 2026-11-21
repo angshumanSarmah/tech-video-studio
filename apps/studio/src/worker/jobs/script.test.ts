@@ -39,7 +39,23 @@ const prompts = loadPromptTemplates(join(findWorkspaceRoot(import.meta.dirname),
 const settings = SettingsSchema.parse({});
 const researcher = loadDryRunFixtures(RATE_LIMITER_RESPONSES_DIR).researcher!;
 const director = loadDryRunFixtures(DIRECTOR_RESPONSES_DIR).director!;
-const scriptwriter = loadDryRunFixtures(SCRIPTWRITER_RESPONSES_DIR).scriptwriter!;
+const recorded = loadDryRunFixtures(SCRIPTWRITER_RESPONSES_DIR).scriptwriter!;
+
+/**
+ * The recording predates `source_label_bare`: its last answer cites a beat's source as the bare
+ * library name "quotaflow". Until the fixture is re-recorded, the replay ends with the one repair
+ * that check asks for (the publisher and what it is); once the recording has no bare name, this
+ * adds nothing. TODO(re-record): drop it with the next `scriptwriter:fixture --record`.
+ */
+function withBareSourceRepair(responses: readonly DryRunResponse[]): DryRunResponse[] {
+  const last = JSON.parse(responses.at(-1)!.content!) as { script: { source?: string }[] };
+  const bare = last.script.filter((b) => b.source === 'quotaflow');
+  if (bare.length === 0) return [...responses];
+  for (const beat of bare) beat.source = 'quotaflow README';
+  return [...responses, { content: JSON.stringify(last) }];
+}
+
+const scriptwriter = withBareSourceRepair(recorded);
 const goodAnswer = scriptwriter.at(-1)!;
 const goodScript = (): ScriptwriterOutput =>
   ScriptwriterOutputSchema.parse(JSON.parse(goodAnswer.content!));

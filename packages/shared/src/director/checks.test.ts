@@ -455,7 +455,7 @@ describe('directorPlanProblems', () => {
           (p) => {
             incident(p);
             p.story.beats[3]!.factIds = ['fact-2'];
-            p.story.beats[3]!.source = '<example-source>';
+            p.story.beats[3]!.source = '<example-publisher> post-incident report';
           },
           ctx({ notes: notes({ failureModes: [] }) }),
         ),
@@ -595,6 +595,67 @@ describe('directorPlanProblems', () => {
       expect(
         problemsAfter((p) => (p.story.ending.cta = 'Follow for the SYSTEM  DESIGN deep dives')),
       ).toEqual([['$.story.ending.cta', 'cta_has_series_label']]);
+    });
+
+    it('matches the series label as whole words, so "AI" is not found inside other words', () => {
+      const ai = ctx({ series: { name: 'AI', label: 'AI' } });
+      const cta = (text: string) => (p: DirectorPlan) => (p.story.ending.cta = text);
+      for (const text of [
+        'Send this to someone who can explain it again',
+        'Email it to a teammate who loves detail',
+      ]) {
+        expect(problemsAfter(cta(text), ai)).toEqual([]);
+      }
+      expect(problemsAfter(cta('Follow for more AI explainers'), ai)).toEqual([
+        ['$.story.ending.cta', 'cta_has_series_label'],
+      ]);
+      expect(problemsAfter(cta('Share it with anyone learning ai'), ai)).toEqual([
+        ['$.story.ending.cta', 'cta_has_series_label'],
+      ]);
+    });
+
+    it('flags a term used before the later beat that introduces it, in intents and on-screen text', () => {
+      expect(problemsAfter((p) => (p.story.beats[0]!.intent = 'A burst fills the queue'))).toEqual([
+        ['$.story.beats[0].intent', 'term_before_intro'],
+      ]);
+      expect(problemsAfter((p) => (p.story.beats[0]!.intent = 'Bursts fill QUEUES'))).toEqual([
+        ['$.story.beats[0].intent', 'term_before_intro'],
+      ]);
+      // Whole words only, plain plural only; the introducing beat itself may use it.
+      for (const intent of ['Requests start queueing', 'A burst hits']) {
+        expect(problemsAfter((p) => (p.story.beats[0]!.intent = intent))).toEqual([]);
+      }
+      expect(problemsAfter((p) => (p.story.beats[1]!.intent = 'The queue overflows'))).toEqual([]);
+      expect(problemsAfter((p) => (p.story.chapters[0]!.title = 'The backlog'))).toEqual([
+        ['$.story.chapters[0].title', 'term_before_intro'],
+      ]);
+      expect(problemsAfter((p) => (p.story.chapters[1]!.title = 'The backlog'))).toEqual([]);
+      const [message] = directorPlanProblems(
+        (() => {
+          const p = plan();
+          p.story.beats[0]!.intent = 'A burst fills the queue';
+          return p;
+        })(),
+        ctx(),
+      );
+      expect(message?.message).toBe(
+        'Beat "hook" uses "queue" in its intent, but beat "break" introduces it later: ' +
+          'introduce it in the earlier beat or reword this intent.',
+      );
+    });
+
+    it('flags a bare source line: one word, or only a source’s site or library name', () => {
+      const names = ctx({ sourceNames: ['blog.acme.com', 'acme.com', 'acme'] });
+      const source = (text: string) => (p: DirectorPlan) => (p.story.beats[2]!.source = text);
+      expect(problemsAfter(source('glyphcut'))).toEqual([
+        ['$.story.beats[2].source', 'source_label_bare'],
+      ]);
+      expect(problemsAfter(source('Acme.com'), names)).toEqual([
+        ['$.story.beats[2].source', 'source_label_bare'],
+      ]);
+      for (const ok of ['glyphcut README', 'Acme engineering blog, May 2031']) {
+        expect(problemsAfter(source(ok), names)).toEqual([]);
+      }
     });
 
     it('allows only research number values (and note dates) in every prose field', () => {

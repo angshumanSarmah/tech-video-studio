@@ -1,11 +1,14 @@
-import { directorCatalogueBlock } from '@explainer-studio/renderer/catalog';
+import { directorCatalogueBlock, titleRoomChars } from '@explainer-studio/renderer/catalog';
+import { getTheme } from '@explainer-studio/renderer/theme';
 import {
+  bareSourceNames,
   DirectorPlanSchema,
   PROGRESS_DONE_PCT,
   storyCatalogueVersions,
   type DirectorInput,
   type DirectorPlan,
   type ResearchNotes,
+  type SourceIdentity,
   type Stage,
   type VideoSettings,
 } from '@explainer-studio/shared';
@@ -58,6 +61,8 @@ interface DirectContext {
   readonly run: Run;
   readonly series: Series;
   readonly notes: ResearchNotes;
+  /** The research step's sources: their site and library names are bare as source lines. */
+  readonly sources: readonly SourceIdentity[];
   readonly variables: PromptVariables;
 }
 
@@ -141,8 +146,12 @@ function prepare(deps: DirectJobDeps, run: Run): { input: DirectorInput; context
     researchStepId: research.step.id,
     memory: directorMemory(deps.db, run.id),
     catalogueVersions: storyCatalogueVersions(),
+    titleMaxChars: titleRoomChars(getTheme(), series.label),
   };
-  return { input, context: { run, series, notes: research.notes, variables } };
+  return {
+    input,
+    context: { run, series, notes: research.notes, sources: research.input.sources, variables },
+  };
 }
 
 async function writePlan(
@@ -151,7 +160,7 @@ async function writePlan(
   catalogue: string,
   stepId: number,
   input: DirectorInput,
-  { run, series, notes, variables }: DirectContext,
+  { run, series, notes, sources, variables }: DirectContext,
 ): Promise<DirectorPlan> {
   const prompt = buildPrompt(deps.prompts, {
     role: 'director',
@@ -169,6 +178,7 @@ async function writePlan(
       : { lengthOverrideSec: input.length.overrideSec }),
     recentCombos: input.memory.recent.combos,
     series: { name: series.name, label: series.label },
+    sourceNames: bareSourceNames(sources),
     spec: {
       id: `run-${run.id}`,
       series: series.tag,

@@ -149,6 +149,9 @@ describe('direct job (rate-limiter fixture, dry run)', () => {
     expect(system!.content).toContain('Role: Director.');
     expect(system!.content).toContain('## OUTPUT SHAPE');
     expect(system!.content).toContain('"runningExample"');
+    // The title hint is measured for this run's series label ("SYSTEM DESIGN · ").
+    expect(result.input.titleMaxChars).toBe(44);
+    expect(user!.content).toContain('"title": "At most about 44 characters');
     // Summaries-only catalogue: pattern ids and anchors, no params schemas.
     expect(system!.content).toContain('## PATTERNS (exhaustive');
     expect(system!.content).not.toContain('"params":');

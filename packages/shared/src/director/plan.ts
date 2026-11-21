@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { SpecIdSchema } from '../spec/ids.ts';
-import { MetaSchema, TITLE_MAX_CHARS, TopicClassSchema, VideoFormatSchema } from '../spec/meta.ts';
+import { MetaSchema, TopicClassSchema, VideoFormatSchema } from '../spec/meta.ts';
 import { EndingSchema, StoryLayerSchema } from '../spec/story.ts';
 
 /**
@@ -20,7 +20,7 @@ const PlannedSecSchema = z.number().int().positive();
 
 export const DirectorMetaSchema = z.strictObject({
   title: MetaSchema.shape.title.describe(
-    `The video title: short, concrete, no hype; at most about ${TITLE_MAX_CHARS} characters, or the HUD cuts it off.`,
+    'The video title: short, concrete, no hype; at most the characters the input\'s "title" line gives (room after the series label), or the HUD cuts it off.',
   ),
   topicClass: TopicClassSchema.describe('The topic class id from the catalogue.'),
   format: VideoFormatSchema.describe(

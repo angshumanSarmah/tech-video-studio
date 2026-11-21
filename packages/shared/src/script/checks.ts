@@ -1,5 +1,6 @@
 import type { ExplanationLevel } from '../config/video.ts';
 import { MAX_NUMBERS_PER_BEAT } from '../director/checks.ts';
+import { bareSourceMessage, isBareSourceLine } from '../research/source-names.ts';
 import type { DirectorPlan } from '../director/plan.ts';
 import { narrationWords } from '../spec/narration.ts';
 import type { BeatScript } from '../spec/script.ts';
@@ -97,7 +98,7 @@ export function scriptProblems(output: ScriptToCheck, ctx: ScriptCheckContext): 
     ...hookProblems(output, ctx),
     ...newTermProblems(output, ctx.plan),
     ...topicProblems(output, ctx),
-    ...sourceProblems(output, ctx.plan),
+    ...sourceProblems(output, ctx.plan, ctx.sourceNames),
   ];
 }
 
@@ -356,14 +357,28 @@ function topicProblems(output: ScriptToCheck, ctx: ScriptCheckContext): ScriptPr
 
 /**
  * A beat with stat cards or a planned source has a source line; a planned one is kept word for
- * word (the Director took it from the notes).
+ * word (the Director took it from the notes), unless it is a bare name; no line is a bare name.
  */
-function sourceProblems(output: ScriptToCheck, plan: DirectorPlan): ScriptProblem[] {
+function sourceProblems(
+  output: ScriptToCheck,
+  plan: DirectorPlan,
+  names: readonly string[] = [],
+): ScriptProblem[] {
   const plans = new Map(plan.story.beats.map((b) => [b.id, b]));
   return output.script.flatMap((beat, i) => {
     const planned = plans.get(beat.beatId)?.source;
     if (beat.source) {
-      if (!planned || beat.source.trim() === planned.trim()) return [];
+      if (isBareSourceLine(beat.source, names)) {
+        return [
+          problem(
+            ['script', i, 'source'],
+            'source_label_bare',
+            bareSourceMessage(`Beat "${beat.beatId}"'s`, beat.source),
+          ),
+        ];
+      }
+      const keep = planned && !isBareSourceLine(planned, names);
+      if (!keep || beat.source.trim() === planned.trim()) return [];
       return [
         problem(
           ['script', i, 'source'],

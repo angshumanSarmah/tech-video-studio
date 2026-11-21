@@ -49,5 +49,10 @@ export const DirectorInputSchema = z.strictObject({
   memory: DirectorMemorySchema,
   /** The catalogue block's `CATALOGUE VERSIONS` line. */
   catalogueVersions: z.string(),
+  /**
+   * About how many title characters the HUD shows after this series' label (`titleRoomChars`),
+   * the prompt's title hint. Absent in steps from before the hint was per series.
+   */
+  titleMaxChars: z.number().int().positive().optional(),
 });
 export type DirectorInput = z.infer<typeof DirectorInputSchema>;

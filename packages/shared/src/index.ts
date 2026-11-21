@@ -23,3 +23,4 @@ export * from './director/index.ts';
 export * from './research/index.ts';
 export * from './script/index.ts';
 export * from './spec/index.ts';
+export * from './text/phrase.ts';

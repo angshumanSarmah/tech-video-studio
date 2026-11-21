@@ -17,6 +17,7 @@ export function directorUserMessage(input: DirectorInput, notes: ResearchNotes):
     topic: input.topic.title,
     angle: input.topic.notes,
     series: { name: input.series.name, label: input.series.label, number: input.series.nextNumber },
+    title: titleInstruction(input),
     length: lengthInstruction(input),
     parts: partsInstruction(input),
     format: formatInstruction(input),
@@ -31,6 +32,12 @@ export function directorUserMessage(input: DirectorInput, notes: ResearchNotes):
     researchNotes: notesWithoutChunks(notes),
   };
   return `${INTRO}\n\n${JSON.stringify(payload, null, 2)}`;
+}
+
+function titleInstruction({ titleMaxChars }: DirectorInput): string {
+  return titleMaxChars === undefined
+    ? 'Short and concrete.'
+    : `At most about ${titleMaxChars} characters (what the HUD shows after the series label), or it is cut off.`;
 }
 
 function lengthInstruction({ length, parts }: DirectorInput): string {

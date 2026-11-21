@@ -1,4 +1,5 @@
 import {
+  bareSourceNames,
   narrationWords,
   PROGRESS_DONE_PCT,
   ScriptwriterOutputSchema,
@@ -178,6 +179,7 @@ async function writeScript(
     plan,
     notes,
     topicTitle: topic.title,
+    sourceNames: bareSourceNames(research.sources),
     level: input.explanationLevel,
     wordsPerSec: input.wordsPerSec,
     pauses: input.pauses,

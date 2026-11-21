@@ -27,6 +27,7 @@ export const SCRIPT_PROBLEM_CODES = [
   'topic_not_defined',
   'source_missing',
   'source_changed',
+  'source_label_bare',
 ] as const;
 export type ScriptProblemCode = (typeof SCRIPT_PROBLEM_CODES)[number];
 
@@ -59,6 +60,8 @@ export interface ScriptCheckContext {
   readonly level: ExplanationLevel;
   readonly wordsPerSec: number;
   readonly pauses: BeatPauses;
+  /** Site and library names of the run's sources (`bareSourceNames`), bare as a source line. */
+  readonly sourceNames?: readonly string[];
 }
 
 export type Path = (string | number)[];

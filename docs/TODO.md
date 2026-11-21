@@ -398,3 +398,13 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **P1C.6 — Ordinals.** `numberMentions` does not read ordinals ("fourteenth", "the
       ninth"), so a date spoken that way is not checked against the notes. "second" and "first"
       are ordinary words too often to read blindly.
+- [ ] **Re-record the rate-limiter Scriptwriter fixture.** Its recording cites b5's source as
+      the bare "quotaflow"; `jobs/script.test.ts` (`withBareSourceRepair`) appends the repair
+      `source_label_bare` asks for until `scriptwriter:fixture --record` runs again.
+- [ ] **Design doc: hook kinds.** The re-exported doc (held in a local `git stash`, not
+      committed) asks the Director for `hook.kind` (problem | puzzle), adds Scriptwriter rules
+      (framing example words, the last beat closes the story) and bare-source wording. It needs a
+      `hook` field on the plan, `director.v2.md`, `scriptwriter.v3.md` and re-recorded fixtures.
+- [ ] **Bare sources: multi-word names.** `isBareSourceLine` catches one word and URL site
+      names; a multi-word library title used alone ("Token Kit") is not caught, since it cannot
+      be told apart from an article title.

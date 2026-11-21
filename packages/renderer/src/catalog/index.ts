@@ -8,6 +8,7 @@ export { formatAreas, type FormatAreas } from '../layout/format.ts';
 export { specLayout, specLayoutWarnings, type SpecLayout } from '../layout/spec-layout.ts';
 export { TEXT_TRUNCATED } from '../layout/text-fit.ts';
 export { hudTextWarnings } from '../hud/hud-text-checks.ts';
+export { titleRoomChars } from '../hud/title-room.ts';
 export type { HudContext } from '../hud/hud-slots.ts';
 // Subtitles (P1B.3): the cues the video draws, for the SRT writer, and their warnings.
 export { buildSubtitleCues, type CueWord, type SubtitleCue } from '../subtitles/cues.ts';

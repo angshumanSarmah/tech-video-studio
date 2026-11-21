@@ -2,6 +2,8 @@ import { ENDING_DEVICES, type EndingDevice } from '../catalogues/devices.ts';
 import type { ExplanationLevel, VideoSettings } from '../config/video.ts';
 import type { ResearchNotes } from '../research/notes.ts';
 import { normalizeNumber, quantityTokens } from '../research/numbers.ts';
+import { bareSourceMessage, isBareSourceLine } from '../research/source-names.ts';
+import { containsPhrase } from '../text/phrase.ts';
 import { numberValueKeys } from '../script/note-values.ts';
 import { numberKey, numberMentions } from '../script/number-mentions.ts';
 import { TARGET_LENGTH_TOLERANCE } from '../spec/integrity/warnings.ts';
@@ -29,6 +31,7 @@ export const DIRECTOR_PROBLEM_CODES = [
   'too_many_facts_in_beat',
   'too_many_numbers_in_beat',
   'unknown_term',
+  'term_before_intro',
   'too_many_new_terms_in_beat',
   'too_many_new_terms',
   'running_example_missing',
@@ -61,6 +64,7 @@ export const DIRECTOR_PROBLEM_CODES = [
   'devices_unused',
   'cta_has_number',
   'cta_has_series_label',
+  'source_label_bare',
   'number_not_in_notes',
   'ending_kind',
   'spec_card_missing',
@@ -93,6 +97,8 @@ export interface DirectorCheckContext {
   readonly recentCombos: readonly string[];
   /** The run's series: its name and label may not appear in the CTA (code adds them). */
   readonly series: { readonly name: string; readonly label: string };
+  /** Site and library names of the run's sources (`bareSourceNames`), bare as a source line. */
+  readonly sourceNames?: readonly string[];
 }
 
 /** Distinct new glossary terms a whole video (or plan) may introduce, per explanation level. */
@@ -167,6 +173,8 @@ export function directorPlanProblems(
     ...factCountProblems(plan, ctx.video.explanationLevel),
     ...numberCountProblems(plan, ctx.notes, ctx.video.explanationLevel),
     ...newTermProblems(plan, ctx),
+    ...termBeforeIntroProblems(plan),
+    ...sourceLabelProblems(plan, ctx.sourceNames),
     ...runningExampleProblems(plan, ctx.video.explanationLevel),
     ...partStructureProblems(plan, ctx.video),
     ...videos.flatMap((video) => lengthProblems(plan, video, ctx)),
@@ -349,6 +357,82 @@ function newTermProblems(plan: DirectorPlan, ctx: DirectorCheckContext): Directo
     );
   }
   return problems;
+}
+
+/** The plan's texts a beat shows or acts on, by the first beat they appear in. */
+function textsByBeat(
+  plan: DirectorPlan,
+): { beat: number; path: Path; what: string; text: string }[] {
+  const { story } = plan;
+  const firstBeat = (chapterId: string) => story.beats.findIndex((b) => b.chapterId === chapterId);
+  const metric = story.heroMetric;
+  return [
+    ...story.beats.flatMap((b, i) => [
+      { beat: i, path: ['story', 'beats', i, 'intent'], what: 'intent', text: b.intent },
+      ...(b.source
+        ? [{ beat: i, path: ['story', 'beats', i, 'source'], what: 'source line', text: b.source }]
+        : []),
+    ]),
+    ...story.chapters.flatMap((c, k) =>
+      (['title', 'question'] as const).flatMap((field) => {
+        const text = c[field];
+        const beat = firstBeat(c.id);
+        return text && beat >= 0
+          ? [{ beat, path: ['story', 'chapters', k, field], what: `chapter ${field}`, text }]
+          : [];
+      }),
+    ),
+    ...(metric
+      ? (['label', 'value'] as const).map((field) => ({
+          beat: 0,
+          path: ['story', 'heroMetric', field],
+          what: `hero metric ${field}`,
+          text: metric[field],
+        }))
+      : []),
+  ];
+}
+
+/**
+ * A beat relies only on terms introduced in it or earlier: an intent (or a text on screen from
+ * that beat: its source line, a chapter title from the chapter's first beat, the hero metric from
+ * the first) that names a later beat's new term is flagged. Whole words, any case, plain plural.
+ */
+function termBeforeIntroProblems(plan: DirectorPlan): DirectorProblem[] {
+  const intro = new Map<string, { term: string; beat: number }>();
+  plan.story.beats.forEach((b, i) =>
+    b.newTerms.forEach((term) => {
+      if (!intro.has(foldTerm(term))) intro.set(foldTerm(term), { term, beat: i });
+    }),
+  );
+  const beatId = (i: number) => plan.story.beats[i]!.id;
+  return textsByBeat(plan).flatMap(({ beat, path, what, text }) =>
+    [...intro.values()]
+      .filter((t) => t.beat > beat && containsPhrase(text, t.term, { plural: true }))
+      .map((t) =>
+        problem(
+          path,
+          'term_before_intro',
+          `Beat "${beatId(beat)}" uses "${t.term}" in its ${what}, but beat "${beatId(t.beat)}" ` +
+            `introduces it later: introduce it in the earlier beat or reword this ${what}.`,
+        ),
+      ),
+  );
+}
+
+/** A beat's source line names the publisher and what it is, never a bare name. */
+function sourceLabelProblems(plan: DirectorPlan, names: readonly string[] = []): DirectorProblem[] {
+  return plan.story.beats.flatMap((b, i) =>
+    b.source && isBareSourceLine(b.source, names)
+      ? [
+          problem(
+            ['story', 'beats', i, 'source'],
+            'source_label_bare',
+            bareSourceMessage(`Beat "${b.id}"'s`, b.source),
+          ),
+        ]
+      : [],
+  );
 }
 
 function runningExampleProblems(plan: DirectorPlan, level: ExplanationLevel): DirectorProblem[] {
@@ -858,8 +942,8 @@ function ctaProblems(
       ),
     );
   }
-  const folded = foldTerm(cta);
-  const named = [series.label, series.name].find((s) => s.trim() && folded.includes(foldTerm(s)));
+  // Whole words: the AI label must not match "explain", "again" or "email".
+  const named = [series.label, series.name].find((s) => containsPhrase(cta, s));
   if (named) {
     problems.push(
       problem(

@@ -90,7 +90,7 @@ function output(): ScriptwriterOutput {
         narration: `The waiting requests form a backlog, a line of work. Each waits two point five milliseconds. ${words(9)}.`,
         headline: { text: 'Backlog = work waiting its turn', semantic: 'concept' },
         statCards: [{ value: '2.5 ms', label: 'wait per request', sourceRef: 'num-2' }],
-        source: '<example-source>',
+        source: '<example-publisher> field guide',
       },
       {
         beatId: 'b3',
@@ -248,7 +248,7 @@ describe('scriptProblems', () => {
     out.script[0]!.statCards = [card('num-1', '500'), card('num-1', '500')];
     out.script[1]!.statCards = [card('num-2', '2.5 ms'), card('num-2', '2.5 ms')];
     out.script[2]!.statCards = [card('num-3', '2 million')];
-    out.script[0]!.source = '<example-source>';
+    out.script[0]!.source = '<example-publisher> field guide';
     expect(codes(out).filter((c) => c.startsWith('stat_cards'))).toEqual([
       'stat_cards_per_beat $.script[0].statCards',
       'stat_cards_per_beat $.script[1].statCards',
@@ -324,6 +324,21 @@ describe('scriptProblems', () => {
       'A burst of five hundred requests hits one queue. On nine May twenty thirty-one, ' +
       `two million arrived. ${words(9)}.`;
     expect(codes(out)).toEqual([]);
+  });
+
+  it('flags a bare source line, and lets a bare planned line be replaced', () => {
+    const out = output();
+    out.script[1]!.source = 'quotaflow';
+    expect(codes(out)).toEqual(['source_label_bare $.script[1].source']);
+    const p = plan();
+    p.story.beats[2]!.source = 'acme.com';
+    const fixed = output();
+    fixed.script[2]!.source = 'Acme engineering blog, 9 May 2031';
+    expect(codes(fixed, ctx({ plan: p, sourceNames: ['acme.com', 'acme'] }))).toEqual([]);
+    fixed.script[2]!.source = 'acme.com';
+    expect(codes(fixed, ctx({ plan: p, sourceNames: ['acme.com', 'acme'] }))).toEqual([
+      'source_label_bare $.script[2].source',
+    ]);
   });
 
   it('keeps a planned source line word for word', () => {

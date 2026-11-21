@@ -5,6 +5,7 @@ import { roomInChars, textWidth } from '../fonts/measure-text.ts';
 import { getTheme } from '../theme/index.ts';
 import { subjectText, titleBlockSlots } from './hud-slots.ts';
 import { TITLE_LINES } from './title-block.ts';
+import { titleRoomChars } from './title-room.ts';
 
 /** The longest seeded series label (`apps/studio/src/core/db/seed.ts`). */
 const LONGEST_SERIES_LABEL = 'SYSTEM DESIGN';
@@ -22,5 +23,12 @@ describe('TITLE_MAX_CHARS', () => {
       roomInChars(theme, 'title', card) * TITLE_LINES,
     ];
     expect(TITLE_MAX_CHARS).toBe(Math.min(...fits));
+  });
+
+  it('is the room titleRoomChars gives the longest label; shorter labels leave more', () => {
+    const theme = getTheme();
+    expect(titleRoomChars(theme, LONGEST_SERIES_LABEL)).toBe(TITLE_MAX_CHARS);
+    expect(titleRoomChars(theme, 'AI')).toBeGreaterThan(TITLE_MAX_CHARS);
+    expect(titleRoomChars(theme, 'AI')).toBe(55);
   });
 });
