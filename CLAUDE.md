@@ -639,6 +639,32 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   layout modes) and the beat in the user message. `generator/prefix.test.ts` builds a prompt per
   beat of both fixture topics (`generator/testing.ts`: `fixtureScriptedSpec`, from the recorded
   Director and Scriptwriter answers) and checks the system messages are byte-identical.
+- **`generatorCheck(deps)`** (`generator/check.ts`, the `check` for `callJson`): the beat's
+  board (`generatorScene`) spliced into the run's spec (scenes generated so far; empty
+  placeholders elsewhere), then `withRegistryChecks(validateRenderableVideoSpec)`,
+  `specLayoutWarnings` (run format, default theme) and `beatCheckWarnings`. It keeps this beat's
+  issues (paths rewritten into the answer: `$.scenes[3].events[0]` → `$.events[0]`) and issues
+  the answer causes in earlier beats of its board (diffed against the spec without it; the
+  message says so). Near-identical asset ids (`nearIdenticalAsset`: case, `_`/`-`, plural `s`/
+  `es`, an alias) are swapped first (`generatorAssetSwaps`, for the step to log); other
+  `unknown_asset` issues are **soft** (`OutputIssue.soft`: listed as advisory in a repair turn,
+  never the reason for one, never a failure).
+- **Per-beat scene checks** (`catalog/beat-checks.ts`, `beatCheckWarnings`; warnings, the
+  Curator reuses them): `focus_missing` (a board with no `focus` and no focus event),
+  `beat_without_motion` (no event and no pattern), `beat_without_change` (P1C.8: no new element
+  or pattern, no focus shift, no camera move; an empty new board), `zoom_from_unplanned`
+  (`zoomFrom` off a `semantic_zoom` beat), `events_share_word` (more than
+  `MAX_UNRELATED_CHANGES_PER_WORD` (2) changes with no target in common on one word),
+  `events_under_ending_card` (an event or pattern anchor in the final beat's last sentence),
+  `board_too_busy` (more than `MAX_BOARD_UNITS` (7) layout units plus overlay children at the
+  beat's settled moment; 7 is the busiest golden or pattern board, `split_brain`, and a test
+  recomputes it) and `highlight_everything` (one highlight covering every unit of a board of 3
+  or more). A continuing beat that declares an inherited id again is `duplicate_id`
+  (`validateVideoSpec`).
+- **Schema metadata** (`common-props.ts`): `AssetIdSchema` carries `assetId`, `displayNumber()`
+  marks numbers drawn on screen (with a `unit`), `notScreenText()` marks LaTeX.
+  `catalog/schema-leaves.ts` walks props and params against their JSON Schema and returns the
+  asset, text and number leaves (anchors excluded), for any primitive or pattern.
 
 API conventions: routes under `/api`, inputs validated with the `validate()` helper against schemas
 from `packages/shared/src/api`, list responses wrapped as `{ items }`, and every error is

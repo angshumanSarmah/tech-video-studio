@@ -257,6 +257,28 @@ describe('callJson: repair', () => {
     expect(listRunLlmCalls(t.db, runId)[0]?.error).toBe('Invalid output: 2 issue(s)');
   });
 
+  it('accepts an answer whose only issues are soft (advisory)', async () => {
+    const soft = () => [{ path: '$.headline', code: 'unknown_asset', message: 'Odd', soft: true }];
+    const { llm: c, requests } = httpClient([completion('{"headline":"Fine","targetSec":60}')]);
+    await expect(call(c, { check: soft })).resolves.toMatchObject({ value: { headline: 'Fine' } });
+    expect(requests).toHaveLength(1);
+  });
+
+  it('lists soft issues as advisory when another issue forces a repair', async () => {
+    const both = (value: unknown) => [
+      ...noBadHeadline(value),
+      { path: '$.targetSec', code: 'unknown_asset', message: 'Odd', soft: true },
+    ];
+    const { llm: c, requests } = httpClient([
+      completion('{"headline":"Bad","targetSec":60}'),
+      completion('{"headline":"Good","targetSec":60}'),
+    ]);
+    await expect(call(c, { check: both })).resolves.toMatchObject({ value: { headline: 'Good' } });
+    const repair = requests[1]?.body.messages[3]?.content;
+    expect(repair).toContain('- $.headline: Not allowed');
+    expect(repair).toContain('- $.targetSec: (advisory) Odd');
+  });
+
   it('repairs the schema issues alone when the check throws on an invalid shape', async () => {
     const { llm: c, requests } = httpClient([
       completion('[1, 2]'),

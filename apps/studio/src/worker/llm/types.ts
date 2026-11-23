@@ -54,4 +54,9 @@ export interface OutputIssue {
   readonly path: string;
   readonly message: string;
   readonly code?: string;
+  /**
+   * Advisory: listed when a repair happens for another issue, but never the reason for one and
+   * never a failure (e.g. an unknown asset id, which is drawn as a placeholder and recorded).
+   */
+  readonly soft?: boolean;
 }

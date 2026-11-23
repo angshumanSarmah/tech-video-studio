@@ -16,6 +16,7 @@ export function checkScenes(spec: VideoSpec): SpecIssue[] {
   );
   return scenes.flatMap((scene, i) => [
     ...checkSceneIds(scene, i),
+    ...checkInheritedIds(scene, i, scene.continuesPrevious ? scopes[i - 1] : undefined),
     ...checkContinuation(scene, i),
     ...checkTargets(scene, i, scopes[i] ?? { ids: new Set(), patterns: new Set() }),
     ...checkZoomFrom(scene, i, scopes[i - 1]),
@@ -32,6 +33,31 @@ function checkSceneIds(scene: BeatScene, i: number): SpecIssue[] {
       ? ['scenes', i, 'elements', j, 'id']
       : ['scenes', i, 'patterns', j - elementCount, 'id'],
   );
+}
+
+/**
+ * A continuing beat keeps everything on its board: declaring an inherited id again would make two
+ * things with one id. It acts on them with events instead.
+ */
+function checkInheritedIds(
+  scene: BeatScene,
+  i: number,
+  inherited: TargetScope | undefined,
+): SpecIssue[] {
+  if (!inherited) return [];
+  const declared = [
+    ...scene.elements.map((e, j) => ({ id: e.id, path: ['scenes', i, 'elements', j, 'id'] })),
+    ...scene.patterns.map((p, j) => ({ id: p.id, path: ['scenes', i, 'patterns', j, 'id'] })),
+  ];
+  return declared
+    .filter((d) => inherited.ids.has(d.id))
+    .map((d) => ({
+      path: d.path,
+      code: 'duplicate_id',
+      message:
+        `"${d.id}" is already on this board from an earlier beat. Act on it with events ` +
+        'instead of declaring it again, or give the new thing its own id.',
+    }));
 }
 
 function checkContinuation(scene: BeatScene, i: number): SpecIssue[] {

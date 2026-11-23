@@ -86,7 +86,14 @@ export interface LlmClient {
 }
 
 export function formatIssues(issues: readonly OutputIssue[]): string {
-  return issues.map((issue) => `- ${issue.path}: ${issue.message}`).join('\n');
+  return issues
+    .map((issue) => `- ${issue.path}: ${issue.soft ? '(advisory) ' : ''}${issue.message}`)
+    .join('\n');
+}
+
+/** Issues that fail an answer: every one but the soft ones. */
+export function blockingIssues(issues: readonly OutputIssue[]): OutputIssue[] {
+  return issues.filter((issue) => !issue.soft);
 }
 
 /** The user turn that asks for a repaired answer. */
@@ -129,7 +136,9 @@ export function evaluateAnswer<S extends z.ZodType>(
   const issues = parsed.success
     ? [...(request.check?.(parsed.data) ?? [])]
     : [...schemaIssues(parsed.error), ...checkUnvalidated(request.check, normalized.value)];
-  if (!parsed.success || issues.length > 0) return { ok: false, issues, fixes: normalized.fixes };
+  if (!parsed.success || blockingIssues(issues).length > 0) {
+    return { ok: false, issues, fixes: normalized.fixes };
+  }
   return { ok: true, value: parsed.data, fixes: normalized.fixes };
 }
 

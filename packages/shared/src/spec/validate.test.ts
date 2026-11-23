@@ -321,6 +321,14 @@ describe('validateVideoSpec: cross-references', () => {
       { path: '$.scenes[2].zoomFrom', code: 'unknown_reference' },
     ],
     [
+      'a continuing beat declaring an inherited element again',
+      (spec) => {
+        const scene = at(spec.scenes, 1);
+        scene.elements = [...(scene.elements ?? []), { id: 'api', primitive: 'node_card' }];
+      },
+      { path: '$.scenes[1].elements[1].id', code: 'duplicate_id' },
+    ],
+    [
       'continuesPrevious on the first beat',
       (spec) => (at(spec.scenes, 0).continuesPrevious = true),
       { path: '$.scenes[0].continuesPrevious', code: 'continues_without_previous' },

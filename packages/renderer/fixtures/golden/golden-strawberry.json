@@ -184,7 +184,7 @@
         { "at": { "type": "word_text", "text": "each" }, "action": "enter", "targets": ["ids"] },
         { "at": { "type": "word_text", "text": "number" }, "action": "pulse", "targets": ["ids"] }
       ],
-      "focus": []
+      "focus": ["tok-1", "tok-2"]
     },
     {
       "beatId": "blind",

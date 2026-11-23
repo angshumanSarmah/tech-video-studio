@@ -12,9 +12,27 @@ export function semanticProp(fallback: SemanticColour, what = 'Colour meaning') 
     .describe(`${what}: neutral, focus, ok, problem or concept.`);
 }
 
+/**
+ * Schema metadata the screen checks read (`catalog/schema-leaves.ts`): which props hold asset
+ * ids, which numbers are drawn on screen (and in what unit), and which strings are not plain
+ * screen text. It also reaches the catalogue's JSON Schema, so the model sees it.
+ */
 export const AssetIdSchema = SpecIdSchema.describe(
   'Asset id from the asset library (an unknown id is drawn as a placeholder and reported).',
-);
+).meta({ assetId: true });
+
+/** Units a displayed number can be in; screen checks convert research values to them. */
+export type DisplayUnit = 'sec';
+
+/** Marks a number prop as drawn on screen, so it must be a research value (`unit` converts). */
+export function displayNumber<T extends z.ZodType>(schema: T, unit?: DisplayUnit): T {
+  return schema.meta({ displayNumber: unit ? { unit } : {} });
+}
+
+/** Marks a string prop as not plain screen text (LaTeX), so text checks skip it. */
+export function notScreenText<T extends z.ZodType>(schema: T): T {
+  return schema.meta({ screenText: false });
+}
 
 /** A short single line of text: trimmed, non-empty, no line breaks. */
 export function lineText(max: number, description: string) {

@@ -24,9 +24,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       `script[].source`; use `newTerms` (gloss each the first time) and `runningExample`; write
       the recap on `recap_opening` beats and the next part's question on `cliffhanger_ending`
       beats.
-- [ ] **P1C.7 step 4 — Events under the ending card.** The card covers the final beat's last
-      sentence; add a scene check that warns on an event anchored there (the goldens end on a
-      closing sentence with no events for that reason).
 - [ ] **P1C.5 — CTA room hint.** `story.ending.cta` has no length hint in its schema description;
       `hudTextWarnings` reports an over-long CTA with its room. Add a hint (like
       `CHAPTER_TITLE_MAX_CHARS`) if the Director keeps writing CTAs past three lines.
@@ -210,11 +207,9 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       P1B.3 replaces it and deletes `src/dev/`; `src/dev/dev-layers.test.ts` fails once
       `src/subtitles/` exists and anything outside `src/dev` still uses it (keep the subtitle
       layer at that path, or update the test).
-- [ ] **P1C.7 / P1D — Wire registry checks.** `withRegistryChecks` (from
-      `@explainer-studio/renderer/catalog`) is not called anywhere yet. The Curator must run it on
-      Generator output (its errors feed the repair loop like any other), and scene-gate saves must
-      run it too, so a spec cannot pass a gate with unknown primitives, bad props or unsupported
-      actions.
+- [ ] **P1D — Registry checks at the scene gate.** The Generator runs `withRegistryChecks` and
+      `specLayoutWarnings` on every answer (`generatorCheck`); scene-gate saves must run them too,
+      so a spec cannot pass a gate with unknown primitives, bad props or unsupported actions.
 - [ ] **P1C.7 step 10 — Asset list from the DB.** `generatorCatalogueBlock` lists
       `registries.assets` (the seed library by default). The `generate` job must build it from the
       DB's approved rows (`loadAssetLibrary`, then `buildAssetRegistry` into `Registries.assets`)
@@ -364,10 +359,9 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       what overhangs further.
 - [ ] **Layout — Radial centring.** `centered_focus` and `hub_spoke` centre the others on the
       middle element's cluster (with its pins), so a hub with a side pin sits off centre.
-- [ ] **P1C.7 — Layout warnings.** `specLayoutWarnings(spec, theme)` (from
-      `@explainer-studio/renderer/catalog`) is not called yet. The Curator runs it on Generator
-      output (warnings count as failures there) with the run's theme and format, and the scene
-      gate shows it.
+- [ ] **P1C.8 / P1D — Layout warnings.** `generatorCheck` runs `specLayoutWarnings` on each
+      beat; the Curator runs it on the assembled spec with the run's theme and format, and the
+      scene gate shows it.
 - [ ] **Recover without a reject.** A `recover` on an element or part that was never rejected
       (in its `continuesPrevious` chain) is a silent no-op. Add a timeline warning
       (`recover_without_reject`) so agents repair it; the board fixtures are checked by a test.

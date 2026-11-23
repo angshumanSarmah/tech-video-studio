@@ -29,3 +29,8 @@ export * from './key-frame.ts';
 export { beatSettledOffsets } from './settled.ts';
 export { beatFrameSpans, secToFrame, totalFrames, type BeatFrameSpan } from '../timing/frames.ts';
 export type { BeatFromSpecProps, SeriesProps, VideoFromSpecProps } from '../compositions/props.ts';
+// The Generator's checks (P1C.7): asset swaps and the schema leaves the screen checks read.
+export * from './asset-swaps.ts';
+export * from './schema-leaves.ts';
+export { nearIdenticalAsset } from '../assets/near-identical.ts';
+export * from './beat-checks.ts';

@@ -185,7 +185,8 @@
             "type": "string",
             "maxLength": 64,
             "pattern": "^[a-z0-9][a-z0-9_-]*$",
-            "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+            "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported).",
+            "assetId": true
           },
           "semantic": {
             "default": "neutral",
@@ -306,7 +307,8 @@
             "type": "string",
             "maxLength": 64,
             "pattern": "^[a-z0-9][a-z0-9_-]*$",
-            "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+            "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported).",
+            "assetId": true
           },
           "caption": {
             "type": "string",
@@ -386,13 +388,15 @@
             "type": "string",
             "maxLength": 64,
             "pattern": "^[a-z0-9][a-z0-9_-]*$",
-            "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+            "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported).",
+            "assetId": true
           },
           "role": {
             "description": "Optional role badge (asset id, e.g. a crown for a leader) at the top centre. It is the part \"role\": exit it on the old holder and enter it on the new one to move the role.",
             "type": "string",
             "maxLength": 64,
-            "pattern": "^[a-z0-9][a-z0-9_-]*$"
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "assetId": true
           },
           "semantic": {
             "default": "neutral",
@@ -1092,7 +1096,8 @@
             "description": "Optional asset id of what travels the route (a bike, a car, a parcel).",
             "type": "string",
             "maxLength": 64,
-            "pattern": "^[a-z0-9][a-z0-9_-]*$"
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "assetId": true
           },
           "semantic": {
             "default": "focus",
@@ -2001,7 +2006,8 @@
                   "type": "string",
                   "maxLength": 64,
                   "pattern": "^[a-z0-9][a-z0-9_-]*$",
-                  "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+                  "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported).",
+                  "assetId": true
                 }
               },
               "required": [
@@ -2155,7 +2161,8 @@
                   "type": "string",
                   "maxLength": 64,
                   "pattern": "^[a-z0-9][a-z0-9_-]*$",
-                  "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+                  "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported).",
+                  "assetId": true
                 },
                 "semantic": {
                   "default": "neutral",
@@ -2311,7 +2318,8 @@
                 "type": "string",
                 "maxLength": 64,
                 "pattern": "^[a-z0-9][a-z0-9_-]*$",
-                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported).",
+                "assetId": true
               },
               "verdict": {
                 "type": "string",
@@ -2351,7 +2359,8 @@
                 "type": "string",
                 "maxLength": 64,
                 "pattern": "^[a-z0-9][a-z0-9_-]*$",
-                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported).",
+                "assetId": true
               },
               "verdict": {
                 "type": "string",
@@ -2773,7 +2782,8 @@
                 "type": "string",
                 "maxLength": 64,
                 "pattern": "^[a-z0-9][a-z0-9_-]*$",
-                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported).",
+                "assetId": true
               }
             },
             "required": [
@@ -3300,7 +3310,8 @@
                 "type": "string",
                 "maxLength": 64,
                 "pattern": "^[a-z0-9][a-z0-9_-]*$",
-                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported).",
+                "assetId": true
               }
             },
             "required": [
@@ -3897,7 +3908,8 @@
                 "type": "string",
                 "maxLength": 64,
                 "pattern": "^[a-z0-9][a-z0-9_-]*$",
-                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported).",
+                "assetId": true
               }
             },
             "required": [
@@ -3944,7 +3956,8 @@
                   "type": "string",
                   "maxLength": 64,
                   "pattern": "^[a-z0-9][a-z0-9_-]*$",
-                  "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+                  "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported).",
+                  "assetId": true
                 }
               },
               "required": [
@@ -4462,7 +4475,8 @@
                 "type": "string",
                 "maxLength": 64,
                 "pattern": "^[a-z0-9][a-z0-9_-]*$",
-                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported).",
+                "assetId": true
               }
             },
             "required": [
@@ -4485,7 +4499,8 @@
                 "type": "string",
                 "maxLength": 64,
                 "pattern": "^[a-z0-9][a-z0-9_-]*$",
-                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported).",
+                "assetId": true
               }
             },
             "required": [
@@ -4508,7 +4523,8 @@
                 "type": "string",
                 "maxLength": 64,
                 "pattern": "^[a-z0-9][a-z0-9_-]*$",
-                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported).",
+                "assetId": true
               }
             },
             "required": [
@@ -5052,7 +5068,8 @@
                 "type": "string",
                 "maxLength": 64,
                 "pattern": "^[a-z0-9][a-z0-9_-]*$",
-                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported).",
+                "assetId": true
               }
             },
             "required": [
@@ -5075,7 +5092,8 @@
                 "type": "string",
                 "maxLength": 64,
                 "pattern": "^[a-z0-9][a-z0-9_-]*$",
-                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported).",
+                "assetId": true
               }
             },
             "required": [
@@ -5098,7 +5116,8 @@
                 "type": "string",
                 "maxLength": 64,
                 "pattern": "^[a-z0-9][a-z0-9_-]*$",
-                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported).",
+                "assetId": true
               }
             },
             "required": [
@@ -5486,7 +5505,8 @@
                 "type": "string",
                 "maxLength": 64,
                 "pattern": "^[a-z0-9][a-z0-9_-]*$",
-                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported).",
+                "assetId": true
               }
             },
             "required": [
@@ -5860,7 +5880,8 @@
                 "type": "string",
                 "maxLength": 64,
                 "pattern": "^[a-z0-9][a-z0-9_-]*$",
-                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported).",
+                "assetId": true
               }
             },
             "required": [
@@ -5883,7 +5904,8 @@
                 "type": "string",
                 "maxLength": 64,
                 "pattern": "^[a-z0-9][a-z0-9_-]*$",
-                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported).",
+                "assetId": true
               }
             },
             "required": [
@@ -5910,7 +5932,8 @@
                   "type": "string",
                   "maxLength": 64,
                   "pattern": "^[a-z0-9][a-z0-9_-]*$",
-                  "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+                  "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported).",
+                  "assetId": true
                 }
               },
               "required": [
@@ -5926,7 +5949,8 @@
             "description": "Asset id of the role badge (a crown).",
             "type": "string",
             "maxLength": 64,
-            "pattern": "^[a-z0-9][a-z0-9_-]*$"
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "assetId": true
           },
           "at": {
             "type": "object",
@@ -6370,7 +6394,8 @@
                 "type": "string",
                 "maxLength": 64,
                 "pattern": "^[a-z0-9][a-z0-9_-]*$",
-                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported).",
+                "assetId": true
               }
             },
             "required": [
@@ -6404,7 +6429,8 @@
                   "type": "string",
                   "maxLength": 64,
                   "pattern": "^[a-z0-9][a-z0-9_-]*$",
-                  "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+                  "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported).",
+                  "assetId": true
                 }
               },
               "required": [
@@ -6823,7 +6849,8 @@
                 "type": "string",
                 "maxLength": 64,
                 "pattern": "^[a-z0-9][a-z0-9_-]*$",
-                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported).",
+                "assetId": true
               }
             },
             "required": [
@@ -6846,7 +6873,8 @@
                 "type": "string",
                 "maxLength": 64,
                 "pattern": "^[a-z0-9][a-z0-9_-]*$",
-                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported).",
+                "assetId": true
               }
             },
             "required": [
@@ -6869,7 +6897,8 @@
                 "type": "string",
                 "maxLength": 64,
                 "pattern": "^[a-z0-9][a-z0-9_-]*$",
-                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported).",
+                "assetId": true
               }
             },
             "required": [
@@ -7273,7 +7302,8 @@
                 "type": "string",
                 "maxLength": 64,
                 "pattern": "^[a-z0-9][a-z0-9_-]*$",
-                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported).",
+                "assetId": true
               }
             },
             "required": [
@@ -7296,7 +7326,8 @@
                 "type": "string",
                 "maxLength": 64,
                 "pattern": "^[a-z0-9][a-z0-9_-]*$",
-                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported).",
+                "assetId": true
               }
             },
             "required": [
@@ -7699,7 +7730,8 @@
                 "type": "string",
                 "maxLength": 64,
                 "pattern": "^[a-z0-9][a-z0-9_-]*$",
-                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported).",
+                "assetId": true
               }
             },
             "required": [
@@ -7722,7 +7754,8 @@
                 "type": "string",
                 "maxLength": 64,
                 "pattern": "^[a-z0-9][a-z0-9_-]*$",
-                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+                "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported).",
+                "assetId": true
               }
             },
             "required": [
@@ -7736,7 +7769,8 @@
             "description": "Asset id of the role badge (a crown).",
             "type": "string",
             "maxLength": 64,
-            "pattern": "^[a-z0-9][a-z0-9_-]*$"
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "assetId": true
           },
           "outage": {
             "type": "object",
@@ -8365,7 +8399,8 @@
                   "type": "string",
                   "maxLength": 64,
                   "pattern": "^[a-z0-9][a-z0-9_-]*$",
-                  "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported)."
+                  "description": "Asset id from the asset library (an unknown id is drawn as a placeholder and reported).",
+                  "assetId": true
                 }
               },
               "required": [
