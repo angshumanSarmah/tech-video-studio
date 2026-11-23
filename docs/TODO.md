@@ -409,3 +409,15 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **One system: numbers stated but not cited.** `mixed_system_numbers` reads the ids a beat
       cites; an intent that states another source's number without citing its id escapes it.
       Map intent values to research numbers (`researchNumberOf`) and check their sources too.
+- [ ] **Example label can still credit the wrong company.** `example_not_labelled` only looks for
+      a marker. A `scriptwriter@v6` run on the rate-limiter plan wrote "But picture Larkspur's
+      twenty-four gateway nodes": labelled, yet it gives the field guide's example gateway to the
+      incident's company. The sentence that says an example number (and the one before) should
+      not name the incident's company or publisher.
+- [ ] **`scriptwriter@v6` has no "Common mistakes" section.** Rule 10 (agent prompt convention)
+      asks for 5-8 per agent; v5 had six. Restore them in the design doc and bump.
+- [ ] **Rate-limiter fixtures are one Director behind.** A `director@v3` recording that passes
+      `mixed_system_numbers` (1 repair, `exampleNumbers` on its guide-example beats) is held out
+      of `main` until a Scriptwriter recording for its plan meets the repair bar; the v6 run
+      needed 2 repairs. The test-side repairs (`withExampleNumbersRepair`,
+      `withExampleLabelRepair`) stay until both are recorded.

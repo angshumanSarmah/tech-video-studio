@@ -171,11 +171,11 @@ describe('script job (rate-limiter fixture, dry run)', () => {
       stepId: result.step.id,
       promptVersion: promptId('scriptwriter'),
     });
-    expect(promptId('scriptwriter')).toBe('scriptwriter@v5');
+    expect(promptId('scriptwriter')).toBe('scriptwriter@v6');
     const [system, user] = promptOf(calls[0]!.promptPath).messages;
     expect(system!.content).toContain('Role: Scriptwriter.');
     expect(system!.content).toContain('## OUTPUT SHAPE');
-    expect(system!.content).toContain('beginner level, and never use them before that beat');
+    expect(system!.content).toContain('at the beginner level; at most one');
     const message = user!.content;
     expect(message).toContain(direction.plan.story.runningExample!);
     expect(message).toContain('"wordBudget"');
