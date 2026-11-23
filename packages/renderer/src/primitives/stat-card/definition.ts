@@ -18,18 +18,21 @@ export const SOURCE_PREFIX = 'Source: ';
 
 export function statCardSizeHints(props: StatCardProps, theme: Theme): SizeHints {
   const { space, stroke } = theme;
+  const source = props.source
+    ? [approxTextWidth(theme, 'footnote', SOURCE_PREFIX + props.source)]
+    : [];
   const text = Math.max(
     approxTextWidth(theme, 'metric', props.value),
     approxTextWidth(theme, 'label', props.label),
-    approxTextWidth(theme, 'footnote', SOURCE_PREFIX + props.source),
+    ...source,
   );
   const width = text + 2 * (space.lg + stroke.regular);
+  const sourceLine = props.source ? space.md + lineHeightPx(theme, 'footnote') : 0;
   const height =
     lineHeightPx(theme, 'metric') +
     space.xs +
     lineHeightPx(theme, 'label') +
-    space.md +
-    lineHeightPx(theme, 'footnote') +
+    sourceLine +
     2 * (space.md + stroke.regular);
   return { minWidth: width, minHeight: height, preferredWidth: width, preferredHeight: height };
 }
@@ -40,6 +43,9 @@ export const statCardPrimitive = definePrimitive({
   propsSchema: StatCardPropsSchema,
   actions: ['enter', 'exit', 'highlight', 'dim', 'pulse'],
   sizeHints: statCardSizeHints,
+  // The beat's footnote already names the source: drop the card's own line (`source: ''`).
+  besideFootnote: (props, footnote) =>
+    props.source.trim() === footnote.trim() ? { ...props, source: '' } : props,
   outline: (props, box, theme) => cardOutline(theme, props.semantic, box),
   description: {
     summary:

@@ -806,7 +806,7 @@ A big number changing to another, shown as "10 → 9": the old number in one col
 
 | Name | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `from` | number,null | yes | The number before the change, or null when it is unknown (shown as "?"). |
+| `from` | any | yes | The number before the change, or null when it is unknown (shown as "?"). |
 | `to` | number | yes | The number after the change. |
 | `unit` | string | no | Short unit after the new number. (min length 1, max length 16) |
 | `label` | string | no | Caption under the numbers. (min length 1, max length 32) |

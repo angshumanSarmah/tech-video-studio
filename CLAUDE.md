@@ -662,9 +662,29 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   or more). A continuing beat that declares an inherited id again is `duplicate_id`
   (`validateVideoSpec`).
 - **Schema metadata** (`common-props.ts`): `AssetIdSchema` carries `assetId`, `displayNumber()`
-  marks numbers drawn on screen (with a `unit`), `notScreenText()` marks LaTeX.
+  marks numbers drawn on screen (with a `unit`: `sec` for durations; counter, timer, time bar,
+  data values, pattern rates, holds and outages), `notScreenText()` marks LaTeX.
   `catalog/schema-leaves.ts` walks props and params against their JSON Schema and returns the
   asset, text and number leaves (anchors excluded), for any primitive or pattern.
+- **On-screen text checks** (`catalog/screen-checks.ts`, `screenTextWarnings(spec, { notes })`;
+  `generatorCheck` passes the run's notes): the script's tags, stat cards, formula card and
+  command bubble (`SCRIPT_PRIMITIVES`) are each placed once as written (`script_text_missing`;
+  a loose one that matches none is `script_text_changed`; tags compare without case). Text the
+  Generator writes (every other leaf; script items are the Scriptwriter's) is checked for
+  `screen_number_not_in_notes` (each counted number, and each `displayNumber` value, is a value
+  the board's beats so far cite or say; `sec` values compare with research times converted by
+  code, so 600 matches "10 minutes"; identifiers such as p99 and HTTP 429 and counts 0-3 are
+  free; skipped without notes), `label_term_too_early` (a glossary term a later beat introduces)
+  and `example_label_unmarked` (in an `exampleNumbers` beat a label with a number starts with
+  "e.g.").
+- **Across boards** (`catalog/layer-checks.ts`, `layerWarnings`; the Generator's post-pass and
+  the Curator): `pattern_repeated_on_focus` (consecutive beats focus a new instance of the same
+  pattern) and `static_beats` (more than `MAX_STATIC_BEATS` (1) new board with nothing but stat
+  cards).
+- **Stat card beside the footnote:** a primitive's `besideFootnote(props, footnote)` hook gives
+  the props to draw when the beat that adds it shows that source line (`beatWorld` applies it,
+  so layout and render agree); `stat_card` drops its own source line (`source: ''`) when it
+  matches.
 
 API conventions: routes under `/api`, inputs validated with the `validate()` helper against schemas
 from `packages/shared/src/api`, list responses wrapped as `{ items }`, and every error is

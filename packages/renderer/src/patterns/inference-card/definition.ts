@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { lineText } from '../../primitives/common-props.ts';
+import { displayNumber, lineText } from '../../primitives/common-props.ts';
 import { DataFieldSchema } from '../../primitives/data-block/definition.ts';
 import { el, link, nodeParam, nodeProps, on } from '../build.ts';
 import { anchorsSchema, definePattern } from '../types.ts';
@@ -19,7 +19,7 @@ const featureList = (description: string) =>
   z.array(DataFieldSchema).min(1).max(5).describe(description);
 
 const PredictionSchema = z.strictObject({
-  value: z.number().finite().describe('The predicted number.'),
+  value: displayNumber(z.number()).finite().describe('The predicted number.'),
   unit: lineText(16, 'Optional unit after the number, e.g. MIN.').optional(),
   label: lineText(32, 'Optional caption under the number.').optional(),
   decimals: z.number().int().min(0).max(2).default(0).describe('Digits after the decimal point.'),

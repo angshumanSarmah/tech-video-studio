@@ -687,7 +687,8 @@
                       "maxLength": 28
                     },
                     {
-                      "type": "number"
+                      "type": "number",
+                      "displayNumber": {}
                     },
                     {
                       "type": "boolean"
@@ -763,6 +764,7 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 80,
+            "screenText": false,
             "description": "One formula in LaTeX math mode, without $ delimiters. Rendered by KaTeX."
           },
           "caption": {
@@ -1519,11 +1521,13 @@
           },
           "value": {
             "type": "number",
+            "displayNumber": {},
             "description": "The number shown once any count has finished."
           },
           "from": {
             "description": "Where a `count` starts (default 0). Shown until the count begins.",
-            "type": "number"
+            "type": "number",
+            "displayNumber": {}
           },
           "unit": {
             "description": "Short unit after the number.",
@@ -1596,14 +1600,20 @@
         "type": "object",
         "properties": {
           "from": {
-            "description": "The number before the change, or null when it is unknown (shown as \"?\").",
-            "type": [
-              "number",
-              "null"
-            ]
+            "anyOf": [
+              {
+                "type": "number",
+                "displayNumber": {}
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The number before the change, or null when it is unknown (shown as \"?\")."
           },
           "to": {
             "type": "number",
+            "displayNumber": {},
             "description": "The number after the change."
           },
           "unit": {
@@ -1717,6 +1727,9 @@
                   "type": "integer",
                   "minimum": 1,
                   "maximum": 5999,
+                  "displayNumber": {
+                    "unit": "sec"
+                  },
                   "description": "How long the step takes, in seconds."
                 },
                 "semantic": {
@@ -1745,7 +1758,10 @@
             "description": "Optional time budget: a marker on the bar; time past it is drawn red.",
             "type": "integer",
             "minimum": 1,
-            "maximum": 5999
+            "maximum": 5999,
+            "displayNumber": {
+              "unit": "sec"
+            }
           },
           "label": {
             "type": "string",
@@ -1898,6 +1914,9 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 5999,
+            "displayNumber": {
+              "unit": "sec"
+            },
             "description": "Time on the clock when it starts, in seconds (600 shows 10:00)."
           },
           "label": {
@@ -3257,7 +3276,8 @@
                       "maxLength": 28
                     },
                     {
-                      "type": "number"
+                      "type": "number",
+                      "displayNumber": {}
                     },
                     {
                       "type": "boolean"
@@ -3325,6 +3345,7 @@
             "properties": {
               "value": {
                 "type": "number",
+                "displayNumber": {},
                 "description": "The predicted number."
               },
               "unit": {
@@ -3385,7 +3406,8 @@
                           "maxLength": 28
                         },
                         {
-                          "type": "number"
+                          "type": "number",
+                          "displayNumber": {}
                         },
                         {
                           "type": "boolean"
@@ -3421,6 +3443,7 @@
                 "properties": {
                   "value": {
                     "type": "number",
+                    "displayNumber": {},
                     "description": "The predicted number."
                   },
                   "unit": {
@@ -4537,6 +4560,9 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 5999,
+            "displayNumber": {
+              "unit": "sec"
+            },
             "description": "How long the lock holds, in seconds (the hold timer starts here)."
           },
           "holdLabel": {
@@ -6448,6 +6474,7 @@
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 9007199254740991,
+                "displayNumber": {},
                 "description": "How many end receivers there are."
               },
               "unit": {
@@ -6914,6 +6941,7 @@
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 9007199254740991,
+                "displayNumber": {},
                 "description": "Peak rate of the flood."
               },
               "unit": {
@@ -7779,6 +7807,9 @@
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 9007199254740991,
+                "displayNumber": {
+                  "unit": "sec"
+                },
                 "description": "How long the partition lasted; the clock counts up to it while it lasts."
               },
               "unit": {
@@ -7812,6 +7843,9 @@
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 5999,
+                "displayNumber": {
+                  "unit": "sec"
+                },
                 "description": "Lease length in seconds."
               },
               "label": {

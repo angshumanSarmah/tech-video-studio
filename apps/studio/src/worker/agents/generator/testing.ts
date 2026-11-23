@@ -3,8 +3,10 @@ import { join } from 'node:path';
 import {
   assembleScriptedSpec,
   DirectorPlanSchema,
+  ResearchNotesSchema,
   ScriptwriterOutputSchema,
   type DirectorPlan,
+  type ResearchNotes,
   type ScriptwriterOutput,
   type VideoSpecInput,
 } from '@explainer-studio/shared';
@@ -17,12 +19,19 @@ import { fixtureResponsesDir, fixtureTopic, type FixtureTopicId } from '../fixtu
  */
 
 /** The accepted (last) recorded answer of a role for a fixture topic. */
-function recordedAnswer(role: 'director' | 'scriptwriter', topic: FixtureTopicId): unknown {
+function recordedAnswer(
+  role: 'researcher' | 'director' | 'scriptwriter',
+  topic: FixtureTopicId,
+): unknown {
   const file = join(fixtureResponsesDir(role, topic), `${role}.json`);
   const responses = JSON.parse(readFileSync(file, 'utf8')) as DryRunResponse[];
   const content = responses.at(-1)?.content;
   if (!content) throw new Error(`No recorded ${role} answer for ${topic}.`);
   return JSON.parse(content) as unknown;
+}
+
+export function recordedNotes(topic: FixtureTopicId): ResearchNotes {
+  return ResearchNotesSchema.parse(recordedAnswer('researcher', topic));
 }
 
 export function recordedPlan(topic: FixtureTopicId): DirectorPlan {

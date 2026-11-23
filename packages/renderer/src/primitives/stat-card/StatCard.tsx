@@ -5,7 +5,10 @@ import { stateStyle, type PrimitiveComponentProps } from '../component-props.ts'
 import { cardSurfaceCss } from '../surface.ts';
 import { SOURCE_PREFIX, type StatCardProps } from './definition.ts';
 
-/** Big cited figure, its label, and the source as a footnote. */
+/**
+ * Big cited figure, its label, and the source as a footnote (left out when the beat's own footnote
+ * already names it: `besideFootnote`).
+ */
 export function StatCard({ theme, props, box, state }: PrimitiveComponentProps<StatCardProps>) {
   const tint = semanticTint(theme, props.semantic);
   return (
@@ -45,16 +48,18 @@ export function StatCard({ theme, props, box, state }: PrimitiveComponentProps<S
       >
         {props.label}
       </div>
-      <div
-        style={{
-          ...textCss(theme, 'footnote'),
-          color: theme.colours.ink.faint,
-          marginTop: theme.space.md,
-        }}
-      >
-        {SOURCE_PREFIX}
-        {props.source}
-      </div>
+      {props.source ? (
+        <div
+          style={{
+            ...textCss(theme, 'footnote'),
+            color: theme.colours.ink.faint,
+            marginTop: theme.space.md,
+          }}
+        >
+          {SOURCE_PREFIX}
+          {props.source}
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -95,8 +95,7 @@
     {
       "beatId": "brute",
       "narration": "The brute force way logs every request and counts the rows each time. A hundred requests means a hundred rows per user. One counter per user does the same job with a single number.",
-      "headline": { "text": "Counter = one number per user", "semantic": "concept" },
-      "tags": ["100 rows", "1 number"]
+      "headline": { "text": "Counter = one number per user", "semantic": "concept" }
     },
     {
       "beatId": "bucket",
@@ -119,13 +118,13 @@
         "semantic": "problem",
         "at": { "type": "word_text", "text": "double" }
       },
-      "tags": ["200 allowed"]
+      "tags": ["100 OK", "100 OK"]
     },
     {
       "beatId": "fleet-fix",
       "narration": "The fix is the shared counter from before. Both servers ask the same Redis, so the limit holds whichever server answers.",
       "headline": { "text": "One shared count for every server", "semantic": "resolution" },
-      "tags": ["100 total"]
+      "tags": ["100 TOTAL"]
     },
     {
       "beatId": "payoff",

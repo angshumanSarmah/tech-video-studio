@@ -1,7 +1,7 @@
 import { cardOutline } from '../surface.ts';
 import { z } from 'zod';
 import { SEMANTIC_COLOURS, type Theme } from '../../theme/index.ts';
-import { lineText as lineTextProp } from '../common-props.ts';
+import { displayNumber, lineText as lineTextProp } from '../common-props.ts';
 import { approxTextWidth, lineHeightPx } from '../measure.ts';
 import { definePrimitive, type ClippedLine, type SizeHints, type Size } from '../types.ts';
 import { dataLines, lineText } from './lines.ts';
@@ -14,7 +14,7 @@ export const DataFieldSchema = z.strictObject({
     .regex(/^[A-Za-z_][A-Za-z0-9_.-]{0,19}$/, 'A short field name: letters, digits, "_", "-", ".".')
     .describe('Field name, as it would appear in the data.'),
   value: z
-    .union([z.string().max(28), z.number().finite(), z.boolean(), z.null()])
+    .union([z.string().max(28), displayNumber(z.number()).finite(), z.boolean(), z.null()])
     .describe('Field value: a short string, a number, true/false or null.'),
   semantic: z
     .enum(SEMANTIC_COLOURS)

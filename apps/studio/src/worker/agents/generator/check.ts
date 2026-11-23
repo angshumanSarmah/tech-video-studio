@@ -2,6 +2,7 @@ import {
   beatCheckWarnings,
   boardAssetSwaps,
   DEFAULT_REGISTRIES,
+  screenTextWarnings,
   specLayoutWarnings,
   withAssetSwaps,
   withRegistryChecks,
@@ -15,6 +16,7 @@ import {
   validateRenderableVideoSpec,
   type BeatScene,
   type GeneratorOutput,
+  type ResearchNotes,
   type SpecError,
   type StoryBeat,
   type VideoSpec,
@@ -25,8 +27,9 @@ import type { OutputIssue } from '#worker/llm/types.ts';
  * The Generator's checks for one beat (P1C.7): its board spliced into the run's timed spec, then
  * everything code can check about it, so the repair loop gets one list. Registry checks
  * (`withRegistryChecks`: ids, props, actions, parts, element refs, assets, timeline), layout
- * warnings in the run's format (`specLayoutWarnings`) and the per-beat scene checks
- * (`beatCheckWarnings`). Only this beat's issues count, plus issues this beat causes in the
+ * warnings in the run's format (`specLayoutWarnings`), the per-beat scene checks
+ * (`beatCheckWarnings`) and the on-screen text checks (`screenTextWarnings`: script items placed
+ * as written, research numbers only, no early terms, "e.g." on example labels). Only this beat's issues count, plus issues this beat causes in the
  * earlier beats of its board (compared with the same spec without it). Near-identical asset ids
  * are swapped first (`generatorAssetSwaps`, logged by the step); other unknown asset ids are soft:
  * drawn as placeholders and recorded, never a reason to repair.
@@ -39,6 +42,8 @@ export interface GeneratorCheckDeps {
   readonly scenes: readonly (BeatScene | undefined)[];
   /** The story beat this board is for. */
   readonly beatIndex: number;
+  /** The research notes the plan was made from: the numbers a board may show. */
+  readonly notes?: ResearchNotes;
   readonly registries?: Registries;
   readonly theme?: Theme;
 }
@@ -93,6 +98,10 @@ function specIssues(deps: GeneratorCheckDeps, scene: BeatScene): SpecError[] {
     ...issues,
     ...specLayoutWarnings(result.spec, theme, registries),
     ...beatCheckWarnings(result.spec, { registries, theme }),
+    ...screenTextWarnings(result.spec, {
+      registries,
+      ...(deps.notes ? { notes: deps.notes } : {}),
+    }),
   ];
 }
 

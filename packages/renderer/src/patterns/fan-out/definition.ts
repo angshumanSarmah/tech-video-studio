@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { lineText } from '../../primitives/common-props.ts';
+import { displayNumber, lineText } from '../../primitives/common-props.ts';
 import { el, link, nodeParam, nodeProps, nth, numbered, on } from '../build.ts';
 import { anchorsSchema, definePattern } from '../types.ts';
 
@@ -23,7 +23,7 @@ export const fanOutPattern = definePattern({
       .describe('The targets the message splits to, 2 to 4.'),
     crowd: z
       .strictObject({
-        value: z.number().int().min(1).describe('How many end receivers there are.'),
+        value: displayNumber(z.number()).int().min(1).describe('How many end receivers there are.'),
         unit: lineText(16, 'Optional unit after the number.').optional(),
         label: lineText(32, 'What the crowd is, e.g. FOLLOWERS.'),
       })

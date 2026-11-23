@@ -1,6 +1,13 @@
 import { z } from 'zod';
 import type { Theme } from '../../theme/index.ts';
-import { idsOf, lineText, PartIdSchema, partList, semanticProp } from '../common-props.ts';
+import {
+  displayNumber,
+  idsOf,
+  lineText,
+  PartIdSchema,
+  partList,
+  semanticProp,
+} from '../common-props.ts';
 import { approxTextWidth, lineHeightPx } from '../measure.ts';
 import { TIMER_MAX_SEC } from '../timer-ring/definition.ts';
 import { definePrimitive, type ClippedLine, type SizeHints, type Size } from '../types.ts';
@@ -9,7 +16,11 @@ import { segmentWidths } from './segments.ts';
 export const TimeSegmentSchema = z.strictObject({
   id: PartIdSchema,
   label: lineText(8, 'Short name of the step, e.g. BUILD or TEST.'),
-  sec: z.number().int().min(1).max(TIMER_MAX_SEC).describe('How long the step takes, in seconds.'),
+  sec: displayNumber(z.number(), 'sec')
+    .int()
+    .min(1)
+    .max(TIMER_MAX_SEC)
+    .describe('How long the step takes, in seconds.'),
   semantic: semanticProp('concept', 'Segment colour'),
 });
 
@@ -19,8 +30,7 @@ export const SegmentedTimeBarPropsSchema = z.strictObject({
     { min: 1, max: 5 },
     'Steps in order, left to right (1 to 5).',
   ),
-  budgetSec: z
-    .number()
+  budgetSec: displayNumber(z.number(), 'sec')
     .int()
     .min(1)
     .max(TIMER_MAX_SEC)

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { Theme } from '../../theme/index.ts';
-import { lineText, semanticProp, PinSchema, pinRefs } from '../common-props.ts';
+import { displayNumber, lineText, semanticProp, PinSchema, pinRefs } from '../common-props.ts';
 import { approxTextWidth, lineHeightPx } from '../measure.ts';
 import { definePrimitive, type SizeHints } from '../types.ts';
 
@@ -9,8 +9,7 @@ export const TIMER_MAX_SEC = 5999;
 
 export const TimerRingPropsSchema = z.strictObject({
   pin: PinSchema.optional(),
-  durationSec: z
-    .number()
+  durationSec: displayNumber(z.number(), 'sec')
     .int()
     .min(1)
     .max(TIMER_MAX_SEC)

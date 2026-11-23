@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { lineText } from '../../primitives/common-props.ts';
+import { displayNumber, lineText } from '../../primitives/common-props.ts';
 import { el, link, nodeParam, nodeProps, on } from '../build.ts';
 import { anchorsSchema, definePattern } from '../types.ts';
 
@@ -23,7 +23,7 @@ export const floodThenFunnelPattern = definePattern({
     layer: nodeParam('The middle layer that absorbs the flood (a queue, a rate limiter, a CDN).'),
     rate: z
       .strictObject({
-        value: z.number().int().min(1).describe('Peak rate of the flood.'),
+        value: displayNumber(z.number()).int().min(1).describe('Peak rate of the flood.'),
         unit: lineText(16, 'Unit after the number, e.g. req/s.'),
         label: lineText(32, 'Optional caption under the number.').optional(),
       })

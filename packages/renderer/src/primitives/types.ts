@@ -174,6 +174,11 @@ export interface PrimitiveDefinition<Id extends string = string, S extends z.Zod
    */
   outline?(props: z.output<S>, box: Size, theme: Theme): OutlineShape[];
   /**
+   * The props to draw when the beat that adds the element shows `footnote` as its source line, so
+   * the board never says it twice (`stat_card` drops its own source). Omit when it shows none.
+   */
+  besideFootnote?(props: z.output<S>, footnote: string): z.output<S>;
+  /**
    * Warnings about the events that act on one element (across its `continuesPrevious` chain), in
    * order. Omit when the primitive has no such rules.
    */

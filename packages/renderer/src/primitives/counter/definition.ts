@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { PinSchema, pinRefs } from '../common-props.ts';
+import { displayNumber, PinSchema, pinRefs } from '../common-props.ts';
 import { SEMANTIC_COLOURS, type Theme } from '../../theme/index.ts';
 import { approxTextWidth, lineHeightPx } from '../measure.ts';
 import { definePrimitive, type SizeHints } from '../types.ts';
@@ -7,9 +7,10 @@ import { formatCount } from './format.ts';
 
 export const CounterPropsSchema = z.strictObject({
   pin: PinSchema.optional(),
-  value: z.number().finite().describe('The number shown once any count has finished.'),
-  from: z
-    .number()
+  value: displayNumber(z.number())
+    .finite()
+    .describe('The number shown once any count has finished.'),
+  from: displayNumber(z.number())
     .finite()
     .optional()
     .describe('Where a `count` starts (default 0). Shown until the count begins.'),

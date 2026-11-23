@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { lineText } from '../../primitives/common-props.ts';
+import { displayNumber, lineText } from '../../primitives/common-props.ts';
 import { TIMER_MAX_SEC } from '../../primitives/timer-ring/definition.ts';
 import { el, link, nodeParam, nodeProps, on } from '../build.ts';
 import { anchorsSchema, definePattern } from '../types.ts';
@@ -26,8 +26,7 @@ export const atomicLockPattern = definePattern({
     resource: nodeParam('The one thing both requests want (a room, a row, a slot).'),
     first: nodeParam('The request that gets there first.'),
     second: nodeParam('The request that arrives while the lock is held.'),
-    holdSec: z
-      .number()
+    holdSec: displayNumber(z.number(), 'sec')
       .int()
       .min(1)
       .max(TIMER_MAX_SEC)

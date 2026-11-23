@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AssetIdSchema, lineText } from '../../primitives/common-props.ts';
+import { AssetIdSchema, displayNumber, lineText } from '../../primitives/common-props.ts';
 import { ROLE_PART } from '../../primitives/node-card/definition.ts';
 import { TIMER_MAX_SEC } from '../../primitives/timer-ring/definition.ts';
 import { el, link, nodeParam, nodeProps, on } from '../build.ts';
@@ -26,8 +26,7 @@ export const splitBrainPattern = definePattern({
     role: AssetIdSchema.default('crown').describe('Asset id of the role badge (a crown).'),
     outage: z
       .strictObject({
-        sec: z
-          .number()
+        sec: displayNumber(z.number(), 'sec')
           .int()
           .min(1)
           .describe('How long the partition lasted; the clock counts up to it while it lasts.'),
@@ -37,8 +36,7 @@ export const splitBrainPattern = definePattern({
       .describe('The outage clock: counts up from the partition and stops on the heal.'),
     lease: z
       .strictObject({
-        durationSec: z
-          .number()
+        durationSec: displayNumber(z.number(), 'sec')
           .int()
           .min(1)
           .max(TIMER_MAX_SEC)

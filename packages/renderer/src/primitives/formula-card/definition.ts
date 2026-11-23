@@ -2,15 +2,14 @@ import { ON_SCREEN_TEXT_LIMITS } from '@explainer-studio/shared';
 import { cardOutline } from '../surface.ts';
 import { z } from 'zod';
 import type { Theme } from '../../theme/index.ts';
-import { lineText, semanticProp } from '../common-props.ts';
+import { lineText, notScreenText, semanticProp } from '../common-props.ts';
 import { approxTextWidth, lineHeightPx } from '../measure.ts';
 import { definePrimitive, type SizeHints } from '../types.ts';
 import { LATEX_MAX_LENGTH, latexProblem } from './latex.ts';
 import { estimateLatexExtent } from './latex-size.ts';
 
 export const FormulaCardPropsSchema = z.strictObject({
-  latex: z
-    .string()
+  latex: notScreenText(z.string())
     .trim()
     .min(1)
     .max(LATEX_MAX_LENGTH)

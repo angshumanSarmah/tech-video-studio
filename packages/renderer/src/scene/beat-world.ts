@@ -78,6 +78,8 @@ type Context = {
   /** When the beat's scene leaves the screen (`sceneEndSec`). */
   sceneEndSec: number;
   narration: string;
+  /** The beat's source line, drawn as its footnote (`besideFootnote`). */
+  footnote: string | undefined;
   fps: number;
   registries: Registries;
 };
@@ -105,13 +107,15 @@ export function beatWorld(
       beat: timing.beats.find((b) => b.beatId === scene.beatId),
       sceneEndSec: sceneEndSec(timing, scene.beatId),
       narration: spec.script.find((s) => s.beatId === scene.beatId)?.narration ?? '',
+      footnote: spec.script.find((s) => s.beatId === scene.beatId)?.source,
       fps,
       registries,
     };
     const sinceSec = ctx.beat?.startSec ?? 0;
     beats.push({ focus: scene.focus, startSec: sinceSec });
     for (const element of scene.elements) {
-      drafts.set(element.id, { draft: elementDraft(element, [element.id], registries), sinceSec });
+      const draft = elementDraft(element, [element.id], registries, ctx.footnote);
+      drafts.set(element.id, { draft, sinceSec });
     }
     for (const pattern of scene.patterns) {
       const expanded = patternDrafts(pattern, ctx);
@@ -321,7 +325,12 @@ export function sceneChain(scenes: readonly BeatScene[], beatId: string): BeatSc
   return scenes.slice(first, index + 1);
 }
 
-function elementDraft(element: SceneElement, targetIds: string[], registries: Registries): Draft {
+function elementDraft(
+  element: SceneElement,
+  targetIds: string[],
+  registries: Registries,
+  footnote?: string,
+): Draft {
   const definition = registries.primitives.get(element.primitive);
   if (!definition) {
     return {
@@ -340,11 +349,15 @@ function elementDraft(element: SceneElement, targetIds: string[], registries: Re
       detail: `${element.primitive} · ${element.id}`,
     };
   }
+  const shown =
+    footnote && definition.besideFootnote
+      ? definition.besideFootnote(props.data, footnote)
+      : props.data;
   return {
     kind: 'primitive',
     key: targetIds[0] ?? element.id,
     definition,
-    props: props.data,
+    props: shown,
     ...(element.zone ? { zone: element.zone } : {}),
     targetIds,
   };
@@ -374,7 +387,7 @@ function patternDrafts(
   const part = (id: string) => `${pattern.id}/${id}`;
   return {
     drafts: expansion.elements.map((e) =>
-      namespaceRefs(elementDraft(e, [part(e.id), pattern.id], ctx.registries), part),
+      namespaceRefs(elementDraft(e, [part(e.id), pattern.id], ctx.registries, ctx.footnote), part),
     ),
     events: anchored(expansion.events, ctx, part),
   };

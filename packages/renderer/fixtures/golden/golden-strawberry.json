@@ -66,13 +66,15 @@
         "text": "Counting what it can't see",
         "semantic": "problem",
         "at": { "type": "word_text", "text": "blind" }
-      }
+      },
+      "tags": ["Sees no letters"],
+      "commandBubble": { "text": "How many r's in strawberry?" }
     },
     {
       "beatId": "tokens",
       "narration": "Models don't read letters. A tokenizer chops text into subword chunks, so strawberry becomes something like straw and berry. Each chunk is swapped for a number.",
       "headline": { "text": "Token = a chunk, not a letter", "semantic": "concept" },
-      "tags": ["straw", "berry"],
+      "tags": ["strawberry", "straw", "berry"],
       "source": "Sennrich, Haddow & Birch, ACL 2016"
     },
     {
@@ -88,7 +90,7 @@
       "beatId": "fix",
       "narration": "The fix is to make it spell first. Ask for one letter per line, and each letter becomes its own token. Now it can count them, and the answer is three. Spell first, then count.",
       "headline": { "text": "Spell it out, then count", "semantic": "resolution" },
-      "tags": ["1 letter = 1 token"]
+      "tags": ["s t r a w b e r r y", "1 letter = 1 token"]
     }
   ],
   "scenes": [

@@ -7,7 +7,7 @@ import {
 } from '@explainer-studio/shared';
 import { describe, expect, it } from 'vitest';
 import { generatorAssetSwaps, generatorCheck, type GeneratorCheckDeps } from './check.ts';
-import { fixtureScriptedSpec } from './testing.ts';
+import { fixtureScriptedSpec, recordedNotes } from './testing.ts';
 
 const spec: VideoSpec = (() => {
   const result = validateVideoSpec(fixtureScriptedSpec('rate-limiter'));
@@ -158,10 +158,13 @@ function crowdedCountBoard(): Board {
   };
 }
 
+const notes = recordedNotes('rate-limiter');
+
 const deps = (beatIndex: number, scenes: (BeatScene | undefined)[] = []): GeneratorCheckDeps => ({
   spec,
   scenes,
   beatIndex,
+  notes,
 });
 
 const issues = (beatIndex: number, value: unknown, scenes?: (BeatScene | undefined)[]) =>
@@ -228,9 +231,28 @@ describe('generatorCheck: seeded faults, with paths into the answer', () => {
       id: 'shared',
       primitive: 'node_card',
       props: { title: 'Store' },
-    } as never);
+    });
     const scenes = [undefined, undefined, sceneFor(2, storeBoard())];
     expect(paths(issues(3, board, scenes))).toContain('$.elements[2].id duplicate_id');
+  });
+});
+
+describe('generatorCheck: on-screen text (with the recorded research notes)', () => {
+  it('a label with a number the research does not give', () => {
+    const board = hookBoard();
+    board.elements[0]!.props.subtitle = '12,000 orders';
+    expect(paths(issues(0, board))).toEqual([
+      '$.elements[0].props.subtitle screen_number_not_in_notes',
+    ]);
+  });
+
+  it("a script tag retyped, and the script's tag then missing", () => {
+    const board = hookBoard();
+    board.elements[2]!.props.text = 'Checkout broke';
+    expect(paths(issues(0, board))).toEqual([
+      '$.elements[2].props.text script_text_changed',
+      '$.elements script_text_missing',
+    ]);
   });
 });
 
