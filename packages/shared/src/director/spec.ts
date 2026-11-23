@@ -1,4 +1,5 @@
 import { VIDEO_LENGTH_LIMITS_SEC } from '../config/video.ts';
+import type { BeatScriptInput } from '../spec/script.ts';
 import { VIDEO_SPEC_SCHEMA_VERSION, type VideoSpecInput } from '../spec/shape.ts';
 import type { VideoFormat } from '../spec/meta.ts';
 import type { DirectorPlan } from './plan.ts';
@@ -41,6 +42,19 @@ export function specFromPlan(plan: DirectorPlan, ctx: PlanSpecContext): VideoSpe
       },
     },
   };
+}
+
+/**
+ * The plan and the Scriptwriter's script as one spec: the run's spec before TTS (P1C.9 saves it
+ * as version 1). The script must cover the plan's beats in order; `validateVideoSpec` reports
+ * where it does not.
+ */
+export function assembleScriptedSpec(
+  plan: DirectorPlan,
+  script: readonly BeatScriptInput[],
+  ctx: PlanSpecContext,
+): VideoSpecInput {
+  return { ...specFromPlan(plan, ctx), script: [...script] };
 }
 
 /** The single video's target, else the sum of the parts' (or of the beats'), within the limits. */

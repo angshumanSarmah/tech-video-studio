@@ -35,6 +35,18 @@ export function renderStoryCatalogues(): string {
   ].join('\n\n');
 }
 
+/**
+ * The layout modes alone, with their version line: the Generator's story part (P1C.7). It fills
+ * a board in a mode the plan fixed, so it needs zones and capacities, not devices, topic classes
+ * or metaphor worlds.
+ */
+export function renderLayoutModeCatalogue(): string {
+  return [
+    `CATALOGUE VERSIONS: ${catalogueVersionTag(LAYOUT_MODE_CATALOGUE)}`,
+    closedListSection('LAYOUT MODES', LAYOUT_MODE_CATALOGUE.entries.map(layoutModeLine)),
+  ].join('\n\n');
+}
+
 /** A closed-list heading, as every agent prompt states it, then its lines. */
 export function closedListSection(title: string, lines: readonly string[], note?: string): string {
   const extra = note ? `; ${note}` : '';

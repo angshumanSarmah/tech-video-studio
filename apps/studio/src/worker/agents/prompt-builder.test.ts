@@ -72,8 +72,9 @@ describe('buildPrompt', () => {
     );
     expect(order.every((i) => i >= 0)).toBe(true);
     expect(order).toEqual([...order].sort((a, b) => a - b));
-    const generator = buildPrompt(templates, parts('generator')).messages[0]!.content;
-    expect(generator).not.toContain('## OUTPUT SHAPE');
+    // A role without a registered schema (its step comes later) gets no output section.
+    const curator = buildPrompt(templates, parts('curator')).messages[0]!.content;
+    expect(curator).not.toContain('## OUTPUT SHAPE');
   });
 
   it('keeps the system message identical across runs with different input (cache prefix)', () => {

@@ -215,11 +215,15 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       Generator output (its errors feed the repair loop like any other), and scene-gate saves must
       run it too, so a spec cannot pass a gate with unknown primitives, bad props or unsupported
       actions.
-- [ ] **P1C.4 — Asset list from the DB.** The catalogue's asset section (`buildCatalogue`)
-      comes from `registries.assets`, which is the seed library by default. The Generator must
-      build its closed asset list from the DB's approved rows at run time (`loadAssetLibrary`,
-      then `buildAssetRegistry` into `Registries.assets`, filtered by the beat's keywords and
-      families), and validate with the same registries so `unknown_asset` matches the library.
+- [ ] **P1C.7 step 10 — Asset list from the DB.** `generatorCatalogueBlock` lists
+      `registries.assets` (the seed library by default). The `generate` job must build it from the
+      DB's approved rows (`loadAssetLibrary`, then `buildAssetRegistry` into `Registries.assets`)
+      and validate with the same registries, so `unknown_asset` matches the list. The whole
+      library sits in the cached prefix; filter per beat (in the user message) only once it
+      passes about 150 assets (P1C.12).
+- [ ] **Catalogue — asset sort.** `buildCatalogue`'s asset groups sort ids with `localeCompare`
+      (docs only); the prompt blocks use code-unit order (`assetLines`). Align them if the docs
+      order ever matters.
 - [ ] **P1C.12 — Asset aliases and the dev `package` id.** Aliases (e.g. `gpu_card` → `gpu`)
       need a column on `assets`; add it with the drafter. The seed keeps `package` as the parcel
       (object family; fixtures use it), so the software package is `module` (dev). Add an alias

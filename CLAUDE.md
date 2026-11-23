@@ -158,8 +158,15 @@ narrative devices: `DEVICE_IDS`, `DeviceId`), `layout-modes` (ids, zones, `maxUn
   and one closed list per catalogue; `catalogueBlock(registries?)`
   (`@explainer-studio/renderer/catalog`) appends every primitive and pattern as compact JSON,
   one per line, in `buildCatalogue` order (code-unit sort, never `localeCompare`). It is
-  deterministic for any registry insertion order and leaves assets out (per-beat list, P1C.7).
+  deterministic for any registry insertion order and leaves assets out.
   `catalogues/__snapshots__/story-catalogues.txt` holds the story part: review its diff.
+  **The Generator's block** is `generatorCatalogueBlock(registries?)`: `renderLayoutModeCatalogue()`
+  (layout modes and their version only: no devices, topic classes or worlds), every primitive
+  as above, every pattern with `params.at` reduced to a pointer at its `anchors`
+  (`withAnchorPointer`; the word-anchor shape is stated once, `GENERATOR_ANCHOR_NOTE`), then the
+  approved assets of `registries.assets` sorted by family, then id (`assetLines`). About 31k
+  tokens at 3.5 characters each; `catalog/__snapshots__/generator-catalogue-size.json` records
+  its size per section (review the diff), and a test keeps it under 35k.
 
 ## Database
 
@@ -616,6 +623,22 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   runs live when there is none (`chainTransport`), so an unrecorded topic runs the whole chain.
   `--record` writes only the script's own role, and with `--max-repairs <n>` only when that role
   needed at most `n` repairs (`shouldRecord`). The job tests use the rate limiter.
+
+### Generator (`src/worker/agents/generator`; P1C.7, in progress)
+
+- **`GeneratorOutputSchema`** (`packages/shared/src/generator`): one beat's board without what
+  the plan decides (`beatId`, `kind`, `continuesPrevious`, `layoutMode`): elements, patterns,
+  events, focus, `transitionIn`, `zoomFrom`, optional `missingPrimitiveRequests`. Every anchor,
+  in events and in a pattern's `params.at`, is a word index (`GeneratorAnchorSchema`).
+  `generatorScene(output, storyBeat)` adds the plan's fields (a layout mode only on a board's
+  first beat) and drops the requests. Registered in `ROLE_OUTPUT_SCHEMAS`.
+- **`assembleScriptedSpec(plan, script, ctx)`** (`director/spec.ts`): `specFromPlan` plus the
+  script, the spec before TTS (P1C.9 saves it as version 1; the Scriptwriter check uses it).
+- **Prompt prefix:** the system message is the same for every beat of every run with the same
+  settings and registries: catalogue and assets in the block, per-run lists (logo slots, allowed
+  layout modes) and the beat in the user message. `generator/prefix.test.ts` builds a prompt per
+  beat of both fixture topics (`generator/testing.ts`: `fixtureScriptedSpec`, from the recorded
+  Director and Scriptwriter answers) and checks the system messages are byte-identical.
 
 API conventions: routes under `/api`, inputs validated with the `validate()` helper against schemas
 from `packages/shared/src/api`, list responses wrapped as `{ items }`, and every error is

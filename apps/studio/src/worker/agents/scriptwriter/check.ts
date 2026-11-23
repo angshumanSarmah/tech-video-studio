@@ -12,7 +12,7 @@ import {
   scriptProblems,
   ScriptLayerSchema,
   ScriptwriterOutputSchema,
-  specFromPlan,
+  assembleScriptedSpec,
   toJsonPath,
   validateVideoSpec,
   type PlanSpecContext,
@@ -47,7 +47,7 @@ export function scriptwriterCheck(deps: ScriptwriterCheckDeps): (value: unknown)
     const strict = ScriptwriterOutputSchema.safeParse(value);
     const output = strict.success ? strict.data : lenientScript(value);
     if (!output) return [];
-    const spec = { ...specFromPlan(deps.plan, deps.spec), script: output.script };
+    const spec = assembleScriptedSpec(deps.plan, output.script, deps.spec);
     const result = withRegistryChecks(validateVideoSpec(spec), spec);
     return [
       ...scriptProblems(output, deps),

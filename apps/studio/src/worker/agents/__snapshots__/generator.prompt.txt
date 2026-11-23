@@ -68,6 +68,249 @@ Common mistakes to avoid
 8. recover or release on something that was never rejected or locked, or a transitionIn on a
    continuing beat.
 
+## OUTPUT SHAPE (JSON Schema: return one JSON object that matches it)
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "elements": {
+      "default": [],
+      "description": "Primitives this beat adds. Never declare an id that is already ON SCREEN.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
+          },
+          "primitive": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
+          },
+          "props": {
+            "default": {},
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {}
+          },
+          "role": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
+          },
+          "zone": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
+          }
+        },
+        "required": [
+          "id",
+          "primitive"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "patterns": {
+      "default": [],
+      "description": "Patterns this beat adds.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "description": "Instance id, unique on the board; events and focus may target it."
+          },
+          "pattern": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "description": "A pattern id from the PATTERNS list."
+          },
+          "params": {
+            "type": "object",
+            "properties": {
+              "at": {
+                "description": "One word anchor per name in the pattern's anchors.",
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "word"
+                    },
+                    "index": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "index"
+                  ],
+                  "additionalProperties": false,
+                  "description": "The 0-based index of a word in this beat's numbered narration words."
+                }
+              }
+            },
+            "additionalProperties": {},
+            "description": "The pattern's params, as its params schema in the PATTERNS list states them."
+          }
+        },
+        "required": [
+          "id",
+          "pattern",
+          "params"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "events": {
+      "default": [],
+      "description": "What changes on screen, each on the word where the narration says it.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "word"
+              },
+              "index": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "type",
+              "index"
+            ],
+            "additionalProperties": false,
+            "description": "The 0-based index of a word in this beat's numbered narration words."
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "enter",
+              "exit",
+              "highlight",
+              "dim",
+              "focus",
+              "move",
+              "morph",
+              "count",
+              "lock",
+              "release",
+              "reject",
+              "recover",
+              "pulse"
+            ]
+          },
+          "targets": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 129,
+              "pattern": "^[a-z0-9][a-z0-9_-]*(\\/[a-z0-9][a-z0-9_-]*)?$"
+            },
+            "description": "Ids on this board (or ON SCREEN), or \"<example-instance>/<example-element>\" for one element inside a pattern."
+          },
+          "params": {
+            "description": "Optional: \"parts\" (with exactly one target), \"hold\" (highlight only) or \"stagger\": \"scan\".",
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {}
+          }
+        },
+        "required": [
+          "at",
+          "action",
+          "targets"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "focus": {
+      "default": [],
+      "description": "The one thing to watch: element or pattern ids, never an inner \"<example-instance>/<example-element>\".",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 64,
+        "pattern": "^[a-z0-9][a-z0-9_-]*$"
+      }
+    },
+    "transitionIn": {
+      "default": "cut",
+      "description": "How a new board comes in; leave it out on a beat that continues the previous board.",
+      "type": "string",
+      "enum": [
+        "cut",
+        "fade",
+        "zoom-in",
+        "zoom-out",
+        "slide"
+      ]
+    },
+    "zoomFrom": {
+      "description": "With \"zoom-in\" on a semantic_zoom beat only: the element of the previous board to zoom into.",
+      "type": "string",
+      "maxLength": 129,
+      "pattern": "^[a-z0-9][a-z0-9_-]*(\\/[a-z0-9][a-z0-9_-]*)?$"
+    },
+    "missingPrimitiveRequests": {
+      "description": "Only when no primitive, pattern or asset fits: what you needed and what you used.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "fallbackUsed": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "description": "The primitive or pattern id used instead."
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "fallbackUsed"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
+
 ## ALLOWED PATTERNS (exhaustive: use only these ids)
 - <example-pattern-id>: <example description>
 

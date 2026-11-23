@@ -1,5 +1,6 @@
 import {
   DirectorPlanSchema,
+  GeneratorOutputSchema,
   ResearchNotesSchema,
   ScriptwriterOutputSchema,
 } from '@explainer-studio/shared';
@@ -15,4 +16,5 @@ export const ROLE_OUTPUT_SCHEMAS: Readonly<Partial<Record<PromptRole, z.ZodType>
   researcher: ResearchNotesSchema,
   director: DirectorPlanSchema,
   scriptwriter: ScriptwriterOutputSchema,
+  generator: GeneratorOutputSchema,
 };

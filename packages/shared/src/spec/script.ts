@@ -75,6 +75,7 @@ export const BeatScriptSchema = z.strictObject({
   source: SourceLineSchema.optional(),
 });
 export type BeatScript = z.infer<typeof BeatScriptSchema>;
+export type BeatScriptInput = z.input<typeof BeatScriptSchema>;
 
 export const ScriptLayerSchema = z.array(BeatScriptSchema).min(1);
 export type ScriptLayer = z.infer<typeof ScriptLayerSchema>;

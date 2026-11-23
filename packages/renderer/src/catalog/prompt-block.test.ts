@@ -1,16 +1,23 @@
 import {
   DEVICE_IDS,
   METAPHOR_WORLD_IDS,
+  renderLayoutModeCatalogue,
   renderStoryCatalogues,
   TOPIC_CLASS_CATALOGUE,
 } from '@explainer-studio/shared';
 import { describe, expect, it } from 'vitest';
 import { allFixtureSpecs, goldenFixtures } from '../../fixtures/index.ts';
 import { beatLayoutMode, DEFAULT_LAYOUT_MODE } from '../layout/modes.ts';
+import { buildAssetRegistry, SEED_REGISTRY } from '../assets/library.ts';
 import { buildPatternRegistry, PATTERN_DEFINITIONS, PATTERNS } from '../patterns/registry.ts';
 import { buildPrimitiveRegistry, PRIMITIVE_DEFINITIONS } from '../primitives/registry.ts';
 import { buildCatalogue } from './catalogue.ts';
-import { catalogueBlock, directorCatalogueBlock } from './prompt-block.ts';
+import {
+  catalogueBlock,
+  directorCatalogueBlock,
+  GENERATOR_ANCHOR_NOTE,
+  generatorCatalogueBlock,
+} from './prompt-block.ts';
 import { DEFAULT_REGISTRIES, type Registries } from './registries.ts';
 
 /** JSON lines of one closed-list section of the block. */
@@ -86,6 +93,94 @@ describe('directorCatalogueBlock', () => {
     const tokens = estimatedTokens(directorCatalogueBlock());
     expect(tokens).toBeLessThan(DIRECTOR_BLOCK_TOKEN_BUDGET);
     expect(tokens).toBeLessThan(estimatedTokens(catalogueBlock()) / 2);
+  });
+});
+
+/** Lines of one closed-list section of a block (heading and note excluded). */
+function sectionLines(block: string, title: string): string[] {
+  return (block.split(`## ${title} `)[1]?.split('\n\n')[0] ?? '').split('\n').slice(1);
+}
+
+/** Every primitive, pattern and asset registered in reverse order. */
+function reversedRegistries(): Registries {
+  const primitives = buildPrimitiveRegistry([...PRIMITIVE_DEFINITIONS].reverse());
+  return {
+    primitives,
+    patterns: buildPatternRegistry([...PATTERN_DEFINITIONS].reverse(), primitives),
+    assets: buildAssetRegistry([...SEED_REGISTRY.values()].reverse()),
+  };
+}
+
+/**
+ * Estimated tokens of compact JSON-heavy text: 3.5 characters each. Calibrated on the recorded
+ * agent answers (3.75-4.1 for pretty-printed JSON; compact JSON Schema packs more per token).
+ */
+const jsonTokens = (text: string) => Math.ceil(text.length / 3.5);
+
+/** The Generator's block stays well under the full one (about 43k tokens). */
+const GENERATOR_BLOCK_TOKEN_BUDGET = 35_000;
+
+describe('generatorCatalogueBlock', () => {
+  const block = generatorCatalogueBlock();
+
+  it('is deterministic and independent of registry insertion order (assets included)', () => {
+    expect(generatorCatalogueBlock()).toBe(block);
+    expect(generatorCatalogueBlock(reversedRegistries())).toBe(block);
+  });
+
+  it('starts with the layout modes alone: no devices, topic classes or metaphor worlds', () => {
+    expect(block.startsWith(`${renderLayoutModeCatalogue()}\n\n## PRIMITIVES `)).toBe(true);
+    expect(block).toContain('CATALOGUE VERSIONS: layout-modes@v');
+    expect(block).not.toMatch(/NARRATIVE DEVICES|TOPIC CLASSES|METAPHOR WORLDS|topic-classes@/);
+  });
+
+  it('lists every primitive as the full block does, and every pattern once', () => {
+    const { patterns } = buildCatalogue();
+    expect(sectionLines(block, 'PRIMITIVES')).toEqual(sectionLines(catalogueBlock(), 'PRIMITIVES'));
+    expect(jsonIds(block, 'PATTERNS')).toEqual(patterns.map((p) => p.id));
+  });
+
+  it("states the anchor shape once and points each pattern's params.at at its anchors", () => {
+    expect(block.split(GENERATOR_ANCHOR_NOTE)).toHaveLength(2);
+    expect(block).not.toMatch(/word_text|"offsetSec"|"const":"word"/);
+    const { patterns } = buildCatalogue();
+    for (const line of sectionLines(block, 'PATTERNS').filter((l) => l.startsWith('{'))) {
+      const entry = JSON.parse(line) as {
+        id: string;
+        anchors: { name: string }[];
+        params: { properties: { at: { type: string; properties?: unknown } } };
+      };
+      const source = patterns.find((p) => p.id === entry.id);
+      expect(entry.anchors).toEqual(source?.anchors);
+      expect(entry.params.properties.at.type).toBe('object');
+      expect(entry.params.properties.at.properties).toBeUndefined();
+    }
+  });
+
+  it('ends with every approved asset, sorted by family, then id', () => {
+    const lines = sectionLines(block, 'ASSETS').filter((l) => l.startsWith('- '));
+    expect(lines).toHaveLength(SEED_REGISTRY.size);
+    const keys = lines.map((l) => {
+      const [, id = '', family = ''] = /^- (\S+) \((\S+)\):/.exec(l) ?? [];
+      return `${family}/${id}`;
+    });
+    expect(keys).toEqual([...keys].sort());
+    expect(block.endsWith(lines.at(-1) ?? '')).toBe(true);
+  });
+
+  it(`stays under ${GENERATOR_BLOCK_TOKEN_BUDGET} estimated tokens (size snapshot)`, async () => {
+    const sections = Object.fromEntries(
+      block.split(/\n\n(?=## )/).map((part) => {
+        const title = /^## ([A-Z ]+) \(/.exec(part)?.[1] ?? 'CATALOGUE VERSIONS';
+        return [title, { chars: part.length, tokens: jsonTokens(part) }];
+      }),
+    );
+    const size = { chars: block.length, tokens: jsonTokens(block), sections };
+    expect(size.tokens).toBeLessThan(GENERATOR_BLOCK_TOKEN_BUDGET);
+    expect(size.tokens).toBeLessThan(jsonTokens(catalogueBlock()));
+    await expect(`${JSON.stringify(size, null, 2)}\n`).toMatchFileSnapshot(
+      './__snapshots__/generator-catalogue-size.json',
+    );
   });
 });
 

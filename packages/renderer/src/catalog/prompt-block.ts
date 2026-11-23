@@ -1,4 +1,9 @@
-import { closedListSection, renderStoryCatalogues } from '@explainer-studio/shared';
+import {
+  closedListSection,
+  renderLayoutModeCatalogue,
+  renderStoryCatalogues,
+  type LibraryAsset,
+} from '@explainer-studio/shared';
 import {
   buildCatalogue,
   type PatternCatalogueEntry,
@@ -42,6 +47,63 @@ export function directorCatalogueBlock(registries: Registries = DEFAULT_REGISTRI
     ]),
   ].join('\n\n');
 }
+
+/**
+ * The Generator's catalogue block (P1C.7): the layout modes, every primitive as in
+ * `catalogueBlock`, every pattern with its `params.at` reduced to a pointer at its `anchors` (the
+ * anchor shape is stated once, in the section note: a word index), then the approved assets
+ * (`registries.assets`) sorted by family, then id. No devices, topic classes or metaphor worlds:
+ * the plan has chosen them. The same for every beat and run with the same registries, whatever
+ * their insertion order, so it sits in the cached prefix; per-run lists (logo slots, the
+ * allowed layout modes) go in the user message.
+ */
+export function generatorCatalogueBlock(registries: Registries = DEFAULT_REGISTRIES): string {
+  const { primitives, patterns } = buildCatalogue(registries);
+  return [
+    renderLayoutModeCatalogue(),
+    closedListSection('PRIMITIVES', [PRIMITIVES_NOTE, ...primitives.map(jsonLine)]),
+    closedListSection('PATTERNS', [
+      `${PATTERNS_NOTE} ${GENERATOR_ANCHOR_NOTE}`,
+      ...patterns.map(withAnchorPointer).map(jsonLine),
+    ]),
+    closedListSection('ASSETS', [ASSETS_NOTE, ...assetLines(registries.assets.values())]),
+  ].join('\n\n');
+}
+
+/** What every anchor is: stated once for the whole pattern list. */
+export const GENERATOR_ANCHOR_NOTE =
+  "Every anchor, in an event's `at` and in a pattern's `params.at`, is " +
+  '{"type":"word","index":<n>}: the 0-based index of a word in this beat\'s numbered narration.';
+
+/** `params.at` as a pointer at the entry's `anchors`, instead of one anchor schema per name. */
+const AT_POINTER = {
+  type: 'object',
+  description:
+    "One anchor per name in this pattern's `anchors` (the shape is in the note above); " +
+    'optional ones may be left out.',
+};
+
+export function withAnchorPointer(entry: PatternCatalogueEntry): PatternCatalogueEntry {
+  const properties = entry.params.properties;
+  if (!isRecord(properties) || !('at' in properties)) return entry;
+  return { ...entry, params: { ...entry.params, properties: { ...properties, at: AT_POINTER } } };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+const ASSETS_NOTE =
+  'Approved asset ids for every prop that takes one, one per line: id (family): name; tags.';
+
+/** One line per asset, sorted by family, then id (code units, never the host locale). */
+export function assetLines(assets: Iterable<LibraryAsset>): string[] {
+  return [...assets]
+    .sort((a, b) => byCodeUnits(a.family, b.family) || byCodeUnits(a.id, b.id))
+    .map((a) => `- ${a.id} (${a.family}): ${a.name}; ${a.tags.join(', ')}`);
+}
+
+const byCodeUnits = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 
 const DIRECTOR_PRIMITIVES_NOTE =
   'One JSON object per primitive. Name one as a missing-primitive fallback; the Generator ' +
