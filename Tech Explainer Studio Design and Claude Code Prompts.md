@@ -1114,7 +1114,10 @@ Implement the Curator in two parts.
    (persistent scenes are encouraged); the change check still applies to it.
 2. LLM review (curator role): for each beat compare narration and visuals with research facts;
    flag claims not supported, simplifications that become wrong at this level, confusing visuals for
-   the narration, missing trade-offs. Output issues with severity and the beat id.
+   the narration, missing trade-offs. Also the judgement calls the Scriptwriter's checks
+   can't make: a later beat retelling the hook instead of calling back to it, a term named before
+   the visuals show it, words above the run's explanation level, stat cards for small counts, and
+   narration well over its target. Output issues with severity and the beat id.
 Part 1 also scores each beat's narration for readability (Flesch reading ease) and warns when it
 falls below the level's threshold (beginner: 60), so the LLM review sees it.
 System prompt for part 2: the shared preamble + the Curator prompt from "Agent system prompts (v1)";
