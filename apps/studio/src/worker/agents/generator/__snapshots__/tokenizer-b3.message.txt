@@ -1,0 +1,149 @@
+Draw the board for beat "b3" (3 of 7). It starts a new board. Return only this beat's board as one JSON object.
+
+## VIDEO
+{
+  "title": "Same word, three token counts",
+  "runningExample": "One Corrowby support reply contains the word \"Paris\", and the team counts its tokens as they plan the model call.",
+  "plantedQuestion": {
+    "text": "Why does the same word get different token counts when it appears plain, spaced, and capitalised?",
+    "beatId": "b1",
+    "payoffBeatId": "b5"
+  }
+}
+
+## BEAT
+{
+  "id": "b3",
+  "chapter": "Learning merges",
+  "intent": "Show the raw-byte starting point of 256 symbols and one merge, \"t\"+\"h\" to \"th\", so the vocabulary grows by one learned pair.",
+  "device": "semantic_zoom",
+  "continuesPrevious": false,
+  "suggestedPatterns": [],
+  "newTerms": [],
+  "exampleNumbers": false
+}
+
+## SCRIPT
+{
+  "narration": "Learning starts from raw bytes: two hundred and fifty-six of them. Then the loop counts every neighbouring pair. It adds the most frequent one, say 't' plus 'h', as a new symbol, 'th'. Repeat.",
+  "headline": {
+    "text": "Bytes first, merges build words",
+    "semantic": "concept"
+  },
+  "tags": [
+    "byte start",
+    "pair count",
+    "new symbol"
+  ],
+  "statCards": [
+    {
+      "value": "256",
+      "label": "starting byte values"
+    }
+  ],
+  "formulaCard": null,
+  "commandBubble": null,
+  "source": "A field guide to subword merges"
+}
+
+## NARRATION WORDS (anchor each event with {"type":"word","index":<index>}: index, word, seconds from the beat's start)
+0 Learning 0.00
+1 starts 0.38
+2 from 0.77
+3 raw 1.15
+4 bytes: 1.54
+5 two 1.92
+6 hundred 2.31
+7 and 2.69
+8 fifty-six 3.08
+9 of 3.46
+10 them. 3.85
+11 Then 4.23
+12 the 4.62
+13 loop 5.00
+14 counts 5.38
+15 every 5.77
+16 neighbouring 6.15
+17 pair. 6.54
+18 It 6.92
+19 adds 7.31
+20 the 7.69
+21 most 8.08
+22 frequent 8.46
+23 one, 8.85
+24 say 9.23
+25 't' 9.62
+26 plus 10.00
+27 'h', 10.38
+28 as 10.77
+29 a 11.15
+30 new 11.54
+31 symbol, 11.92
+32 'th'. 12.31
+33 Repeat. 12.69
+The narration lasts 13.08 s.
+
+## RESEARCH (the only facts; numbers: the only ones a label may show)
+{
+  "facts": [
+    {
+      "id": "fact-7",
+      "statement": "Vocabulary learning starts from raw bytes, so the starting vocabulary is the 256 possible byte values and any text at all can be written, meaning nothing is ever unknown."
+    },
+    {
+      "id": "fact-8",
+      "statement": "The merge loop counts every pair of neighbouring symbols in the corpus, adds the most frequent pair as a new symbol, replaces it everywhere, and repeats until the vocabulary reaches its target size."
+    }
+  ],
+  "numbers": [
+    {
+      "id": "num-2",
+      "value": "256",
+      "unit": "byte values",
+      "context": "Size of the starting vocabulary when a byte-level tokenizer begins learning merges."
+    }
+  ]
+}
+
+## TERMS
+{
+  "introduced": [
+    {
+      "term": "token",
+      "plainMeaning": "A piece of text, from a single byte up to a whole word, that the tokenizer maps to one integer.",
+      "beat": "b1"
+    },
+    {
+      "term": "vocabulary",
+      "plainMeaning": "The fixed list of pieces the tokenizer can output; Saltmarsh's has 32,000 entries.",
+      "beat": "b2"
+    }
+  ],
+  "notYet": [
+    "pre-tokenization"
+  ]
+}
+
+## BOARD
+{
+  "format": "full",
+  "layoutMode": {
+    "id": "pipeline",
+    "zones": [
+      "source",
+      "stage",
+      "sink",
+      "aside"
+    ],
+    "maxUnits": 10
+  },
+  "logoSlots": []
+}
+
+## ZOOM FROM (exhaustive: with transitionIn "zoom-in", set zoomFrom to one of these ids of the previous board)
+- chars (node_card) "Characters"
+- words (node_card) "Whole words"
+- pieces (node_card) "Subword pieces"
+- tag-chars (tag) "characters"
+- tag-words (tag) "whole words"
+- tag-pieces (tag) "subwords"

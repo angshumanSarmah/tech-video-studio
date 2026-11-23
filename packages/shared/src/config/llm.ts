@@ -130,6 +130,11 @@ export const LlmSettingsSchema = z
      * before a long JSON answer; 429/5xx retries each get their own timeout.
      */
     requestTimeoutSec: z.number().int().min(10).max(1800).default(300),
+    /**
+     * Requests in flight at once, across every role (the API's rate limit is per key). The
+     * Generator runs independent boards in parallel up to this.
+     */
+    maxConcurrent: z.number().int().min(1).max(16).default(3),
     prices: PriceTableSchema.default(defaultPriceTable),
   })
   .superRefine((llm, ctx) => {

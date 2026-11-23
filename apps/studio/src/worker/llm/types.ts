@@ -30,6 +30,8 @@ export interface TransportRequest {
   readonly model: string;
   readonly messages: readonly ChatMessage[];
   readonly signal?: AbortSignal;
+  /** Which recorded queue a dry run replays from (`CallJsonRequest.replayKey`); HTTP ignores it. */
+  readonly replayKey?: string;
 }
 
 export interface TransportResponse {

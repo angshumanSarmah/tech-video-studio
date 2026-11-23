@@ -118,7 +118,7 @@ function chainLayout(spec: RenderableVideoSpec, chain: Chain, ctx: Ctx): Board {
   const [first] = chain.scenes;
   const lastBeat = chain.scenes.at(-1)?.beatId ?? '';
   const beatIds = chain.scenes.map((s) => s.beatId);
-  const items = beatWorld(spec, timing, lastBeat, LAYOUT_FPS, registries);
+  const items = beatWorld(spec, timing, lastBeat, LAYOUT_FPS, registries, undefined, 'chain');
   const mode = first ? beatLayoutMode(first, registries.patterns) : '';
   const focus = [...new Set(chain.scenes.flatMap((s) => s.focus))];
   const { frame, footnote } = chainFrame(spec, beatIds, theme, areas);

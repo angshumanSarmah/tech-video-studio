@@ -242,13 +242,9 @@ type Allowed = { plain: ReadonlySet<string>; seconds: ReadonlySet<string>; shown
  * times, in seconds.
  */
 function allowedValues(spec: RenderableVideoSpec, notes: ResearchNotes, i: number): Allowed {
-  const scene = spec.scenes[i];
-  const beats = scene ? sceneChain(spec.scenes, scene.beatId).map((s) => s.beatId) : [];
   const index = numberIndex(notes);
-  const research = researchValueKeys(notes);
-  const cited = beats.flatMap((id) => citedIds(spec, id));
-  const said = beats.flatMap((id) => saidKeys(spec, id)).filter((k) => research.has(k));
-  const ids = new Set([...cited, ...said.flatMap((k) => index.idsByKey.get(k) ?? [])]);
+  const said = saidOnBoard(spec, notes, i);
+  const ids = new Set(boardNumberIds(spec, notes, i));
   const numbers = notes.numbers.filter((n) => ids.has(n.id));
   const plain = new Set([
     ...numbers.flatMap((n) => [...(index.keysById.get(n.id) ?? [])]),
@@ -262,6 +258,37 @@ function allowedValues(spec: RenderableVideoSpec, notes: ResearchNotes, i: numbe
     }),
   );
   return { plain, seconds, shown: numbers.map((n) => `${n.value} ${n.unit}`.trim()) };
+}
+
+/** Beat ids of the board beat `i` is on, up to and including it. */
+function boardBeats(spec: RenderableVideoSpec, i: number): string[] {
+  const scene = spec.scenes[i];
+  return scene ? sceneChain(spec.scenes, scene.beatId).map((s) => s.beatId) : [];
+}
+
+/** Research values the board's beats so far say (narration, source line, script text). */
+function saidOnBoard(spec: RenderableVideoSpec, notes: ResearchNotes, i: number): string[] {
+  const research = researchValueKeys(notes);
+  return boardBeats(spec, i)
+    .flatMap((id) => saidKeys(spec, id))
+    .filter((k) => research.has(k));
+}
+
+/**
+ * The research numbers beat `i`'s board may show (`screen_number_not_in_notes`): those its
+ * beats so far cite (`factIds`, hook numbers, stat cards) or say, in notes order. The
+ * Generator's input lists exactly these.
+ */
+export function boardNumberIds(
+  spec: RenderableVideoSpec,
+  notes: ResearchNotes,
+  i: number,
+): string[] {
+  const index = numberIndex(notes);
+  const cited = boardBeats(spec, i).flatMap((id) => citedIds(spec, id));
+  const said = saidOnBoard(spec, notes, i).flatMap((k) => index.idsByKey.get(k) ?? []);
+  const ids = new Set([...cited, ...said]);
+  return notes.numbers.filter((n) => ids.has(n.id)).map((n) => n.id);
 }
 
 function citedIds(spec: RenderableVideoSpec, beatId: string): string[] {

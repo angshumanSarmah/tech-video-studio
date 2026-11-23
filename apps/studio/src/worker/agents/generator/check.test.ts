@@ -7,7 +7,14 @@ import {
 } from '@explainer-studio/shared';
 import { describe, expect, it } from 'vitest';
 import { generatorAssetSwaps, generatorCheck, type GeneratorCheckDeps } from './check.ts';
-import { fixtureScriptedSpec, recordedNotes } from './testing.ts';
+import {
+  countBoard,
+  fixtureScriptedSpec,
+  hookBoard,
+  recordedNotes,
+  storeBoard,
+  type FixtureBoard as Board,
+} from './testing.ts';
 
 const spec: VideoSpec = (() => {
   const result = validateVideoSpec(fixtureScriptedSpec('rate-limiter'));
@@ -15,124 +22,7 @@ const spec: VideoSpec = (() => {
   return result.spec;
 })();
 
-const source = spec.script?.[0]?.source ?? '';
 const word = (index: number) => ({ type: 'word', index }) as const;
-
-/** A board as the model writes it, loose enough for tests to seed faults into. */
-type Board = {
-  elements: { id: string; primitive: string; props: Record<string, unknown>; zone?: string }[];
-  events: { at: { type: 'word'; index: number }; action: string; targets: string[] }[];
-  focus: string[];
-};
-
-/** A clean board for the hook (beat1, two_column): the script's tags and stat card placed. */
-function hookBoard(): Board {
-  return {
-    elements: [
-      {
-        id: 'shop',
-        primitive: 'node_card',
-        props: { title: 'Checkout', icon: 'shopping_bag' },
-        zone: 'left',
-      },
-      {
-        id: 'limiter',
-        primitive: 'node_card',
-        props: { title: 'Rate limiter', icon: 'shield' },
-        zone: 'right',
-      },
-      {
-        id: 'errors',
-        primitive: 'tag',
-        props: { text: 'Checkout errors', semantic: 'problem', pin: { to: 'shop', side: 'top' } },
-      },
-      {
-        id: 'traffic',
-        primitive: 'tag',
-        props: {
-          text: 'Too much traffic',
-          semantic: 'problem',
-          pin: { to: 'shop', side: 'bottom' },
-        },
-      },
-      {
-        id: 'failed',
-        primitive: 'stat_card',
-        props: { value: '31%', label: 'checkouts failed', source },
-        zone: 'aside',
-      },
-    ],
-    events: [
-      { at: word(0), action: 'enter', targets: ['failed'] },
-      { at: word(5), action: 'enter', targets: ['shop'] },
-      { at: word(6), action: 'enter', targets: ['errors'] },
-      { at: word(11), action: 'enter', targets: ['traffic'] },
-      { at: word(16), action: 'enter', targets: ['limiter'] },
-      { at: word(17), action: 'highlight', targets: ['limiter'] },
-    ],
-    focus: ['limiter'],
-  };
-}
-
-/** A clean first board for beat3 (versus_split) and a clean continuation for beat4. */
-function storeBoard(): Board {
-  return {
-    elements: [
-      {
-        id: 'own',
-        primitive: 'node_card',
-        props: { title: 'Own bucket', icon: 'server' },
-        zone: 'left',
-      },
-      {
-        id: 'shared',
-        primitive: 'node_card',
-        props: { title: 'Shared store', icon: 'database' },
-        zone: 'right',
-      },
-      {
-        id: 'one',
-        primitive: 'tag',
-        props: { text: 'One bucket', semantic: 'ok', pin: { to: 'shared', side: 'top' } },
-      },
-      {
-        id: 'agree',
-        primitive: 'tag',
-        props: { text: 'All nodes agree', semantic: 'ok', pin: { to: 'shared', side: 'bottom' } },
-      },
-    ],
-    events: [
-      { at: word(5), action: 'enter', targets: ['own'] },
-      { at: word(24), action: 'enter', targets: ['shared'] },
-      { at: word(25), action: 'enter', targets: ['one'] },
-      { at: word(28), action: 'enter', targets: ['agree'] },
-    ],
-    focus: ['shared'],
-  };
-}
-
-function countBoard(): Board {
-  return {
-    elements: [
-      {
-        id: 'count',
-        primitive: 'tag',
-        props: { text: 'Shared count', semantic: 'focus', pin: { to: 'own', side: 'top' } },
-      },
-      {
-        id: 'double',
-        primitive: 'tag',
-        props: { text: 'Double admit', semantic: 'problem', pin: { to: 'own', side: 'bottom' } },
-      },
-    ],
-    events: [
-      { at: word(5), action: 'enter', targets: ['count'] },
-      { at: word(26), action: 'enter', targets: ['double'] },
-      { at: word(26), action: 'reject', targets: ['own'] },
-    ],
-    focus: ['own'],
-  };
-}
 
 /** Pins that make the board too wide: its labels shrink below readable size. */
 function crowdedCountBoard(): Board {

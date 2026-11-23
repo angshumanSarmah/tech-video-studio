@@ -1,0 +1,159 @@
+Draw the board for beat "beat4" (4 of 8). It continues the previous beat's board: everything ON SCREEN is still there. Return only this beat's board as one JSON object.
+
+## VIDEO
+{
+  "title": "Rate limiters: shared bucket, slow store",
+  "runningExample": "A single checkout request from one user at Larkspur Pay flows through the gateway and asks the rate limiter for a token.",
+  "plantedQuestion": {
+    "text": "What happens when the shared store gets slow?",
+    "beatId": "beat5",
+    "payoffBeatId": "beat7"
+  }
+}
+
+## BEAT
+{
+  "id": "beat4",
+  "chapter": "Why not keep a bucket on each gateway node?",
+  "intent": "Show what breaks without an indivisible read-compute-write: two gateway nodes read the same token count, both see a token left and both admit a request.",
+  "device": "what_breaks",
+  "continuesPrevious": true,
+  "suggestedPatterns": [],
+  "newTerms": [],
+  "exampleNumbers": false
+}
+
+## SCRIPT
+{
+  "narration": "But the store reads the count, adds tokens, spends one, then writes it back. Every step must be indivisible. Two nodes that read the same count both see a token, and both let a request through.",
+  "headline": {
+    "text": "Read, spend, write: one step",
+    "semantic": "decision"
+  },
+  "tags": [
+    "Shared count",
+    "Double admit"
+  ],
+  "statCards": [],
+  "formulaCard": null,
+  "commandBubble": null,
+  "source": null
+}
+
+## NARRATION WORDS (anchor each event with {"type":"word","index":<index>}: index, word, seconds from the beat's start)
+0 But 0.00
+1 the 0.38
+2 store 0.77
+3 reads 1.15
+4 the 1.54
+5 count, 1.92
+6 adds 2.31
+7 tokens, 2.69
+8 spends 3.08
+9 one, 3.46
+10 then 3.85
+11 writes 4.23
+12 it 4.62
+13 back. 5.00
+14 Every 5.38
+15 step 5.77
+16 must 6.15
+17 be 6.54
+18 indivisible. 6.92
+19 Two 7.31
+20 nodes 7.69
+21 that 8.08
+22 read 8.46
+23 the 8.85
+24 same 9.23
+25 count 9.62
+26 both 10.00
+27 see 10.38
+28 a 10.77
+29 token, 11.15
+30 and 11.54
+31 both 11.92
+32 let 12.31
+33 a 12.69
+34 request 13.08
+35 through. 13.46
+The narration lasts 13.85 s.
+
+## RESEARCH (the only facts; numbers: the only ones a label may show)
+{
+  "facts": [
+    {
+      "id": "fact-6",
+      "statement": "Read, compute and write run as one atomic script inside the store; without that, two gateway nodes can read the same count, both see a token left, and both let a request through."
+    },
+    {
+      "id": "fact-5",
+      "statement": "The check is a read of token count and last-refill timestamp, an add of elapsed seconds times the refill rate capped at capacity, a spend of a token and a write of the new count and timestamp back to the store."
+    }
+  ],
+  "numbers": [
+    {
+      "id": "num-3",
+      "value": "24",
+      "unit": "gateway nodes",
+      "context": "Hollowmere gateway nodes running behind a load balancer."
+    },
+    {
+      "id": "num-4",
+      "value": "24",
+      "unit": "times its limit",
+      "context": "Effective limit a client would get if each of the gateway nodes kept its own bucket instead of a shared one."
+    }
+  ]
+}
+
+## TERMS
+{
+  "introduced": [
+    {
+      "term": "Rate limiter",
+      "plainMeaning": "A component that decides, per request, whether this caller may do this now.",
+      "beat": "beat1"
+    },
+    {
+      "term": "Token bucket",
+      "plainMeaning": "A per-key allowance with a maximum size (capacity) and a steady refill rate; each request spends a token.",
+      "beat": "beat2"
+    },
+    {
+      "term": "Shared store",
+      "plainMeaning": "The one in-memory store that every gateway node reads and writes the bucket state in, so all nodes enforce the same limit.",
+      "beat": "beat3"
+    }
+  ],
+  "notYet": []
+}
+
+## BOARD
+{
+  "format": "full",
+  "layoutMode": {
+    "id": "versus_split",
+    "zones": [
+      "left",
+      "right",
+      "shared"
+    ],
+    "maxUnits": 8
+  },
+  "logoSlots": []
+}
+
+## ON SCREEN (exhaustive: the ids already on this board; act on them with events, never declare them again)
+- own (node_card) "Own bucket": present; actions: enter, exit, highlight, dim, pulse, lock, release, reject, recover
+- shared (node_card) "Shared store": present; actions: enter, exit, highlight, dim, pulse, lock, release, reject, recover
+- one (tag) "One bucket": present; actions: enter, exit, highlight, dim, pulse, reject, recover
+- agree (tag) "All nodes agree": present; actions: enter, exit, highlight, dim, pulse, reject, recover
+focus: shared
+units on screen: 2 of at most 8
+
+## PREVIOUS BEAT
+{
+  "id": "beat3",
+  "narration": "Why not give each gateway node its own bucket? Say twenty-four nodes. A client spread across them gets twenty-four times its limit. One shared store holds the bucket; every node reads and writes it there."
+}

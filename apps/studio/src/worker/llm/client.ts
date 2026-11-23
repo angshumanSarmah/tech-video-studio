@@ -12,6 +12,7 @@ import type { Db } from '#core/db/client.ts';
 import { insertLlmCall, type LlmCallRow } from '#core/db/repositories/llm-calls.ts';
 import { callCostUsd } from './cost.ts';
 import { normalizeJsonText, type FieldAlias } from './normalize.ts';
+import { createSemaphore } from './semaphore.ts';
 import { LlmConfigError } from './transport.ts';
 import { ZERO_USAGE } from './usage.ts';
 import type {
@@ -28,8 +29,12 @@ export const MAX_REPAIR_ATTEMPTS = 2;
 export interface LlmClientDeps {
   readonly db: Db;
   readonly dataDir: string;
-  /** Model per role and the price table. The key lives only in the transport. */
-  readonly llm: Pick<LlmSettings, 'models' | 'prices'>;
+  /**
+   * Model per role, the price table and how many requests may be in flight at once
+   * (`maxConcurrent`, default 3, shared by every role). The key lives only in the transport.
+   */
+  readonly llm: Pick<LlmSettings, 'models' | 'prices'> &
+    Partial<Pick<LlmSettings, 'maxConcurrent'>>;
   readonly transport: LlmTransport;
   readonly now?: () => Date;
 }
@@ -49,6 +54,11 @@ export interface CallJsonRequest<S extends z.ZodType> {
    */
   readonly check?: (value: unknown) => readonly OutputIssue[];
   readonly signal?: AbortSignal;
+  /**
+   * Which recorded answers a dry run replays for this call (the Generator's beat id), so calls
+   * made in parallel replay deterministically. Written to the prompt file; HTTP ignores it.
+   */
+  readonly replayKey?: string;
   /** Where normalizer fixes and repairs are reported (a job's `ctx.log`). */
   readonly log?: (level: LogLevel, message: string) => void;
 }
@@ -172,8 +182,12 @@ function callKey(at: Date, role: ModelRole, attempt: number): string {
   return `${stamp}-${role}-a${attempt}-${randomBytes(3).toString('hex')}`;
 }
 
+/** Requests in flight at once when the settings do not say (`llm.maxConcurrent`). */
+export const DEFAULT_MAX_CONCURRENT = 3;
+
 export function createLlmClient(deps: LlmClientDeps): LlmClient {
   const now = deps.now ?? (() => new Date());
+  const limiter = createSemaphore(deps.llm.maxConcurrent ?? DEFAULT_MAX_CONCURRENT);
 
   async function attempt<S extends z.ZodType>(
     request: CallJsonRequest<S>,
@@ -188,11 +202,13 @@ export function createLlmClient(deps: LlmClientDeps): LlmClient {
     const runId = request.runId ?? null;
     const paths = llmCallPaths(runId, callKey(startedAt, role, attemptNo));
     const versions = request.prompt.versions;
+    const { replayKey } = request;
     writeDataJson(deps.dataDir, paths.prompt, {
       role,
       model,
       attempt: attemptNo,
       versions,
+      ...(replayKey === undefined ? {} : { replayKey }),
       messages,
     });
 
@@ -206,10 +222,20 @@ export function createLlmClient(deps: LlmClientDeps): LlmClient {
       model,
       promptPath: paths.prompt,
     };
-    const started = performance.now();
+    let started = performance.now();
     let response: TransportResponse;
     try {
-      response = await deps.transport.send({ role, model, messages, signal: request.signal });
+      // The wait for a free slot is not part of the request's duration.
+      response = await limiter.run(() => {
+        started = performance.now();
+        return deps.transport.send({
+          role,
+          model,
+          messages,
+          signal: request.signal,
+          ...(replayKey === undefined ? {} : { replayKey }),
+        });
+      }, request.signal);
     } catch (error) {
       insertLlmCall(deps.db, {
         ...base,

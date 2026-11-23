@@ -46,4 +46,28 @@ describe('stat_card beside the beat footnote', () => {
     const peak = world.find((item) => item.key === 'peak');
     expect(peak?.kind === 'primitive' ? (peak.props as StatCardProps).source : undefined).toBe('');
   });
+
+  it('hides it only on beats whose footnote matches, and is sized for the beats that show it', () => {
+    const spec: RenderableVideoSpec = structuredClone(goldenRateLimiterSpec);
+    const fleet = spec.scenes.findIndex((s) => s.beatId === 'fleet');
+    const [adds, later] = [spec.script[fleet], spec.script[fleet + 1]];
+    const scene = spec.scenes[fleet];
+    if (!adds || !later || !scene || !spec.scenes[fleet + 1]?.continuesPrevious) {
+      throw new Error('fleet is continued by the next beat');
+    }
+    adds.source = card.source;
+    later.source = '<example-other-source>';
+    scene.elements.push({ id: 'peak', primitive: 'stat_card', props: { ...card } });
+    const timing = effectiveTiming(spec);
+    const sourceOn = (beatId: string, mode?: 'chain') => {
+      const world = beatWorld(spec, timing, beatId, 30, DEFAULT_REGISTRIES, undefined, mode);
+      const peak = world.find((item) => item.key === 'peak');
+      return peak?.kind === 'primitive' ? (peak.props as StatCardProps).source : undefined;
+    };
+    expect(sourceOn(adds.beatId)).toBe('');
+    expect(sourceOn(later.beatId)).toBe(card.source);
+    expect(sourceOn(later.beatId, 'chain')).toBe(card.source);
+    later.source = card.source;
+    expect(sourceOn(later.beatId, 'chain')).toBe('');
+  });
 });

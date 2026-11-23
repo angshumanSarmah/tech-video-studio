@@ -347,6 +347,74 @@ describe('callJson: failures and secrets', () => {
   });
 });
 
+describe('callJson: concurrency and replay keys', () => {
+  /** A transport that answers only when told to, recording when each request arrives. */
+  function heldTransport() {
+    const arrived: string[] = [];
+    const release = new Map<string, () => void>();
+    let inFlight = 0;
+    let peak = 0;
+    const transport: LlmTransport = {
+      async send(req) {
+        const key = req.replayKey ?? '?';
+        arrived.push(key);
+        inFlight += 1;
+        peak = Math.max(peak, inFlight);
+        await new Promise<void>((resolve) => release.set(key, resolve));
+        inFlight -= 1;
+        return {
+          content: '{"headline":"ok","targetSec":60}',
+          reasoningContent: null,
+          servedModel: 'held',
+          finishReason: 'stop',
+          usage: { inCached: 0, inUncached: 1, out: 1, reasoning: 0 },
+          rawUsage: null,
+        };
+      },
+    };
+    return { transport, arrived, release, peak: () => peak };
+  }
+
+  const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+  it('keeps at most maxConcurrent requests in flight, across roles, in arrival order', async () => {
+    const held = heldTransport();
+    const c = createLlmClient({
+      db: t.db,
+      dataDir: t.dataDir,
+      llm: { ...llm, maxConcurrent: 2 },
+      transport: held.transport,
+      now: () => PEAK,
+    });
+    const calls = (['a', 'b', 'c', 'd'] as const).map((key, i) =>
+      call(c, { role: i % 2 === 0 ? 'generator' : 'director', replayKey: key }),
+    );
+    await tick();
+    expect(held.arrived).toEqual(['a', 'b']);
+    held.release.get('b')?.();
+    await tick();
+    expect(held.arrived).toEqual(['a', 'b', 'c']);
+    held.release.get('a')?.();
+    held.release.get('c')?.();
+    await tick();
+    held.release.get('d')?.();
+    await Promise.all(calls);
+    expect(held.arrived).toEqual(['a', 'b', 'c', 'd']);
+    expect(held.peak()).toBe(2);
+  });
+
+  it('passes the replay key to the transport and writes it to the prompt file', async () => {
+    const c = client(
+      dryRunTransport({ generator: { 'beat-2': [{ content: '{"headline":"x","targetSec":1}' }] } }),
+    );
+    await expect(call(c, { role: 'generator', replayKey: 'beat-2' })).resolves.toMatchObject({
+      value: { headline: 'x' },
+    });
+    const [row] = listRunLlmCalls(t.db, runId);
+    expect(readDataJson(t.dataDir, row!.promptPath)).toMatchObject({ replayKey: 'beat-2' });
+  });
+});
+
 describe('callJson: dry run', () => {
   it('replays recorded responses through the same validation, logging and cost', async () => {
     const c = client(

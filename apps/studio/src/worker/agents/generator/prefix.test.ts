@@ -1,44 +1,38 @@
 import { join } from 'node:path';
 import { generatorCatalogueBlock } from '@explainer-studio/renderer/catalog';
-import {
-  narrationWords,
-  SettingsSchema,
-  validateVideoSpec,
-  type VideoSpecInput,
-} from '@explainer-studio/shared';
+import { SettingsSchema, validateVideoSpec } from '@explainer-studio/shared';
 import { describe, expect, it } from 'vitest';
 import { findWorkspaceRoot } from '#core/workspace-root.ts';
-import { FIXTURE_TOPIC_IDS } from '../fixture-topics.ts';
+import { FIXTURE_TOPIC_IDS, type FixtureTopicId } from '../fixture-topics.ts';
 import { buildPrompt } from '../prompt-builder.ts';
 import { resolvePromptVariables } from '../prompt-variables.ts';
 import { loadPromptTemplates, PROMPTS_DIR } from '../prompts/templates.ts';
-import { fixtureScriptedSpec } from './testing.ts';
+import { generatorUserMessage } from './input.ts';
+import { fixtureScriptedSpec, recordedNotes } from './testing.ts';
 
 const templates = loadPromptTemplates(join(findWorkspaceRoot(import.meta.dirname), PROMPTS_DIR));
 const variables = resolvePromptVariables(undefined, SettingsSchema.parse({}).video);
 const catalogue = generatorCatalogueBlock();
 
-/**
- * A stand-in for the Generator's per-beat user message (P1C.7 step 8): the beat's story and
- * script and its numbered narration words, everything that differs from beat to beat.
- */
-function beatInput(spec: VideoSpecInput, index: number): string {
-  const beat = spec.story.beats[index];
-  const script = spec.script?.[index];
-  const words = narrationWords(script?.narration ?? '').map((w, i) => `${i}:${w}`);
-  return JSON.stringify({ beat, script, words });
+/** The fixture topic's spec, validated (defaults filled), as the job reads it. */
+function specOf(topic: FixtureTopicId) {
+  const result = validateVideoSpec(fixtureScriptedSpec(topic));
+  if (!result.spec) throw new Error(`the ${topic} fixture spec is invalid`);
+  return result.spec;
 }
 
+/** Every beat's real prompt: the Generator's user message, before any board exists. */
 const prompts = FIXTURE_TOPIC_IDS.flatMap((topic) => {
-  const spec = fixtureScriptedSpec(topic);
-  return spec.story.beats.map((beat, i) => ({
+  const spec = specOf(topic);
+  const notes = recordedNotes(topic);
+  return spec.story.beats.map((beat, beatIndex) => ({
     topic,
     beatId: beat.id,
     prompt: buildPrompt(templates, {
       role: 'generator',
       variables,
       catalogue,
-      input: beatInput(spec, i),
+      input: generatorUserMessage({ spec, scenes: [], beatIndex, notes }),
     }),
   }));
 });

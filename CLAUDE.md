@@ -366,7 +366,14 @@ stepId?, aliases?, check?, signal?, log? })`** is the only way to call a model (
   (`LlmBodyCutOffError`) like a 5xx, separately from repairs. Each request times out after
   `llm.requestTimeoutSec` (300) and honours the caller's `signal`. A missing key fails before
   any request. `dryRunTransport(fixtures)` / `loadDryRunFixtures(dir)` replay recorded responses
-  per role, in order, and run through the same validation, logging and cost.
+  per role, in order, and run through the same validation, logging and cost. A role recorded
+  per key (`{ [beatId]: DryRunResponse[] }`, the Generator) replays from the queue of the call's
+  `replayKey` (`CallJsonRequest.replayKey`, passed on `TransportRequest`, written to the prompt
+  file; HTTP ignores it), so calls made in parallel replay deterministically; `recordedInOrder`
+  reads a role recorded in call order, `recordKeyedResponses` (fixture scripts) records per key.
+- **Concurrency:** at most `llm.maxConcurrent` (default 3) requests in flight, across every role:
+  one FIFO semaphore per client (`llm/semaphore.ts`) around each HTTP request (the wait is not
+  part of `durationMs`; an abort while waiting leaves the queue).
 - **Every attempt is an `llm_calls` row** (`#core/db/repositories/llm-calls.ts`): role, role
   prompt and preamble versions, `attempt`, model and served model, cached / uncached input,
   output (reasoning included) and reasoning tokens, cost, normalizer fixes, error. A failed
@@ -682,9 +689,27 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   pattern) and `static_beats` (more than `MAX_STATIC_BEATS` (1) new board with nothing but stat
   cards).
 - **Stat card beside the footnote:** a primitive's `besideFootnote(props, footnote)` hook gives
-  the props to draw when the beat that adds it shows that source line (`beatWorld` applies it,
-  so layout and render agree); `stat_card` drops its own source line (`source: ''`) when it
-  matches.
+  the props to draw beside a beat's source line; `stat_card` drops its own source line
+  (`source: ''`) when it matches. `beatWorld` applies it per drawn beat (`FootnoteMode` `beat`:
+  only while the beat on screen has that footnote); layout sizes with `chain` (only when every
+  beat from the one that adds it to the end of its board has it), so a card is never drawn
+  larger than its box.
+- **The user message** (`generator/input.ts`, `generatorUserMessage`): sections VIDEO (title,
+  running example, planted question), BEAT, SCRIPT, NARRATION WORDS (one line per
+  `narrationWords` word: index, word as written, seconds from the beat's start; the beat's
+  length; on the final beat, the words the ending card covers), RESEARCH (the beat's facts; the
+  numbers its board may show, `boardNumberIds`, the same list the number check allows), TERMS
+  (introduced so far with plain meanings, and `notYet`), BOARD (format, layout mode with zones
+  and `maxUnits`: the plan's on a board's first beat, the generated first scene's on a
+  continuing beat; logo slots); on a continuing beat, ON SCREEN and PREVIOUS BEAT; on a
+  `semantic_zoom` beat, ZOOM FROM (the previous board's present ids). ON SCREEN comes from
+  `boardState(spec, previousBeatId)` (renderer `catalog/board-state.ts`, pure): every element and
+  instance the board declared, its text, present or exited, held reject / lock (whole and per
+  part), held highlight, actions and parts, inner ids with `innerActions`, the focus and the
+  units against `maxUnits`, as the previous scene leaves the screen. `generator/board.ts`
+  (`spliceBoards`, `placeholderScene`, `boardStart`) is shared with the check. Snapshots in
+  `generator/__snapshots__/` (rate limiter beat4, continuing; tokenizer b3, semantic zoom) show
+  what the model reads: review their diff.
 
 API conventions: routes under `/api`, inputs validated with the `validate()` helper against schemas
 from `packages/shared/src/api`, list responses wrapped as `{ items }`, and every error is

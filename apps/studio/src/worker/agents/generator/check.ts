@@ -19,9 +19,9 @@ import {
   type ResearchNotes,
   type SpecError,
   type StoryBeat,
-  type VideoSpec,
 } from '@explainer-studio/shared';
 import type { OutputIssue } from '#worker/llm/types.ts';
+import { boardStart, placeholderScene, spliceBoards, type GeneratorBoards } from './board.ts';
 
 /**
  * The Generator's checks for one beat (P1C.7): its board spliced into the run's timed spec, then
@@ -35,11 +35,7 @@ import type { OutputIssue } from '#worker/llm/types.ts';
  * drawn as placeholders and recorded, never a reason to repair.
  */
 
-export interface GeneratorCheckDeps {
-  /** The run's spec: plan and script, with timing when TTS has run (its scenes are ignored). */
-  readonly spec: VideoSpec;
-  /** Scenes generated so far, by story beat index; undefined for beats not generated yet. */
-  readonly scenes: readonly (BeatScene | undefined)[];
+export interface GeneratorCheckDeps extends GeneratorBoards {
   /** The story beat this board is for. */
   readonly beatIndex: number;
   /** The research notes the plan was made from: the numbers a board may show. */
@@ -75,8 +71,8 @@ function storyBeat(deps: GeneratorCheckDeps): StoryBeat {
 function beatIssues(deps: GeneratorCheckDeps, scene: BeatScene): OutputIssue[] {
   const i = deps.beatIndex;
   const own = scenePrefix(i);
-  const earlier = chainStart(deps, i);
-  const baseline = new Set(specIssues(deps, placeholder(storyBeat(deps))).map(issueKey));
+  const earlier = boardStart(deps.spec, i);
+  const baseline = new Set(specIssues(deps, placeholderScene(storyBeat(deps))).map(issueKey));
   return specIssues(deps, scene)
     .filter((issue) => {
       if (inScene(issue.path, own)) return true;
@@ -90,7 +86,7 @@ function beatIssues(deps: GeneratorCheckDeps, scene: BeatScene): OutputIssue[] {
 function specIssues(deps: GeneratorCheckDeps, scene: BeatScene): SpecError[] {
   const registries = deps.registries ?? DEFAULT_REGISTRIES;
   const theme = deps.theme ?? getTheme();
-  const spec = splice(deps, scene);
+  const spec = spliceBoards(deps, deps.beatIndex, scene);
   const result = withRegistryChecks(validateRenderableVideoSpec(spec), spec, registries);
   const issues = [...result.errors, ...result.warnings];
   if (!result.ok) return issues;
@@ -103,34 +99,6 @@ function specIssues(deps: GeneratorCheckDeps, scene: BeatScene): SpecError[] {
       ...(deps.notes ? { notes: deps.notes } : {}),
     }),
   ];
-}
-
-function splice(deps: GeneratorCheckDeps, scene: BeatScene): VideoSpec {
-  const scenes = deps.spec.story.beats.map((beat, k) =>
-    k === deps.beatIndex ? scene : (deps.scenes[k] ?? placeholder(beat)),
-  );
-  return { ...deps.spec, scenes };
-}
-
-/** An empty board for a beat not generated yet (its issues are never reported). */
-function placeholder(beat: StoryBeat): BeatScene {
-  return {
-    beatId: beat.id,
-    kind: 'board',
-    elements: [],
-    patterns: [],
-    events: [],
-    focus: [],
-    transitionIn: 'cut',
-    continuesPrevious: beat.continuesPrevious,
-  };
-}
-
-/** Index of the first beat of the board this beat is on. */
-function chainStart(deps: GeneratorCheckDeps, i: number): number {
-  let first = i;
-  while (first > 0 && deps.spec.story.beats[first]?.continuesPrevious) first -= 1;
-  return first;
 }
 
 const scenePrefix = (i: number) => `$.scenes[${i}]`;

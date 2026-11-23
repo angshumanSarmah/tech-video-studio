@@ -44,7 +44,9 @@ function clippedLineWarnings(
   registries: Registries,
 ): SpecError[] {
   const lastBeat = chain.beatIds.at(-1) ?? '';
-  const world = worldByKey(beatWorld(spec, effectiveTiming(spec), lastBeat, WORLD_FPS, registries));
+  const world = worldByKey(
+    beatWorld(spec, effectiveTiming(spec), lastBeat, WORLD_FPS, registries, undefined, 'chain'),
+  );
   return flattenPlaced(chain.board.items).flatMap((placed) => {
     const item = world.get(placed.key);
     if (item?.kind !== 'primitive' || !item.definition.clippedLines) return [];

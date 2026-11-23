@@ -78,7 +78,7 @@ type Context = {
   /** When the beat's scene leaves the screen (`sceneEndSec`). */
   sceneEndSec: number;
   narration: string;
-  /** The beat's source line, drawn as its footnote (`besideFootnote`). */
+  /** The footnote the scene's elements are drawn beside (`FootnoteMode`). */
   footnote: string | undefined;
   fps: number;
   registries: Registries;
@@ -91,6 +91,14 @@ type Context = {
  */
 export type WorldDraw = { theme: Theme; placedOf?: (key: string) => PlacedItem | undefined };
 
+/**
+ * Which footnote an element is drawn beside (`besideFootnote`). `beat`: the footnote of the beat
+ * being drawn, so a stat card hides its source only while its beat's footnote says the same.
+ * `chain` (layout sizing): a footnote only when every beat from the one that adds the element to
+ * the end of the chain shows it, so a card is never sized smaller than it is drawn.
+ */
+export type FootnoteMode = 'beat' | 'chain';
+
 export function beatWorld(
   spec: RenderableVideoSpec,
   timing: EffectiveTiming,
@@ -98,16 +106,19 @@ export function beatWorld(
   fps: number,
   registries: Registries,
   draw?: WorldDraw,
+  footnotes: FootnoteMode = 'beat',
 ): WorldItem[] {
   const drafts = new Map<string, Placed>();
   const events: AnchoredEvent[] = [];
   const beats: { focus: readonly string[]; startSec: number }[] = [];
-  for (const scene of sceneChain(spec.scenes, beatId)) {
+  const chain = sceneChain(spec.scenes, beatId);
+  const sources = chain.map((s) => spec.script.find((b) => b.beatId === s.beatId)?.source);
+  for (const [k, scene] of chain.entries()) {
     const ctx: Context = {
       beat: timing.beats.find((b) => b.beatId === scene.beatId),
       sceneEndSec: sceneEndSec(timing, scene.beatId),
       narration: spec.script.find((s) => s.beatId === scene.beatId)?.narration ?? '',
-      footnote: spec.script.find((s) => s.beatId === scene.beatId)?.source,
+      footnote: footnotes === 'beat' ? sources.at(-1) : sharedSource(sources.slice(k)),
       fps,
       registries,
     };
@@ -128,6 +139,12 @@ export function beatWorld(
   return nestContained(
     resolveWorld([...drafts.values()], events, push ? [...beats, push] : beats, fps, draw),
   );
+}
+
+/** The one source line every listed beat shows, or undefined when they differ or one has none. */
+function sharedSource(sources: readonly (string | undefined)[]): string | undefined {
+  const [first] = sources;
+  return first !== undefined && sources.every((s) => s === first) ? first : undefined;
 }
 
 /**

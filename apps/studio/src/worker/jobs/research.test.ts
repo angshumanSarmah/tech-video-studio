@@ -31,7 +31,7 @@ import {
   seedRunWithUploads,
 } from '../agents/researcher/testing.ts';
 import { createLlmClient } from '../llm/client.ts';
-import { dryRunTransport, loadDryRunFixtures, type DryRunResponse } from '../llm/dry-run.ts';
+import { dryRunTransport, recordedInOrder, type DryRunResponse } from '../llm/dry-run.ts';
 import { runNextJob } from '../runner.ts';
 import { ingestJobHandler } from './ingest.ts';
 import { createJobRegistry, type JobRegistry } from './registry.ts';
@@ -40,7 +40,7 @@ import { RESEARCH_JOB_TYPE, researchJobHandler } from './research.ts';
 const prompts = loadPromptTemplates(join(findWorkspaceRoot(import.meta.dirname), PROMPTS_DIR));
 const settings = SettingsSchema.parse({});
 /** Every recorded attempt, repairs included; the last one is the answer that passed. */
-const recorded = loadDryRunFixtures(RATE_LIMITER_RESPONSES_DIR).researcher!;
+const recorded = recordedInOrder(RATE_LIMITER_RESPONSES_DIR, 'researcher');
 const recordedAnswer = recorded.at(-1)!;
 const recordedContent = recordedAnswer.content!;
 

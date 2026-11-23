@@ -29,7 +29,7 @@ import {
 } from '../agents/researcher/testing.ts';
 import { SCRIPTWRITER_RESPONSES_DIR } from '../agents/scriptwriter/testing.ts';
 import { createLlmClient } from '../llm/client.ts';
-import { dryRunTransport, loadDryRunFixtures, type DryRunResponse } from '../llm/dry-run.ts';
+import { dryRunTransport, recordedInOrder, type DryRunResponse } from '../llm/dry-run.ts';
 import { runNextJob } from '../runner.ts';
 import { DIRECT_JOB_TYPE, directJobHandler } from './direct.ts';
 import { ingestJobHandler } from './ingest.ts';
@@ -39,9 +39,9 @@ import { SCRIPT_JOB_TYPE, scriptJobHandler, summarize } from './script.ts';
 
 const prompts = loadPromptTemplates(join(findWorkspaceRoot(import.meta.dirname), PROMPTS_DIR));
 const settings = SettingsSchema.parse({});
-const researcher = loadDryRunFixtures(RATE_LIMITER_RESPONSES_DIR).researcher!;
-const director = loadDryRunFixtures(DIRECTOR_RESPONSES_DIR).director!;
-const scriptwriter = loadDryRunFixtures(SCRIPTWRITER_RESPONSES_DIR).scriptwriter!;
+const researcher = recordedInOrder(RATE_LIMITER_RESPONSES_DIR, 'researcher');
+const director = recordedInOrder(DIRECTOR_RESPONSES_DIR, 'director');
+const scriptwriter = recordedInOrder(SCRIPTWRITER_RESPONSES_DIR, 'scriptwriter');
 const goodAnswer = scriptwriter.at(-1)!;
 const goodScript = (): ScriptwriterOutput =>
   ScriptwriterOutputSchema.parse(JSON.parse(goodAnswer.content!));

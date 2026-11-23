@@ -30,7 +30,7 @@ import {
   seedRunWithUploads,
 } from '../agents/researcher/testing.ts';
 import { createLlmClient } from '../llm/client.ts';
-import { dryRunTransport, loadDryRunFixtures, type DryRunResponse } from '../llm/dry-run.ts';
+import { dryRunTransport, recordedInOrder, type DryRunResponse } from '../llm/dry-run.ts';
 import { runNextJob } from '../runner.ts';
 import { DIRECT_JOB_TYPE, directJobHandler, summarize } from './direct.ts';
 import { ingestJobHandler } from './ingest.ts';
@@ -40,8 +40,8 @@ import { RESEARCH_JOB_TYPE, researchJobHandler } from './research.ts';
 const prompts = loadPromptTemplates(join(findWorkspaceRoot(import.meta.dirname), PROMPTS_DIR));
 const settings = SettingsSchema.parse({});
 /** The Researcher v2 fixture: every recorded attempt, so the replay ends on the passing notes. */
-const researcher = loadDryRunFixtures(RATE_LIMITER_RESPONSES_DIR).researcher!;
-const director = loadDryRunFixtures(DIRECTOR_RESPONSES_DIR).director!;
+const researcher = recordedInOrder(RATE_LIMITER_RESPONSES_DIR, 'researcher');
+const director = recordedInOrder(DIRECTOR_RESPONSES_DIR, 'director');
 const goodAnswer = director.at(-1)!;
 const goodPlan = (): DirectorPlan => DirectorPlanSchema.parse(JSON.parse(goodAnswer.content!));
 

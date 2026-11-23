@@ -36,3 +36,4 @@ export { nearIdenticalAsset } from '../assets/near-identical.ts';
 export * from './beat-checks.ts';
 export * from './screen-checks.ts';
 export * from './layer-checks.ts';
+export * from './board-state.ts';

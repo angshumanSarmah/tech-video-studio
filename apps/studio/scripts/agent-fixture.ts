@@ -106,23 +106,49 @@ export function recordResponses(
   dir: string,
   role: ModelRole,
 ): number {
-  const responses: DryRunResponse[] = calls
-    .filter((call) => call.responsePath)
-    .map((call) => {
-      const file = JSON.parse(
-        readFileSync(resolveDataPath(dataDir, call.responsePath!), 'utf8'),
-      ) as RecordedResponseFile;
-      // Reasoning text is left out: replay never reads it, and it is large.
-      return {
-        content: file.content,
-        servedModel: file.servedModel ?? 'recorded',
-        finishReason: file.finishReason ?? 'stop',
-        usage: file.usage ?? null,
-      };
-    });
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, `${role}.json`), `${JSON.stringify(responses, null, 2)}\n`);
+  const responses = calls.filter((call) => call.responsePath).map((c) => recorded(dataDir, c));
+  writeRecording(dir, role, responses);
   return responses.length;
+}
+
+/**
+ * Writes the calls' responses per replay key (`{ [beatId]: DryRunResponse[] }`, each key in call
+ * order, keys sorted) to `<dir>/<role>.json`, for roles whose calls run in parallel (the
+ * Generator). Each call's key is read from its prompt file. Returns how many were written.
+ */
+export function recordKeyedResponses(
+  dataDir: string,
+  calls: readonly LlmCallRow[],
+  dir: string,
+  role: ModelRole,
+): number {
+  const byKey = new Map<string, DryRunResponse[]>();
+  for (const call of calls.filter((c) => c.responsePath)) {
+    const prompt = readDataJson(dataDir, call.promptPath) as { replayKey?: string };
+    if (prompt.replayKey === undefined) throw new Error(`Call ${call.id} has no replayKey`);
+    byKey.set(prompt.replayKey, [...(byKey.get(prompt.replayKey) ?? []), recorded(dataDir, call)]);
+  }
+  const keys = [...byKey.keys()].sort();
+  writeRecording(dir, role, Object.fromEntries(keys.map((k) => [k, byKey.get(k) ?? []])));
+  return [...byKey.values()].reduce((sum, list) => sum + list.length, 0);
+}
+
+/** One call's response as a replayable recording (reasoning left out: large, never replayed). */
+function recorded(dataDir: string, call: LlmCallRow): DryRunResponse {
+  const file = JSON.parse(
+    readFileSync(resolveDataPath(dataDir, call.responsePath!), 'utf8'),
+  ) as RecordedResponseFile;
+  return {
+    content: file.content,
+    servedModel: file.servedModel ?? 'recorded',
+    finishReason: file.finishReason ?? 'stop',
+    usage: file.usage ?? null,
+  };
+}
+
+function writeRecording(dir: string, role: ModelRole, recording: unknown): void {
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, `${role}.json`), `${JSON.stringify(recording, null, 2)}\n`);
 }
 
 /** `--level <level>`, validated; undefined when not given. */
