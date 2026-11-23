@@ -478,12 +478,17 @@ seriesNumber })` makes the spec; with parts its `targetLengthSec` is the parts' 
   errors (its shape is checked), so one repair covers both; paths pointing into the plan):
   research ids exist (`unknown_fact`); at beginner a beat cites at most
   `BEGINNER_MAX_FACTS_PER_BEAT` (3) `fact-*` ids, numbers aside (`too_many_facts_in_beat`), and
-  `BEGINNER_MAX_NUMBERS_PER_BEAT` (2) distinct research values: its `num-*` ids,
-  `hookNumberIds` and the research values its intent states, compared by value
-  (`numberMentions`, `script/note-values.ts`; dates aside) (`too_many_numbers_in_beat`; both limits are hinted in `factIds`' schema description); new terms match the glossary case-insensitively
+  `BEGINNER_MAX_NUMBERS_PER_BEAT` (2) research numbers, counted by id: each `num-*` id (and
+  hook number) once whatever its value lists ("one, one and three" is one number), plus the
+  research numbers its intent states that no cited id holds (`numberIndex` /
+  `researchNumberOf`, `script/note-values.ts`; dates aside) (`too_many_numbers_in_beat`; both limits are hinted in `factIds`' schema description); new terms match the glossary case-insensitively
   (`unknown_term`), at most 1 per beat and `NEW_TERM_LIMITS` distinct per level (3 / 5 / no
   limit); no beat's intent, source line, chapter title or question (from the chapter's first
   beat) or hero metric (from the first beat) names a later beat's new term (`term_before_intro`;
+  one system per story (`director/systems.ts`): in a plan with a `real_incident` beat, the
+  incident's sources are those its incident beats cite, and a beat citing a research number
+  from any other source must set `beats[].exampleNumbers` (`mixed_system_numbers`, one problem
+  per beat and source, naming the source by title);
   `containsPhrase`, `text/phrase.ts`: whole words, any case, plain plural); a beat's `source` is
   not bare (`source_label_bare`: one word, or only a source's site or library name,
   `bareSourceNames` / `isBareSourceLine` in `research/source-names.ts`; the Scriptwriter checks
@@ -558,9 +563,12 @@ researchStepId)`, not the newest research), the run's level and pace (`resolvePr
   `_under_budget`, `sentence_too_long` (over `MAX_SENTENCE_WORDS`, 20), `numbers_per_sentence`
   (beginner only; a "from X to Y" range is one number, and a lone "one", "two" or "three" counts
   when a unit follows it, `NumberMention.measured`: "two seconds"), `numbers_per_beat` (beginner:
-  at most `MAX_NUMBERS_PER_BEAT` distinct values in a narration; both density checks leave out
+  at most `MAX_NUMBERS_PER_BEAT` research numbers in a narration; both density checks count a
+  research number once whatever its value lists, `researchNumberOf`, and leave out
   lone everyday words and values the notes give only as dates), `digits_in_narration` (narration
-  has no digits; stat cards, tags and source lines may), `number_not_in_notes` (narration, headline, tags, stat card labels, formula
+  has no digits; stat cards, tags and source lines may), `example_not_labelled` (in a beat the
+  plan marks `exampleNumbers`, the sentence that first says one of its example numbers, or the
+  one before, has a marker from `EXAMPLE_MARKERS`, `script/example-markers.ts`), `number_not_in_notes` (narration, headline, tags, stat card labels, formula
   caption, command; not sources or LaTeX), `stat_card_not_a_number`, `stat_card_value_mismatch`,
   `hook_number_missing` (the beat with `hookNumberIds` says each), `new_term_missing` /
   `new_term_too_early` (`mentionsTerm`, `script/terms.ts`: whole words, any case, each word

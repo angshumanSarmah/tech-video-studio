@@ -8,7 +8,7 @@ import {
   type DirectorInput,
   type DirectorPlan,
   type ResearchNotes,
-  type SourceIdentity,
+  type ResearchSource,
   type Stage,
   type VideoSettings,
 } from '@explainer-studio/shared';
@@ -62,7 +62,7 @@ interface DirectContext {
   readonly series: Series;
   readonly notes: ResearchNotes;
   /** The research step's sources: their site and library names are bare as source lines. */
-  readonly sources: readonly SourceIdentity[];
+  readonly sources: readonly ResearchSource[];
   readonly variables: PromptVariables;
 }
 
@@ -179,6 +179,7 @@ async function writePlan(
     recentCombos: input.memory.recent.combos,
     series: { name: series.name, label: series.label },
     sourceNames: bareSourceNames(sources),
+    sources,
     spec: {
       id: `run-${run.id}`,
       series: series.tag,

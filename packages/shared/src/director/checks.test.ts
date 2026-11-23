@@ -254,6 +254,105 @@ describe('directorPlanProblems', () => {
     expect(problemsAfter(three, context('expert'))).toEqual([]);
   });
 
+  describe('one system per story', () => {
+    /** Source 1 is the incident's report, source 2 a guide; num-2 comes from the guide. */
+    const twoSources = () =>
+      ctx({
+        notes: notes({
+          numbers: [
+            {
+              id: 'num-1',
+              value: '500',
+              unit: 'requests',
+              context: 'burst',
+              sourceChunkId: 'source-1#chunk-1',
+            },
+            {
+              id: 'num-2',
+              value: '20',
+              unit: 'ms',
+              context: 'wait',
+              sourceChunkId: 'source-2#chunk-1',
+            },
+          ],
+        }),
+        sources: [
+          { sourceId: 1, title: '<example-publisher> outage report', origin: 'report.md' },
+          { sourceId: 2, title: '<example-guide> to queues', origin: 'guide.md' },
+        ],
+      });
+    const incident = (p: DirectorPlan) => {
+      p.story.beats[3]!.device = 'real_incident';
+      p.story.beats[3]!.factIds = ['fact-1'];
+      p.story.beats[3]!.source = '<example-publisher> outage report';
+    };
+    const mixed = (mutate: (p: DirectorPlan) => void, context = twoSources()) =>
+      problemsAfter((p) => {
+        incident(p);
+        mutate(p);
+      }, context).filter(([, code]) => code === 'mixed_system_numbers');
+
+    it('flags a beat citing numbers from a source the incident does not cite', () => {
+      expect(mixed(() => {})).toEqual([['$.story.beats[2].factIds', 'mixed_system_numbers']]);
+      const p = plan();
+      incident(p);
+      const found = directorPlanProblems(p, twoSources()).find(
+        (x) => x.code === 'mixed_system_numbers',
+      );
+      expect(found?.message).toBe(
+        'Beat "queue" cites num-2: these numbers come from "<example-guide> to queues", not the ' +
+          "incident: set exampleNumbers and label them as an example, or use the incident's " +
+          'numbers.',
+      );
+    });
+
+    it('accepts them when the beat sets exampleNumbers, and without an incident', () => {
+      expect(mixed((p) => (p.story.beats[2]!.exampleNumbers = true))).toEqual([]);
+      expect(
+        problemsAfter(() => {}, twoSources()).filter(([, code]) => code === 'mixed_system_numbers'),
+      ).toEqual([]);
+    });
+
+    it('takes the incident’s sources from every number and fact its beats cite', () => {
+      // The incident beat also cites num-2: the guide becomes one of its sources.
+      expect(mixed((p) => p.story.beats[3]!.factIds.push('num-2'))).toEqual([]);
+    });
+  });
+
+  it('counts a number whose value lists several values once, in ids and in the intent', () => {
+    const numbers = [
+      {
+        id: 'num-1',
+        value: '40, 80 and 150',
+        unit: 'ms',
+        context: 'latencies',
+        sourceChunkId: C[0]!,
+      },
+      { id: 'num-2', value: '500', unit: 'requests', context: 'burst', sourceChunkId: C[0]! },
+    ];
+    const context = ctx({ notes: notes({ numbers }) });
+    const beat = (intent: string, ids: string[]) => (p: DirectorPlan) => {
+      p.story.beats[1]!.intent = intent;
+      p.story.beats[1]!.factIds = ids;
+    };
+    // One multi-value number plus one more: two numbers, not four.
+    expect(
+      problemsAfter(
+        beat('Calls take 40, 80 and 150 ms under 500 requests', ['num-1', 'num-2']),
+        context,
+      ),
+    ).toEqual([]);
+    // The same number stated in the intent without citing it still counts once.
+    expect(problemsAfter(beat('Calls take 40, 80 and 150 ms', []), context)).toEqual([]);
+    // A puzzle hook may cite it as its one number.
+    const puzzle = (p: DirectorPlan) => {
+      p.story.hook = { kind: 'puzzle' };
+      p.story.beats[0]!.intent = 'Why do calls take 40, 80 and then 150 ms?';
+      p.story.beats[0]!.hookNumberIds = ['num-1'];
+    };
+    expect(problemsAfter(puzzle, context)).toEqual([]);
+  });
+
   it('counts the research numbers a beat’s intent states, by value, dates aside', () => {
     const numbers = [1, 2, 3].map((n) => ({
       id: `num-${n}`,

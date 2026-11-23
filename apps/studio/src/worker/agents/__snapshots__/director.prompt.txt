@@ -352,6 +352,11 @@ Common mistakes to avoid
                   "pattern": "^[a-z0-9][a-z0-9_-]*$"
                 }
               },
+              "exampleNumbers": {
+                "default": false,
+                "description": "Only in a video with a real_incident beat: true when this beat cites research numbers from a source other than the incident's (a guide's or library's example, another company); the narration then labels them as an example (\"for example\", \"say\"). Leave false when the beat uses the incident's own numbers or none.",
+                "type": "boolean"
+              },
               "newTerms": {
                 "default": [],
                 "description": "Glossary terms (exactly as the research glossary writes them) this beat introduces: at most one per beat.",

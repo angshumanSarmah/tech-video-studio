@@ -1,5 +1,6 @@
 export * from './checks.ts';
 export * from './context.ts';
+export * from './example-markers.ts';
 export * from './input.ts';
 export * from './limits.ts';
 export * from './note-values.ts';

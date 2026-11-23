@@ -147,6 +147,16 @@ export const StoryBeatSchema = z.strictObject({
     .describe(
       `Pattern ids from the catalogue that show this beat; the Generator decides. One pattern on at most ${MAX_BEATS_PER_PATTERN} beats per video.`,
     ),
+  /**
+   * In a video with a real incident: this beat's numbers come from another source (a guide's or
+   * a library's example), so the narration labels them as an example.
+   */
+  exampleNumbers: z
+    .boolean()
+    .default(false)
+    .describe(
+      'Only in a video with a real_incident beat: true when this beat cites research numbers from a source other than the incident\'s (a guide\'s or library\'s example, another company); the narration then labels them as an example ("for example", "say"). Leave false when the beat uses the incident\'s own numbers or none.',
+    ),
   /** Glossary terms this beat introduces (the first time the video names them). */
   newTerms: z
     .array(z.string().trim().min(1))

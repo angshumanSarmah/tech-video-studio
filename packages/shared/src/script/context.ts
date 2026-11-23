@@ -26,6 +26,7 @@ export const SCRIPT_PROBLEM_CODES = [
   'new_term_missing',
   'new_term_too_early',
   'topic_not_defined',
+  'example_not_labelled',
   'source_missing',
   'source_changed',
   'source_label_bare',

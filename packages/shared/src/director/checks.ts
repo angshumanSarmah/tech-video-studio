@@ -4,7 +4,7 @@ import type { ResearchNotes } from '../research/notes.ts';
 import { normalizeNumber, quantityTokens } from '../research/numbers.ts';
 import { bareSourceMessage, isBareSourceLine } from '../research/source-names.ts';
 import { containsPhrase } from '../text/phrase.ts';
-import { numberValueKeys } from '../script/note-values.ts';
+import { numberIndex, numberValueKeys, researchNumberOf } from '../script/note-values.ts';
 import { numberKey, numberMentions } from '../script/number-mentions.ts';
 import { TARGET_LENGTH_TOLERANCE } from '../spec/integrity/warnings.ts';
 import { toJsonPath } from '../spec/validate.ts';
@@ -19,6 +19,7 @@ import {
   MAX_SCENES_PER_LAYOUT_MODE,
 } from '../spec/story.ts';
 import type { DirectorPlan } from './plan.ts';
+import { exampleNumberIds, incidentSourceIds } from './systems.ts';
 
 /**
  * Deterministic checks on a Director plan (P1C.5), beyond its schema and the spec's own
@@ -34,6 +35,7 @@ export const DIRECTOR_PROBLEM_CODES = [
   'too_many_numbers_in_beat',
   'unknown_term',
   'term_before_intro',
+  'mixed_system_numbers',
   'too_many_new_terms_in_beat',
   'too_many_new_terms',
   'running_example_missing',
@@ -103,6 +105,12 @@ export interface DirectorCheckContext {
   readonly series: { readonly name: string; readonly label: string };
   /** Site and library names of the run's sources (`bareSourceNames`), bare as a source line. */
   readonly sourceNames?: readonly string[];
+  /** The run's sources, to name them in messages (`mixed_system_numbers`). */
+  readonly sources?: readonly {
+    readonly sourceId: number;
+    readonly title: string | null;
+    readonly origin: string;
+  }[];
 }
 
 /** Distinct new glossary terms a whole video (or plan) may introduce, per explanation level. */
@@ -178,6 +186,7 @@ export function directorPlanProblems(
     ...numberCountProblems(plan, ctx.notes, ctx.video.explanationLevel),
     ...newTermProblems(plan, ctx),
     ...termBeforeIntroProblems(plan),
+    ...mixedSystemProblems(plan, ctx),
     ...sourceLabelProblems(plan, ctx.sourceNames),
     ...runningExampleProblems(plan, ctx.video.explanationLevel),
     ...partStructureProblems(plan, ctx.video),
@@ -272,24 +281,28 @@ function factCountProblems(plan: DirectorPlan, level: ExplanationLevel): Directo
 }
 
 /**
- * The distinct research numbers a beat uses, by value: its `num-*` ids (hook numbers included)
- * and the research values its intent states (dates and everyday words aside). Values map to a
- * label for messages: the id, or the number as the intent writes it.
+ * The distinct research numbers a beat uses: its `num-*` ids (hook numbers included), each once
+ * whatever its value lists, and the research numbers its intent states that no cited id holds
+ * (dates and everyday words aside). Keyed by research number, with a label for messages: the
+ * id, or the number as the intent writes it.
  */
 function beatResearchNumbers(beat: StoryBeat, notes: ResearchNotes): Map<string, string> {
-  const values = new Map(notes.numbers.map((n) => [n.id, n.value]));
+  const index = numberIndex(notes);
   const research = numberValueKeys(notes);
   const ids = [
     ...(beat.hookNumberIds ?? []),
     ...beat.factIds.filter((id) => id.startsWith('num-')),
   ];
-  const used = new Map<string, string>();
-  for (const id of ids) {
-    for (const m of numberMentions(values.get(id) ?? '')) used.set(numberKey(m.value), id);
-  }
-  for (const m of numberMentions(beat.intent)) {
+  // Each cited number counts once, whatever its value lists ("one, one and three").
+  const used = new Map<string, string>(ids.map((id) => [id, id]));
+  const cited = new Set(ids.flatMap((id) => [...(index.keysById.get(id) ?? [])]));
+  const mentions = numberMentions(beat.intent).filter((m) => !m.everyday);
+  const intentKeys = new Set(mentions.map((m) => numberKey(m.value)));
+  for (const m of mentions) {
     const key = numberKey(m.value);
-    if (!m.everyday && research.has(key) && !used.has(key)) used.set(key, `"${m.text}"`);
+    if (!research.has(key) || cited.has(key)) continue;
+    const number = researchNumberOf(key, intentKeys, index);
+    if (!used.has(number)) used.set(number, `"${m.text}"`);
   }
   return used;
 }
@@ -438,6 +451,31 @@ function termBeforeIntroProblems(plan: DirectorPlan): DirectorProblem[] {
         ),
       ),
   );
+}
+
+/**
+ * One system per story: in a video with a real incident, a beat that cites research numbers from
+ * a source the incident beats do not cite (a guide's example, another company) is flagged unless
+ * it sets `exampleNumbers`, so the narration labels them as an example.
+ */
+function mixedSystemProblems(plan: DirectorPlan, ctx: DirectorCheckContext): DirectorProblem[] {
+  const incident = incidentSourceIds(plan, ctx.notes);
+  const name = (id: number) => {
+    const source = ctx.sources?.find((s) => s.sourceId === id);
+    return source ? `"${source.title ?? source.origin}"` : `source ${id}`;
+  };
+  return plan.story.beats.flatMap((beat, i) => {
+    if (beat.exampleNumbers) return [];
+    return [...exampleNumberIds(beat, ctx.notes, incident)].map(([source, ids]) =>
+      problem(
+        ['story', 'beats', i, 'factIds'],
+        'mixed_system_numbers',
+        `Beat "${beat.id}" cites ${ids.join(', ')}: these numbers come from ${name(source)}, ` +
+          'not the incident: set exampleNumbers and label them as an example, or use the ' +
+          "incident's numbers.",
+      ),
+    );
+  });
 }
 
 /** A beat's source line names the publisher and what it is, never a bare name. */

@@ -87,6 +87,7 @@ function beatInput(beat: StoryBeat, input: ScriptwriterMessage, sources: Map<str
     intent: beat.intent,
     device: beat.device ?? null,
     continuesPrevious: beat.continuesPrevious,
+    exampleNumbers: beat.exampleNumbers,
     wordBudget: budget
       ? { words: budget.words, min: budget.min, max: budget.max, seconds: budget.narrationSec }
       : null,

@@ -19,7 +19,7 @@ import { latestDirection } from '#core/services/direction.ts';
 import { latestResearch } from '#core/services/research-notes.ts';
 import { latestScript } from '#core/services/script.ts';
 import { findWorkspaceRoot } from '#core/workspace-root.ts';
-import { DIRECTOR_RESPONSES_DIR } from '../agents/director/testing.ts';
+import { DIRECTOR_RESPONSES_DIR, withExampleNumbersRepair } from '../agents/director/testing.ts';
 import { loadPromptTemplates, promptId, PROMPTS_DIR } from '../agents/prompts/templates.ts';
 import {
   RATE_LIMITER_RESPONSES_DIR,
@@ -27,7 +27,10 @@ import {
   RATE_LIMITER_TOPIC,
   seedRunWithUploads,
 } from '../agents/researcher/testing.ts';
-import { SCRIPTWRITER_RESPONSES_DIR } from '../agents/scriptwriter/testing.ts';
+import {
+  SCRIPTWRITER_RESPONSES_DIR,
+  withExampleLabelRepair,
+} from '../agents/scriptwriter/testing.ts';
 import { createLlmClient } from '../llm/client.ts';
 import { dryRunTransport, loadDryRunFixtures, type DryRunResponse } from '../llm/dry-run.ts';
 import { runNextJob } from '../runner.ts';
@@ -40,8 +43,10 @@ import { SCRIPT_JOB_TYPE, scriptJobHandler, summarize } from './script.ts';
 const prompts = loadPromptTemplates(join(findWorkspaceRoot(import.meta.dirname), PROMPTS_DIR));
 const settings = SettingsSchema.parse({});
 const researcher = loadDryRunFixtures(RATE_LIMITER_RESPONSES_DIR).researcher!;
-const director = loadDryRunFixtures(DIRECTOR_RESPONSES_DIR).director!;
-const scriptwriter = loadDryRunFixtures(SCRIPTWRITER_RESPONSES_DIR).scriptwriter!;
+const director = withExampleNumbersRepair(loadDryRunFixtures(DIRECTOR_RESPONSES_DIR).director!);
+const scriptwriter = withExampleLabelRepair(
+  loadDryRunFixtures(SCRIPTWRITER_RESPONSES_DIR).scriptwriter!,
+);
 const goodAnswer = scriptwriter.at(-1)!;
 const goodScript = (): ScriptwriterOutput =>
   ScriptwriterOutputSchema.parse(JSON.parse(goodAnswer.content!));

@@ -21,7 +21,7 @@ import { memoryRules, usageHistory } from '#core/db/schema.ts';
 import { createTestDb, type TestDb } from '#core/db/testing.ts';
 import { latestDirection } from '#core/services/direction.ts';
 import { findWorkspaceRoot } from '#core/workspace-root.ts';
-import { DIRECTOR_RESPONSES_DIR } from '../agents/director/testing.ts';
+import { DIRECTOR_RESPONSES_DIR, withExampleNumbersRepair } from '../agents/director/testing.ts';
 import { loadPromptTemplates, promptId, PROMPTS_DIR } from '../agents/prompts/templates.ts';
 import {
   RATE_LIMITER_RESPONSES_DIR,
@@ -41,7 +41,7 @@ const prompts = loadPromptTemplates(join(findWorkspaceRoot(import.meta.dirname),
 const settings = SettingsSchema.parse({});
 /** The Researcher v2 fixture: every recorded attempt, so the replay ends on the passing notes. */
 const researcher = loadDryRunFixtures(RATE_LIMITER_RESPONSES_DIR).researcher!;
-const director = loadDryRunFixtures(DIRECTOR_RESPONSES_DIR).director!;
+const director = withExampleNumbersRepair(loadDryRunFixtures(DIRECTOR_RESPONSES_DIR).director!);
 const goodAnswer = director.at(-1)!;
 const goodPlan = (): DirectorPlan => DirectorPlanSchema.parse(JSON.parse(goodAnswer.content!));
 

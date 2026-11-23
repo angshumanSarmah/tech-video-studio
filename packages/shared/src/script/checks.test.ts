@@ -3,6 +3,7 @@ import { DirectorPlanSchema, type DirectorPlan } from '../director/plan.ts';
 import { ResearchNotesSchema, type ResearchNotes } from '../research/notes.ts';
 import { scriptProblems, sentences, wordBudgets } from './checks.ts';
 import type { ScriptCheckContext } from './context.ts';
+import { EXAMPLE_MARKERS } from './example-markers.ts';
 import { headlineWords } from './screen-checks.ts';
 import { ScriptwriterOutputSchema, type ScriptwriterOutput } from './output.ts';
 
@@ -390,6 +391,91 @@ describe('scriptProblems', () => {
     );
     // The base script has digits only in a stat card ("2.5 ms") and a source line.
     expect(codes(output())).toEqual([]);
+  });
+
+  describe('example_not_labelled', () => {
+    /** b3 is the incident (fact-1, source 1); b2's num-2 comes from a guide (source 2). */
+    const exampleCtx = () => {
+      const base = notes();
+      const p = plan();
+      p.story.beats[2]!.device = 'real_incident';
+      p.story.beats[2]!.factIds = ['fact-1'];
+      p.story.beats[1]!.factIds = ['num-2'];
+      p.story.beats[1]!.exampleNumbers = true;
+      return ctx({
+        plan: p,
+        notes: {
+          ...base,
+          numbers: base.numbers.map((n) =>
+            n.id === 'num-2' ? { ...n, sourceChunkId: 'source-2#chunk-1' } : n,
+          ),
+        },
+      });
+    };
+    const narrate = (text: string) => {
+      const out = output();
+      out.script[1]!.narration = text;
+      return codes(out, exampleCtx());
+    };
+    const REST = `${words(8)}. ${words(9)}.`;
+
+    it('flags example numbers said without a marker', () => {
+      expect(
+        narrate(
+          `The waiting requests form a backlog. Each waits two point five milliseconds. ${REST}`,
+        ),
+      ).toEqual(['example_not_labelled $.script[1].narration']);
+    });
+
+    it('accepts a marker in that sentence or the one before', () => {
+      expect(
+        narrate(
+          `The waiting requests form a backlog. Say each waits two point five milliseconds. ${REST}`,
+        ),
+      ).toEqual([]);
+      expect(
+        narrate(
+          `For example, picture a backlog of requests. Each waits two point five milliseconds. ${REST}`,
+        ),
+      ).toEqual([]);
+    });
+
+    it('leaves beats without exampleNumbers alone', () => {
+      const context = exampleCtx();
+      context.plan.story.beats[1]!.exampleNumbers = false;
+      const out = output();
+      expect(codes(out, context)).toEqual([]);
+    });
+
+    it('keeps the markers in one list', () => {
+      expect(EXAMPLE_MARKERS).toEqual([
+        'for example',
+        'say',
+        'typically',
+        'a typical',
+        'imagine',
+        'in one',
+        'picture',
+      ]);
+    });
+  });
+
+  it('counts a number whose value lists several values once, per sentence and per beat', () => {
+    const base = notes();
+    const latencies = {
+      id: 'num-4',
+      value: '40, 80 and 150',
+      unit: 'ms',
+      context: 'latencies',
+      sourceChunkId: C[0]!,
+    };
+    const context = ctx({ notes: { ...base, numbers: [...base.numbers, latencies] } });
+    const out = output();
+    out.script[2]!.narration = `Calls took forty, eighty and one hundred fifty milliseconds. ${words(5)}.`;
+    expect(codes(out, context)).toEqual([]);
+    // Two different research numbers in one sentence still count twice.
+    out.script[2]!.narration = `Forty milliseconds, then two million requests arrive. ${words(6)}.`;
+    expect(codes(out, context)).toEqual(['numbers_per_sentence $.script[2].narration']);
   });
 
   it('counts a "from X to Y" range as one number in a sentence', () => {

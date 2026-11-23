@@ -15,7 +15,13 @@ import {
   type ScriptToCheck,
 } from './context.ts';
 import { numberKey, numberMentions, type NumberMention } from './number-mentions.ts';
-import { dateOnlyKeys, researchValueKeys } from './note-values.ts';
+import {
+  dateOnlyKeys,
+  numberIndex,
+  researchNumberOf,
+  researchValueKeys,
+  type NumberIndex,
+} from './note-values.ts';
 import {
   conceptHeadlineProblems,
   repeatedHeadlineProblems,
@@ -23,6 +29,8 @@ import {
   tagProblems,
 } from './screen-checks.ts';
 import { mainTerm, mentionsTerm } from './terms.ts';
+import { EXAMPLE_MARKERS, hasExampleMarker } from './example-markers.ts';
+import { exampleNumberIds, incidentSourceIds } from '../director/systems.ts';
 
 /**
  * Deterministic checks on the Scriptwriter's output (P1C.6), beyond its schema and the spec's own
@@ -99,6 +107,7 @@ export function scriptProblems(output: ScriptToCheck, ctx: ScriptCheckContext): 
     ...hookProblems(output, ctx),
     ...newTermProblems(output, ctx.plan),
     ...topicProblems(output, ctx),
+    ...exampleLabelProblems(output, ctx),
     ...sourceProblems(output, ctx.plan, ctx.sourceNames),
   ];
 }
@@ -159,6 +168,7 @@ function sentenceProblems(
 ): ScriptProblem[] {
   const { level } = ctx;
   const oneNumber = ONE_NUMBER_LEVELS.includes(level);
+  const index = numberIndex(ctx.notes);
   const budgets = new Map(
     wordBudgets(ctx.plan, ctx.wordsPerSec, ctx.pauses).map((b) => [b.beatId, b]),
   );
@@ -168,7 +178,7 @@ function sentenceProblems(
       const path = ['script', i, 'narration'];
       const where = `Beat "${beat.beatId}", sentence ${n + 1} (${quoted(sentence)})`;
       const words = narrationWords(sentence).length;
-      const numbers = oneNumber ? sentenceNumbers(sentence, dates) : [];
+      const numbers = oneNumber ? sentenceNumbers(sentence, dates, index) : [];
       return [
         ...(words > MAX_SENTENCE_WORDS
           ? [
@@ -209,17 +219,24 @@ const RANGE_FROM = /(?:^|[^\p{L}])from\s+(?:about\s+|around\s+|roughly\s+)?$/iu;
 const RANGE_TO = /^[\s\p{L}-]{0,30}?(?:^|[^\p{L}])to\s+(?:about\s+|around\s+|roughly\s+)?$/iu;
 
 /**
- * The numbers a sentence says, as the viewer hears them (a lone "one", "two" or "three" only
+ * The research numbers a sentence says (each once, whatever its value lists), as the viewer
+ * hears them (a lone "one", "two" or "three" only
  * with a unit: "two seconds", not "two nodes"): a "from X to Y" range is one number
  * (one change), so "from two hundred milliseconds to two seconds" counts once; "two hundred
  * milliseconds and two seconds" counts twice. Each value is still checked against the notes.
  */
-function sentenceNumbers(sentence: string, dates: ReadonlySet<string>): string[] {
+function sentenceNumbers(
+  sentence: string,
+  dates: ReadonlySet<string>,
+  index: NumberIndex,
+): string[] {
   // A lone everyday word counts here when a unit follows it: "two seconds" is a number.
   const mentions = numberMentions(sentence).filter(
     (m) => (!m.everyday || m.measured) && !dates.has(numberKey(m.value)),
   );
-  const numbers: string[] = [];
+  const keys = new Set(mentions.map((m) => numberKey(m.value)));
+  // One entry per research number (its id, or the value no number holds), or per range.
+  const numbers = new Map<string, string>();
   for (let i = 0; i < mentions.length; i += 1) {
     const a = mentions[i]!;
     const b = mentions[i + 1];
@@ -228,10 +245,15 @@ function sentenceNumbers(sentence: string, dates: ReadonlySet<string>): string[]
       b !== undefined &&
       RANGE_FROM.test(sentence.slice(0, a.index)) &&
       RANGE_TO.test(sentence.slice(end, b.index));
-    numbers.push(range ? `from ${a.text} to ${b.text}` : a.text);
-    if (range) i += 1;
+    if (range) {
+      numbers.set(`range:${i}`, `from ${a.text} to ${b.text}`);
+      i += 1;
+      continue;
+    }
+    const number = researchNumberOf(numberKey(a.value), keys, index);
+    if (!numbers.has(number)) numbers.set(number, a.text);
   }
-  return numbers;
+  return [...numbers.values()];
 }
 
 /** A token of narration that holds a digit, without the punctuation around it. */
@@ -265,10 +287,16 @@ function digitProblems(output: ScriptToCheck): ScriptProblem[] {
 function numbersPerBeatProblems(output: ScriptToCheck, ctx: ScriptCheckContext): ScriptProblem[] {
   const limit = MAX_NUMBERS_PER_BEAT[ctx.level];
   const dates = dateOnlyKeys(ctx.notes);
+  const index = numberIndex(ctx.notes);
   return output.script.flatMap((beat, i) => {
-    const said = new Map(
-      quantities(beat.narration, dates).map((m) => [numberKey(m.value), m.text] as const),
-    );
+    const mentions = quantities(beat.narration, dates);
+    const keys = new Set(mentions.map((m) => numberKey(m.value)));
+    // One entry per research number: "one, one, three" from one number counts once.
+    const said = new Map<string, string>();
+    for (const m of mentions) {
+      const number = researchNumberOf(numberKey(m.value), keys, index);
+      if (!said.has(number)) said.set(number, m.text);
+    }
     if (said.size <= limit) return [];
     return [
       problem(
@@ -369,6 +397,48 @@ function newTermProblems(output: ScriptToCheck, plan: DirectorPlan): ScriptProbl
           : []),
       ];
     });
+  });
+}
+
+/**
+ * A beat the plan marks `exampleNumbers` labels its example numbers: the sentence that first says
+ * one (or the sentence before it) has an example marker (`EXAMPLE_MARKERS`). Example numbers are
+ * those the beat cites from sources other than the incident's (all its numbers when the plan has
+ * no incident).
+ */
+function exampleLabelProblems(output: ScriptToCheck, ctx: ScriptCheckContext): ScriptProblem[] {
+  const incident = incidentSourceIds(ctx.plan, ctx.notes);
+  const values = new Map(ctx.notes.numbers.map((n) => [n.id, n.value]));
+  const plans = new Map(ctx.plan.story.beats.map((b) => [b.id, b]));
+  return output.script.flatMap((beat, i) => {
+    const planned = plans.get(beat.beatId);
+    if (!planned?.exampleNumbers) return [];
+    const ids = incident
+      ? [...exampleNumberIds(planned, ctx.notes, incident).values()].flat()
+      : [
+          ...(planned.hookNumberIds ?? []),
+          ...planned.factIds.filter((id) => id.startsWith('num-')),
+        ];
+    const keys = new Set(
+      ids.flatMap((id) => numberMentions(values.get(id) ?? '').map((m) => numberKey(m.value))),
+    );
+    const said = sentences(beat.narration);
+    const first = said.findIndex((s) =>
+      numberMentions(s).some((m) => keys.has(numberKey(m.value))),
+    );
+    if (first < 0) return [];
+    if (hasExampleMarker(said[first]!) || (first > 0 && hasExampleMarker(said[first - 1]!))) {
+      return [];
+    }
+    return [
+      problem(
+        ['script', i, 'narration'],
+        'example_not_labelled',
+        `Beat "${beat.beatId}" says example numbers in ${quoted(said[first]!)} without labelling ` +
+          'them: the plan marks them as an example from another source. Say so in that sentence ' +
+          `or the one before (${EXAMPLE_MARKERS.map((m) => `"${m}"`).join(', ')}).`,
+      ),
+    ];
   });
 }
 
