@@ -568,7 +568,11 @@ researchStepId)`, not the newest research), the run's level and pace (`resolvePr
   lone everyday words and values the notes give only as dates), `digits_in_narration` (narration
   has no digits; stat cards, tags and source lines may), `example_not_labelled` (in a beat the
   plan marks `exampleNumbers`, the sentence that first says one of its example numbers, or the
-  one before, has a marker from `EXAMPLE_MARKERS`, `script/example-markers.ts`), `number_not_in_notes` (narration, headline, tags, stat card labels, formula
+  one before, has a marker from `EXAMPLE_MARKERS`, `script/example-markers.ts`),
+  `example_tied_to_incident` (no sentence that says an example number, nor the one before,
+  names the incident's organisation: `incidentNames`, `script/incident-names.ts`, from the
+  incident beats' source lines, their sources' titles and publishers and the names their
+  narration uses; a narration sentence's first word counts only before another name word), `number_not_in_notes` (narration, headline, tags, stat card labels, formula
   caption, command; not sources or LaTeX), `stat_card_not_a_number`, `stat_card_value_mismatch`,
   `hook_number_missing` (the beat with `hookNumberIds` says each), `new_term_missing` /
   `new_term_too_early` (`mentionsTerm`, `script/terms.ts`: whole words, any case, each word

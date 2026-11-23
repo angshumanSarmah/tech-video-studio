@@ -220,7 +220,9 @@ function digitMention(text: string, tokens: readonly Token[], i: number) {
 function spokenIdentifier(text: string, before: Token | undefined, first: Token, value: number) {
   if (!before || before.digits || !joined(text, before, first)) return false;
   const word = before.text.toLowerCase();
-  if (word.length === 1 && !LETTER_WORDS.has(word)) return true;
+  // The "s" of a possessive ("Larkspur's twenty-four") is not a letter naming a thing.
+  const possessive = /['’]$/u.test(text.slice(0, before.index));
+  if (word.length === 1 && !LETTER_WORDS.has(word) && !possessive) return true;
   return STATUS_LEADS.has(word) && Number.isInteger(value) && value >= 100 && value <= 599;
 }
 

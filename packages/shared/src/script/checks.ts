@@ -30,6 +30,8 @@ import {
 } from './screen-checks.ts';
 import { mainTerm, mentionsTerm } from './terms.ts';
 import { EXAMPLE_MARKERS, hasExampleMarker } from './example-markers.ts';
+import { incidentNames } from './incident-names.ts';
+import { containsPhrase } from '../text/phrase.ts';
 import { exampleNumberIds, incidentSourceIds } from '../director/systems.ts';
 
 /**
@@ -108,6 +110,7 @@ export function scriptProblems(output: ScriptToCheck, ctx: ScriptCheckContext): 
     ...newTermProblems(output, ctx.plan),
     ...topicProblems(output, ctx),
     ...exampleLabelProblems(output, ctx),
+    ...exampleTiedProblems(output, ctx),
     ...sourceProblems(output, ctx.plan, ctx.sourceNames),
   ];
 }
@@ -406,11 +409,18 @@ function newTermProblems(output: ScriptToCheck, plan: DirectorPlan): ScriptProbl
  * those the beat cites from sources other than the incident's (all its numbers when the plan has
  * no incident).
  */
-function exampleLabelProblems(output: ScriptToCheck, ctx: ScriptCheckContext): ScriptProblem[] {
+/**
+ * For each script beat the plan marks `exampleNumbers`: the values of its example numbers (those
+ * it cites from sources other than the incident's; all its numbers without an incident).
+ */
+function exampleBeats(
+  output: ScriptToCheck,
+  ctx: ScriptCheckContext,
+): { beat: BeatScript; index: number; keys: Set<string> }[] {
   const incident = incidentSourceIds(ctx.plan, ctx.notes);
   const values = new Map(ctx.notes.numbers.map((n) => [n.id, n.value]));
   const plans = new Map(ctx.plan.story.beats.map((b) => [b.id, b]));
-  return output.script.flatMap((beat, i) => {
+  return output.script.flatMap((beat, index) => {
     const planned = plans.get(beat.beatId);
     if (!planned?.exampleNumbers) return [];
     const ids = incident
@@ -422,10 +432,18 @@ function exampleLabelProblems(output: ScriptToCheck, ctx: ScriptCheckContext): S
     const keys = new Set(
       ids.flatMap((id) => numberMentions(values.get(id) ?? '').map((m) => numberKey(m.value))),
     );
+    return [{ beat, index, keys }];
+  });
+}
+
+/** Whether a sentence says one of these values. */
+const saysOne = (sentence: string, keys: ReadonlySet<string>) =>
+  numberMentions(sentence).some((m) => keys.has(numberKey(m.value)));
+
+function exampleLabelProblems(output: ScriptToCheck, ctx: ScriptCheckContext): ScriptProblem[] {
+  return exampleBeats(output, ctx).flatMap(({ beat, index: i, keys }) => {
     const said = sentences(beat.narration);
-    const first = said.findIndex((s) =>
-      numberMentions(s).some((m) => keys.has(numberKey(m.value))),
-    );
+    const first = said.findIndex((s) => saysOne(s, keys));
     if (first < 0) return [];
     if (hasExampleMarker(said[first]!) || (first > 0 && hasExampleMarker(said[first - 1]!))) {
       return [];
@@ -439,6 +457,35 @@ function exampleLabelProblems(output: ScriptToCheck, ctx: ScriptCheckContext): S
           `or the one before (${EXAMPLE_MARKERS.map((m) => `"${m}"`).join(', ')}).`,
       ),
     ];
+  });
+}
+
+/**
+ * Example numbers are never credited to the incident's organisation: in an `exampleNumbers`
+ * beat, no sentence that says an example number, nor the sentence before it, names it
+ * (`incidentNames`: the incident beats' source lines, their sources' titles and publishers, and
+ * the names their narration uses; whole words, any case). One problem per beat.
+ */
+function exampleTiedProblems(output: ScriptToCheck, ctx: ScriptCheckContext): ScriptProblem[] {
+  const names = incidentNames(ctx.plan, ctx.notes, output.script, ctx.sources);
+  if (names.length === 0) return [];
+  return exampleBeats(output, ctx).flatMap(({ beat, index: i, keys }) => {
+    const said = sentences(beat.narration);
+    for (let n = 0; n < said.length; n += 1) {
+      if (!saysOne(said[n]!, keys)) continue;
+      const nearby = [said[n - 1], said[n]].filter((s): s is string => s !== undefined);
+      const name = names.find((candidate) => nearby.some((s) => containsPhrase(s, candidate)));
+      if (!name) continue;
+      return [
+        problem(
+          ['script', i, 'narration'],
+          'example_tied_to_incident',
+          `Beat "${beat.beatId}", ${quoted(said[n]!)}: these are example numbers: don't credit ` +
+            `them to ${name}; say 'a typical setup' or 'say'.`,
+        ),
+      ];
+    }
+    return [];
   });
 }
 

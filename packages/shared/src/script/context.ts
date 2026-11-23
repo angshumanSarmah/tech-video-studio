@@ -3,6 +3,7 @@ import type { DirectorPlan } from '../director/plan.ts';
 import type { ResearchNotes } from '../research/notes.ts';
 import type { BeatScript } from '../spec/script.ts';
 import { toJsonPath } from '../spec/validate.ts';
+import type { IncidentSource } from './incident-names.ts';
 
 /** What the Scriptwriter checks share: problem codes, the context they run in, path helpers. */
 
@@ -27,6 +28,7 @@ export const SCRIPT_PROBLEM_CODES = [
   'new_term_too_early',
   'topic_not_defined',
   'example_not_labelled',
+  'example_tied_to_incident',
   'source_missing',
   'source_changed',
   'source_label_bare',
@@ -64,6 +66,8 @@ export interface ScriptCheckContext {
   readonly pauses: BeatPauses;
   /** Site and library names of the run's sources (`bareSourceNames`), bare as a source line. */
   readonly sourceNames?: readonly string[];
+  /** The run's sources: the incident's titles name its organisation (`incidentNames`). */
+  readonly sources?: readonly IncidentSource[];
 }
 
 export type Path = (string | number)[];

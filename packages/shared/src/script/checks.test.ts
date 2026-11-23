@@ -460,6 +460,113 @@ describe('scriptProblems', () => {
     });
   });
 
+  describe('example_tied_to_incident', () => {
+    /**
+     * Invented incident: b3 tells it (fact-1, source 1), b2 says a guide's example number
+     * (num-2 = 2.5, source 2). `incidentSource` is b3's source line, `incidentNarration` its
+     * narration, `sourceTitle` source 1's title.
+     */
+    const tied = (
+      exampleNarration: string,
+      {
+        incidentSource = '<example-publisher> outage report, 9 May 2031',
+        incidentNarration = `Then two million requests arrive. ${words(8)}.`,
+        sourceTitle = null as string | null,
+      } = {},
+    ) => {
+      const base = notes();
+      const p = plan();
+      p.story.beats[2]!.device = 'real_incident';
+      p.story.beats[2]!.factIds = ['fact-1'];
+      p.story.beats[2]!.source = incidentSource;
+      p.story.beats[1]!.factIds = ['num-2'];
+      p.story.beats[1]!.exampleNumbers = true;
+      const context = ctx({
+        plan: p,
+        notes: {
+          ...base,
+          numbers: base.numbers.map((n) =>
+            n.id === 'num-2' ? { ...n, sourceChunkId: 'source-2#chunk-1' } : n,
+          ),
+        },
+        sources: [
+          { sourceId: 1, title: sourceTitle, origin: 'outage.md' },
+          { sourceId: 2, title: '<example-guide> to queues', origin: 'guide.md' },
+        ],
+      });
+      const out = output();
+      out.script[1]!.narration = exampleNarration;
+      out.script[2]!.narration = incidentNarration;
+      out.script[2]!.source = incidentSource;
+      return scriptProblems(out, context).filter((x) => x.code === 'example_tied_to_incident');
+    };
+    const REST = `${words(8)}. ${words(9)}.`;
+    const QUILLMERE = { incidentSource: 'Quillmere Bank outage report, 9 May 2031' };
+
+    it('flags an example number credited to the incident’s organisation', () => {
+      const [found] = tied(
+        `The waiting requests form a backlog. Say Quillmere's queue waits two point five milliseconds. ${REST}`,
+        QUILLMERE,
+      );
+      expect(found).toEqual({
+        path: '$.script[1].narration',
+        code: 'example_tied_to_incident',
+        message:
+          `Beat "b2", "Say Quillmere's queue waits two point five milliseconds.": these are ` +
+          "example numbers: don't credit them to Quillmere; say 'a typical setup' or 'say'.",
+      });
+    });
+
+    it('checks the sentence before too, whole words in any case', () => {
+      expect(
+        tied(
+          `The backlog sits at QUILLMERE BANK. Say each waits two point five milliseconds. ${REST}`,
+          QUILLMERE,
+        ),
+      ).toHaveLength(1);
+      // "Quillmerely" is not the name; a name two sentences back is not near the number.
+      expect(
+        tied(
+          `Quillmere Bank has a backlog. It is quillmerely long. Say each waits two point five milliseconds. ${words(10)}.`,
+          QUILLMERE,
+        ),
+      ).toEqual([]);
+    });
+
+    it('passes a typical setup', () => {
+      expect(
+        tied(
+          `The waiting requests form a backlog. In a typical setup, each waits two point five milliseconds. ${words(14)}.`,
+          QUILLMERE,
+        ),
+      ).toEqual([]);
+    });
+
+    it('takes the name from the incident source’s title and from the incident’s narration', () => {
+      expect(
+        tied(
+          `The waiting requests form a backlog. Picture Ternwick's queue at two point five milliseconds. ${REST}`,
+          { sourceTitle: 'Ternwick Cloud: storage outage review' },
+        ),
+      ).toHaveLength(1);
+      expect(
+        tied(
+          `The waiting requests form a backlog. Picture Ternwick's queue at two point five milliseconds. ${REST}`,
+          { incidentNarration: `Then two million requests hit Ternwick Cloud. ${words(7)}.` },
+        ),
+      ).toHaveLength(1);
+    });
+
+    it('does not take a sentence’s capitalised first word for a name', () => {
+      expect(
+        tied(
+          `The waiting requests form a backlog. Say the store waits two point five milliseconds. ${REST}`,
+          { incidentNarration: `Store calls slowed as two million requests arrived. ${words(5)}.` },
+        ),
+      ).toEqual([]);
+    });
+  });
+
   it('counts a number whose value lists several values once, per sentence and per beat', () => {
     const base = notes();
     const latencies = {

@@ -180,6 +180,7 @@ async function writeScript(
     notes,
     topicTitle: topic.title,
     sourceNames: bareSourceNames(research.sources),
+    sources: research.sources,
     level: input.explanationLevel,
     wordsPerSec: input.wordsPerSec,
     pauses: input.pauses,

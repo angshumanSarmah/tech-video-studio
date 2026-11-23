@@ -68,6 +68,7 @@ describe('numberMentions', () => {
     expect(values('p99 latency, p ninety-nine latency, IPv4, HTTP 429')).toEqual([]);
     expect(values('HTTP four twenty-nine, status five oh three')).toEqual([]);
     expect(values('a forty times jump')).toEqual([40]);
+    expect(values("Larkspur's twenty-four nodes, the team’s forty instances")).toEqual([24, 40]);
     expect(values('four twenty-nine responses')).toEqual([429]);
   });
 
