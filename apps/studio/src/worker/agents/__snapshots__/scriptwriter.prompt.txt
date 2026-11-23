@@ -32,13 +32,14 @@ Director's plan.
 
 Length
 - About 2.7 words per second of the beat's narration time (its target seconds minus
-  its pauses: beat gap, landing hold), within 15%.
+  its pauses: beat gap, landing hold), within 15%. Aim at the
+  target; the margin is not a goal.
 - In a multi-part video: from part 2 on, open with a recap of at most 2 sentences; every part but
   the last ends on a cliffhanger line that names the next part's question.
 
 Story
-- The hook beat's first sentence states the problem or the puzzle, never a definition, and says
-  the hook's numbers if it has any.
+- The hook beat's first sentence states the problem, or asks the puzzle as a question; never a
+  definition. It says the hook's numbers if it has any.
 - By the end of the second beat, say in one plain sentence what the topic does ("A load balancer
   spreads requests across servers so no single one is overwhelmed"). If it relies on a
   mechanism, it uses one ("uses a hash ring"); it is not one.
@@ -71,6 +72,8 @@ Numbers
   milliseconds to two seconds").
 - Write them in words, as a person says them ("ten thousand requests a second"), never as
   digits; spell out what text-to-speech misreads ("p99" -> "p ninety-nine").
+- In a beat marked exampleNumbers, label its numbers as an example ("say, a hundred"), and
+  don't tie them to the incident's company: they aren't facts about the incident.
 
 On-screen text
 - Headline: about 5 words stating the takeaway, not repeating the narration; for concept beats
@@ -85,6 +88,13 @@ DO NOT
 - Open with "In this video", "Let's" or "Have you ever wondered".
 - Borrow a reference video's jokes, catchphrases or punchlines.
 - Bend a fact to make a sentence smoother, or add details that aren't needed to follow the idea.
+
+Common mistakes to avoid
+1. A beat's new term without its concept headline ("X = plain meaning").
+2. Narration at the top of the word budget instead of the target.
+3. Two numbers, or more than 15 words, in one sentence.
+4. An example number tied to the incident's company ("picture the company's twenty nodes").
+5. A puzzle hook that states a fact instead of asking its question.
 
 ## OUTPUT SHAPE (JSON Schema: return one JSON object that matches it)
 {

@@ -21,7 +21,7 @@ import { memoryRules, usageHistory } from '#core/db/schema.ts';
 import { createTestDb, type TestDb } from '#core/db/testing.ts';
 import { latestDirection } from '#core/services/direction.ts';
 import { findWorkspaceRoot } from '#core/workspace-root.ts';
-import { DIRECTOR_RESPONSES_DIR, withExampleNumbersRepair } from '../agents/director/testing.ts';
+import { DIRECTOR_RESPONSES_DIR } from '../agents/director/testing.ts';
 import { loadPromptTemplates, promptId, PROMPTS_DIR } from '../agents/prompts/templates.ts';
 import {
   RATE_LIMITER_RESPONSES_DIR,
@@ -41,7 +41,7 @@ const prompts = loadPromptTemplates(join(findWorkspaceRoot(import.meta.dirname),
 const settings = SettingsSchema.parse({});
 /** The Researcher v2 fixture: every recorded attempt, so the replay ends on the passing notes. */
 const researcher = loadDryRunFixtures(RATE_LIMITER_RESPONSES_DIR).researcher!;
-const director = withExampleNumbersRepair(loadDryRunFixtures(DIRECTOR_RESPONSES_DIR).director!);
+const director = loadDryRunFixtures(DIRECTOR_RESPONSES_DIR).director!;
 const goodAnswer = director.at(-1)!;
 const goodPlan = (): DirectorPlan => DirectorPlanSchema.parse(JSON.parse(goodAnswer.content!));
 
@@ -178,7 +178,11 @@ describe('direct job (rate-limiter fixture, dry run)', () => {
     expect(job.status).toBe('done');
 
     const calls = directorCalls(runId);
-    expect(calls.map((c) => c.error)).toEqual(['Invalid output: 5 issue(s)', null]);
+    // The exact count depends on the recorded plan; the paths below are what is repaired.
+    expect(calls.map((c) => c.error)).toEqual([
+      expect.stringMatching(/^Invalid output: \d+ issue\(s\)$/),
+      null,
+    ]);
     const repair = promptOf(calls[1]!.promptPath).messages.at(-1)!.content;
     for (const expected of [
       `$.story.beats[1].factIds[${goodPlan().story.beats[1]!.factIds.length}]`,

@@ -19,7 +19,7 @@ import { latestDirection } from '#core/services/direction.ts';
 import { latestResearch } from '#core/services/research-notes.ts';
 import { latestScript } from '#core/services/script.ts';
 import { findWorkspaceRoot } from '#core/workspace-root.ts';
-import { DIRECTOR_RESPONSES_DIR, withExampleNumbersRepair } from '../agents/director/testing.ts';
+import { DIRECTOR_RESPONSES_DIR } from '../agents/director/testing.ts';
 import { loadPromptTemplates, promptId, PROMPTS_DIR } from '../agents/prompts/templates.ts';
 import {
   RATE_LIMITER_RESPONSES_DIR,
@@ -27,10 +27,7 @@ import {
   RATE_LIMITER_TOPIC,
   seedRunWithUploads,
 } from '../agents/researcher/testing.ts';
-import {
-  SCRIPTWRITER_RESPONSES_DIR,
-  withExampleLabelRepair,
-} from '../agents/scriptwriter/testing.ts';
+import { SCRIPTWRITER_RESPONSES_DIR } from '../agents/scriptwriter/testing.ts';
 import { createLlmClient } from '../llm/client.ts';
 import { dryRunTransport, loadDryRunFixtures, type DryRunResponse } from '../llm/dry-run.ts';
 import { runNextJob } from '../runner.ts';
@@ -43,10 +40,8 @@ import { SCRIPT_JOB_TYPE, scriptJobHandler, summarize } from './script.ts';
 const prompts = loadPromptTemplates(join(findWorkspaceRoot(import.meta.dirname), PROMPTS_DIR));
 const settings = SettingsSchema.parse({});
 const researcher = loadDryRunFixtures(RATE_LIMITER_RESPONSES_DIR).researcher!;
-const director = withExampleNumbersRepair(loadDryRunFixtures(DIRECTOR_RESPONSES_DIR).director!);
-const scriptwriter = withExampleLabelRepair(
-  loadDryRunFixtures(SCRIPTWRITER_RESPONSES_DIR).scriptwriter!,
-);
+const director = loadDryRunFixtures(DIRECTOR_RESPONSES_DIR).director!;
+const scriptwriter = loadDryRunFixtures(SCRIPTWRITER_RESPONSES_DIR).scriptwriter!;
 const goodAnswer = scriptwriter.at(-1)!;
 const goodScript = (): ScriptwriterOutput =>
   ScriptwriterOutputSchema.parse(JSON.parse(goodAnswer.content!));
@@ -171,7 +166,7 @@ describe('script job (rate-limiter fixture, dry run)', () => {
       stepId: result.step.id,
       promptVersion: promptId('scriptwriter'),
     });
-    expect(promptId('scriptwriter')).toBe('scriptwriter@v6');
+    expect(promptId('scriptwriter')).toBe('scriptwriter@v7');
     const [system, user] = promptOf(calls[0]!.promptPath).messages;
     expect(system!.content).toContain('Role: Scriptwriter.');
     expect(system!.content).toContain('## OUTPUT SHAPE');
@@ -214,7 +209,7 @@ describe('script job (rate-limiter fixture, dry run)', () => {
     expect(calls.map((c) => c.error)).toEqual([expect.stringMatching(/^Invalid output/), null]);
     const repair = promptOf(calls[1]!.promptPath).messages.at(-1)!.content;
     for (const expected of [
-      `$.script[0].narration: Beat "b1" has ${hookWords} words`,
+      `$.script[0].narration: Beat "${beats[0]!.id}" has ${hookWords} words`,
       'The hook never says num-',
       '$.script[1].headline.text',
       '$.script[2].statCards[0].sourceRef',
@@ -299,7 +294,7 @@ describe('script job (rate-limiter fixture, dry run)', () => {
     const firstWords = narrationWords(goodScript().script[0]!.narration).length;
     const [min, max] = [0.85, 1.15].map((f) => Math.round((firstSec - 1) * 2 * f));
     expect(repair).toContain(
-      `$.script[0].narration: Beat "b1" has ${firstWords} words; its budget is ${min}-${max}`,
+      `$.script[0].narration: Beat "${beats[0]!.id}" has ${firstWords} words; its budget is ${min}-${max}`,
     );
   });
 });

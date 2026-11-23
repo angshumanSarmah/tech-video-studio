@@ -401,18 +401,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **Bare sources: multi-word names.** `isBareSourceLine` catches one word and URL site
       names; a multi-word library title used alone ("Token Kit") is not caught, since it cannot
       be told apart from an article title.
-- [ ] **Re-record the rate-limiter Director and Scriptwriter.** The recordings predate
-      `mixed_system_numbers` (b2-b5 cite the field guide's and the quotaflow README's numbers
-      next to Larkspur Pay's incident). The job tests append a repair turn for each
-      (`withExampleNumbersRepair`, `withExampleLabelRepair`); both stop applying once the
-      recordings change, and should then be deleted.
 - [ ] **One system: numbers stated but not cited.** `mixed_system_numbers` reads the ids a beat
       cites; an intent that states another source's number without citing its id escapes it.
       Map intent values to research numbers (`researchNumberOf`) and check their sources too.
-- [ ] **`scriptwriter@v6` has no "Common mistakes" section.** Rule 10 (agent prompt convention)
-      asks for 5-8 per agent; v5 had six. Restore them in the design doc and bump.
-- [ ] **Rate-limiter fixtures are one Director behind.** A `director@v3` recording that passes
-      `mixed_system_numbers` (1 repair, `exampleNumbers` on its guide-example beats) is held out
-      of `main` until a Scriptwriter recording for its plan meets the repair bar; the v6 run
-      needed 2 repairs. The test-side repairs (`withExampleNumbersRepair`,
-      `withExampleLabelRepair`) stay until both are recorded.
