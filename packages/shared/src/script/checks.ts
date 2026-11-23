@@ -2,7 +2,7 @@ import type { ExplanationLevel } from '../config/video.ts';
 import { MAX_NUMBERS_PER_BEAT } from '../director/checks.ts';
 import { bareSourceMessage, isBareSourceLine } from '../research/source-names.ts';
 import type { DirectorPlan } from '../director/plan.ts';
-import { narrationWords } from '../spec/narration.ts';
+import { narrationSentences, narrationWords } from '../spec/narration.ts';
 import type { BeatScript } from '../spec/script.ts';
 import {
   planVideos,
@@ -145,12 +145,9 @@ function budgetProblems(output: ScriptToCheck, ctx: ScriptCheckContext): ScriptP
   });
 }
 
-/** Sentences of a narration: split after `.`, `!` or `?` followed by a space. */
+/** Sentences of a narration (`narrationSentences`). */
 export function sentences(narration: string): string[] {
-  return narration
-    .split(/(?<=[.!?…])\s+/)
-    .map((s) => s.trim())
-    .filter((s) => narrationWords(s).length > 0);
+  return narrationSentences(narration);
 }
 
 /** Numbers a sentence says that count as numbers (lone everyday "one", "two", "three" do not). */

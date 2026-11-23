@@ -18,6 +18,30 @@ export function narrationWords(text: string): string[] {
     .filter((word) => word.length > 0);
 }
 
+/**
+ * Sentences of a narration: split after `.`, `!`, `?` or `…` followed by whitespace; pieces with
+ * no words are dropped. The Scriptwriter's sentence checks and the ending card share this split.
+ */
+export function narrationSentences(text: string): string[] {
+  return text
+    .split(/(?<=[.!?…])\s+/)
+    .map((s) => s.trim())
+    .filter((s) => narrationWords(s).length > 0);
+}
+
+/**
+ * Index into `narrationWords(text)` of each sentence's first word. A sentence break always falls
+ * on whitespace, so the sentences' words are the narration's words in order.
+ */
+export function sentenceStartIndexes(text: string): number[] {
+  let next = 0;
+  return narrationSentences(text).map((sentence) => {
+    const start = next;
+    next += narrationWords(sentence).length;
+    return start;
+  });
+}
+
 /** 0-based index of the n-th (1-based) occurrence of `word`, or undefined. */
 export function findWordOccurrence(
   words: readonly string[],

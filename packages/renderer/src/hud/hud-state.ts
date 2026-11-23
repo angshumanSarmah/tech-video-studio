@@ -105,6 +105,12 @@ export function headlineCues(
   });
 }
 
+/** Cues ended by `until` (a frame) at the latest; a cue starting there or later is dropped. */
+export function cuesUntil(cues: readonly HeadlineCue[], until: number | undefined): HeadlineCue[] {
+  if (until === undefined) return [...cues];
+  return cues.filter((c) => c.from < until).map((c) => ({ ...c, to: Math.min(c.to, until) }));
+}
+
 export type ClockPoint = { sec: number; value: number };
 
 /**

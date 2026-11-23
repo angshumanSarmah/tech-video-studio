@@ -6,6 +6,7 @@ import type { BeatFrameSpan } from '../timing/frames.ts';
 import {
   activeAt,
   chapterSpans,
+  cuesUntil,
   headlineCues,
   storyClockPoints,
   visibleHudParts,
@@ -20,17 +21,22 @@ export type HudProps = {
   seriesLabel: string;
   accent: string;
   channelHandle: string | null;
+  /** Frame the ending card enters at: the headline stops there (it is covered by the card). */
+  headlineUntil?: number;
 };
 
 /** Pinned parts (pill, clock) enter this long after the first beat starts. */
 const PINNED_DELAY_SEC = 0.5;
 
 /** What every HUD style shows at the current frame (style-independent). */
-export function useHudModel({ spec, timing, spans, fps }: HudProps) {
+export function useHudModel({ spec, timing, spans, fps, headlineUntil }: HudProps) {
   const frame = useCurrentFrame();
   const parts = useMemo(() => visibleHudParts(spec), [spec]);
   const chapters = useMemo(() => chapterSpans(spec, spans), [spec, spans]);
-  const cues = useMemo(() => headlineCues(spec, timing, spans, fps), [spec, timing, spans, fps]);
+  const cues = useMemo(
+    () => cuesUntil(headlineCues(spec, timing, spans, fps), headlineUntil),
+    [spec, timing, spans, fps, headlineUntil],
+  );
   const metric = spec.story.heroMetric;
   const clock = metric?.storyClock;
   const points = useMemo(() => (clock ? storyClockPoints(clock, timing) : []), [clock, timing]);

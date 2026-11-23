@@ -8,6 +8,7 @@ import {
   beatHasHeadline,
   chapterSpans,
   clockValueAt,
+  cuesUntil,
   formatClock,
   headlineCues,
   stageForBeat,
@@ -145,6 +146,19 @@ describe('headlineCues', () => {
 
   it('has one cue per beat with a headline', () => {
     expect(cues.map((c) => c.beatId)).toEqual(['hook', 'bucket-intro', 'bucket-empty', 'payoff']);
+  });
+});
+
+describe('cuesUntil', () => {
+  const cues = headlineCues(spec, timing, spans, FPS);
+
+  it('ends cues at the given frame and drops those starting there or later', () => {
+    const payoff = cues.find((c) => c.beatId === 'payoff');
+    if (!payoff) throw new Error('no payoff cue');
+    const clipped = cuesUntil(cues, payoff.from + 10);
+    expect(clipped.at(-1)).toEqual({ ...payoff, to: payoff.from + 10 });
+    expect(cuesUntil(cues, payoff.from).map((c) => c.beatId)).not.toContain('payoff');
+    expect(cuesUntil(cues, undefined)).toEqual(cues);
   });
 });
 

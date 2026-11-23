@@ -11,6 +11,12 @@ import {
   textWidth,
   wrapText,
 } from '../fonts/measure-text.ts';
+import {
+  ENDING_CTA_LINES,
+  ENDING_LINE_LINES,
+  ENDING_STYLES,
+  endingRooms,
+} from '../ending/ending-layout.ts';
 import { TEXT_TRUNCATED } from '../layout/text-fit.ts';
 import type { TextStyleName, Theme } from '../theme/index.ts';
 import { beatFrameSpans } from '../timing/frames.ts';
@@ -50,7 +56,11 @@ export function hudTextWarnings(
     style === 'bar'
       ? barChecks(spec, theme, context, chapters)
       : titleBlockChecks(spec, theme, context, chapters, style);
-  return [...checks, ...headlineChecks(spec, theme, headlineWidth(spec, theme, context, style))];
+  return [
+    ...checks,
+    ...headlineChecks(spec, theme, headlineWidth(spec, theme, context, style)),
+    ...endingChecks(spec, theme),
+  ];
 }
 
 function hudStyle(spec: RenderableVideoSpec, theme: Theme): HudStyle {
@@ -230,6 +240,28 @@ function headlineChecks(spec: RenderableVideoSpec, theme: Theme, width: number):
         })
       : [],
   );
+}
+
+/**
+ * The ending card (`ending-layout.ts`): each spec card line on one line beside its number, the
+ * call to action in at most `ENDING_CTA_LINES` lines across the card.
+ */
+function endingChecks(spec: RenderableVideoSpec, theme: Theme): SpecError[] {
+  const { ending } = spec.story;
+  const rooms = endingRooms(theme, spec.meta.format);
+  const lines = (ending.specCard?.lines ?? []).flatMap((line, i) =>
+    blockCheck(theme, ENDING_STYLES.line, line, rooms.line, ENDING_LINE_LINES, {
+      path: toJsonPath(['story', 'ending', 'specCard', 'lines', i]),
+      what: `Spec card line ${i + 1} on the ending card`,
+    }),
+  );
+  const cta = ending.cta
+    ? blockCheck(theme, ENDING_STYLES.cta, ending.cta, rooms.cta, ENDING_CTA_LINES, {
+        path: toJsonPath(['story', 'ending', 'cta']),
+        what: "The ending card's call to action",
+      })
+    : [];
+  return [...lines, ...cta];
 }
 
 type Target = {

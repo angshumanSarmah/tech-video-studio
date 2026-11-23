@@ -687,7 +687,9 @@ to `docs/patterns/<id>.png` (a panel per narration anchor, elements in one row p
 beat through the real layout engine (placement, camera, routing) at its settled moment
 (`settledPatternFrame`), in both formats; a pattern whose board params do not suit a format is
 drawn with its lighter variant from the script's `FORMAT_VARIANTS` (e.g. `split_brain` without
-its lease in card). The per-anchor sheets stay the record of timing.
+its lease in card). The per-anchor sheets stay the record of timing. `… still:ending [themeIds…]`
+renders `docs/ending/<fixture>-<theme>.png` (`EndingSheet`): each golden fixture's ending card
+in both formats at four moments (default theme unless ids are given).
 
 - **Themes** live in `src/theme` and are registered by id (`getTheme`, `listThemes`;
   default `drafting-paper`, a light engineering-drawing look). Each is validated against
@@ -855,6 +857,19 @@ channelHandle })` measures the same strings (`subjectText`, `chapterHeaderText`,
     recompute both. The Director's title hint is per series: `titleRoomChars(theme, label)`
     (`hud/title-room.ts`, the same slots `hudTextWarnings` measures: 44 after "SYSTEM DESIGN · ",
     55 after "AI · ") goes into `DirectorInput.titleMaxChars` and the user message's `title` line.
+- **Ending card** (`src/ending`): drawn by code from `story.ending` (spec card lines, the series
+  label with `#<seriesNumber>`, the CTA), like the headline and footnote; agents never place it.
+  It shows when the ending has lines or a CTA (`hasEndingCard`), enters on the first word of the
+  final beat's last sentence (`endingStartSec`, `sentenceStartIndexes` in shared; without word
+  timings `ENDING_FALLBACK_SEC` (2.5 s) before the beat's narration ends) and holds through the
+  end tail. While it shows the board layer dims by `DIM_FADE` (`endingBoardOpacity`) and the
+  headline stops (`cuesUntil`). Geometry is pure (`ending-layout.ts`): over the board, clear of
+  avoid zones (`endingRegion`), fixed row heights (header cell; one `chapter`-style line per spec
+  card line beside its number; the CTA in `body`, up to `ENDING_CTA_LINES` (3)). Title-block
+  themes draw a ruled table that draws on with the pen over `ENDING_DRAW_SEC`; bar themes a plain
+  raised card that fades in. `hudTextWarnings` checks both texts (`text_truncated` at
+  `$.story.ending.specCard.lines[i]` and `$.story.ending.cta`). `beatKeyFrame` keeps the final
+  beat's still before the card.
 - **Subtitles** (`src/subtitles`): word-by-word karaoke captions in the format's
   `subtitleBand` (`formatAreas`; card has its own). `buildSubtitleCues(spec, theme)` (pure,
   exported through `catalog`) is the single source for the burned-in captions and the SRT.

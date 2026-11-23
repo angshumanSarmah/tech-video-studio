@@ -169,6 +169,45 @@ describe('hudTextWarnings', () => {
   });
 });
 
+describe('hudTextWarnings: the ending card', () => {
+  function withEnding(change: Partial<RenderableVideoSpec['story']['ending']>) {
+    const spec = goldenRateLimiterSpec;
+    return { ...spec, story: { ...spec.story, ending: { ...spec.story.ending, ...change } } };
+  }
+
+  it('passes the golden fixtures in both formats and themes', () => {
+    for (const { spec } of goldenFixtures) {
+      for (const theme of [paper, dark]) {
+        for (const format of FORMATS) {
+          const shown = paths(withFormat(spec, format), theme);
+          expect(shown.filter((p) => p.startsWith('$.story.ending'))).toEqual([]);
+        }
+      }
+    }
+  });
+
+  it('warns at a spec card line that does not fit on one line', () => {
+    const lines = ['A token bucket per user, refilled every minute by a timer', 'b', 'c'];
+    const spec = withEnding({ specCard: { lines } });
+    for (const format of FORMATS) {
+      expect(paths(withFormat(spec, format))).toEqual(['$.story.ending.specCard.lines[0]']);
+    }
+    expect(hudTextWarnings(spec, paper, contextFor(spec))[0]?.message).toMatch(
+      /^Spec card line 1 on the ending card ".*" needs 2 lines of \d+ px \(about \d+ characters\), but the HUD shows 1/,
+    );
+  });
+
+  it('warns at a call to action that needs more than three lines', () => {
+    const cta = 'Send this to whoever owns your API gateway. '.repeat(4).trim();
+    const spec = withEnding({ cta });
+    for (const theme of [paper, dark]) {
+      for (const format of FORMATS) {
+        expect(paths(withFormat(spec, format), theme)).toEqual(['$.story.ending.cta']);
+      }
+    }
+  });
+});
+
 describe('barSlots', () => {
   it('gives the chapter header the row less the story clock at its widest', () => {
     const spec = goldenRateLimiterSpec;

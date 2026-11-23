@@ -19,6 +19,7 @@
     "still:patterns": "tsx scripts/render-pattern-stills.ts",
     "still:pattern-layouts": "tsx scripts/render-pattern-layout-stills.ts",
     "still:layouts": "tsx scripts/render-layout-stills.ts",
+    "still:ending": "tsx scripts/render-ending-stills.ts",
     "still:compare": "tsx scripts/render-theme-compare.ts",
     "calibrate:safe-area": "tsx scripts/calibrate-safe-area.ts",
     "gen:catalogue": "tsx scripts/generate-catalogue.ts",

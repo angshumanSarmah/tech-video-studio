@@ -24,8 +24,15 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       `script[].source`; use `newTerms` (gloss each the first time) and `runningExample`; write
       the recap on `recap_opening` beats and the next part's question on `cliffhanger_ending`
       beats.
-- [ ] **Renderer — Spec card.** `story.ending.specCard` (3 lines) and `seriesNumber` have no
-      primitive yet; `statement_card` is the fallback the Generator can use.
+- [ ] **P1C.7 step 4 — Events under the ending card.** The card covers the final beat's last
+      sentence; add a scene check that warns on an event anchored there (the goldens end on a
+      closing sentence with no events for that reason).
+- [ ] **P1C.5 — CTA room hint.** `story.ending.cta` has no length hint in its schema description;
+      `hudTextWarnings` reports an over-long CTA with its room. Add a hint (like
+      `CHAPTER_TITLE_MAX_CHARS`) if the Director keeps writing CTAs past three lines.
+- [ ] **Ending card — Short last sentences.** The card shows from the last sentence through the
+      end tail; a one-word last sentence leaves little reading time. Consider a minimum hold
+      (lengthening the tail in the timing step) if drafts show it.
 - [ ] **P1C.5 — Layout-mode warning for pattern-derived modes.** `layout_mode_not_allowed`
       checks explicit story and scene modes only (shared cannot see patterns); a beat that takes
       its pattern's mode (`beatLayoutMode`) could be checked in `withRegistryChecks`.

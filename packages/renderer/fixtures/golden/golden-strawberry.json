@@ -48,7 +48,7 @@
     },
     "ending": {
       "kind": "callback_ending",
-      "cta": "Try it on your favourite model, then try spelling first"
+      "cta": "Try it on your favourite model: ask it to count the letters, then ask it to spell the word first"
     },
     "missingPrimitiveRequests": [
       {
@@ -86,7 +86,7 @@
     },
     {
       "beatId": "fix",
-      "narration": "The fix is to make it spell first. Ask for one letter per line, and each letter becomes its own token. Now it can count them, and the answer is three.",
+      "narration": "The fix is to make it spell first. Ask for one letter per line, and each letter becomes its own token. Now it can count them, and the answer is three. Spell first, then count.",
       "headline": { "text": "Spell it out, then count", "semantic": "resolution" },
       "tags": ["1 letter = 1 token"]
     }

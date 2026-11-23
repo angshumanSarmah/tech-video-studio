@@ -1,8 +1,9 @@
 import { effectiveTiming } from '@explainer-studio/shared';
 import { describe, expect, it } from 'vitest';
-import { allFixtureSpecs, rateLimiterSpec } from '../../fixtures/index.ts';
+import { allFixtureSpecs, goldenFixtures, rateLimiterSpec } from '../../fixtures/index.ts';
+import { endingStartSec } from '../ending/ending-state.ts';
 import { ZOOM_PUSH_SEC } from '../events/presets.ts';
-import { beatFrameSpans } from '../timing/frames.ts';
+import { beatFrameSpans, secToFrame } from '../timing/frames.ts';
 import { beatKeyFrame } from './key-frame.ts';
 
 describe('beatKeyFrame', () => {
@@ -34,6 +35,18 @@ describe('beatKeyFrame', () => {
     const draft = beatKeyFrame(rateLimiterSpec, 'payoff', 15) / 15;
     const final = beatKeyFrame(rateLimiterSpec, 'payoff', 30) / 30;
     expect(Math.abs(draft - final)).toBeLessThanOrEqual(1 / 15);
+  });
+
+  it("previews the final beat's board before the ending card covers it", () => {
+    for (const { spec } of goldenFixtures) {
+      for (const fps of [15, 30]) {
+        const timing = effectiveTiming(spec);
+        const last = beatFrameSpans(timing, fps).at(-1);
+        if (!last) throw new Error('no beats');
+        const card = secToFrame(endingStartSec(spec, timing) ?? 0, fps);
+        expect(last.from + beatKeyFrame(spec, last.beatId, fps)).toBeLessThan(card);
+      }
+    }
   });
 
   it('throws for an unknown beat', () => {

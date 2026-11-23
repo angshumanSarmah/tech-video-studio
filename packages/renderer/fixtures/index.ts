@@ -90,9 +90,13 @@ export const transitionsBoardSpec = parseRenderableSpec(transitionsBoardJson);
  * them changes those images (refresh them with `UPDATE_GOLDEN=1`).
  *
  * - `golden-rate-limiter` (System Design): question chapters, hero metric, tags, counters, a
- *   timer ring, `versus_split`, a `continuesPrevious` chain and `flood_then_funnel`.
+ *   timer ring, `versus_split`, a `continuesPrevious` chain and `flood_then_funnel`; it ends on a
+ *   spec card (one line at `SPEC_CARD_LINE_MAX`, series number 12) and a CTA.
  * - `golden-strawberry` (AI): the step tracker, a token strip built from tags (a placeholder for
- *   the `token_strip` primitive it records in `missingPrimitiveRequests`) and a source footnote.
+ *   the `token_strip` primitive it records in `missingPrimitiveRequests`), a source footnote and
+ *   an ending card with only a long CTA.
+ *
+ * Both end on a closing sentence with no events: the ending card covers it.
  */
 export const goldenRateLimiterSpec = parseRenderableSpec(goldenRateLimiterJson);
 

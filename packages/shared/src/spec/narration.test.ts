@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { findWordOccurrence, narrationWords, normalizeWord } from './narration.ts';
+import {
+  findWordOccurrence,
+  narrationSentences,
+  narrationWords,
+  normalizeWord,
+  sentenceStartIndexes,
+} from './narration.ts';
 
 describe('narrationWords', () => {
   it('splits on whitespace, lowercases and strips edge punctuation', () => {
@@ -55,5 +61,30 @@ describe('findWordOccurrence', () => {
   it('returns undefined when there are not enough occurrences', () => {
     expect(findWordOccurrence(words, 'no', 4)).toBeUndefined();
     expect(findWordOccurrence(words, 'queue', 1)).toBeUndefined();
+  });
+});
+
+describe('narrationSentences and sentenceStartIndexes', () => {
+  const text = 'The queue grows. Why? Workers stall… Then it drains — slowly.';
+
+  it('splits after sentence punctuation followed by whitespace', () => {
+    expect(narrationSentences(text)).toEqual([
+      'The queue grows.',
+      'Why?',
+      'Workers stall…',
+      'Then it drains — slowly.',
+    ]);
+  });
+
+  it('gives the narration word index each sentence starts at', () => {
+    const words = narrationWords(text);
+    const starts = sentenceStartIndexes(text);
+    expect(starts).toEqual([0, 3, 4, 6]);
+    expect(starts.map((i) => words[i])).toEqual(['the', 'why', 'workers', 'then']);
+  });
+
+  it('drops pieces without words and keeps a decimal inside its sentence', () => {
+    expect(narrationSentences('It takes 3.5 ms. — ')).toEqual(['It takes 3.5 ms.']);
+    expect(sentenceStartIndexes('')).toEqual([]);
   });
 });

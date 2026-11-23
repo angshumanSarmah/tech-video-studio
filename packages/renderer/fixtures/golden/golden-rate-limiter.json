@@ -68,7 +68,18 @@
       "beatId": "hook",
       "payoffBeatId": "payoff"
     },
-    "ending": { "kind": "callback_ending", "cta": "Send this to whoever owns your API gateway" }
+    "ending": {
+      "kind": "spec_card_ending",
+      "specCard": {
+        "lines": [
+          "A token bucket per user",
+          "Count in Redis: INCR, then EXPIRE",
+          "Share one counter across all API servers"
+        ]
+      },
+      "seriesNumber": 12,
+      "cta": "Send this to whoever owns your API gateway, before the next flood finds it"
+    }
   },
   "script": [
     {
@@ -118,7 +129,7 @@
     },
     {
       "beatId": "payoff",
-      "narration": "Remember the flood? Without a limiter it knocks the API over. Put the limiter in front, and only a steady trickle reaches your servers, while every other user stays online.",
+      "narration": "Remember the flood? Without a limiter it knocks the API over. Put the limiter in front, and only a steady trickle reaches your servers, while every other user stays online. One gate in front keeps the API standing.",
       "headline": { "text": "The flood stops at the limiter", "semantic": "resolution" }
     }
   ],
