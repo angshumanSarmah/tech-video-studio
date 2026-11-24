@@ -7,7 +7,7 @@ import { DEFAULT_REGISTRIES } from './registries.ts';
 import { fixtureSpec, withHoldAfter } from './test-specs.ts';
 
 type Json = Record<string, unknown>;
-const note = { id: 'note', primitive: 'node_card', props: { title: 'Late arrival' } };
+const note = { id: 'note', primitive: 'node_card', props: { title: 'Late arrival at gateway' } };
 const word = (text: string) => ({ type: 'word_text', text });
 /** Seconds before the beat's narration ends (the scene shows 0.15 s longer, to the next beat). */
 const beforeEnd = (offsetSec: number) => ({ type: 'beat', edge: 'end', offsetSec: -offsetSec });

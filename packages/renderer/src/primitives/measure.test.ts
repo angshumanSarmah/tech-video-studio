@@ -1,13 +1,24 @@
 import { describe, expect, it } from 'vitest';
+import { textWidth } from '../fonts/measure-text.ts';
 import { getTheme } from '../theme/index.ts';
 import { approxTextWidth, widestWord, wrappedRows } from './measure.ts';
 
 describe('approxTextWidth', () => {
-  it("uses the role's advanceEm plus the style's letter spacing", () => {
-    const theme = getTheme('blueprint-dark');
-    const { size, letterSpacing } = theme.text.title;
-    const expected = Math.ceil(4 * size * (theme.fonts.display.advanceEm + letterSpacing));
-    expect(approxTextWidth(theme, 'title', 'GATE')).toBe(expected);
+  it('measures real glyph advances (rounded up), not an average per character', () => {
+    for (const theme of [getTheme('blueprint-dark'), getTheme()]) {
+      for (const [style, text] of [
+        ['title', 'GATE'],
+        ['metric', 'about 1.3'],
+        ['label', 'tokens per English word'],
+      ] as const) {
+        expect(approxTextWidth(theme, style, text)).toBe(Math.ceil(textWidth(theme, style, text)));
+      }
+    }
+    // Narrow glyphs and spaces count as drawn: far less than the average advance gives.
+    const theme = getTheme();
+    const { size, font } = theme.text.metric;
+    const average = 9 * size * theme.fonts[font].advanceEm;
+    expect(approxTextWidth(theme, 'metric', 'about 1.3')).toBeLessThan(average * 0.75);
   });
 
   it('gives display text about the same width in both themes (sizes scaled by advance)', () => {

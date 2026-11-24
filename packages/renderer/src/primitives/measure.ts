@@ -1,13 +1,14 @@
+import { textWidth } from '../fonts/measure-text.ts';
 import type { TextStyleName, Theme } from '../theme/index.ts';
 
 /**
- * Rough text extents for size hints, from the font role's `advanceEm` (em per character). Good
- * enough for hints; the layout engine (P1A.9) can measure real glyphs if hints prove too loose.
+ * Text width for size hints: the real glyph advances (`textWidth`: the style's case transform,
+ * its font stack, letter spacing), rounded up. An average advance per character overstated
+ * mixed text by up to a half at display sizes ("about 1.3" in the metric style: 597 px vs 411 px
+ * drawn), so boards shrank for text that was never that wide.
  */
 export function approxTextWidth(theme: Theme, style: TextStyleName, text: string): number {
-  const { size, font, letterSpacing } = theme.text[style];
-  const { advanceEm } = theme.fonts[font];
-  return Math.ceil([...text].length * size * (advanceEm + letterSpacing));
+  return Math.ceil(textWidth(theme, style, text));
 }
 
 export function lineHeightPx(theme: Theme, style: TextStyleName): number {

@@ -78,7 +78,7 @@ A small card with one or two lines of text and an optional `title`, for a counte
 | `text` | string | yes | The counterfactual or warning; wraps to at most two lines. (min length 1, max length 64) |
 | `semantic` | `problem` \| `focus` \| `concept` | no | Colour meaning: problem (a warning), focus (the point) or concept (an aside). (default `"problem"`) |
 
-**Size hint** (example, drafting-paper): 409 × 140 px (min 409 × 140).
+**Size hint** (example, drafting-paper): 382 × 140 px (min 382 × 140).
 
 **Example:**
 
@@ -218,7 +218,7 @@ A titled card for one component of a system (a service, server, database, client
 | `role` | string | no | Optional role badge (asset id, e.g. a crown for a leader) at the top centre. It is the part "role": exit it on the old holder and enter it on the new one to move the role. (max length 64) |
 | `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Border and glow colour: neutral, focus, ok, problem or concept. (default `"neutral"`) |
 
-**Size hint** (example, drafting-paper): 573 × 138 px (min 573 × 138).
+**Size hint** (example, drafting-paper): 528 × 138 px (min 528 × 138).
 
 **Example:**
 
@@ -256,7 +256,7 @@ One to three large `lines` at display size on a card that spans the stage, over 
 | `lines[].text` | string | yes | One large line at display size; wraps rather than shrinking. (min length 1, max length 32) |
 | `lines[].semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Colour of this line: neutral, focus, ok, problem or concept. (default `"neutral"`) |
 
-**Size hint** (example, drafting-paper): 888 × 255 px (min 662 × 255).
+**Size hint** (example, drafting-paper): 888 × 255 px (min 591 × 255).
 
 **Example:**
 
@@ -331,7 +331,7 @@ A speech bubble holding one line of monospace command, with the verb coloured, s
 | `text` | string | yes | The command exactly as typed, on one line. (min length 1, max length 48) |
 | `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Colour of the bubble and the command verb: neutral, focus, ok, problem or concept. (default `"concept"`) |
 
-**Size hint** (example, drafting-paper): 735 × 95 px (min 735 × 95).
+**Size hint** (example, drafting-paper): 736 × 95 px (min 736 × 95).
 
 **Example:**
 
@@ -365,7 +365,7 @@ A JSON-like block of key/value pairs on a card, with an optional title. On `ente
 | `fields[].value` | any | yes | Field value: a short string, a number, true/false or null. |
 | `fields[].semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Colours the value and tints its row: neutral, focus, ok, problem or concept. |
 
-**Size hint** (example, drafting-paper): 733 × 258 px (min 733 × 258).
+**Size hint** (example, drafting-paper): 734 × 258 px (min 734 × 258).
 
 **Example:**
 
@@ -775,7 +775,7 @@ A big number with an optional unit and caption. Without a `count` event it shows
 | `decimals` | integer | no | Digits after the decimal point. (min 0, max 2, default `0`) |
 | `ticking` | boolean | no | Count on narration time: the count runs from its word until the `reject` (else the exit or the end of the beat), like a clock. Without it a count takes under a second. (default `false`) |
 
-**Size hint** (example, drafting-paper): 711 × 171 px (min 711 × 171).
+**Size hint** (example, drafting-paper): 618 × 171 px (min 618 × 171).
 
 **Example:**
 
@@ -814,7 +814,7 @@ A big number changing to another, shown as "10 → 9": the old number in one col
 | `toSemantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Colour of the new number: neutral, focus, ok, problem or concept. (default `"focus"`) |
 | `decimals` | integer | no | Digits after the decimal point. (min 0, max 2, default `0`) |
 
-**Size hint** (example, drafting-paper): 759 × 134 px (min 759 × 134).
+**Size hint** (example, drafting-paper): 654 × 134 px (min 654 × 134).
 
 **Example:**
 

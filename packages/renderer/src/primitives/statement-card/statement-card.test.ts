@@ -34,7 +34,13 @@ describe('statement_card size hints', () => {
     const theme = getTheme();
     const row = lineHeightPx(theme, STATEMENT_STYLE);
     const short = statementCardSizeHints(card('EASY: FIND RIDERS.'), theme);
-    const long = statementCardSizeHints(card('HARD: PICK THE RIGHT RIDER, FAST'), theme);
+    // A 32-character line rarely fills the row at real glyph widths; the wrap itself is checked
+    // on a longer one, past the schema's limit (the size hints take any props).
+    const wide = {
+      ...card('x'),
+      lines: [{ ...card('x').lines[0]!, text: 'HARD: PICK THE RIGHT RIDER, FAST, EVERY TIME' }],
+    };
+    const long = statementCardSizeHints(wide, theme);
     expect(long.preferredWidth).toBe(short.preferredWidth);
     expect(long.preferredHeight - short.preferredHeight).toBe(row);
   });

@@ -878,9 +878,9 @@ in both formats at four moments (default theme unless ids are given).
   ₹); they name other roles or `glyphFallback`, a bundled face that is not a role (Inter in
   `drafting-paper`). Iterate faces with `bundledFonts(theme)`, not `FONT_ROLES`; `src/fonts/font-coverage.test.ts` reads each file's character map and fails when a role's
   stack misses any glyph in `REQUIRED_CODE_POINTS` (`src/fonts/glyphs.ts`).
-  **Measuring text:** size hints use the theme's average advance (`approxTextWidth`). Where a
-  width must match what the browser draws (whether a line is cut off), use `textWidth`
-  (`src/fonts/measure-text.ts`): real glyph advances from `src/fonts/metrics.generated.json`,
+  **Measuring text:** size hints and the checks measure real glyphs: `approxTextWidth` (size
+  hints, `wrappedRows`) is `textWidth` rounded up, and `textWidth` decides whether a line is
+  cut off (`src/fonts/measure-text.ts`): real glyph advances from `src/fonts/metrics.generated.json`,
   through the role's fallback stack, case transform and letter spacing, kerning ignored (errs
   slightly wide). Regenerate it with `gen:font-metrics` after `fonts:subset` or a theme font
   change; a test fails when it is stale.

@@ -88,8 +88,9 @@ const FontSchema = FontFaceSchema.extend({
   /** CSS fallback stack appended after `family`. */
   fallback: z.string().min(1),
   /**
-   * Average advance per character in em, with headroom over measured capitals, for size hints
-   * (`approxTextWidth`). Rough by design; the layout engine may measure real glyphs later.
+   * Average advance per character in em, with headroom over measured capitals: the fallback for
+   * a glyph no bundled face has (`textWidth`) and the room-in-characters estimate of
+   * `describeRoom`. Size hints measure real glyphs.
    */
   advanceEm: z.number().positive(),
   /**

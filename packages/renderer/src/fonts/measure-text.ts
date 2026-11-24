@@ -9,8 +9,8 @@ import metricsJson from './metrics.generated.json';
 /**
  * Text width as the browser lays out one line, from the real advance widths of the bundled font
  * files (`metrics.generated.json`, built by `gen:font-metrics`). Used where a size must match
- * what is drawn exactly, such as deciding whether a line is cut off (`text_truncated`); size
- * hints keep the cheaper average (`approxTextWidth`). Pure and React-free.
+ * what is drawn exactly, such as deciding whether a line is cut off (`text_truncated`), and by
+ * every size hint (`approxTextWidth`). Pure and React-free.
  *
  * Kerning is not applied: Latin kerning pairs mostly tighten text, so a measured line is at most
  * slightly wider than the browser's, and a warning errs early rather than late.

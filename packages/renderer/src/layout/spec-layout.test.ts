@@ -149,8 +149,8 @@ describe('specLayout', () => {
   });
 
   it('reframes the camera at a focus event, easing toward its targets', () => {
-    const chain = specLayout(transitionsBoardSpec, theme).beats.get('cache-front')?.chain;
-    const scene = transitionsBoardSpec.scenes.find((s) => s.beatId === 'cache-front');
+    const chain = specLayout(transitionsBoardSpec, theme).beats.get('memory')?.chain;
+    const scene = transitionsBoardSpec.scenes.find((s) => s.beatId === 'memory');
     expect(scene?.events.some((e) => e.action === 'focus')).toBe(true);
     const keys = chain?.cameras.filter((k) => !k.push) ?? [];
     expect(keys.map((k) => k.durationSec)).toEqual([0, CAMERA_EASE_SEC]);

@@ -213,6 +213,20 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **P1D — Registry checks at the scene gate.** The Generator runs `withRegistryChecks` and
       `specLayoutWarnings` on every answer (`generatorCheck`); scene-gate saves must run them too,
       so a spec cannot pass a gate with unknown primitives, bad props or unsupported actions.
+- [ ] **Layout — rows fill to the readable floor.** A wrapped row takes items while the board
+      stays readable (`maxRowWidth` = frame / readable scale), not the arrangement that scales
+      largest: with real glyph widths, `fan_out`'s three targets now sit in one row at 81% where
+      two over one fit at 100% (`worker_pool` 100% -> 87%). Pick the larger-scale arrangement.
+- [ ] **Curator — readability on screen.** `text_too_small` measures the board scale before the
+      camera. The Curator should also measure each beat as shown (board scale x that beat's
+      camera zoom), so a continuing beat that exits elements is judged by what the viewer sees.
+- [ ] **Scriptwriter — tags on continuing beats (in reserve).** If continuing beats still fail
+      on space in the live rerun, cap a continuing beat's tags (or a chain's) in the
+      Scriptwriter, so the script never asks a board for more than it holds.
+- [ ] **Layout — versus_split and the script's stat card.** The mode has no `aside`, so a stat
+      card sits in a half: in a portrait frame each half is ~46% of the width (tokenizer b6: 72%
+      in a half, 100% in `shared`). Say in the mode's catalogue text where a card that describes
+      both sides goes, or give the mode an `aside`.
 - [ ] **Catalogue — asset sort.** `buildCatalogue`'s asset groups sort ids with `localeCompare`
       (docs only); the prompt blocks use code-unit order (`assetLines`). Align them if the docs
       order ever matters.
