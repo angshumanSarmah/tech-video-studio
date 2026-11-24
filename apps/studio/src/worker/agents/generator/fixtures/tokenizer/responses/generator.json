@@ -1,0 +1,160 @@
+{
+  "b1": [
+    {
+      "content": "{\n  \"elements\": [\n    {\n      \"id\": \"tag-plain\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"plain Paris\",\n        \"semantic\": \"neutral\"\n      },\n      \"zone\": \"cell\"\n    },\n    {\n      \"id\": \"tag-spaced\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"spaced Paris\",\n        \"semantic\": \"neutral\"\n      },\n      \"zone\": \"cell\"\n    },\n    {\n      \"id\": \"tag-shouted\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"shouted PARIS\",\n        \"semantic\": \"neutral\"\n      },\n      \"zone\": \"cell\"\n    },\n    {\n      \"id\": \"token-def\",\n      \"primitive\": \"callout\",\n      \"props\": {\n        \"title\": \"TOKEN\",\n        \"text\": \"A chunk that becomes one number\",\n        \"semantic\": \"concept\"\n      },\n      \"zone\": \"aside\"\n    }\n  ],\n  \"patterns\": [],\n  \"events\": [\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 8\n      },\n      \"action\": \"enter\",\n      \"targets\": [\n        \"tag-plain\"\n      ]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 8\n      },\n      \"action\": \"focus\",\n      \"targets\": [\n        \"tag-plain\"\n      ]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 10\n      },\n      \"action\": \"enter\",\n      \"targets\": [\n        \"tag-spaced\"\n      ]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 10\n      },\n      \"action\": \"focus\",\n      \"targets\": [\n        \"tag-spaced\"\n      ]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 12\n      },\n      \"action\": \"enter\",\n      \"targets\": [\n        \"tag-shouted\"\n      ]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 12\n      },\n      \"action\": \"focus\",\n      \"targets\": [\n        \"tag-shouted\"\n      ]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 15\n      },\n      \"action\": \"enter\",\n      \"targets\": [\n        \"token-def\"\n      ]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 15\n      },\n      \"action\": \"focus\",\n      \"targets\": [\n        \"token-def\"\n      ]\n    }\n  ],\n  \"focus\": [\n    \"tag-plain\"\n  ],\n  \"transitionIn\": \"fade\",\n  \"missingPrimitiveRequests\": []\n}",
+      "servedModel": "deepseek-flash",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 33863,
+        "completion_tokens": 14444,
+        "prompt_cache_hit_tokens": 4352,
+        "prompt_cache_miss_tokens": 29511,
+        "prompt_tokens_details": {
+          "cached_tokens": 4352
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 13806
+        },
+        "total_tokens": 48307
+      }
+    }
+  ],
+  "b2": [
+    {
+      "content": "{\n  \"elements\": [\n    {\n      \"id\": \"chars-tag\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"single characters\",\n        \"semantic\": \"neutral\"\n      },\n      \"zone\": \"left\"\n    },\n    {\n      \"id\": \"chars-cost\",\n      \"primitive\": \"callout\",\n      \"props\": {\n        \"text\": \"Tiny vocabulary, thousands of steps\",\n        \"semantic\": \"problem\",\n        \"pin\": {\n          \"to\": \"chars-tag\",\n          \"side\": \"bottom\"\n        }\n      },\n      \"zone\": \"left\"\n    },\n    {\n      \"id\": \"words-tag\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"whole words\",\n        \"semantic\": \"neutral\"\n      },\n      \"zone\": \"right\"\n    },\n    {\n      \"id\": \"words-cost\",\n      \"primitive\": \"callout\",\n      \"props\": {\n        \"text\": \"New names get no entry\",\n        \"semantic\": \"problem\",\n        \"pin\": {\n          \"to\": \"words-tag\",\n          \"side\": \"bottom\"\n        }\n      },\n      \"zone\": \"right\"\n    },\n    {\n      \"id\": \"subword-tag\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"subword pieces\",\n        \"semantic\": \"focus\"\n      },\n      \"zone\": \"shared\"\n    }\n  ],\n  \"events\": [\n    {\n      \"at\": { \"type\": \"word\", \"index\": 6 },\n      \"action\": \"enter\",\n      \"targets\": [\"chars-tag\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 15 },\n      \"action\": \"enter\",\n      \"targets\": [\"chars-cost\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 21 },\n      \"action\": \"reject\",\n      \"targets\": [\"chars-tag\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 22 },\n      \"action\": \"enter\",\n      \"targets\": [\"words-tag\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 26 },\n      \"action\": \"enter\",\n      \"targets\": [\"words-cost\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 28 },\n      \"action\": \"reject\",\n      \"targets\": [\"words-tag\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 30 },\n      \"action\": \"enter\",\n      \"targets\": [\"subword-tag\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 32 },\n      \"action\": \"focus\",\n      \"targets\": [\"subword-tag\"]\n    }\n  ],\n  \"focus\": [],\n  \"transitionIn\": \"fade\"\n}",
+      "servedModel": "deepseek-flash",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 34122,
+        "completion_tokens": 7693,
+        "prompt_cache_hit_tokens": 32896,
+        "prompt_cache_miss_tokens": 1226,
+        "prompt_tokens_details": {
+          "cached_tokens": 32896
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 7045
+        },
+        "total_tokens": 41815
+      }
+    }
+  ],
+  "b3": [
+    {
+      "content": "{\n  \"elements\": [\n    {\n      \"id\": \"byte-vocab\",\n      \"primitive\": \"counter\",\n      \"props\": {\n        \"value\": 256,\n        \"unit\": \"values\",\n        \"label\": \"starting vocabulary\",\n        \"semantic\": \"concept\"\n      },\n      \"zone\": \"source\"\n    },\n    {\n      \"id\": \"pair-count\",\n      \"primitive\": \"node_card\",\n      \"props\": {\n        \"title\": \"COUNT PAIRS\",\n        \"subtitle\": \"neighbouring symbols\",\n        \"icon\": \"list\",\n        \"semantic\": \"neutral\"\n      },\n      \"zone\": \"stage\"\n    },\n    {\n      \"id\": \"merge\",\n      \"primitive\": \"node_card\",\n      \"props\": {\n        \"title\": \"t + h → th\",\n        \"subtitle\": \"one new symbol\",\n        \"icon\": \"swap\",\n        \"semantic\": \"focus\"\n      },\n      \"zone\": \"sink\"\n    },\n    {\n      \"id\": \"tag-raw\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"raw bytes\",\n        \"semantic\": \"concept\",\n        \"pin\": {\n          \"to\": \"byte-vocab\",\n          \"side\": \"right\"\n        }\n      }\n    },\n    {\n      \"id\": \"tag-frequent\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"most frequent pair\",\n        \"semantic\": \"focus\",\n        \"pin\": {\n          \"to\": \"merge\",\n          \"side\": \"top\"\n        }\n      }\n    }\n  ],\n  \"events\": [\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 3\n      },\n      \"action\": \"enter\",\n      \"targets\": [\n        \"byte-vocab\"\n      ]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 8\n      },\n      \"action\": \"pulse\",\n      \"targets\": [\n        \"byte-vocab\"\n      ]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 16\n      },\n      \"action\": \"enter\",\n      \"targets\": [\n        \"pair-count\"\n      ]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 23\n      },\n      \"action\": \"enter\",\n      \"targets\": [\n        \"merge\"\n      ]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 29\n      },\n      \"action\": \"pulse\",\n      \"targets\": [\n        \"pair-count\"\n      ]\n    }\n  ],\n  \"focus\": [\n    \"merge\"\n  ],\n  \"transitionIn\": \"fade\"\n}",
+      "servedModel": "deepseek-flash",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 34137,
+        "completion_tokens": 10360,
+        "prompt_cache_hit_tokens": 32896,
+        "prompt_cache_miss_tokens": 1241,
+        "prompt_tokens_details": {
+          "cached_tokens": 32896
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 9750
+        },
+        "total_tokens": 44497
+      }
+    }
+  ],
+  "b4": [
+    {
+      "content": "{\n  \"elements\": [\n    {\n      \"id\": \"encoded\",\n      \"primitive\": \"data_block\",\n      \"zone\": \"sink\",\n      \"props\": {\n        \"title\": \"ENCODED\",\n        \"fields\": [\n          {\n            \"key\": \"the\",\n            \"value\": \"single token\",\n            \"semantic\": \"ok\"\n          },\n          {\n            \"key\": \"unusual\",\n            \"value\": \"several pieces\",\n            \"semantic\": \"problem\"\n          }\n        ]\n      }\n    },\n    {\n      \"id\": \"merge-order\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"merge order\",\n        \"semantic\": \"concept\",\n        \"pin\": {\n          \"to\": \"merge\",\n          \"side\": \"bottom\"\n        }\n      }\n    }\n  ],\n  \"patterns\": [],\n  \"events\": [\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 3\n      },\n      \"action\": \"pulse\",\n      \"targets\": [\n        \"tag-frequent\"\n      ]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 11\n      },\n      \"action\": \"pulse\",\n      \"targets\": [\n        \"merge\"\n      ]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 15\n      },\n      \"action\": \"enter\",\n      \"targets\": [\n        \"merge-order\"\n      ]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 16\n      },\n      \"action\": \"enter\",\n      \"targets\": [\n        \"encoded\"\n      ]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 18\n      },\n      \"action\": \"focus\",\n      \"targets\": [\n        \"encoded\"\n      ]\n    }\n  ],\n  \"focus\": [\n    \"merge\"\n  ]\n}",
+      "servedModel": "deepseek-flash",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 34432,
+        "completion_tokens": 16736,
+        "prompt_cache_hit_tokens": 32896,
+        "prompt_cache_miss_tokens": 1536,
+        "prompt_tokens_details": {
+          "cached_tokens": 32896
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 16307
+        },
+        "total_tokens": 51168
+      }
+    }
+  ],
+  "b5": [
+    {
+      "content": "{\"elements\":[{\"id\":\"plain\",\"primitive\":\"slot_grid\",\"zone\":\"cell\",\"props\":{\"kind\":\"documents\",\"cols\":1,\"label\":\"PLAIN PARIS\",\"slots\":[{\"id\":\"p1\",\"label\":\"TOKEN\"}]}},{\"id\":\"spaced\",\"primitive\":\"slot_grid\",\"zone\":\"cell\",\"props\":{\"kind\":\"documents\",\"cols\":1,\"label\":\"SPACE GLUED ON\",\"slots\":[{\"id\":\"s1\",\"label\":\"TOKEN\"}]}},{\"id\":\"caps\",\"primitive\":\"slot_grid\",\"zone\":\"cell\",\"props\":{\"kind\":\"documents\",\"cols\":3,\"label\":\"ALL CAPS\",\"slots\":[{\"id\":\"c1\",\"label\":\"TOKEN\"},{\"id\":\"c2\",\"label\":\"TOKEN\"},{\"id\":\"c3\",\"label\":\"TOKEN\"}]}},{\"id\":\"t-chunk\",\"primitive\":\"tag\",\"zone\":\"aside\",\"props\":{\"text\":\"chunk borders\",\"semantic\":\"concept\"}},{\"id\":\"t-caps\",\"primitive\":\"tag\",\"zone\":\"aside\",\"props\":{\"text\":\"capitals split\",\"semantic\":\"focus\"}}],\"patterns\":[],\"events\":[{\"at\":{\"type\":\"word\",\"index\":5},\"action\":\"enter\",\"targets\":[\"plain\"]},{\"at\":{\"type\":\"word\",\"index\":8},\"action\":\"enter\",\"targets\":[\"t-chunk\"]},{\"at\":{\"type\":\"word\",\"index\":14},\"action\":\"enter\",\"targets\":[\"spaced\"]},{\"at\":{\"type\":\"word\",\"index\":15},\"action\":\"focus\",\"targets\":[\"spaced\"]},{\"at\":{\"type\":\"word\",\"index\":20},\"action\":\"enter\",\"targets\":[\"caps\"]},{\"at\":{\"type\":\"word\",\"index\":21},\"action\":\"focus\",\"targets\":[\"caps\"]},{\"at\":{\"type\":\"word\",\"index\":23},\"action\":\"enter\",\"targets\":[\"t-caps\"]},{\"at\":{\"type\":\"word\",\"index\":26},\"action\":\"focus\",\"targets\":[\"plain\"]},{\"at\":{\"type\":\"word\",\"index\":31},\"action\":\"focus\",\"targets\":[\"caps\"]}],\"focus\":[\"plain\"],\"transitionIn\":\"fade\"}",
+      "servedModel": "deepseek-flash",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 34142,
+        "completion_tokens": 16320,
+        "prompt_cache_hit_tokens": 32896,
+        "prompt_cache_miss_tokens": 1246,
+        "prompt_tokens_details": {
+          "cached_tokens": 32896
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 15859
+        },
+        "total_tokens": 50462
+      }
+    }
+  ],
+  "b6": [
+    {
+      "content": "{\n  \"elements\": [\n    {\n      \"id\": \"billed\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"billed per token\",\n        \"semantic\": \"concept\"\n      },\n      \"zone\": \"shared\"\n    },\n    {\n      \"id\": \"assumption\",\n      \"primitive\": \"callout\",\n      \"props\": {\n        \"title\": \"ASSUMPTION\",\n        \"text\": \"word count = token count\",\n        \"semantic\": \"concept\"\n      },\n      \"zone\": \"shared\"\n    },\n    {\n      \"id\": \"en-card\",\n      \"primitive\": \"node_card\",\n      \"props\": {\n        \"title\": \"ENGLISH REPLY\",\n        \"icon\": \"chat\",\n        \"semantic\": \"neutral\"\n      },\n      \"zone\": \"left\"\n    },\n    {\n      \"id\": \"stat-1-3\",\n      \"primitive\": \"stat_card\",\n      \"props\": {\n        \"value\": \"about 1.3\",\n        \"label\": \"tokens per word\",\n        \"source\": \"Field notes: counting tokens\",\n        \"semantic\": \"ok\"\n      },\n      \"zone\": \"left\"\n    },\n    {\n      \"id\": \"rare-card\",\n      \"primitive\": \"node_card\",\n      \"props\": {\n        \"title\": \"SAME REPLY\",\n        \"subtitle\": \"about 3× the tokens\",\n        \"icon\": \"globe\",\n        \"semantic\": \"focus\"\n      },\n      \"zone\": \"right\"\n    },\n    {\n      \"id\": \"rare-tag\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"rare language\",\n        \"semantic\": \"focus\",\n        \"pin\": {\n          \"to\": \"rare-card\",\n          \"side\": \"bottom\"\n        }\n      },\n      \"zone\": \"right\"\n    }\n  ],\n  \"patterns\": [],\n  \"events\": [\n    {\n      \"at\": { \"type\": \"word\", \"index\": 5 },\n      \"action\": \"enter\",\n      \"targets\": [\"billed\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 9 },\n      \"action\": \"enter\",\n      \"targets\": [\"assumption\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 13 },\n      \"action\": \"enter\",\n      \"targets\": [\"en-card\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 17 },\n      \"action\": \"enter\",\n      \"targets\": [\"stat-1-3\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 24 },\n      \"action\": \"enter\",\n      \"targets\": [\"rare-card\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 25 },\n      \"action\": \"enter\",\n      \"targets\": [\"rare-tag\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 30 },\n      \"action\": \"reject\",\n      \"targets\": [\"assumption\"]\n    }\n  ],\n  \"focus\": [\"assumption\"],\n  \"transitionIn\": \"fade\"\n}",
+      "servedModel": "deepseek-flash",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 34333,
+        "completion_tokens": 16206,
+        "prompt_cache_hit_tokens": 32896,
+        "prompt_cache_miss_tokens": 1437,
+        "prompt_tokens_details": {
+          "cached_tokens": 32896
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 15500
+        },
+        "total_tokens": 50539
+      }
+    }
+  ],
+  "b7": [
+    {
+      "content": "{\n  \"elements\": [\n    {\n      \"id\": \"tok\",\n      \"primitive\": \"node_card\",\n      \"props\": {\n        \"title\": \"MODEL TOKENIZER\",\n        \"subtitle\": \"the exact one it calls\",\n        \"icon\": \"scan_text\",\n        \"semantic\": \"focus\"\n      },\n      \"zone\": \"center\"\n    },\n    {\n      \"id\": \"tok_tag\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"exact tokenizer\",\n        \"semantic\": \"focus\",\n        \"pin\": {\n          \"to\": \"tok\",\n          \"side\": \"bottom\"\n        }\n      },\n      \"zone\": \"around\"\n    },\n    {\n      \"id\": \"budget\",\n      \"primitive\": \"node_card\",\n      \"props\": {\n        \"title\": \"LANGUAGE BUDGETS\",\n        \"subtitle\": \"written in tokens\",\n        \"icon\": \"bar_chart\",\n        \"semantic\": \"ok\"\n      },\n      \"zone\": \"around\"\n    },\n    {\n      \"id\": \"budget_tag\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"budgets in tokens\",\n        \"semantic\": \"ok\",\n        \"pin\": {\n          \"to\": \"budget\",\n          \"side\": \"bottom\"\n        }\n      },\n      \"zone\": \"around\"\n    },\n    {\n      \"id\": \"count_flow\",\n      \"primitive\": \"connector\",\n      \"props\": {\n        \"from\": \"tok\",\n        \"to\": \"budget\",\n        \"label\": \"token count\",\n        \"semantic\": \"concept\"\n      },\n      \"zone\": \"around\"\n    }\n  ],\n  \"patterns\": [],\n  \"events\": [\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 2\n      },\n      \"action\": \"enter\",\n      \"targets\": [\"tok\"]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 6\n      },\n      \"action\": \"enter\",\n      \"targets\": [\"tok_tag\"]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 14\n      },\n      \"action\": \"enter\",\n      \"targets\": [\"budget\"]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 16\n      },\n      \"action\": \"enter\",\n      \"targets\": [\"count_flow\"]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 17\n      },\n      \"action\": \"enter\",\n      \"targets\": [\"budget_tag\"]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 18\n      },\n      \"action\": \"move\",\n      \"targets\": [\"count_flow\"]\n    }\n  ],\n  \"focus\": [\"tok\"],\n  \"transitionIn\": \"fade\"\n}",
+      "servedModel": "deepseek-flash",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 33939,
+        "completion_tokens": 3669,
+        "prompt_cache_hit_tokens": 32896,
+        "prompt_cache_miss_tokens": 1043,
+        "prompt_tokens_details": {
+          "cached_tokens": 32896
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 3019
+        },
+        "total_tokens": 37608
+      }
+    },
+    {
+      "content": "{\n  \"elements\": [\n    {\n      \"id\": \"tok\",\n      \"primitive\": \"node_card\",\n      \"props\": {\n        \"title\": \"TOKENIZER\",\n        \"icon\": \"scan_text\",\n        \"semantic\": \"focus\"\n      },\n      \"zone\": \"center\"\n    },\n    {\n      \"id\": \"tok_tag\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"exact tokenizer\",\n        \"semantic\": \"focus\",\n        \"pin\": {\n          \"to\": \"tok\",\n          \"side\": \"bottom\"\n        }\n      },\n      \"zone\": \"around\"\n    },\n    {\n      \"id\": \"budget\",\n      \"primitive\": \"node_card\",\n      \"props\": {\n        \"title\": \"BUDGETS\",\n        \"icon\": \"bar_chart\",\n        \"semantic\": \"ok\"\n      },\n      \"zone\": \"around\"\n    },\n    {\n      \"id\": \"budget_tag\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"budgets in tokens\",\n        \"semantic\": \"ok\",\n        \"pin\": {\n          \"to\": \"budget\",\n          \"side\": \"bottom\"\n        }\n      },\n      \"zone\": \"around\"\n    }\n  ],\n  \"patterns\": [],\n  \"events\": [\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 2\n      },\n      \"action\": \"enter\",\n      \"targets\": [\"tok\"]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 6\n      },\n      \"action\": \"enter\",\n      \"targets\": [\"tok_tag\"]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 14\n      },\n      \"action\": \"enter\",\n      \"targets\": [\"budget\"]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 17\n      },\n      \"action\": \"enter\",\n      \"targets\": [\"budget_tag\"]\n    }\n  ],\n  \"focus\": [\"tok\"],\n  \"transitionIn\": \"fade\"\n}",
+      "servedModel": "deepseek-flash",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 34728,
+        "completion_tokens": 1582,
+        "prompt_cache_hit_tokens": 33920,
+        "prompt_cache_miss_tokens": 808,
+        "prompt_tokens_details": {
+          "cached_tokens": 33920
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1110
+        },
+        "total_tokens": 36310
+      }
+    }
+  ]
+}
