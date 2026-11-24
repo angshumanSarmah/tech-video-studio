@@ -12,6 +12,8 @@ export const STAGES = [
   'tts',
   'generate',
   'curate',
+  /** The Curator's repairs of single beats (P1C.8): Scriptwriter, narration, boards, re-time. */
+  'repair',
   'draft_render',
   'final_render',
 ] as const;

@@ -14,6 +14,7 @@ import {
   type GenerateOutput,
   type GenerateWarning,
   type LlmSettings,
+  type LogLevel,
   type MissingPrimitiveRequest,
   type ResearchNotes,
   type SpecError,
@@ -208,11 +209,7 @@ function scriptedSpec(raw: unknown, version: number): VideoSpec {
 
 /** The registries with the DB's approved assets: the list the prompt shows and checks use. */
 function libraryRegistries(deps: GenerateJobDeps, ctx: Ctx): Registries {
-  const library = loadAssetLibrary(deps.db, deps.dataDir);
-  for (const p of library.problems) {
-    ctx.log('warn', `Asset ${p.id} is left out of the Generator's list: ${p.message}`);
-  }
-  return { ...DEFAULT_REGISTRIES, assets: buildAssetRegistry(library.assets) };
+  return assetRegistries(deps.db, deps.dataDir, ctx.log);
 }
 
 function beatContext(
@@ -312,7 +309,7 @@ async function regenerate(
   });
   record(boards, index, result);
   ctx.progress(40, `Beat ${beatId} drawn again`);
-  await redrawBrokenDependents(c, job, boards, index, ctx);
+  await redrawBrokenDependents(c, spec, boards, index);
   return boards;
 }
 
@@ -323,18 +320,16 @@ async function regenerate(
  */
 async function redrawBrokenDependents(
   c: BeatStepContext,
-  job: GenerateJob,
+  spec: VideoSpec,
   boards: Boards,
   index: number,
-  ctx: Ctx,
 ): Promise<void> {
-  const { spec } = job;
   const beatId = spec.story.beats[index]?.id ?? String(index);
   for (const j of beatDependents(spec, index)) {
-    const issues = blockingIssues(boardCheck(c, job, boards, j, false));
+    const issues = blockingIssues(boardCheck(c, spec, boards, j, false));
     if (issues.length === 0) continue;
     const later = spec.story.beats[j]?.id ?? String(j);
-    ctx.log('info', `Beat ${later} no longer fits beat ${beatId}'s new board (${codes(issues)}).`);
+    c.log('info', `Beat ${later} no longer fits beat ${beatId}'s new board (${codes(issues)}).`);
     const result = await drawBeat(c, {
       spec,
       scenes: visibleScenes(spec, j, boards.scenes),
@@ -343,6 +338,117 @@ async function redrawBrokenDependents(
     });
     record(boards, j, result);
   }
+}
+
+// --- For the Curator's repairs (`repair/repair-beats.ts`) ----------------------------------------
+
+/**
+ * One beat drawn again on a spec held in memory (the repair's interim spec: no version is saved
+ * here), with `feedback`, then the later beats of its board (and a following semantic zoom)
+ * checked against it and redrawn when they no longer pass. `salt` makes a new request call the
+ * model while a resumed one reuses its finished steps. Returns every board and the indexes drawn.
+ */
+export async function redrawBeat(
+  c: BeatStepContext,
+  req: {
+    readonly spec: VideoSpec;
+    readonly scenes: readonly BeatScene[];
+    readonly index: number;
+    readonly feedback?: string;
+    readonly salt: string;
+  },
+): Promise<{ scenes: BeatScene[]; drawn: number[] }> {
+  const boards = boardsOf(req.scenes);
+  const result = await drawBeat(c, {
+    spec: req.spec,
+    scenes: visibleScenes(req.spec, req.index, boards.scenes),
+    beatIndex: req.index,
+    reason: 'regenerate',
+    ...(req.feedback ? { feedback: req.feedback } : {}),
+    salt: req.salt,
+  });
+  record(boards, req.index, result);
+  await redrawBrokenDependents(c, req.spec, boards, req.index);
+  return drawnBoards(boards);
+}
+
+/**
+ * After a beat's board changed without a call (its anchors remapped): the later beats of its
+ * board are checked against it and redrawn when they no longer pass.
+ */
+export async function redrawDependents(
+  c: BeatStepContext,
+  req: { readonly spec: VideoSpec; readonly scenes: readonly BeatScene[]; readonly index: number },
+): Promise<{ scenes: BeatScene[]; drawn: number[] }> {
+  const boards = boardsOf(req.scenes);
+  await redrawBrokenDependents(c, req.spec, boards, req.index);
+  return drawnBoards(boards);
+}
+
+/** A beat's blocking issues on its board as it stands (its ancestors' boards visible). */
+export function beatBoardIssues(
+  c: BeatStepContext,
+  spec: VideoSpec,
+  scenes: readonly BeatScene[],
+  index: number,
+): OutputIssue[] {
+  return blockingIssues(boardCheck(c, spec, { scenes: [...scenes] }, index, false));
+}
+
+function boardsOf(scenes: readonly BeatScene[]): Boards {
+  const records = new Map<number, BeatRecord>(
+    scenes.map((_, i) => [i, { stepId: null, outcome: 'kept', retried: false, requests: [] }]),
+  );
+  return { scenes: [...scenes], records, touched: new Set() };
+}
+
+function drawnBoards(boards: Boards): { scenes: BeatScene[]; drawn: number[] } {
+  const scenes = boards.scenes.flatMap((s) => (s ? [s] : []));
+  return { scenes, drawn: [...boards.touched].sort((a, b) => a - b) };
+}
+
+/** The Generator's beat context outside a `generate` job (the Curator's repairs). */
+export function generatorStepContext(
+  deps: GenerateJobDeps,
+  args: {
+    readonly runId: number;
+    readonly runSettings: Parameters<typeof resolvePromptVariables>[0];
+    readonly notes: ResearchNotes;
+    readonly registries: Registries;
+    readonly signal: AbortSignal;
+    readonly log: (level: LogLevel, message: string) => void;
+  },
+): BeatStepContext {
+  const styleRules = styleRulesSection(activeStyleRules(deps.db, 'generator'));
+  return {
+    db: deps.db,
+    dataDir: deps.dataDir,
+    llm: deps.llm,
+    prompts: deps.prompts,
+    variables: resolvePromptVariables(args.runSettings, deps.settings.video),
+    catalogue: generatorCatalogueBlock(args.registries),
+    ...(styleRules ? { styleRules } : {}),
+    model: deps.settings.llm.models.generator,
+    runId: args.runId,
+    notes: args.notes,
+    registries: args.registries,
+    warmUp: createWarmUp(),
+    signal: args.signal,
+    log: args.log,
+  };
+}
+
+/** The registries with the DB's approved assets, as the Generator draws with. */
+export function assetRegistries(
+  db: Db,
+  dataDir: string,
+  log: (level: LogLevel, message: string) => void,
+): Registries {
+  const library = loadAssetLibrary(db, dataDir);
+  for (const p of library.problems) {
+    log('warn', `Asset ${p.id} is left out of the Generator's list: ${p.message}`);
+  }
+  return { ...DEFAULT_REGISTRIES, assets: buildAssetRegistry(library.assets) };
 }
 
 /** The pinned spec's boards, every beat `kept`; it must have one per beat. */
@@ -365,20 +471,20 @@ function pinnedBoards(job: GenerateJob): Boards {
 /** A beat's issues with every board in place (`crossBoard`: also the checks across boards). */
 function boardCheck(
   c: BeatStepContext,
-  job: GenerateJob,
-  boards: Boards,
+  spec: VideoSpec,
+  boards: Pick<Boards, 'scenes'>,
   index: number,
   crossBoard: boolean,
 ): OutputIssue[] {
   const scene = boards.scenes[index];
   if (!scene) return [];
-  const scenes = crossBoard ? boards.scenes : visibleScenes(job.spec, index, boards.scenes);
+  const scenes = crossBoard ? boards.scenes : visibleScenes(spec, index, boards.scenes);
   return generatorSceneCheck(
     {
-      spec: job.spec,
+      spec,
       scenes,
       beatIndex: index,
-      notes: job.notes,
+      notes: c.notes,
       registries: c.registries,
       crossBoard,
     },
@@ -403,7 +509,9 @@ async function postPass(
   let changed = false;
   for (let index = 0; index < job.spec.story.beats.length; index += 1) {
     if (!boards.touched.has(index)) continue;
-    const found = changed ? boardCheck(c, job, boards, index, true) : (before.get(index) ?? []);
+    const found = changed
+      ? boardCheck(c, job.spec, boards, index, true)
+      : (before.get(index) ?? []);
     const issues = blockingIssues(found);
     if (issues.length === 0) continue;
     const beatId = job.spec.story.beats[index]?.id ?? String(index);
@@ -425,7 +533,7 @@ async function postPass(
       ctx.log('warn', `Beat ${beatId}: the retry still failed; its board goes to the gate as is.`);
       continue;
     }
-    await redrawBrokenDependents(c, job, boards, index, ctx);
+    await redrawBrokenDependents(c, job.spec, boards, index);
   }
   ctx.progress(90, 'Checked across boards');
   const after = changed ? allIssues(c, job, boards) : before;
@@ -435,7 +543,7 @@ async function postPass(
 }
 
 function allIssues(c: BeatStepContext, job: GenerateJob, boards: Boards) {
-  return new Map(job.spec.story.beats.map((_, i) => [i, boardCheck(c, job, boards, i, true)]));
+  return new Map(job.spec.story.beats.map((_, i) => [i, boardCheck(c, job.spec, boards, i, true)]));
 }
 
 function warningOf(beatId: string, issue: OutputIssue): GenerateWarning {

@@ -782,7 +782,7 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   final version and the run's warning logs, and writes `contact-sheet.png` (one still per beat,
   `scripts/contact-sheet.ts`).
 
-### Curator (P1C.8; job `jobs/curate.ts`, review only so far: the repair loop follows)
+### Curator (P1C.8; job `jobs/curate.ts` and `repairBeats`; the repair loop in the job follows)
 
 - **`curatorCodeChecks(spec, ctx)`** (`renderer/src/catalog/curator-checks.ts`, pure, exported
   through `catalog` so gate saves can run it): every code check on a finished spec (the re-timed
@@ -918,6 +918,40 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   usage and the eval; `--record` writes `curator.json` and `eval.json` to
   `agents/curator/fixtures/<topic>/responses/` (a seed: `.../<topic>/seeds/<id>/`).
   `jobs/curate.test.ts` replays every recording and expects its recorded eval.
+
+- **Repairs** (`repair/repair-beats.ts`, `repairBeats(deps, { runId, specVersionId, requests })`;
+  the Curator's repair loop and a gate's "regenerate beat N" use it): each `RepairRequest`
+  (shared `curator/repair.ts`: beat, owner `scriptwriter` | `generator`, allowed `fields`,
+  issues) goes to its agent. In order: (1) each Scriptwriter request in beat mode
+  (`agents/scriptwriter/revise.ts`: the script job's system prompt, the run input with the whole
+  current script, REVISE beat X and a FEEDBACK section with the issues, allowed fields, word
+  budget and measured length; the answer is the script schema with one beat; `reviseCheck`
+  splices it and keeps the beat's Scriptwriter issues plus `repair_scope`, a field outside the
+  request changed; `spliceRevision` takes only the allowed fields); (2) every beat synthesised
+  (`timing/narrate.ts`, shared with the `tts` job: unchanged beats are cache hits); (3) each
+  changed narration's board remapped (`remapAnchors`, shared `spec/remap-anchors.ts`: LCS over
+  `narrationWords`, word and `word_text` anchors moved, beat edges kept; a lost anchored word
+  means the board is drawn again); (4) boards on an interim spec (remapped boards, placeholders
+  where anchors were lost, timed without their holds): a lost anchor, a Generator request (its
+  issues are the feedback) or a remapped board that fails its checks is redrawn through the
+  regenerate path (`redrawBeat`, exported from `jobs/generate.ts` with `redrawDependents`,
+  `beatBoardIssues`, `generatorStepContext`, `assetRegistries`), then the later beats of its
+  board (and a following semantic zoom) that no longer pass; (5) re-timed with the final boards
+  and saved as one version. Beats not named keep their script and board byte for byte.
+- **Repair steps** (stage `repair`, `repair/steps.ts`): one row for the repair
+  (`repair/input-<step>.json`, `RepairInputSchema`; `output-<step>.json`, `RepairOutputSchema`:
+  per beat `script` kept | revised, `board` kept | remapped | redrawn, the narration before and
+  after, the anchored words lost; the saved version; usage) and one per beat and kind (`script`,
+  `narrate`, `remap`: `repair/<beat>/<kind>-input|output-<step>.json`) whose input carries an
+  input hash; a finished step with the same hash is reused, and the Generator's beat steps are
+  reused by theirs (a repair's salt hashes its requests), so a resumed repair pays only for what
+  it had not finished and a repeated one saves nothing new.
+- **`repair:fixture [--topic] [--beat] [--code] [--timeout]`** (needs `pnpm tts:setup`): one live
+  repair on a fixture topic's finished spec (the first `--code` finding, default
+  `beat_over_target`, as a Scriptwriter narration request), with real Kokoro; prints the
+  narration and measured length before and after, the board outcome, the code checks left and
+  the cost. Nothing is recorded. Tests: `repair/repair-beats.test.ts` (dry run, `fixtureTts`:
+  the timing fixture's words for known narration, 0.4 s a word for new text).
 
 API conventions: routes under `/api`, inputs validated with the `validate()` helper against schemas
 from `packages/shared/src/api`, list responses wrapped as `{ items }`, and every error is

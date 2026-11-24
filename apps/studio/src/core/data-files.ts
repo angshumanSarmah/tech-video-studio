@@ -86,6 +86,27 @@ export function curateReportPath(runId: number, stepId: number): string {
   return posix.join(runDir(runId), 'curate', `report-${stepId}.json`);
 }
 
+/** What one repair read (`RepairInputSchema`): the pinned spec version and the requests. */
+export function repairInputPath(runId: number, stepId: number): string {
+  return posix.join(runDir(runId), 'repair', `input-${stepId}.json`);
+}
+
+/** One repair's result (`RepairOutputSchema`): what each beat got and the saved version. */
+export function repairOutputPath(runId: number, stepId: number): string {
+  return posix.join(runDir(runId), 'repair', `output-${stepId}.json`);
+}
+
+/** One step of a repair for one beat (`kind`: script, narrate, remap), its input or output. */
+export function repairBeatStepPath(
+  runId: number,
+  beatId: string,
+  kind: string,
+  stepId: number,
+  side: 'input' | 'output',
+): string {
+  return posix.join(runDir(runId), 'repair', beatId, `${kind}-${side}-${stepId}.json`);
+}
+
 /** What one Generator beat step read (`GeneratorBeatInputSchema`: input hash, prompt). */
 export function beatSceneInputPath(runId: number, beatId: string, stepId: number): string {
   return posix.join(runDir(runId), 'generate', beatId, `input-${stepId}.json`);

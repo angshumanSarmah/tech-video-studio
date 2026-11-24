@@ -35,7 +35,11 @@ export interface ScriptwriterMessage {
   readonly budgets: readonly WordBudget[];
 }
 
-export function scriptwriterUserMessage(input: ScriptwriterMessage): string {
+/** `intro` replaces the opening instruction (the Curator's repairs revise one beat). */
+export function scriptwriterUserMessage(
+  input: ScriptwriterMessage,
+  options: { readonly intro?: string } = {},
+): string {
   const { plan } = input;
   const { story } = plan;
   const sources = numberSources(input.notes, input.research);
@@ -65,7 +69,7 @@ export function scriptwriterUserMessage(input: ScriptwriterMessage): string {
     ending: story.ending,
     researchNotes: notesWithSources(input.notes, sources),
   };
-  return `${INTRO}\n\n${JSON.stringify(payload, null, 2)}`;
+  return `${options.intro ?? INTRO}\n\n${JSON.stringify(payload, null, 2)}`;
 }
 
 function beatInput(beat: StoryBeat, input: ScriptwriterMessage, sources: Map<string, string>) {
