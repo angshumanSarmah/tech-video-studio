@@ -28,7 +28,7 @@ export const DEFAULT_VIDEO_SETTINGS = {
   lengthReasonAboveSec: 90,
   allowParts: true,
   maxParts: 4,
-  wordsPerSec: 2.7,
+  wordsPerSec: 2.56,
   explanationLevel: 'beginner',
 } as const;
 
@@ -43,7 +43,11 @@ const videoFields = {
   /** Whether a big topic may be split into parts (each its own video). */
   allowParts: z.boolean(),
   maxParts: z.number().int().min(2).max(6),
-  /** The Scriptwriter's narration pace (Kokoro at speed 1.0 is about 2.7). */
+  /**
+   * The Scriptwriter's narration pace: words per second of each beat's narration audio (pauses
+   * between beats excluded). 2.56 is Kokoro's measured rate for the default voice at speed 1.0,
+   * over both fixture topics' timing fixtures (468 words in 182.7 s).
+   */
   wordsPerSec: z.number().min(1.5).max(4),
   /** Who the video is for; every agent's preamble states it. */
   explanationLevel: ExplanationLevelSchema,

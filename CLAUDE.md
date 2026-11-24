@@ -402,7 +402,7 @@ stepId?, aliases?, check?, signal?, log? })`** is the only way to call a model (
   user message, so the static prefix caches. A new agent registers its output schema there and
   passes the same schema to `callJson`. `{{name}}`
   takes values from `resolvePromptVariables(run settings, settings.video)` (run override →
-  app settings → defaults 45, 150, 90, true, 4, 2.7, `beginner`; `explanationLevel` is
+  app settings → defaults 45, 150, 90, true, 4, 2.56, `beginner`; `explanationLevel` is
   beginner | intermediate | expert and fills the preamble's audience line); an unknown, unfilled or malformed
   placeholder throws `PromptBuildError`. `__snapshots__/<role>.prompt.txt` holds each assembled
   prompt with the defaults: review the diff when one changes.
@@ -633,9 +633,11 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   `<DATA_DIR>/<agent>/fixture/<topic>/`; an earlier role replays its recording for the topic, or
   runs live when there is none (`chainTransport`), so an unrecorded topic runs the whole chain.
   `--record` writes only the script's own role, and with `--max-repairs <n>` only when that role
-  needed at most `n` repairs (`shouldRecord`). The job tests use the rate limiter.
+  needed at most `n` repairs (`shouldRecord`). The job tests use the rate limiter. Fixture runs
+  pin `video.wordsPerSec` at 2.7 (`fixtureRunSettings`), the pace their Scriptwriter recordings
+  were made at; the app default (2.56) is Kokoro's measured rate (`DEFAULT_VIDEO_SETTINGS`).
 
-### Generator (`src/worker/agents/generator`; P1C.7, in progress)
+### Generator (`src/worker/agents/generator`, job in `jobs/generate.ts`; P1C.7)
 
 - **`GeneratorOutputSchema`** (`packages/shared/src/generator`): one beat's board without what
   the plan decides (`beatId`, `kind`, `continuesPrevious`, `layoutMode`): elements, patterns,
@@ -965,7 +967,10 @@ in both formats at four moments (default theme unless ids are given).
 - **HUD** (`src/hud`): top bar, step tracker, hero metric pill, chapter header, story clock and
   headline. Slots come from `hudLayout(theme)` (derived from `safeAreas`); what each part shows at
   a frame comes from pure functions in `hud-state.ts`. Parts are toggled per video in `spec.hud`
-  (a part without data is not drawn). Chapter header and step tracker default to `auto`, which
+  (a part without data is not drawn). The story clock draws its values by unit
+  (`heroMetric.storyClock.unit`, `storyClockUnit` in shared; `formatClockValue`): `sec` as a
+  clock (m:ss), `count` as a whole number grouped for the theme's `numberLocale`; a clock without
+  a unit is a count when a label writes its start or end value ("256 byte values"), else seconds. Chapter header and step tracker default to `auto`, which
   `resolveHud` resolves from `story.devices` (`question_chapters` → header only, else tracker
   only); an explicit true/false is a user override and wins. Every HUD animation starts at a frame
   resolved from a word or beat-edge anchor (`headline.at`, chapter and beat starts).

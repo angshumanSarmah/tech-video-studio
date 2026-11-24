@@ -4,14 +4,19 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 
 ## Open
 
-- [ ] **HUD — Story clock with a count.** The tokenizer plan's `heroMetric.storyClock` runs from
-      256 to 32000 (byte values to vocabulary entries), and the HUD draws clock values as a time, so
-      the draft shows 47:14 … 8:26:59. Either the schema and the Director's prompt limit the story
-      clock to durations, or the clock formats a count when its labels are not times.
-- [ ] **Timing — Narrated length over plan.** With Kokoro at speed 1.0 the drafts run 84.2 s
-      (tokenizer, planned 75 s, +12%) and 99.5 s (rate limiter, planned 90 s, +11%, past the top of
-      the configured range). The Scriptwriter's word budget (2.7 words/s) reads faster than Kokoro
-      speaks: calibrate `wordsPerSec` from the timing fixtures, or check length after TTS.
+- [ ] **P1C.7 — Next Generator prompt change: entrances.** Add to the Generator's DO list:
+      "Everything a beat adds enters on the word that names it; only the starting focus may be
+      there from the start." `element_without_enter` enforces it, but today the model learns it
+      only from a repair message. Change the design doc first, then `generator.v3` and re-record.
+- [ ] **Timing — Length after TTS.** With `wordsPerSec` at Kokoro's measured 2.56, a script at
+      its word budget narrates to about its planned length, but the ±15% budget tolerance and the
+      per-topic rate (2.47 to 2.64 on the fixtures) still let a video run past the configured
+      range (the rate limiter's draft would be about 94 s for a 90 s plan). Check the timed
+      length after the `tts` job and warn at the draft gate, or trim the tolerance.
+- [ ] **P1C.12 — Per-beat asset filter.** The Generator's prompt lists every approved asset in
+      the cached prefix (about 105 today, 1–2k tokens). The design doc's per-beat filter (about
+      60 candidates) waits until the library passes about 150 entries; it then goes in the user
+      message, never the prefix, so the prefix stays cached.
 - [ ] **P1C.5 — Record catalogue versions per call.** The block's `CATALOGUE VERSIONS` line
       lands in the prompt file and the Director's step input (`catalogueVersions`); a column on
       `llm_calls` would make it queryable.
@@ -263,12 +268,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       (`getTheme`, `listThemes`). When a channel or series stores a theme id, validate it against
       the registry (or move the id list into `packages/shared`). The studio tokens stay pinned to
       `STUDIO_THEME_ID` (`blueprint-dark`) unless the UI should follow the video theme.
-- [ ] **P1C.4 — Catalogue ids.** Primitive, pattern and layout mode ids, props and params are
-      checked by `withRegistryChecks`. The VideoSpec schema still only checks these are slugs:
-      `story.beats[].layoutMode` and `suggestedPatternIds`, `story.devices`,
-      `story.beats[].device`, `story.metaphorWorld`, `story.ending.kind`,
-      `story.missingPrimitiveRequests[].fallbackUsed`. Validate each against its registry or
-      catalogue (structured errors with JSON paths, like `validateVideoSpec`).
 - [ ] **Parts on `data_block`.** P1A.7 settled the target syntax (`params.parts`, one target).
       Still open: `data_block` fields as parts, so "this `status` flips" highlights one field.
 - [ ] **Layout — Places on a map.** `route_path` and `zone_polygon` over a `map_base` share its
@@ -331,11 +330,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       to TS 7 once typescript-eslint supports it.
 - [ ] **Tooling — vitest.** Pinned exactly to `5.1.0` because 5.1.1 was published 2026-11-18 and
       is younger than pnpm's `minimumReleaseAge`. Bump to `^5.1.1` after the gate passes.
-- [ ] **P1C.4 — Chapter display device ids.** `resolveHud` (`packages/shared/src/spec/hud.ts`)
-      reads `story.devices` for `question_chapters` (chapter header only) and `roadmap` (step
-      tracker only), exported as `CHAPTER_DISPLAY_DEVICES`. Use these ids for the
-      "question-driven chapters" and "roadmap of steps" devices in the device catalogue (or move
-      the constants into it).
 - [ ] **P1C.5 / P1C.6 — HUD text length.** HUD rows are one line and truncate with an ellipsis.
       With `blueprint-dark`, roughly 30 characters of chapter question fit beside the story clock,
       and the series label + topic share the top bar with the handle. Add soft length limits to
@@ -393,12 +387,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       `timer_ring` option.
 - [ ] **Catalogue — nested params.** The markdown params table shows object params (a pattern's
       `resource: { title, icon }`) as `object` without their fields; the JSON schema has them.
-- [ ] **P1C.7 — Generator rules for the event engine.** The catalogue states the engine's rules
-      (focus events, `hold`, `stagger: "scan"`, transitions, `zoomFrom`). Add them to the
-      Generator's DO / COMMON MISTAKES: focus what the beat is about (a highlight lifts the
-      focus dim only while it shows), leave `transitionIn` at `cut` on continuing beats, keep
-      `scan` for deliberate sweeps with room before the next event (`scan_too_short`), and use
-      `hold` sparingly.
 - [ ] **P1A.8c — Draw-on coverage.** With the `draw` enter style only primitives with an
       `outline` hook draw on (cards, `tag`, `map_base`); lines draw along their path. The rest
       fade in over the draw: `radius_ring` (its stroke is dashed, so a dash-offset draw needs a

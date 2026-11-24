@@ -3,7 +3,7 @@ import { textWidth } from '../fonts/measure-text.ts';
 import { formatAreas } from '../layout/format.ts';
 import type { Theme } from '../theme/index.ts';
 import { hudLayout } from './hud-layout.ts';
-import { formatClock, visibleHudParts, type ChapterSpan } from './hud-state.ts';
+import { formatClockValue, visibleHudParts, type ChapterSpan } from './hud-state.ts';
 import { titleBlockLayout, type TitleBlockVariant } from './title-block.ts';
 
 /**
@@ -153,7 +153,7 @@ function clockShares(theme: Theme, spec: RenderableVideoSpec): RowShare[] {
   if (!clock) return [];
   return [
     {
-      what: `the story clock "${storyClockText(clock, formatClock(widestClockValue(clock)))}" (story.heroMetric.storyClock)`,
+      what: `the story clock "${widestClockText(theme, clock)}" (story.heroMetric.storyClock)`,
       px: storyClockWidth(theme, clock) + theme.space.md,
     },
   ];
@@ -200,7 +200,14 @@ function handleWidth(theme: Theme, handle: string): number {
  * so its longest reading is the largest of them.
  */
 export function storyClockWidth(theme: Theme, clock: StoryClock): number {
-  return textWidth(theme, 'hud', storyClockText(clock, formatClock(widestClockValue(clock))));
+  return textWidth(theme, 'hud', widestClockText(theme, clock));
+}
+
+function widestClockText(theme: Theme, clock: StoryClock): string {
+  return storyClockText(
+    clock,
+    formatClockValue(clock, widestClockValue(clock), theme.numberLocale),
+  );
 }
 
 function widestClockValue(clock: StoryClock): number {

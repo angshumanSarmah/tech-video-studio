@@ -5,8 +5,10 @@ import {
   type HeadlineSemantic,
   type HudPart,
   type RenderableVideoSpec,
+  storyClockUnit,
   type StoryClock,
 } from '@explainer-studio/shared';
+import { formatCount } from '../primitives/counter/format.ts';
 import type { SafeAreas } from '../theme/index.ts';
 import { anchorToFrame, type BeatFrameSpan } from '../timing/frames.ts';
 
@@ -141,6 +143,15 @@ export function clockValueAt(points: readonly ClockPoint[], sec: number): number
   if (!b || !a) return b?.value ?? 0;
   const t = b.sec === a.sec ? 1 : (sec - a.sec) / (b.sec - a.sec);
   return a.value + (b.value - a.value) * t;
+}
+
+/**
+ * A story clock value as drawn, by its unit (`storyClockUnit`): story seconds as a clock, a count
+ * as a whole number grouped for the theme's `numberLocale` (256 … 32,000).
+ */
+export function formatClockValue(clock: StoryClock, value: number, locale: string): string {
+  if (storyClockUnit(clock) === 'count') return formatCount(Math.round(value), locale);
+  return formatClock(value);
 }
 
 /** Whole story seconds as m:ss, or h:mm:ss from an hour. */

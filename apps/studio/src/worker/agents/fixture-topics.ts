@@ -1,7 +1,7 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { ModelRole } from '@explainer-studio/shared';
+import type { ModelRole, RunSettingsInput } from '@explainer-studio/shared';
 
 /**
  * Topics the agent fixtures exist for (tests and the `*:fixture` scripts). Each has invented
@@ -73,4 +73,16 @@ export function fixtureResponsesDir(role: FixtureRole, id: FixtureTopicId): stri
 export function hasRecordedResponses(role: FixtureRole, id: FixtureTopicId): boolean {
   const dir = fixtureResponsesDir(role, id);
   return existsSync(dir) && readdirSync(dir).includes(`${role}.json`);
+}
+
+/**
+ * The narration pace the fixture topics' Scriptwriter recordings were made at, before the app
+ * default was measured from Kokoro. Their runs pin it, so the recorded scripts stay within their
+ * word budgets.
+ */
+export const FIXTURE_WORDS_PER_SEC = 2.7;
+
+/** A fixture run's settings: `overrides`, with the recordings' pace unless they set one. */
+export function fixtureRunSettings(overrides: RunSettingsInput = {}): RunSettingsInput {
+  return { ...overrides, video: { wordsPerSec: FIXTURE_WORDS_PER_SEC, ...overrides.video } };
 }

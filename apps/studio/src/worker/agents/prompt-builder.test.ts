@@ -100,7 +100,7 @@ describe('buildPrompt', () => {
     expect(director).toContain('If parts are allowed (true)');
     expect(director).toContain('split it into 2-4 parts');
     expect(render(buildPrompt(templates, parts('scriptwriter')))).toContain(
-      'About 2.7 words per second',
+      'About 2.56 words per second',
     );
     expect(render(buildPrompt(templates, parts('researcher')))).toContain(
       'new to this topic (explanation level: beginner)',

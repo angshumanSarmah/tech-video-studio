@@ -15,14 +15,14 @@ describe('resolvePromptVariables', () => {
     );
   });
 
-  it('uses the defaults 45, 150, 90, true, 4, 2.7, beginner without overrides', () => {
+  it('uses the defaults 45, 150, 90, true, 4, 2.56, beginner without overrides', () => {
     expect(resolvePromptVariables(undefined, appDefaults)).toEqual({
       lengthMinSec: 45,
       lengthMaxSec: 150,
       lengthReasonAboveSec: 90,
       allowParts: true,
       maxParts: 4,
-      wordsPerSec: 2.7,
+      wordsPerSec: 2.56,
       explanationLevel: 'beginner',
     });
   });

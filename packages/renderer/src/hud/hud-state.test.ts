@@ -1,6 +1,7 @@
 import { effectiveTiming, type RenderableVideoSpec } from '@explainer-studio/shared';
 import { describe, expect, it } from 'vitest';
 import { rateLimiterSpec } from '../../fixtures/index.ts';
+import { textWidth } from '../fonts/measure-text.ts';
 import { getTheme, safeAreas } from '../theme/index.ts';
 import { anchorToFrame, beatFrameSpans, secToFrame } from '../timing/frames.ts';
 import {
@@ -10,11 +11,13 @@ import {
   clockValueAt,
   cuesUntil,
   formatClock,
+  formatClockValue,
   headlineCues,
   stageForBeat,
   storyClockPoints,
   visibleHudParts,
 } from './hud-state.ts';
+import { storyClockWidth } from './hud-slots.ts';
 
 const FPS = 30;
 const spec = rateLimiterSpec;
@@ -200,5 +203,34 @@ describe('formatClock', () => {
     [-3, '0:00'],
   ])('%s s -> %s', (value, text) => {
     expect(formatClock(value)).toBe(text);
+  });
+});
+
+describe("formatClockValue (by the clock's unit)", () => {
+  const time = { from: 'ORDER', to: 'DOORBELL', startValue: 0, endValue: 112, keyframes: [] };
+  const count = {
+    from: '256 byte values',
+    to: '32,000 entries',
+    startValue: 256,
+    endValue: 32000,
+    keyframes: [],
+  };
+
+  it('draws story seconds as a clock', () => {
+    expect(formatClockValue(time, 112, 'en-US')).toBe('1:52');
+    expect(formatClockValue({ ...time, unit: 'sec' }, 3725, 'en-US')).toBe('1:02:05');
+  });
+
+  it('draws a count as a whole number grouped for the locale, never as a time', () => {
+    expect(formatClockValue(count, 256, 'en-US')).toBe('256');
+    expect(formatClockValue(count, 31999.6, 'en-US')).toBe('32,000');
+    expect(formatClockValue({ ...time, unit: 'count' }, 100000, 'en-IN')).toBe('1,00,000');
+  });
+
+  it("widens the clock's slot share to its widest count, not to a time", () => {
+    const theme = getTheme();
+    expect(storyClockWidth(theme, count)).toBe(
+      textWidth(theme, 'hud', '256 byte values → 32,000 entries · 32,000'),
+    );
   });
 });

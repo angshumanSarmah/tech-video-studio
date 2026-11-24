@@ -4,7 +4,7 @@ import { SourceLineSchema } from './script.ts';
 
 /** Story layer, written by the Director. Device, layout, pattern and world ids are catalogue ids. */
 
-/** The story clock's value (story-time seconds) at the start of a beat. */
+/** The story clock's value (in its unit) at the start of a beat. */
 export const StoryClockKeyframeSchema = z.strictObject({
   beatId: SpecIdSchema.describe(
     'A beat after the first one: never the first beat, whose value is startValue.',
@@ -13,14 +13,26 @@ export const StoryClockKeyframeSchema = z.strictObject({
 });
 export type StoryClockKeyframe = z.infer<typeof StoryClockKeyframeSchema>;
 
+/** What a story clock's values are: story-time seconds (a clock) or a count (a number). */
+export const STORY_CLOCK_UNITS = ['sec', 'count'] as const;
+export type StoryClockUnit = (typeof STORY_CLOCK_UNITS)[number];
+
 /**
- * A running clock in story time, e.g. "ORDER → DOORBELL · 1:52". Values are seconds of story time,
- * shown as m:ss. It runs from `startValue` at the first beat's start to `endValue` at the last
- * beat's end, linearly through any keyframes in between.
+ * A running value in the story, e.g. "ORDER → DOORBELL · 1:52" (seconds of story time, shown as
+ * m:ss) or a count shown as a number. It runs from `startValue` at the first beat's start to
+ * `endValue` at the last beat's end, linearly through any keyframes in between. Without a `unit`,
+ * `storyClockUnit` infers it.
  */
 export const StoryClockSchema = z.strictObject({
   from: z.string().min(1),
   to: z.string().min(1),
+  unit: z
+    .enum(STORY_CLOCK_UNITS)
+    .optional()
+    .describe(
+      'sec: the values are seconds of story time, drawn as a clock (m:ss). count: the values ' +
+        'are a quantity, drawn as a number.',
+    ),
   startValue: z.number().min(0),
   endValue: z.number().min(0),
   /** Optional pacing: in story order, never on the first beat (that is `startValue`). */

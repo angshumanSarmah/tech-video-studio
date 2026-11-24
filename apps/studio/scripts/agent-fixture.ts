@@ -24,6 +24,7 @@ import {
   FIXTURE_ROLES,
   FIXTURE_TOPIC_IDS,
   fixtureResponsesDir,
+  fixtureRunSettings,
   fixtureTopic,
   hasRecordedResponses,
   type FixtureRole,
@@ -201,7 +202,10 @@ export function chainTransport(
   };
 }
 
-/** The topic's run in its series, its sources uploaded and its `ingest` job queued. */
+/**
+ * The topic's run in its series, its sources uploaded and its `ingest` job queued; its settings
+ * pin the recordings' pace (`fixtureRunSettings`).
+ */
 export function seedFixtureRun(
   db: Db,
   dataDir: string,
@@ -210,7 +214,7 @@ export function seedFixtureRun(
 ) {
   return seedRunWithUploads(db, dataDir, topic.topic, topic.sourceFiles, {
     seriesTag: topic.seriesTag,
-    settings: level ? { video: { explanationLevel: level } } : undefined,
+    settings: fixtureRunSettings(level ? { video: { explanationLevel: level } } : {}),
   });
 }
 

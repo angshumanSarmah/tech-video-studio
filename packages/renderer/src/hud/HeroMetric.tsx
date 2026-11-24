@@ -1,8 +1,11 @@
-import type { HeroMetric as HeroMetricData } from '@explainer-studio/shared';
+import type {
+  HeroMetric as HeroMetricData,
+  StoryClock as StoryClockData,
+} from '@explainer-studio/shared';
 import { useCurrentFrame, useVideoConfig } from 'remotion';
 import { FocusUnderline } from '../emphasis/Mark.tsx';
 import { semanticTint, textCss, type Theme } from '../theme/index.ts';
-import { clockValueAt, formatClock, type ClockPoint } from './hud-state.ts';
+import { clockValueAt, formatClockValue, type ClockPoint } from './hud-state.ts';
 import { enterProgress } from './motion.ts';
 
 type PillProps = { theme: Theme; metric: HeroMetricData; from: number };
@@ -41,14 +44,13 @@ export function HeroMetricPill({ theme, metric, from }: PillProps) {
 
 type ClockProps = {
   theme: Theme;
-  fromLabel: string;
-  toLabel: string;
+  clock: StoryClockData;
   points: readonly ClockPoint[];
   from: number;
 };
 
-/** "FROM → TO · 1:52": story time, ticking along the narration track. */
-export function StoryClock({ theme, fromLabel, toLabel, points, from }: ClockProps) {
+/** "FROM → TO · 1:52": story time (or a count), running along the narration track. */
+export function StoryClock({ theme, clock, points, from }: ClockProps) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const progress = enterProgress(frame, from, fps);
@@ -63,11 +65,11 @@ export function StoryClock({ theme, fromLabel, toLabel, points, from }: ClockPro
         opacity: progress,
       }}
     >
-      {fromLabel} → {toLabel}
+      {clock.from} → {clock.to}
       <span style={{ color: ink.faint }}> · </span>
       <span style={{ color: theme.colours.semantic.focus }}>
         <FocusUnderline theme={theme} semantic="focus">
-          {formatClock(clockValueAt(points, frame / fps))}
+          {formatClockValue(clock, clockValueAt(points, frame / fps), theme.numberLocale)}
         </FocusUnderline>
       </span>
     </div>

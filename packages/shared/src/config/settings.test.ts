@@ -82,7 +82,7 @@ describe('SettingsSchema video', () => {
       lengthReasonAboveSec: 90,
       allowParts: true,
       maxParts: 4,
-      wordsPerSec: 2.7,
+      wordsPerSec: 2.56,
       explanationLevel: 'beginner',
     });
   });

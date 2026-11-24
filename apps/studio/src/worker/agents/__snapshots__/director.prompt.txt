@@ -195,6 +195,14 @@ Common mistakes to avoid
                   "type": "string",
                   "minLength": 1
                 },
+                "unit": {
+                  "description": "sec: the values are seconds of story time, drawn as a clock (m:ss). count: the values are a quantity, drawn as a number.",
+                  "type": "string",
+                  "enum": [
+                    "sec",
+                    "count"
+                  ]
+                },
                 "startValue": {
                   "type": "number",
                   "minimum": 0

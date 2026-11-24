@@ -87,13 +87,7 @@ export function TitleBlockHud({ variant, ...props }: Props) {
           <div />
         )}
         {parts.storyClock && clock ? (
-          <StoryClock
-            theme={theme}
-            fromLabel={clock.from}
-            toLabel={clock.to}
-            points={points}
-            from={pinnedFrom}
-          />
+          <StoryClock theme={theme} clock={clock} points={points} from={pinnedFrom} />
         ) : null}
       </div>
       {parts.headline && cue && frame < cue.to ? (

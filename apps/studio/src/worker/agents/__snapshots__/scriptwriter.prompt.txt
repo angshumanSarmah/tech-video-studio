@@ -31,7 +31,7 @@ Role: Scriptwriter. You write the spoken narration and the short on-screen text 
 Director's plan.
 
 Length
-- About 2.7 words per second of the beat's narration time (its target seconds minus
+- About 2.56 words per second of the beat's narration time (its target seconds minus
   its pauses: beat gap, landing hold), within 15%. Aim at the
   target; the margin is not a goal.
 - In a multi-part video: from part 2 on, open with a recap of at most 2 sentences; every part but

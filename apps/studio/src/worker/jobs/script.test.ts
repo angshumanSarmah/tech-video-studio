@@ -19,6 +19,7 @@ import { latestDirection } from '#core/services/direction.ts';
 import { latestResearch } from '#core/services/research-notes.ts';
 import { latestScript } from '#core/services/script.ts';
 import { findWorkspaceRoot } from '#core/workspace-root.ts';
+import { fixtureRunSettings } from '../agents/fixture-topics.ts';
 import { DIRECTOR_RESPONSES_DIR } from '../agents/director/testing.ts';
 import { loadPromptTemplates, promptId, PROMPTS_DIR } from '../agents/prompts/templates.ts';
 import {
@@ -86,7 +87,7 @@ async function planned(reg: JobRegistry, runSettings?: RunSettingsInput, plan = 
     t.dataDir,
     RATE_LIMITER_TOPIC,
     RATE_LIMITER_SOURCE_FILES,
-    { settings: runSettings },
+    { settings: fixtureRunSettings(runSettings) },
   );
   await runNext(reg);
   expect(listRunJobs(t.db, runId)[0]!.status).toBe('done');
