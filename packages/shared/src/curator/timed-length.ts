@@ -33,7 +33,7 @@ export type TimedLengthContext = {
   lengthOverrideSec?: number;
 };
 
-type Measured = {
+export type MeasuredBeat = {
   beatId: string;
   scriptIndex: number;
   targetSec: number;
@@ -65,7 +65,12 @@ function videoEndSec(timing: TimingLayer): number {
   return timing.endSec ?? (timing.beats.at(-1)?.endSec ?? 0) + END_TAIL_SEC;
 }
 
-function measuredBeats(spec: VideoSpec, timing: TimingLayer): Measured[] {
+/** Each beat's planned and measured seconds; none before TTS (no timing layer). */
+export function measuredBeatLengths(spec: VideoSpec): MeasuredBeat[] {
+  return spec.timing ? measuredBeats(spec, spec.timing) : [];
+}
+
+function measuredBeats(spec: VideoSpec, timing: TimingLayer): MeasuredBeat[] {
   const script = spec.script ?? [];
   const targets = new Map(spec.story.beats.map((b) => [b.id, b.targetSec]));
   return timing.beats.flatMap((beat, i) => {
@@ -89,7 +94,7 @@ function spanOf(timing: TimingLayer, beat: BeatTiming, next: BeatTiming | undefi
   return end - beat.startSec;
 }
 
-function beatOverTarget(beat: Measured): SpecError[] {
+function beatOverTarget(beat: MeasuredBeat): SpecError[] {
   const ratio = beat.spanSec / beat.targetSec;
   if (ratio <= BEAT_OVER_TARGET_RATIO) return [];
   const cut = Math.ceil((beat.spanSec - beat.targetSec) * beat.wordsPerSec);
@@ -108,7 +113,7 @@ function beatOverTarget(beat: Measured): SpecError[] {
 
 function videoOverTarget(
   spec: VideoSpec,
-  beats: readonly Measured[],
+  beats: readonly MeasuredBeat[],
   ctx: TimedLengthContext,
 ): SpecError[] {
   const target = ctx.lengthOverrideSec ?? spec.meta.targetLengthSec;

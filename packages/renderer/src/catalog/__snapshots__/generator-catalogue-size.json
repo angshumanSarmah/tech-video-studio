@@ -1,6 +1,6 @@
 {
-  "chars": 110750,
-  "tokens": 31643,
+  "chars": 110804,
+  "tokens": 31659,
   "sections": {
     "CATALOGUE VERSIONS": {
       "chars": 35,
@@ -11,12 +11,12 @@
       "tokens": 642
     },
     "PRIMITIVES": {
-      "chars": 49641,
-      "tokens": 14184
+      "chars": 49659,
+      "tokens": 14189
     },
     "PATTERNS": {
-      "chars": 53618,
-      "tokens": 15320
+      "chars": 53654,
+      "tokens": 15330
     },
     "ASSETS": {
       "chars": 5204,

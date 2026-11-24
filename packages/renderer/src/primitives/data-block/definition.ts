@@ -1,7 +1,12 @@
 import { cardOutline } from '../surface.ts';
 import { z } from 'zod';
 import { SEMANTIC_COLOURS, type Theme } from '../../theme/index.ts';
-import { displayNumber, lineText as lineTextProp, screenString } from '../common-props.ts';
+import {
+  displayNumber,
+  drawnText,
+  lineText as lineTextProp,
+  screenString,
+} from '../common-props.ts';
 import { approxTextWidth, lineHeightPx } from '../measure.ts';
 import { definePrimitive, type ClippedLine, type SizeHints, type Size } from '../types.ts';
 import { dataLines, lineText } from './lines.ts';
@@ -9,10 +14,15 @@ import { dataLines, lineText } from './lines.ts';
 export const DATA_BLOCK_MAX_FIELDS = 6;
 
 export const DataFieldSchema = z.strictObject({
-  key: z
-    .string()
-    .regex(/^[A-Za-z_][A-Za-z0-9_.-]{0,19}$/, 'A short field name: letters, digits, "_", "-", ".".')
-    .describe('Field name, as it would appear in the data.'),
+  key: drawnText(
+    z
+      .string()
+      .regex(
+        /^[A-Za-z_][A-Za-z0-9_.-]{0,19}$/,
+        'A short field name: letters, digits, "_", "-", ".".',
+      )
+      .describe('Field name, as it would appear in the data.'),
+  ),
   value: z
     .union([screenString().max(28), displayNumber(z.number()).finite(), z.boolean(), z.null()])
     .describe('Field value: a short string, a number, true/false or null.'),

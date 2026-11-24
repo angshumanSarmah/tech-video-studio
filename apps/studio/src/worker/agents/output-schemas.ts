@@ -1,4 +1,5 @@
 import {
+  CuratorReviewSchema,
   DirectorPlanSchema,
   GeneratorOutputSchema,
   ResearchNotesSchema,
@@ -17,4 +18,5 @@ export const ROLE_OUTPUT_SCHEMAS: Readonly<Partial<Record<PromptRole, z.ZodType>
   director: DirectorPlanSchema,
   scriptwriter: ScriptwriterOutputSchema,
   generator: GeneratorOutputSchema,
+  curator: CuratorReviewSchema,
 };

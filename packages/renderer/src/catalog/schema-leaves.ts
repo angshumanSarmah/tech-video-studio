@@ -95,6 +95,7 @@ function isScreenText(node: JsonSchema): boolean {
   if (node.screenText === false || node.enum !== undefined || node.const !== undefined) {
     return false;
   }
+  if (node.screenText === true) return true;
   return node.pattern === undefined || node.pattern === ONE_LINE_PATTERN;
 }
 

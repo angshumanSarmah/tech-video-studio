@@ -73,8 +73,10 @@ describe('buildPrompt', () => {
     expect(order.every((i) => i >= 0)).toBe(true);
     expect(order).toEqual([...order].sort((a, b) => a - b));
     // A role without a registered schema (its step comes later) gets no output section.
+    const analyst = buildPrompt(templates, parts('analyst')).messages[0]!.content;
+    expect(analyst).not.toContain('## OUTPUT SHAPE');
     const curator = buildPrompt(templates, parts('curator')).messages[0]!.content;
-    expect(curator).not.toContain('## OUTPUT SHAPE');
+    expect(curator).toContain('"number_wrong_meaning"');
   });
 
   it('keeps the system message identical across runs with different input (cache prefix)', () => {

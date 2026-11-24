@@ -1,0 +1,585 @@
+Review this 7-beat video for beginner viewers, beat by beat. Report each problem as one issue, quoting its evidence exactly as written below; report nothing for a beat that is fine. Return one JSON object.
+
+## NOTES (the only facts; evidence cites their ids)
+{
+  "mechanism": {
+    "summary": "A tokenizer turns text into a list of integers, one per token, and the model works only with those integers; on the way out the same tokenizer turns them back into text. Its vocabulary is learned by a merge loop: start from raw bytes, count neighbouring pairs across the corpus, add the most frequent pair as a new symbol, replace it everywhere, and repeat until the vocabulary reaches its target size. Encoding new text splits it into bytes, cuts it into chunks, then replays those merges in the order they were learned.",
+    "steps": [
+      {
+        "text": "Learning starts from raw bytes: the starting vocabulary is the 256 possible byte values, so any text at all can be written and nothing is ever unknown."
+      },
+      {
+        "text": "Count every pair of neighbouring symbols across the whole training corpus."
+      },
+      {
+        "text": "Take the most frequent pair, for example \"t\" followed by \"h\", and add it to the vocabulary as a new symbol, \"th\"."
+      },
+      {
+        "text": "Replace that pair everywhere in the corpus with the new symbol, count again, and repeat until the vocabulary reaches its target size."
+      },
+      {
+        "text": "To encode new text, split it into bytes and pre-tokenize: letters stay together, punctuation splits off, a space sticks to the word after it, and digits are split individually."
+      },
+      {
+        "text": "Replay the learned merges in the order they were learned, joining every pair it can; merges never cross a pre-tokenization chunk border."
+      },
+      {
+        "text": "A common word such as \"the\" collapses into a single token; an unusual word such as \"glimmerwick\" stays in several pieces because no merge ever joined them."
+      },
+      {
+        "text": "The resulting token ids go to the model; on output, decoding maps the ids back to exactly the original text, including spaces, line breaks and emoji."
+      }
+    ]
+  },
+  "plainSummary": "Text is chopped into pieces called tokens before the model sees it. The model only sees each piece as a number, never as letters. Common chunks are learned by joining the most frequent neighbouring pairs, again and again. Common words become a single token; rare words stay in several pieces. Encoding replays those joins, and decoding gives the original text back.",
+  "analogies": [
+    {
+      "analogy": "A shorthand system for taking notes: first you invent a squiggle for the most common pair of letters, then squiggles for whole common words, so familiar phrases take almost no paper.",
+      "matches": "The merge loop learns the most frequent pairs first and late merges build whole common words; encoding reuses those learned squiggles in the same order.",
+      "breaksDown": "The real tokenizer works on bytes, not letters, and its byte starting set means no text is ever unrepresentable, while a shorthand writer can hit a name they have no squiggle for."
+    },
+    {
+      "analogy": "Folding a sheet that has pre-marked creases: you can fold along a crease, but never across one.",
+      "matches": "Pre-tokenization cuts text into chunks, and no merge is allowed to join pieces across a chunk border.",
+      "breaksDown": "The borders come from rules about letters, punctuation, spaces and digits rather than physical creases, and a run of digits always stays as separate pieces."
+    }
+  ],
+  "glossary": [
+    {
+      "term": "token",
+      "plainMeaning": "A piece of text, from a single byte up to a whole word, that the tokenizer maps to one integer."
+    },
+    {
+      "term": "tokenizer",
+      "plainMeaning": "The program that turns text into token ids and turns ids back into text."
+    },
+    {
+      "term": "vocabulary",
+      "plainMeaning": "The fixed list of pieces the tokenizer can output; Saltmarsh's has 32,000 entries."
+    },
+    {
+      "term": "merge list",
+      "plainMeaning": "The ordered record of pair joins learned in training; encoding replays it from the start."
+    },
+    {
+      "term": "byte-level",
+      "plainMeaning": "Working on raw bytes, so any text can be written and there is never an \"unknown\" token."
+    },
+    {
+      "term": "pre-tokenization",
+      "plainMeaning": "Splitting text into chunks before merges run; merges never cross a chunk border."
+    },
+    {
+      "term": "special tokens",
+      "plainMeaning": "Reserved ids for document start, document end and padding; the application adds them, not ordinary text."
+    },
+    {
+      "term": "embedding table",
+      "plainMeaning": "The model's table with one row per vocabulary entry, so each entry has a storage cost."
+    },
+    {
+      "term": "context window",
+      "plainMeaning": "The limited amount of text, measured in tokens, that a model can hold at once."
+    },
+    {
+      "term": "round trip",
+      "plainMeaning": "Decoding the ids of an encoded text gives back exactly the original text."
+    }
+  ],
+  "facts": [
+    {
+      "id": "fact-1",
+      "statement": "A language model never sees letters: a tokenizer turns text into a list of integers, one per token, and the model works only with those integers.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-2",
+      "statement": "On the way out, the same tokenizer turns the integers the model produces back into text.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-3",
+      "statement": "The vocabulary, the fixed list of pieces the tokenizer can output, has 32,000 entries in Saltmarsh.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-4",
+      "statement": "Cutting text into single characters keeps the vocabulary tiny, but a paragraph becomes thousands of steps long and the model must spend its fixed context on spelling.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-5",
+      "statement": "Cutting text into whole words keeps sequences short, but the vocabulary explodes: every name, typo and new word needs its own entry, and a word never seen in training has no integer at all.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-6",
+      "statement": "Subword tokenizers sit between characters and words: frequent words get a single token of their own, while rare words are spelled out from smaller pieces the vocabulary does have.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-7",
+      "statement": "Vocabulary learning starts from raw bytes, so the starting vocabulary is the 256 possible byte values and any text at all can be written, meaning nothing is ever unknown.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-8",
+      "statement": "The merge loop counts every pair of neighbouring symbols in the corpus, adds the most frequent pair as a new symbol, replaces it everywhere, and repeats until the vocabulary reaches its target size.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-9",
+      "statement": "The order of the merges is part of the tokenizer: early merges join very common pairs, late merges build whole common words and word endings.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-10",
+      "statement": "Encoding splits new text into bytes and replays the learned merges in the order they were learned, joining every pair it can; the guide's example is a common word collapsing to a single token and an unusual word staying in several pieces.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-11",
+      "statement": "A larger vocabulary makes sequences shorter, but every entry needs its own row in the model's embedding table and rare entries are seen too seldom during training to be learned well.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-12",
+      "statement": "A smaller vocabulary is cheaper to store but makes every sequence longer.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-13",
+      "statement": "On Saltmarsh's English test set a token covers about 4 characters of text on average, and the guide warns that this ratio is a property of English prose, not of tokenizers.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-14",
+      "statement": "glyphcut works on bytes, so decoding an encoded text gives back exactly the original, including spaces, line breaks and emoji, it never needs an \"unknown\" token, and the same text with the same vocabulary always gives the same ids.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-15",
+      "statement": "Before any merge runs, text is split into chunks that merges never cross; letters stay together, punctuation is split off, and a space is kept at the start of the word that follows it.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-16",
+      "statement": "Digits are split individually, which keeps the vocabulary from spending entries on arbitrary numbers.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-17",
+      "statement": "Some ids are reserved and never come from text: markers for document start, document end and padding, added by the application, so a user cannot type them.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-18",
+      "statement": "You should count tokens, not words, to know whether a prompt fits a context window or what a request will cost, and only the tokenizer the model was trained with gives the true number.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-19",
+      "statement": "A different vocabulary gives different ids: ids from one model's tokenizer mean nothing to another model.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-20",
+      "statement": "Capital letters, leading spaces and rare spellings change how a word splits, so \"Paris\", \" Paris\" and \"PARIS\" can be one, one and three tokens.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-21",
+      "statement": "At Corrowby every model request is billed by the token and every conversation must fit the model's context window, also measured in tokens; before counting tokens properly they estimated both from word counts.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-22",
+      "statement": "For English support replies, a word came to about 1.3 tokens on average: short common words are a single token, while product names, long words and unusual capitals split into several.",
+      "confidence": "medium"
+    },
+    {
+      "id": "fact-23",
+      "statement": "A language rare in the tokenizer's training text needed about 3 times as many tokens to say the same thing, so the same answer cost more and used more of the context window.",
+      "confidence": "medium"
+    },
+    {
+      "id": "fact-24",
+      "statement": "In source code, runs of spaces used for indentation and identifiers written in mixed case split into many tokens, and numbers are split digit by digit, so an order number is as many tokens as it has digits.",
+      "confidence": "medium"
+    },
+    {
+      "id": "fact-25",
+      "statement": "Corrowby believes digit-by-digit splitting is why the model sometimes slips on long arithmetic: it never sees a number as a whole thing, only as a row of digits.",
+      "confidence": "low"
+    },
+    {
+      "id": "fact-26",
+      "statement": "After the change, Corrowby counts tokens with the exact tokenizer of the model it calls, writes prompt and reply budgets in tokens, and produces per-language cost reports.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-27",
+      "statement": "The often-quoted \"about four characters\" per token rule held for Corrowby's English text but not for code or for the rarer languages, and they have not agreed on a single rule to replace it.",
+      "confidence": "medium"
+    }
+  ],
+  "numbers": [
+    {
+      "id": "num-1",
+      "value": "32,000",
+      "unit": "entries",
+      "context": "Size of Saltmarsh's vocabulary, the fixed list of pieces it can output."
+    },
+    {
+      "id": "num-2",
+      "value": "256",
+      "unit": "byte values",
+      "context": "Size of the starting vocabulary when a byte-level tokenizer begins learning merges."
+    },
+    {
+      "id": "num-3",
+      "value": "about 4",
+      "unit": "characters per token",
+      "context": "Average characters covered by a token on Saltmarsh's English test set; the guide says this is a property of English prose, not of tokenizers."
+    },
+    {
+      "id": "num-4",
+      "value": "about 1.3",
+      "unit": "tokens per word",
+      "context": "Average for Corrowby's English support replies, where short common words are a single token but product names and long words split."
+    },
+    {
+      "id": "num-5",
+      "value": "about 3",
+      "unit": "times as many tokens",
+      "context": "How many more tokens a language rare in the tokenizer's training text needed to say the same thing as English."
+    },
+    {
+      "id": "num-6",
+      "value": "about four",
+      "unit": "characters per token",
+      "context": "The often-quoted rule of thumb; it held for Corrowby's English text but not for code or rarer languages."
+    },
+    {
+      "id": "num-7",
+      "value": "one, one and three",
+      "unit": "tokens",
+      "context": "Token counts for \"Paris\", \" Paris\" and \"PARIS\" respectively under the same tokenizer."
+    }
+  ],
+  "tradeOffs": [
+    {
+      "choice": "Cut text into subword pieces instead of characters or whole words",
+      "gains": "Frequent words take a single token, rare words are spelled from pieces the vocabulary already has, and no text is unknown.",
+      "costs": "A word's token count depends on how common its pieces were in the training text, so counts vary by word, case and language."
+    },
+    {
+      "choice": "Choose a larger vocabulary",
+      "gains": "More text fits in each token, so sequences are shorter.",
+      "costs": "Every entry needs its own row in the embedding table, and rare entries are seen too seldom during training to be learned well."
+    },
+    {
+      "choice": "Choose a smaller vocabulary",
+      "gains": "Cheaper to store.",
+      "costs": "Every sequence gets longer, which costs context and steps."
+    },
+    {
+      "choice": "Start the vocabulary from raw bytes",
+      "gains": "Any text at all can be written, so there is never an unknown token and the round trip is exact.",
+      "costs": "Everything above the byte level must be learned as merges, so text whose pieces were rare in training stays split into many small pieces."
+    },
+    {
+      "choice": "Split digits individually in pre-tokenization",
+      "gains": "The vocabulary does not spend entries on arbitrary numbers.",
+      "costs": "A long number becomes as many tokens as it has digits, eating context, and the model sees digits rather than quantities."
+    },
+    {
+      "choice": "Keep a leading space attached to the word that follows it",
+      "gains": "Spacing survives the round trip exactly.",
+      "costs": "The same word at the start of a line and after a space get different ids and different token counts."
+    },
+    {
+      "choice": "Count tokens exactly with the model's own tokenizer instead of using rules of thumb",
+      "gains": "Budgets and cost estimates match what the model is actually billed and limited by.",
+      "costs": "You must ship and run the exact tokenizer and build per-language reporting; the team still argues over whether to use per-language tables or count every message."
+    }
+  ],
+  "rejectedAlternatives": [
+    {
+      "alternative": "Cutting text into single characters",
+      "reason": "The vocabulary stays tiny, but a paragraph becomes thousands of steps long and the model must spend its fixed context on spelling."
+    },
+    {
+      "alternative": "Cutting text into whole words",
+      "reason": "Sequences stay short, but the vocabulary explodes: every name, typo and new word needs an entry, and words unseen in training have no integer at all."
+    },
+    {
+      "alternative": "Estimating tokens from word counts",
+      "reason": "Corrowby did this for its prompt and cost estimates and found the link between words and tokens is loose and varies by language and content."
+    },
+    {
+      "alternative": "Counting tokens with another model's tokenizer",
+      "reason": "A different vocabulary gives different ids, and only the tokenizer the model was trained with gives the true number."
+    },
+    {
+      "alternative": "Relying on one \"about four characters per token\" rule of thumb",
+      "reason": "It held for English text but not for code or rarer languages, and the sources have not agreed on a single replacement rule."
+    }
+  ],
+  "misconceptions": [
+    {
+      "belief": "A token is a word.",
+      "correction": "At Corrowby a word came to about 1.3 tokens on average: short common words are a single token, while product names, long words and unusual capitals split into several."
+    },
+    {
+      "belief": "The same text costs the same number of tokens in any language.",
+      "correction": "A language rare in the tokenizer's training text needed about 3 times as many tokens as English to say the same thing, so it cost more and filled the context window faster."
+    },
+    {
+      "belief": "Any tokenizer, or a word count, gives you a usable token count.",
+      "correction": "Ids from one model's tokenizer mean nothing to another model, and only the tokenizer the model was trained with gives the true count."
+    },
+    {
+      "belief": "A token is about four characters, so character count divided by four sizes a prompt.",
+      "correction": "That often-quoted rule held for Corrowby's English text but not for code or rarer languages, and the sources have no agreed replacement for it."
+    },
+    {
+      "belief": "The model sees a number as a quantity.",
+      "correction": "Digits are split individually, so an order number is as many tokens as it has digits; Corrowby believes this is why long arithmetic slips, since the model never sees a number as a whole thing."
+    },
+    {
+      "belief": "Tokenization lowercases or normalizes text, so casing is lost.",
+      "correction": "glyphcut's round trip returns the exact original text, and case and leading spaces change the split rather than being normalized away."
+    },
+    {
+      "belief": "A user can type a special token into the prompt.",
+      "correction": "Special ids such as document start, end and padding are added by the application and are never produced by encoding ordinary text."
+    }
+  ],
+  "failureModes": [
+    {
+      "kind": "edge_case",
+      "description": "A prompt budgeted from word counts overflows the context window or the cost estimate, because the word-to-token link is loose and varies by language and by content: a language rare in training text needed about 3 times as many tokens for the same meaning."
+    },
+    {
+      "kind": "edge_case",
+      "description": "Code and long numbers blow up token counts: indentation runs of spaces and mixed-case identifiers split into many tokens, and a numeric order number becomes as many tokens as it has digits."
+    },
+    {
+      "kind": "edge_case",
+      "description": "Small text changes move the count: capital letters, a leading space or a rare spelling change how a word splits, so the same word can cost one token in a sentence and three in capitals."
+    },
+    {
+      "kind": "failure_mode",
+      "description": "Scaling the vocabulary up has diminishing returns: each added entry needs its own embedding row, and entries seen too seldom during training are not learned well."
+    },
+    {
+      "kind": "failure_mode",
+      "description": "Long arithmetic can slip because numbers arrive as separate digit tokens; Corrowby reports this as a belief about the cause rather than a measured result."
+    }
+  ],
+  "openQuestions": [
+    {
+      "question": "What token-per-word or token-per-character ratio should be used for code and for languages rare in the training text? The sources only say the English rule fails and give one figure for a rare language.",
+      "reason": "not_covered"
+    },
+    {
+      "question": "Is per-language cost still best handled by a table of rules, or by counting every message exactly? The team reports the argument is unresolved.",
+      "reason": "disagreement"
+    },
+    {
+      "question": "Does digit-by-digit splitting actually cause arithmetic mistakes, or is that only a hypothesis? The source states it as a belief, with no measurement.",
+      "reason": "not_covered"
+    },
+    {
+      "question": "How is the target vocabulary size chosen, and why that size rather than a larger or smaller one? The merge loop is described only as running until a target is reached.",
+      "reason": "not_covered"
+    },
+    {
+      "question": "How much does a longer sequence from a smaller vocabulary cost in latency or money? The sources mention longer sequences but give no measured figure.",
+      "reason": "not_covered"
+    },
+    {
+      "question": "Do other tokenizers, beyond the one described here, also guarantee that user text can never produce reserved special-token ids?",
+      "reason": "not_covered"
+    }
+  ]
+}
+
+## VIDEO
+title: "Same word, three token counts"
+level: beginner · format: full · planned 75 s · the beats run 83.7 s
+hook (puzzle): b1
+running example: One Corrowby support reply contains the word "Paris", and the team counts its tokens as they plan the model call.
+planted question: "Why does the same word get different token counts when it appears plain, spaced, and capitalised?" (asked in b1, paid off in b5)
+rejected alternative (b2): Whole-word and single-character schemes fail: sequences explode or new words have no id; subword merges are chosen instead. · chosen design in b3
+devices: planted_question, object_to_data, versus_split, semantic_zoom, contrast_takeaway, what_breaks, spec_card_ending
+terms, each introduced in its beat:
+- token (b1): A piece of text, from a single byte up to a whole word, that the tokenizer maps to one integer.
+- vocabulary (b2): The fixed list of pieces the tokenizer can output; Saltmarsh's has 32,000 entries.
+- pre-tokenization (b5): Splitting text into chunks before merges run; merges never cross a chunk border.
+
+## CODE FINDINGS (whole video; do not repeat them)
+- video_over_target (advisory, scriptwriter): The beats run 83.7 s against the video's 75 s target (112%). Most over their plan: b2 +2.7 s, b6 +1.5 s, b5 +1.3 s.
+
+## BEAT b1 (1 of 7) · chapter "The token puzzle" · device planted_question
+intent: Why does the same word get different token counts when it appears plain, spaced, and capitalised?
+new terms: token · example numbers: no
+length: planned 8 s, runs 8.7 s · reading ease 88.7
+narration: "Why does one word get three token counts? Plain Paris, spaced Paris, shouted Paris. A token is a chunk that becomes one number."
+on screen: headline "Token = one chunk, one number" (concept) · tags "plain Paris", "spaced Paris", "shouted PARIS"
+research it cites:
+- fact-20: Capital letters, leading spaces and rare spellings change how a word splits, so "Paris", " Paris" and "PARIS" can be one, one and three tokens.
+numbers said or shown (each with the research numbers that have its value; the same value can mean something else):
+- none
+board: new board (fade in) · layout grid
+added in this beat:
+- tag-plain · tag · text "plain Paris" · semantic neutral · enter on 8 "Plain"
+- tag-spaced · tag · text "spaced Paris" · semantic neutral · enter on 10 "spaced"
+- tag-shouted · tag · text "shouted PARIS" · semantic neutral · enter on 12 "shouted"
+- token-def · callout · title "TOKEN" · text "A chunk that becomes one number" · semantic concept · enter on 15 "token"
+focus: tag-plain from the start → tag-plain on 8 "Plain" → tag-spaced on 10 "spaced" → tag-shouted on 12 "shouted" → token-def on 15 "token"
+code findings:
+none
+
+## BEAT b2 (2 of 7) · chapter "Rejected designs" · device versus_split
+intent: Reject whole-word and single-character schemes, then introduce subword pieces that give frequent words one token and rare words smaller pieces.
+new terms: vocabulary · example numbers: no
+length: planned 12 s, runs 14.7 s · reading ease 61
+narration: "A tokenizer turns text into tokens. Characters keep the vocabulary — the fixed list of pieces — tiny, but paragraphs become thousands of steps. Whole words leave new names no entry, so subword pieces sit between."
+on screen: headline "Vocabulary = the fixed piece list" (concept) · tags "single characters", "whole words", "subword pieces"
+research it cites:
+- fact-4: Cutting text into single characters keeps the vocabulary tiny, but a paragraph becomes thousands of steps long and the model must spend its fixed context on spelling.
+- fact-5: Cutting text into whole words keeps sequences short, but the vocabulary explodes: every name, typo and new word needs its own entry, and a word never seen in training has no integer at all.
+- fact-6: Subword tokenizers sit between characters and words: frequent words get a single token of their own, while rare words are spelled out from smaller pieces the vocabulary does have.
+numbers said or shown (each with the research numbers that have its value; the same value can mean something else):
+- none
+board: new board (fade in) · layout versus_split
+added in this beat:
+- chars-tag · tag · text "single characters" · semantic neutral · enter on 6 "Characters" · reject on 21 "steps." · as the beat ends: rejected
+- chars-cost · callout · text "Tiny vocabulary, thousands of steps" · semantic problem · pin.to chars-tag (bottom) · enter on 15 "tiny,"
+- words-tag · tag · text "whole words" · semantic neutral · enter on 22 "Whole" · reject on 28 "entry," · as the beat ends: rejected
+- words-cost · callout · text "New names get no entry" · semantic problem · pin.to words-tag (bottom) · enter on 26 "names"
+- subword-tag · tag · text "subword pieces" · semantic focus · enter on 30 "subword"
+focus: subword-tag on 32 "sit"
+code findings:
+none
+
+## BEAT b3 (3 of 7) · chapter "Learning merges" · device semantic_zoom
+intent: Show the raw-byte starting point of 256 symbols and one merge, "t"+"h" to "th", so the vocabulary grows by one learned pair.
+new terms: none · example numbers: no
+length: planned 12 s, runs 12.4 s · reading ease 81.9
+narration: "Learning starts from raw bytes: two hundred fifty-six values, so any text can be written. Then count neighbouring pairs, join the most frequent — 't' plus 'h' becomes 'th' — and repeat."
+on screen: headline "Learn merges from raw bytes" (concept) · tags "raw bytes", "most frequent pair" · source line "A field guide to subword merges"
+research it cites:
+- fact-7: Vocabulary learning starts from raw bytes, so the starting vocabulary is the 256 possible byte values and any text at all can be written, meaning nothing is ever unknown.
+- fact-8: The merge loop counts every pair of neighbouring symbols in the corpus, adds the most frequent pair as a new symbol, replaces it everywhere, and repeats until the vocabulary reaches its target size.
+- num-2: 256 byte values · Size of the starting vocabulary when a byte-level tokenizer begins learning merges.
+numbers said or shown (each with the research numbers that have its value; the same value can mean something else):
+- narration "two hundred fifty-six" → num-2 (256 byte values)
+- board byte-vocab value "256" → num-2 (256 byte values)
+board: new board (fade in) · layout pipeline
+added in this beat:
+- byte-vocab · counter · unit "values" · label "starting vocabulary" · value 256 · semantic concept · enter on 3 "raw" · pulse on 8 "values,"
+- pair-count · node_card · title "COUNT PAIRS" · subtitle "neighbouring symbols" · semantic neutral · icon list · enter on 16 "count" · pulse on 29 "repeat."
+- merge · node_card · title "t + h → th" · subtitle "one new symbol" · semantic focus · icon swap · enter on 23 "'t'"
+- tag-raw · tag · text "raw bytes" · semantic concept · pin.to byte-vocab (right)
+- tag-frequent · tag · text "most frequent pair" · semantic focus · pin.to merge (top)
+focus: merge from the start
+code findings:
+none
+
+## BEAT b4 (4 of 7) · chapter "Learning merges" · device contrast_takeaway
+intent: Show common words later collapsing to one token while rare words stay as several pieces, because merges only join pairs seen often in order.
+new terms: none · example numbers: no · continues the previous board
+length: planned 10 s, runs 11.2 s · reading ease 73.2
+narration: "Early merges join common pairs; late merges build whole words. Encoding replays them in that order: 'the' becomes one token, an unusual word stays in pieces."
+on screen: headline "Merge order decides the splits" (concept) · tags "merge order"
+research it cites:
+- fact-9: The order of the merges is part of the tokenizer: early merges join very common pairs, late merges build whole common words and word endings.
+- fact-10: Encoding splits new text into bytes and replays the learned merges in the order they were learned, joining every pair it can; the guide's example is a common word collapsing to a single token and an unusual word staying in several pieces.
+numbers said or shown (each with the research numbers that have its value; the same value can mean something else):
+- none
+board: continues b3's board · layout pipeline
+on screen from earlier beats:
+- byte-vocab · counter · unit "values" · label "starting vocabulary" · value 256 · semantic concept
+- pair-count · node_card · title "COUNT PAIRS" · subtitle "neighbouring symbols" · semantic neutral · icon list
+- merge · node_card · title "t + h → th" · subtitle "one new symbol" · semantic focus · icon swap · pulse on 11 "replays"
+- tag-raw · tag · text "raw bytes" · semantic concept · pin.to byte-vocab (right)
+- tag-frequent · tag · text "most frequent pair" · semantic focus · pin.to merge (top) · pulse on 3 "common"
+added in this beat:
+- encoded · data_block · title "ENCODED" · fields[0].key "the" · fields[0].value "single token" · fields[1].key "unusual" · fields[1].value "several pieces" · fields[0].semantic ok · fields[1].semantic problem · enter on 16 "'the'"
+- merge-order · tag · text "merge order" · semantic concept · pin.to merge (bottom) · enter on 15 "order:"
+focus: merge from the start → encoded on 18 "one"
+code findings:
+none
+
+## BEAT b5 (5 of 7) · chapter "Where counts bite" · device object_to_data
+intent: Replay the learned merges on the three forms, and show pre-tokenization walls such as the leading space and capital letters forcing different splits.
+new terms: pre-tokenization · example numbers: no
+length: planned 12 s, runs 13.3 s · reading ease 79
+narration: "To encode new text, pre-tokenization cuts it into chunks that merges never cross. A space sticks to the next word; capitals break the pattern. So plain Paris is one token, and PARIS needs three."
+on screen: headline "Pre-tokenization = cut before merging" (concept) · tags "chunk borders", "capitals split"
+research it cites:
+- fact-15: Before any merge runs, text is split into chunks that merges never cross; letters stay together, punctuation is split off, and a space is kept at the start of the word that follows it.
+- fact-16: Digits are split individually, which keeps the vocabulary from spending entries on arbitrary numbers.
+- fact-20: Capital letters, leading spaces and rare spellings change how a word splits, so "Paris", " Paris" and "PARIS" can be one, one and three tokens.
+numbers said or shown (each with the research numbers that have its value; the same value can mean something else):
+- none
+board: new board (fade in) · layout grid
+added in this beat:
+- plain · slot_grid · label "PLAIN PARIS" · slots[0].label "TOKEN" · enter on 5 "cuts"
+- spaced · slot_grid · label "SPACE GLUED ON" · slots[0].label "TOKEN" · enter on 14 "space"
+- caps · slot_grid · label "ALL CAPS" · slots[0].label "TOKEN" · slots[1].label "TOKEN" · slots[2].label "TOKEN" · enter on 20 "capitals"
+- t-chunk · tag · text "chunk borders" · semantic concept · enter on 8 "chunks"
+- t-caps · tag · text "capitals split" · semantic focus · enter on 23 "pattern."
+focus: plain from the start → spaced on 15 "sticks" → caps on 21 "break" → plain on 26 "Paris" → caps on 31 "PARIS"
+code findings:
+- focus_colour_off_focus (advisory, generator): "t-caps" is drawn in the focus colour but is never the focus in this beat (its focus is plain, spaced, caps), so it competes with what the viewer should watch. Give it another semantic (concept, neutral), or move the focus to it with a `focus` event on the word that names it.
+
+## BEAT b6 (6 of 7) · chapter "Where counts bite" · device what_breaks
+intent: Show Corrowby's exact-tokenizer switch: English replies average 1.3 tokens per word, a rarer language needs about 3 times as many, and word-count estimates fail.
+new terms: none · example numbers: no
+length: planned 12 s, runs 13.5 s · reading ease 73.4
+narration: "Corrowby bills every request in tokens, yet the team budgeted from word counts. English replies ran about one point three tokens per word. A language rare in training needed about three times as many."
+on screen: headline "Word counts miss real tokens" (problem) · tags "billed per token", "rare language" · stat card "about 1.3" "tokens per word" (cites num-4) · source line "Field notes: counting tokens before you pay for them"
+research it cites:
+- fact-21: At Corrowby every model request is billed by the token and every conversation must fit the model's context window, also measured in tokens; before counting tokens properly they estimated both from word counts.
+- fact-22: For English support replies, a word came to about 1.3 tokens on average: short common words are a single token, while product names, long words and unusual capitals split into several.
+- fact-23: A language rare in the tokenizer's training text needed about 3 times as many tokens to say the same thing, so the same answer cost more and used more of the context window.
+- num-4: about 1.3 tokens per word · Average for Corrowby's English support replies, where short common words are a single token but product names and long words split.
+- num-5: about 3 times as many tokens · How many more tokens a language rare in the tokenizer's training text needed to say the same thing as English.
+numbers said or shown (each with the research numbers that have its value; the same value can mean something else):
+- narration "one point three" → num-4 (about 1.3 tokens per word)
+- stat card "about 1.3" → num-4 (about 1.3 tokens per word)
+- board stat-1-3 value "about 1.3" → num-4 (about 1.3 tokens per word)
+board: new board (fade in) · layout versus_split
+added in this beat:
+- billed · tag · text "billed per token" · semantic concept · enter on 5 "tokens,"
+- assumption · callout · title "ASSUMPTION" · text "word count = token count" · semantic concept · enter on 9 "budgeted" · reject on 30 "three" · as the beat ends: rejected
+- en-card · node_card · title "ENGLISH REPLY" · semantic neutral · icon chat · enter on 13 "English"
+- stat-1-3 · stat_card · value "about 1.3" · label "tokens per word" · source "Field notes: counting tokens" · semantic ok · enter on 17 "one"
+- rare-card · node_card · title "SAME REPLY" · subtitle "about 3× the tokens" · semantic focus · icon globe · enter on 24 "language"
+- rare-tag · tag · text "rare language" · semantic focus · pin.to rare-card (bottom) · enter on 25 "rare"
+focus: assumption from the start
+code findings:
+- focus_colour_off_focus (advisory, generator): "rare-card" is drawn in the focus colour but is never the focus in this beat (its focus is assumption), so it competes with what the viewer should watch. Give it another semantic (concept, neutral), or move the focus to it with a `focus` event on the word that names it.
+
+## BEAT b7 (7 of 7) · chapter "Where counts bite" · device spec_card_ending
+intent: Show the spec card: learn merges over bytes, encode by replaying merge order, count with the model's tokenizer.
+new terms: none · example numbers: no
+length: planned 9 s, runs 9.9 s · reading ease 66.7
+narration: "So Corrowby counts tokens with the exact tokenizer of the model it calls, and writes budgets in tokens per language. That reply with Paris now fits."
+on screen: headline "Count with the model's tokenizer" (resolution) · tags "exact tokenizer", "budgets in tokens"
+research it cites:
+- none
+numbers said or shown (each with the research numbers that have its value; the same value can mean something else):
+- none
+board: new board (fade in) · layout centered_focus
+added in this beat:
+- tokenizer-card · node_card · title "TOKENIZER" · subtitle "the model's own" · semantic focus · icon scan_text · enter on 7 "tokenizer"
+- exact-tokenizer · tag · text "exact tokenizer" · semantic focus · pin.to tokenizer-card (top)
+- budgets-tokens · tag · text "budgets in tokens" · semantic concept · enter on 15 "budgets"
+focus: tokenizer-card from the start
+code findings:
+none

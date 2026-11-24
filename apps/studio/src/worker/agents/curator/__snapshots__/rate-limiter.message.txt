@@ -1,0 +1,709 @@
+Review this 8-beat video for beginner viewers, beat by beat. Report each problem as one issue, quoting its evidence exactly as written below; report nothing for a beat that is fine. Return one JSON object.
+
+## NOTES (the only facts; evidence cites their ids)
+{
+  "mechanism": {
+    "summary": "Each request maps to a key (API key plus route group) and is checked against a token bucket in a shared store: token count, last-refill timestamp, capacity and refill rate. An atomic script reads the count and timestamp, adds the tokens earned since then up to the capacity, spends a token if any remain and writes the state back, so all gateway nodes share one limit. Refusals get HTTP 429 with Retry-After. Because the check is a network round trip, a slow store forces a choice: fail open, fail closed, or per-instance fallback.",
+    "steps": [
+      {
+        "text": "Build the limiter key from the API key and the route group, so each caller gets a limit per route."
+      },
+      {
+        "text": "Read the token count and the last-refill timestamp for that key from the shared store."
+      },
+      {
+        "text": "Add the tokens earned since that timestamp (elapsed seconds multiplied by the refill rate), capped at the bucket's capacity."
+      },
+      {
+        "text": "If a token is left, spend it, write the new count and timestamp back, and let the request through."
+      },
+      {
+        "text": "Otherwise refuse with HTTP 429 and compute Retry-After from the refill rate."
+      },
+      {
+        "text": "Run read, compute and write as a single atomic script inside the store, so two nodes cannot both spend the last token."
+      },
+      {
+        "text": "If the store call exceeds the configured timeout, apply the failure policy: fail closed with 503, fail open, or fall back to per-instance limits divided across instances."
+      }
+    ]
+  },
+  "plainSummary": "Each incoming request asks the rate limiter one question: may this caller go now? A token bucket is a small pile of passes kept for each caller. Each request spends one pass, and passes trickle back in at a steady rate. All gateway machines check the same pile, kept in one shared store. When the store gets slow, the limiter must refuse requests or let too many through.",
+  "analogies": [
+    {
+      "analogy": "A club keeps a bowl of guest passes at the door: each visitor takes one, and a helper quietly drops more into the bowl at a steady trickle.",
+      "matches": "The bowl is the bucket, its maximum size is the capacity, the helper's trickle is the refill rate, and a visitor who finds the bowl empty is turned away — exactly the token bucket decision.",
+      "breaksDown": "The bowl sits at the door where a bouncer can see it; the real bucket lives in a shared store every gateway reaches over the network, and that trip is where things go wrong."
+    },
+    {
+      "analogy": "A chain of shops honours a head-office coupon; when head office's line goes down, each shop decides for itself and the same coupon gets used at every branch.",
+      "matches": "That is the local fallback: with the shared store unreachable, each gateway instance enforces the limit on its own, so the effective limit becomes the limit times the number of instances.",
+      "breaksDown": "The shops are gateway instances whose limits are meant to add up to one contract, and the store is usually slow rather than gone, so the split-brain lasts only as long as the latency."
+    }
+  ],
+  "glossary": [
+    {
+      "term": "Rate limiter",
+      "plainMeaning": "A component that decides, per request, whether this caller may do this now."
+    },
+    {
+      "term": "Token bucket",
+      "plainMeaning": "A per-key allowance with a maximum size (capacity) and a steady refill rate; each request spends a token."
+    },
+    {
+      "term": "Shared store",
+      "plainMeaning": "The one in-memory store that every gateway node reads and writes the bucket state in, so all nodes enforce the same limit."
+    },
+    {
+      "term": "Atomic script",
+      "plainMeaning": "A read-compute-write sequence the store runs as one indivisible unit, so no other node can interleave with it."
+    },
+    {
+      "term": "Retry-After",
+      "plainMeaning": "Response header on a refusal that says how many seconds until the next token arrives."
+    },
+    {
+      "term": "Fixed window",
+      "plainMeaning": "Counting requests per calendar minute and resetting the counter at the top of each minute."
+    },
+    {
+      "term": "Sliding window log",
+      "plainMeaning": "Storing the timestamp of every request in the window and counting them; exact, but memory grows with the limit."
+    },
+    {
+      "term": "Sliding window counter",
+      "plainMeaning": "Keeping only the current and previous window counts and weighting the previous by how much of it still overlaps; cheap but approximate."
+    },
+    {
+      "term": "Fail closed",
+      "plainMeaning": "On a store failure, refuse the request (503) rather than serve traffic the limiter cannot count."
+    },
+    {
+      "term": "Fail open",
+      "plainMeaning": "On a store failure, let the request through uncounted, so the limit stops being enforced."
+    },
+    {
+      "term": "Local fallback",
+      "plainMeaning": "Each instance enforces the limit on its own while the store is down, multiplying the effective limit by the instance count."
+    },
+    {
+      "term": "Store timeout",
+      "plainMeaning": "How long a store call may take before it counts as a store failure and the failure policy kicks in."
+    }
+  ],
+  "facts": [
+    {
+      "id": "fact-1",
+      "statement": "A rate limiter decides, per request, whether a caller may do this now; a token bucket decides from state kept per key: token count, last-refill timestamp, capacity and refill rate.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-2",
+      "statement": "Each request takes a token; when the bucket is empty the request is refused with HTTP 429 Too Many Requests and a Retry-After header giving the seconds until the next token arrives.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-3",
+      "statement": "At Hollowmere, the invented gateway in the source, a free-tier key gets a capacity of 100 tokens and a refill rate of 10 tokens per second: a client that has been quiet can burst 100 requests at once, then settles to 10 requests per second.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-4",
+      "statement": "The limiter key is built from the API key plus the route group, so a caller is limited per route rather than globally.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-5",
+      "statement": "The check is a read of token count and last-refill timestamp, an add of elapsed seconds times the refill rate capped at capacity, a spend of a token and a write of the new count and timestamp back to the store.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-6",
+      "statement": "Read, compute and write run as one atomic script inside the store; without that, two gateway nodes can read the same count, both see a token left, and both let a request through.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-7",
+      "statement": "Hollowmere runs 24 gateway nodes behind a load balancer; with a bucket per node, a client spread across all of them would get 24 times its limit.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-8",
+      "statement": "Keeping the bucket in one shared in-memory store costs a network round trip on every request: 0.4 ms at the median and 2.1 ms at p99 in the source's measurements from June 2024.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-9",
+      "statement": "The first version used a fixed window: counting requests per calendar minute and resetting at the top of each minute, cheap because it needed a single counter per key.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-10",
+      "statement": "A fixed window lets a client send its whole quota in the last second of a minute and again in the first second of the next, up to 2 times the limit across the boundary; the token bucket was chosen because it bounds bursts by the capacity no matter where the clock is.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-11",
+      "statement": "A rate limiter protects fairness between well-behaved clients, not the service from a flood: a flood of 2 million requests per second still reaches the gateways, which must parse every request and look up its key before they can refuse it; dropping that traffic is the network edge's job.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-12",
+      "statement": "quotaflow ships token bucket, sliding window log and sliding window counter behind a single interface and keeps state in a shared store, so every instance of a service enforces the same limit.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-13",
+      "statement": "The sliding window log stores a timestamp per request: exact, but memory grows with the limit — 8 bytes per timestamp, about 8 KB per active key, around 4 GB across 500,000 active keys.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-14",
+      "statement": "The sliding window counter keeps only the current and previous window counts and weights the previous one by how much of it still overlaps; it needs a couple of counters per key and is approximate because it assumes requests in the previous window were evenly spread.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-15",
+      "statement": "quotaflow's default store timeout is 50 ms — a slower call counts as a store failure — and its default on failure is fail closed: refuse with 503 rather than serve traffic it cannot count, a default the README recommends keeping for every route.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-16",
+      "statement": "quotaflow's local fallback is off by default; when enabled, each instance enforces the limit on its own while the store is down, which multiplies the effective limit by the number of instances.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-17",
+      "statement": "Clock skew between instances does not affect quotaflow, because timestamps are taken inside the store; idle keys are not expired until some windows after their last request, so their memory lingers briefly.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-18",
+      "statement": "In the Larkspur Pay incident, the limiter's shared store became slow, the limiter fell back to local limits on each of the 40 checkout instances, the payment provider received far more than its contract allowed and throttled all traffic; 31% of checkout requests failed for 47 minutes.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-19",
+      "statement": "A routine failover moved the limiter's store to a replica in another zone and store calls went from about 1 ms to 80 ms.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-20",
+      "statement": "Calls over the store timeout then counted as failures; the limiter was configured to fail open, so each instance enforced the limit locally and traffic to the payment provider reached roughly 40 times its contracted rate of 300 requests per second.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-21",
+      "statement": "The provider began answering 429 to most calls and checkout errors rose to 31%; when the store moved back to its home zone the limits were shared again and the errors stopped.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-22",
+      "statement": "Fail open was chosen for checkout deliberately — refusing payments because the limiter's store is slow loses sales on every request — which held for their own servers with headroom but not for the downstream provider, whose limit is fixed by contract.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-23",
+      "statement": "After the incident the payment-provider limiter fails closed, local fallback limits are divided by the number of instances so the instances together stay within the contracted rate, and the store timeout rose to 150 ms, above a cross-zone round trip.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-24",
+      "statement": "The report leaves one item open: whether limits for their own APIs should fail open or closed is undecided, teams disagree, and the trade-off depends on what sits behind each route.",
+      "confidence": "high"
+    },
+    {
+      "id": "fact-25",
+      "statement": "The quotaflow README claims it is the fastest and most accurate rate limiter available, with accuracy within a stated margin of an ideal limiter under any load; no benchmark or test conditions are given, so it is a marketing claim, not a measurement.",
+      "confidence": "low"
+    }
+  ],
+  "numbers": [
+    {
+      "id": "num-1",
+      "value": "100",
+      "unit": "tokens",
+      "context": "Capacity of a free-tier key's bucket at Hollowmere, the invented gateway in the source."
+    },
+    {
+      "id": "num-2",
+      "value": "10",
+      "unit": "tokens per second",
+      "context": "Refill rate for that same free-tier key."
+    },
+    {
+      "id": "num-3",
+      "value": "24",
+      "unit": "gateway nodes",
+      "context": "Hollowmere gateway nodes running behind a load balancer."
+    },
+    {
+      "id": "num-4",
+      "value": "24",
+      "unit": "times its limit",
+      "context": "Effective limit a client would get if each of the gateway nodes kept its own bucket instead of a shared one."
+    },
+    {
+      "id": "num-5",
+      "value": "0.4",
+      "unit": "ms",
+      "context": "Median network round trip to the shared store per request, in the source's own measurements.",
+      "asOf": "June 2024"
+    },
+    {
+      "id": "num-6",
+      "value": "2.1",
+      "unit": "ms",
+      "context": "p99 network round trip to the shared store per request, in the source's own measurements.",
+      "asOf": "June 2024"
+    },
+    {
+      "id": "num-7",
+      "value": "2",
+      "unit": "times the limit",
+      "context": "Worst-case burst a client could reach across a fixed-window boundary, sending its quota at the end of one minute and the start of the next."
+    },
+    {
+      "id": "num-8",
+      "value": "2 million",
+      "unit": "requests per second",
+      "context": "Size of a real flood that still reaches the gateways and must be parsed and key-looked-up before refusal; the limiter cannot drop it."
+    },
+    {
+      "id": "num-9",
+      "value": "8",
+      "unit": "bytes",
+      "context": "Memory per stored timestamp in a sliding window log."
+    },
+    {
+      "id": "num-10",
+      "value": "8",
+      "unit": "KB",
+      "context": "Memory per active key for a sliding window log at the limit used in the source's example."
+    },
+    {
+      "id": "num-11",
+      "value": "500,000",
+      "unit": "active keys",
+      "context": "Scale of active keys used in the source's memory example for the sliding window log."
+    },
+    {
+      "id": "num-12",
+      "value": "4",
+      "unit": "GB",
+      "context": "Total memory for the sliding window log across 500,000 active keys at the example limit."
+    },
+    {
+      "id": "num-13",
+      "value": "50",
+      "unit": "ms",
+      "context": "quotaflow's default store timeout; a slower store call counts as a store failure."
+    },
+    {
+      "id": "num-14",
+      "value": "47",
+      "unit": "minutes",
+      "context": "How long checkout requests kept failing in the Larkspur Pay incident.",
+      "asOf": "14 March 2025"
+    },
+    {
+      "id": "num-15",
+      "value": "31",
+      "unit": "%",
+      "context": "Share of checkout requests that failed during the incident.",
+      "asOf": "14 March 2025"
+    },
+    {
+      "id": "num-16",
+      "value": "80",
+      "unit": "ms",
+      "context": "Store call latency after a routine failover moved the limiter's store to a replica in another zone.",
+      "asOf": "14 March 2025"
+    },
+    {
+      "id": "num-17",
+      "value": "1",
+      "unit": "ms",
+      "context": "Store call latency before that failover, as the report describes it.",
+      "asOf": "14 March 2025"
+    },
+    {
+      "id": "num-18",
+      "value": "40",
+      "unit": "instances",
+      "context": "Checkout instances, each enforcing the limit locally once the store timed out.",
+      "asOf": "14 March 2025"
+    },
+    {
+      "id": "num-19",
+      "value": "300",
+      "unit": "requests per second",
+      "context": "Contracted rate with the payment provider behind checkout.",
+      "asOf": "14 March 2025"
+    },
+    {
+      "id": "num-20",
+      "value": "150",
+      "unit": "ms",
+      "context": "Store timeout for the checkout limiter after the incident, set above a cross-zone round trip."
+    }
+  ],
+  "tradeOffs": [
+    {
+      "choice": "Keep the bucket in one shared store instead of a bucket per gateway node",
+      "gains": "One limit for the whole fleet: a client cannot multiply its allowance by hitting different nodes.",
+      "costs": "A network round trip on every request — 0.4 ms median, 2.1 ms p99 — and the limiter's correctness now depends on that store's health."
+    },
+    {
+      "choice": "Token bucket instead of a fixed per-minute window",
+      "gains": "Bursts are bounded by the capacity no matter where the clock is, so the boundary trick that reached 2 times the limit is gone.",
+      "costs": "More state and math per key: a token count, a timestamp and a refill calculation, where the fixed window needed a single counter."
+    },
+    {
+      "choice": "Sliding window log instead of an approximate counter",
+      "gains": "Exact counting of requests in the window, with no burst allowance at all.",
+      "costs": "Memory grows with the limit: 8 bytes per timestamp, about 8 KB per active key, roughly 4 GB across 500,000 active keys."
+    },
+    {
+      "choice": "Fail closed on store failure instead of fail open",
+      "gains": "Traffic the limiter cannot count is refused, so a downstream dependency never sees more than its contracted rate.",
+      "costs": "A slow store becomes user-visible refusals: Larkspur now accepts delayed payments instead of serving them uncounted."
+    },
+    {
+      "choice": "Keep local fallback but divide the limit by the number of instances",
+      "gains": "During a store outage the instances together still stay within the contracted rate.",
+      "costs": "Requests are then counted per instance rather than per caller, and each instance only gets its share of the total."
+    },
+    {
+      "choice": "Raise the store timeout to sit above a cross-zone round trip",
+      "gains": "A store replica in another zone no longer trips the failure policy on latency alone.",
+      "costs": "When the store is slow, requests wait longer instead of failing fast — the incident fix accepts delays on some payments."
+    }
+  ],
+  "rejectedAlternatives": [
+    {
+      "alternative": "Each gateway node keeps its own bucket",
+      "reason": "With 24 nodes behind a load balancer, a client spread across all of them would get 24 times its limit."
+    },
+    {
+      "alternative": "Fixed window: count requests per calendar minute, reset at the top of the minute",
+      "reason": "Cheap, but a client could send its whole quota in the last second of a minute and again in the first second of the next, reaching up to 2 times the limit across the boundary."
+    },
+    {
+      "alternative": "Sliding window log for exact burst control",
+      "reason": "Exact, but memory grows with the limit: about 8 KB per active key and around 4 GB over 500,000 active keys."
+    },
+    {
+      "alternative": "Fail open on store failure, the configuration used for checkout",
+      "reason": "It held for their own servers, which had headroom, but not for the payment provider whose limit is fixed by contract: the provider throttled all traffic and 31% of checkouts failed."
+    },
+    {
+      "alternative": "Local fallback limits used as-is while the store is down",
+      "reason": "Each instance enforcing the full limit multiplies the effective limit by the number of instances; the fix divides the fallback limit by that count."
+    }
+  ],
+  "misconceptions": [
+    {
+      "belief": "A rate limiter protects a service from a flood of traffic.",
+      "correction": "It protects fairness between well-behaved clients. A real flood of 2 million requests per second still reaches the gateways, which must parse every request and look up its key before refusing; dropping that traffic belongs to the network edge."
+    },
+    {
+      "belief": "A limiter on each instance is as good as a shared one, as long as every instance enforces the limit.",
+      "correction": "A client spread across 24 gateway nodes gets 24 times the limit; during the incident, local limits on 40 checkout instances pushed traffic to the provider far past its contract."
+    },
+    {
+      "belief": "Failing open always keeps you available; failing closed always costs you sales.",
+      "correction": "For a downstream dependency with a contractually fixed limit, failing open broke everything: the provider throttled all traffic and 31% of checkouts failed for 47 minutes. Larkspur switched that route to fail closed."
+    },
+    {
+      "belief": "A shared limiter needs the instances' clocks to be in sync.",
+      "correction": "quotaflow takes timestamps inside the store, so clock skew between instances does not affect it."
+    },
+    {
+      "belief": "The library's own accuracy claim tells you how it will behave under your load.",
+      "correction": "The README's 'fastest and most accurate' line is a vendor claim with no benchmark or test conditions; the same README documents approximations and memory limits for its algorithms."
+    }
+  ],
+  "failureModes": [
+    {
+      "kind": "incident",
+      "description": "A routine failover moved the limiter's store to a replica in another zone and store calls went from about 1 ms to 80 ms, past the store timeout. Every call over the timeout counted as a failure and the limiter was set to fail open, so each of the 40 checkout instances enforced the limit locally. Traffic to the payment provider reached roughly 40 times its contracted rate of 300 requests per second; the provider answered 429 to most calls, 31% of checkouts failed for 47 minutes, and errors stopped only when the store moved back to its home zone.",
+      "incident": {
+        "date": "14 March 2025",
+        "publisher": "Larkspur Pay platform team"
+      }
+    },
+    {
+      "kind": "failure_mode",
+      "description": "A slow store plus a per-instance fallback silently multiplies the limit by the number of running instances — the limiter keeps saying yes while the downstream dependency sees a multiple of the traffic it allows."
+    },
+    {
+      "kind": "failure_mode",
+      "description": "Failing closed turns store latency into user-visible refusals: quotaflow answers 503 to traffic it cannot count, and a longer timeout means those requests wait longer before being decided either way."
+    },
+    {
+      "kind": "edge_case",
+      "description": "Without an atomic read-compute-write, two gateway nodes can read the same count, both see a token left and both admit a request, quietly exceeding the limit at low load where it is hardest to notice."
+    },
+    {
+      "kind": "edge_case",
+      "description": "The bucket itself allows bursts: a client that has been quiet can spend its whole capacity of 100 requests at once, so a downstream with a steady-rate contract still sees a spike."
+    },
+    {
+      "kind": "edge_case",
+      "description": "A genuine flood is not stopped by the limiter at all: 2 million requests per second still hits the gateways, which must parse each request and look up its key before they can refuse it."
+    },
+    {
+      "kind": "edge_case",
+      "description": "Memory for idle keys lingers: keys are not expired until some windows after their last request, and an exact sliding window log can reach about 4 GB across 500,000 active keys."
+    }
+  ],
+  "openQuestions": [
+    {
+      "question": "Should limits for a team's own APIs fail open or fail closed? The report leaves it undecided: teams disagree and the trade-off depends on what sits behind each route.",
+      "reason": "disagreement"
+    },
+    {
+      "question": "No benchmark, load profile or test conditions accompany the library's accuracy claim, so how it behaves under a given service's traffic is unknown.",
+      "reason": "not_covered"
+    },
+    {
+      "question": "What makes a cross-zone store replica slow enough to trip the timeout, and how should the timeout be sized in general?",
+      "reason": "not_covered"
+    },
+    {
+      "question": "How the shared store itself should be kept available — replication, regional placement, capacity — is not analysed beyond the failover that caused the incident.",
+      "reason": "not_covered"
+    },
+    {
+      "question": "What happens to bucket state and in-flight requests when the store fails over and writes are lost or land on a stale replica is not described.",
+      "reason": "not_covered"
+    }
+  ]
+}
+
+## VIDEO
+title: "Rate limiters: shared bucket, slow store"
+level: beginner · format: full · planned 90 s · the beats run 99.0 s
+hook (problem): beat1 · its numbers num-15, num-14
+running example: A single checkout request from one user at Larkspur Pay flows through the gateway and asks the rate limiter for a token.
+planted question: "What happens when the shared store gets slow?" (asked in beat5, paid off in beat7)
+rejected alternative (beat3): Give every gateway node its own token bucket; a client spread across 24 nodes would get 24 times its limit. · chosen design in beat4
+devices: seen_this_bug, object_to_data, versus_split, what_breaks, planted_question, failure_before_fix, real_incident
+terms, each introduced in its beat:
+- Rate limiter (beat1): A component that decides, per request, whether this caller may do this now.
+- Token bucket (beat2): A per-key allowance with a maximum size (capacity) and a steady refill rate; each request spends a token.
+- Shared store (beat3): The one in-memory store that every gateway node reads and writes the bucket state in, so all nodes enforce the same limit.
+
+## CODE FINDINGS (whole video; do not repeat them)
+none
+
+## BEAT beat1 (1 of 8) · chapter "Why not keep a bucket on each gateway node?" · device seen_this_bug
+intent: Open on checkout failing for 47 minutes with 31% of requests refused, and name the part that let too much traffic through: a rate limiter.
+new terms: Rate limiter · example numbers: no
+length: planned 8 s, runs 10.8 s · reading ease 65.7
+narration: "In March twenty twenty-five, Larkspur Pay checkout failed for forty-seven minutes. Its rate limiter, the gate on every request, let thirty-one percent of them fail."
+on screen: headline "Rate limiter = may you go now?" (concept) · tags "checkout failing", "too much traffic" · stat card "31%" "Checkouts that failed" (cites num-15) · source line "Post-incident report: checkout errors on 14 March 2025"
+research it cites:
+- fact-18: In the Larkspur Pay incident, the limiter's shared store became slow, the limiter fell back to local limits on each of the 40 checkout instances, the payment provider received far more than its contract allowed and throttled all traffic; 31% of checkout requests failed for 47 minutes.
+- num-15: 31 % · Share of checkout requests that failed during the incident.
+- num-14: 47 minutes · How long checkout requests kept failing in the Larkspur Pay incident.
+numbers said or shown (each with the research numbers that have its value; the same value can mean something else):
+- narration "twenty twenty-five" → a date the notes give
+- narration "forty-seven" → num-14 (47 minutes)
+- narration "thirty-one" → num-15 (31 %)
+- stat card "31%" → num-15 (31 %)
+- board fail-stat value "31%" → num-15 (31 %)
+- board fail-stat source "Post-incident report: checkout errors on 14 March 2025" → a date the notes give
+board: new board (fade in) · layout two_column
+added in this beat:
+- checkout · node_card · title "CHECKOUT" · semantic problem · icon server · enter on 6 "checkout"
+- failing-tag · tag · text "checkout failing" · semantic problem · pin.to checkout (top) · enter on 7 "failed"
+- rate-limiter · node_card · title "RATE LIMITER" · subtitle "gate" · semantic focus · icon shield · enter on 13 "limiter,"
+- traffic-tag · tag · text "too much traffic" · semantic problem · pin.to rate-limiter (bottom) · enter on 19 "let"
+- fail-stat · stat_card · value "31%" · label "Checkouts that failed" · source "Post-incident report: checkout errors on 14 March 2025" · semantic problem · enter on 20 "thirty-one"
+focus: checkout from the start → rate-limiter on 13 "limiter,"
+code findings:
+- beat_over_target (blocking, scriptwriter): Beat beat1 runs 10.8 s against its planned 8 s (135%; more than 125% is too long). Cut about 7 words: it is read at 2.3 words a second, and spoken numbers take longer than they look.
+
+## BEAT beat2 (2 of 8) · chapter "Why not keep a bucket on each gateway node?" · device object_to_data
+intent: Turn one checkout request into a key and show its token bucket: capacity 100, refill 10 per second, each request spends one token.
+new terms: Token bucket · example numbers: yes (an EXAMPLE stamp is drawn)
+length: planned 10 s, runs 10.9 s · reading ease 83.9
+narration: "Each checkout request gets a key and a token bucket, a pile of passes. Say the bucket holds a hundred tokens. It refills ten a second; each request spends one."
+on screen: headline "Token bucket = a pile of passes" (concept) · tags "per-key bucket", "spend one token"
+research it cites:
+- fact-1: A rate limiter decides, per request, whether a caller may do this now; a token bucket decides from state kept per key: token count, last-refill timestamp, capacity and refill rate.
+- fact-3: At Hollowmere, the invented gateway in the source, a free-tier key gets a capacity of 100 tokens and a refill rate of 10 tokens per second: a client that has been quiet can burst 100 requests at once, then settles to 10 requests per second.
+- num-1: 100 tokens · Capacity of a free-tier key's bucket at Hollowmere, the invented gateway in the source.
+- num-2: 10 tokens per second · Refill rate for that same free-tier key.
+numbers said or shown (each with the research numbers that have its value; the same value can mean something else):
+- narration "a hundred" → num-1 (100 tokens)
+- narration "ten" → num-2 (10 tokens per second)
+- board bucket from "100" → num-1 (100 tokens)
+- board bucket to "99" → no research number
+- board refill value "10" → num-2 (10 tokens per second)
+board: new board (fade in) · layout centered_focus
+added in this beat:
+- request · item_icon · caption "checkout request" · semantic neutral · asset credit_card · enter on 1 "checkout"
+- bucket · counter_transition · unit "tokens" · label "capacity" · from 100 · to 99 · fromSemantic neutral · toSemantic focus · enter on 8 "token" · count on 28 "spends"
+- perkey_tag · tag · text "per-key bucket" · semantic concept · pin.to bucket (top) · enter on 9 "bucket,"
+- refill · counter · unit "tokens/s" · label "refill rate" · value 10 · from 0 · semantic concept · enter on 22 "refills" · count on 23 "ten"
+- spend_tag · tag · text "spend one token" · semantic focus · pin.to bucket (bottom) · enter on 27 "request"
+focus: bucket from the start
+code findings:
+none
+
+## BEAT beat3 (3 of 8) · chapter "Why not keep a bucket on each gateway node?" · device versus_split
+intent: Compare keeping a bucket on each of 24 gateway nodes against one shared bucket: a client spread across nodes gets 24 times its limit.
+new terms: Shared store · example numbers: yes (an EXAMPLE stamp is drawn)
+length: planned 12 s, runs 13.0 s · reading ease 86.9
+narration: "So why not give each gateway node its own bucket? Across, say, twenty-four nodes, a client gets twenty-four times its limit. So one shared store holds the bucket, one place every node reads and writes."
+on screen: headline "Shared store = one bucket, all nodes" (concept) · tags "bucket per node", "shared store"
+research it cites:
+- fact-7: Hollowmere runs 24 gateway nodes behind a load balancer; with a bucket per node, a client spread across all of them would get 24 times its limit.
+- num-3: 24 gateway nodes · Hollowmere gateway nodes running behind a load balancer.
+- num-4: 24 times its limit · Effective limit a client would get if each of the gateway nodes kept its own bucket instead of a shared one.
+numbers said or shown (each with the research numbers that have its value; the same value can mean something else):
+- narration "twenty-four" → num-3 (24 gateway nodes) or num-4 (24 times its limit)
+- board gw_nodes title "24 NODES" → num-3 (24 gateway nodes) or num-4 (24 times its limit)
+- board limit_24 value "24" → num-3 (24 gateway nodes) or num-4 (24 times its limit)
+board: new board (fade in) · layout versus_split
+added in this beat:
+- gw_nodes · node_card · title "24 NODES" · semantic neutral · enter on 4 "each" · reject on 20 "limit." · as the beat ends: rejected
+- per_node_tag · tag · text "bucket per node" · semantic problem · enter on 9 "bucket?"
+- limit_24 · counter · unit "×" · label "times its limit" · value 24 · semantic problem · enter on 16 "gets" · count on 17 "twenty-four"
+- store_node · node_card · title "IN-MEMORY STORE" · semantic ok · enter on 23 "shared"
+- shared_tag · tag · text "shared store" · semantic ok · enter on 24 "store"
+focus: gw_nodes from the start → limit_24 on 16 "gets" → store_node on 24 "store"
+code findings:
+none
+
+## BEAT beat4 (4 of 8) · chapter "Why not keep a bucket on each gateway node?" · device what_breaks
+intent: Show what breaks without an indivisible read-compute-write: two gateway nodes read the same token count, both see a token left and both admit a request.
+new terms: none · example numbers: no · continues the previous board
+length: planned 12 s, runs 10.4 s · reading ease 95.2
+narration: "But a shared bucket needs read, refill and write as one step. Otherwise two nodes read the same count and both see a token left. Both let their request through."
+on screen: headline "Two nodes spend one token" (problem) · tags "double spend"
+research it cites:
+- fact-6: Read, compute and write run as one atomic script inside the store; without that, two gateway nodes can read the same count, both see a token left, and both let a request through.
+- fact-5: The check is a read of token count and last-refill timestamp, an add of elapsed seconds times the refill rate capped at capacity, a spend of a token and a write of the new count and timestamp back to the store.
+numbers said or shown (each with the research numbers that have its value; the same value can mean something else):
+- board node_a subtitle "one of 24 nodes" → num-3 (24 gateway nodes) or num-4 (24 times its limit)
+- board node_b subtitle "one of 24 nodes" → num-3 (24 gateway nodes) or num-4 (24 times its limit)
+board: continues beat3's board · layout versus_split
+on screen from earlier beats:
+- gw_nodes · node_card · title "24 NODES" · semantic neutral · as the beat ends: rejected
+- per_node_tag · tag · text "bucket per node" · semantic problem
+- limit_24 · counter · unit "×" · label "times its limit" · value 24 · semantic problem
+- store_node · node_card · title "IN-MEMORY STORE" · semantic ok · pulse on 10 "one"
+- shared_tag · tag · text "shared store" · semantic ok
+added in this beat:
+- node_a · node_card · title "GATEWAY A" · subtitle "one of 24 nodes" · semantic neutral · icon server · enter on 12 "Otherwise" · highlight on 15 "read" · reject on 26 "let" · as the beat ends: rejected
+- node_b · node_card · title "GATEWAY B" · subtitle "one of 24 nodes" · semantic neutral · icon server · enter on 13 "two" · highlight on 15 "read" · reject on 26 "let" · as the beat ends: rejected
+- double_spend · tag · text "double spend" · semantic problem · pin.to store_node (bottom) · enter on 20 "both"
+focus: store_node from the start
+code findings:
+none
+
+## BEAT beat5 (5 of 8) · chapter "What breaks when the shared store gets slow?" · device planted_question
+intent: Plant the question of what happens when the shared store gets slow, then show the cost of the network trip: 0.4 ms median and 2.1 ms p99.
+new terms: none · example numbers: yes (an EXAMPLE stamp is drawn)
+length: planned 10 s, runs 10.0 s · reading ease 91.5
+narration: "But the check crosses the network. What if the store gets slow? Say the median round trip is zero point four milliseconds. At p ninety-nine, two point one."
+on screen: headline "Every check crosses the network" (problem) · tags "network round trip", "slow store" · source line "A field guide to token-bucket rate limiting"
+research it cites:
+- fact-8: Keeping the bucket in one shared in-memory store costs a network round trip on every request: 0.4 ms at the median and 2.1 ms at p99 in the source's measurements from June 2024.
+- num-5: 0.4 ms · Median network round trip to the shared store per request, in the source's own measurements.
+- num-6: 2.1 ms · p99 network round trip to the shared store per request, in the source's own measurements.
+numbers said or shown (each with the research numbers that have its value; the same value can mean something else):
+- narration "zero point four" → num-5 (0.4 ms)
+- narration "two point one" → num-6 (2.1 ms)
+- board latency from "0.4" → num-5 (0.4 ms)
+- board latency to "2.1" → num-6 (2.1 ms)
+board: new board (fade in) · layout stacked_list
+added in this beat:
+- gateway · node_card · title "GATEWAY" · subtitle "sends each check" · semantic neutral · icon router · enter on 2 "check"
+- store · node_card · title "SHARED STORE" · subtitle "bucket state" · semantic neutral · icon memory · enter on 4 "the"
+- trip · connector · semantic concept · from gateway · to store · enter on 5 "network."
+- trip-label · tag · text "network round trip" · semantic concept · pin.to trip (middle)
+- slow-tag · tag · text "slow store" · semantic problem · enter on 11 "slow?"
+- latency · counter_transition · unit "ms" · label "round trip per request" · from 0.4 · to 2.1 · fromSemantic neutral · toSemantic problem · enter on 18 "zero" · count on 25 "two"
+focus: trip from the start → latency on 18 "zero"
+code findings:
+none
+
+## BEAT beat6 (6 of 8) · chapter "What breaks when the shared store gets slow?" · device failure_before_fix
+intent: A routine failover moves the store to another zone and store calls jump from 1 ms to 80 ms, past the timeout.
+new terms: none · example numbers: no
+length: planned 12 s, runs 13.2 s · reading ease 64.5
+narration: "Then a routine failover moved that store to a replica in another zone. Store calls went from one millisecond to eighty milliseconds. Those calls blew past the timeout, so every check counted as a failure."
+on screen: headline "A failover breaks the timeout" (problem) · tags "cross-zone replica", "past the timeout" · stat card "80 ms" "Store call after failover" (cites num-16) · source line "Post-incident report: checkout errors on 14 March 2025"
+research it cites:
+- fact-19: A routine failover moved the limiter's store to a replica in another zone and store calls went from about 1 ms to 80 ms.
+- num-17: 1 ms · Store call latency before that failover, as the report describes it.
+- num-16: 80 ms · Store call latency after a routine failover moved the limiter's store to a replica in another zone.
+numbers said or shown (each with the research numbers that have its value; the same value can mean something else):
+- narration "eighty" → num-16 (80 ms)
+- stat card "80 ms" → num-16 (80 ms)
+- board latency_card value "80 ms" → num-16 (80 ms)
+- board latency_card source "Post-incident report: checkout errors on 14 March 2025" → a date the notes give
+board: new board (fade in) · layout centered_focus
+added in this beat:
+- store · node_card · title "STORE" · subtitle "replica in another zone" · semantic neutral · icon database · enter on 3 "failover"
+- check_card · node_card · title "LIMITER CHECK" · subtitle "calls the store" · semantic neutral · icon search · enter on 13 "Store" · reject on 31 "counted" · as the beat ends: rejected
+- latency_card · stat_card · value "80 ms" · label "Store call after failover" · source "Post-incident report: checkout errors on 14 March 2025" · semantic problem · enter on 20 "eighty"
+- zone_tag · tag · text "cross-zone replica" · semantic concept · pin.to store (bottom) · enter on 9 "replica"
+- timeout_tag · tag · text "past the timeout" · semantic problem · pin.to latency_card (top) · enter on 27 "timeout,"
+focus: store from the start → latency_card on 20 "eighty" → check_card on 28 "so"
+code findings:
+none
+
+## BEAT beat7 (7 of 8) · chapter "What breaks when the shared store gets slow?" · device real_incident
+intent: The failure policy makes each instance enforce the limit locally, so traffic reaches roughly 40 times the contracted rate and 31% of checkouts fail.
+new terms: none · example numbers: no
+length: planned 12 s, runs 15.2 s · reading ease 68.5
+narration: "So with the store slow, the limiter let requests through uncounted. Each of the forty checkout instances enforced the limit alone. Traffic reached the payment provider at roughly forty times its contracted rate. Checkouts started failing."
+on screen: headline "Each instance enforces its own limit" (problem) · tags "uncounted traffic", "local limits" · source line "Larkspur Pay platform team incident report, 14 Mar 2025"
+research it cites:
+- fact-20: Calls over the store timeout then counted as failures; the limiter was configured to fail open, so each instance enforced the limit locally and traffic to the payment provider reached roughly 40 times its contracted rate of 300 requests per second.
+- fact-21: The provider began answering 429 to most calls and checkout errors rose to 31%; when the store moved back to its home zone the limits were shared again and the errors stopped.
+numbers said or shown (each with the research numbers that have its value; the same value can mean something else):
+- narration "forty" → num-18 (40 instances)
+board: new board (fade in) · layout hub_spoke
+added in this beat:
+- inst_a · node_card · title "CHECKOUT 1" · icon server · enter on 6 "limiter"
+- inst_b · node_card · title "CHECKOUT 2" · icon server · enter on 11 "Each"
+- hub · node_card · title "PAYMENT PROVIDER" · semantic problem · icon credit_card · enter on 24 "payment" · reject on 35 "failing." · as the beat ends: rejected
+- link_a · connector · semantic focus · from inst_a · to hub · enter on 27 "roughly" · move on 30 "its"
+- link_b · connector · semantic focus · from inst_b · to hub · enter on 28 "forty" · move on 31 "contracted"
+- tag_uncounted · tag · text "uncounted traffic" · semantic problem · pin.to inst_a (bottom) · enter on 10 "uncounted."
+- tag_local · tag · text "local limits" · semantic problem · pin.to inst_b (top) · enter on 20 "alone."
+focus: inst_a, inst_b from the start → hub, link_a, link_b on 29 "times"
+code findings:
+- beat_over_target (blocking, scriptwriter): Beat beat7 runs 15.2 s against its planned 12 s (127%; more than 125% is too long). Cut about 8 words: it is read at 2.4 words a second, and spoken numbers take longer than they look.
+
+## BEAT beat8 (8 of 8) · chapter "What breaks when the shared store gets slow?" · device real_incident
+intent: Show the fix: fail closed for the provider, fallback limits divided by instance count, and store timeout raised above 150 ms.
+new terms: none · example numbers: no
+length: planned 14 s, runs 15.4 s · reading ease 81.8
+narration: "The payment limiter now refuses what it can't count. If the store fails, each instance gets its share of the contract. The timeout rose to a hundred and fifty milliseconds, longer than a cross-zone trip. So that checkout waits, or is refused."
+on screen: headline "Refuse what you can't count" (resolution) · tags "refuse uncounted", "split fallback" · stat card "150 ms" "Store timeout after fix" (cites num-20) · source line "Larkspur Pay platform team incident report, 14 Mar 2025"
+research it cites:
+- fact-23: After the incident the payment-provider limiter fails closed, local fallback limits are divided by the number of instances so the instances together stay within the contracted rate, and the store timeout rose to 150 ms, above a cross-zone round trip.
+- num-20: 150 ms · Store timeout for the checkout limiter after the incident, set above a cross-zone round trip.
+numbers said or shown (each with the research numbers that have its value; the same value can mean something else):
+- narration "a hundred and fifty" → num-20 (150 ms)
+- stat card "150 ms" → num-20 (150 ms)
+- board store-timeout value "150 ms" → num-20 (150 ms)
+- board store-timeout source "Larkspur Pay platform team incident report, 14 Mar 2025" → a date the notes give
+board: new board (fade in) · layout grid
+added in this beat:
+- limiter · node_card · title "PAYMENT LIMITER" · subtitle "Fails closed" · semantic ok · icon shield · enter on 4 "refuses"
+- tag-refuse · tag · text "refuse uncounted" · semantic ok · pin.to limiter (top)
+- instances · node_card · title "EACH INSTANCE" · subtitle "Share of contract" · semantic concept · icon split · enter on 13 "each"
+- tag-split · tag · text "split fallback" · semantic concept · pin.to instances (top)
+- store-timeout · stat_card · value "150 ms" · label "Store timeout after fix" · source "Larkspur Pay platform team incident report, 14 Mar 2025" · semantic focus · enter on 25 "a"
+focus: limiter from the start → store-timeout on 29 "milliseconds,"
+code findings:
+none

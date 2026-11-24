@@ -679,7 +679,8 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   (`validateVideoSpec`).
 - **Schema metadata** (`common-props.ts`): `AssetIdSchema` carries `assetId`, `displayNumber()`
   marks numbers drawn on screen (with a `unit`: `sec` for durations; counter, timer, time bar,
-  data values, pattern rates, holds and outages), `notScreenText()` marks LaTeX.
+  data values, pattern rates, holds and outages), `notScreenText()` marks LaTeX and
+  `drawnText()` a patterned string that is drawn as written (`data_block` field names).
   `catalog/schema-leaves.ts` walks props and params against their JSON Schema and returns the
   asset, text and number leaves (anchors excluded), for any primitive or pattern.
 - **On-screen text checks** (`catalog/screen-checks.ts`, `screenTextWarnings(spec, { notes })`;
@@ -778,7 +779,7 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   final version and the run's warning logs, and writes `contact-sheet.png` (one still per beat,
   `scripts/contact-sheet.ts`).
 
-### Curator (P1C.8; code checks so far, the review and repair loop follow)
+### Curator (P1C.8; code checks and the review's input and output so far, the job and repair loop follow)
 
 - **`curatorCodeChecks(spec, ctx)`** (`renderer/src/catalog/curator-checks.ts`, pure, exported
   through `catalog` so gate saves can run it): every code check on a finished spec (the re-timed
@@ -834,6 +835,38 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   `fixtureGeneratedSpec(topic)`: recorded plan, script and boards with the committed timing).
   The rate limiter raises only `beat_over_target` on beat1 (135%) and beat7 (127%); the
   tokenizer `focus_colour_off_focus` on b5 and b6 and `video_over_target` (112%).
+- **The review's input** (`agents/curator/input.ts`, `curatorUserMessage`; the model is text-only):
+  NOTES (no chunk ids, no hooks), VIDEO (title, level, lengths, hook and its numbers, running
+  example, planted question, rejected alternative, devices, terms with their beats), the
+  video-level CODE FINDINGS, then one section per beat: intent and plan, planned vs measured
+  length and reading ease, narration, on-screen script text, the research it cites, NUMBERS
+  (each number said or shown, screen text whole, with every `num-*` that has its value or "a
+  date the notes give": a shared value is not a shared meaning), the BOARD and the beat's code
+  findings. A second round adds `· CHANGED` to beat headers and ends with PREVIOUS ISSUES
+  (`issue-<n>`) and CHANGED BEATS. Notes first, so a second round reuses the cached prefix.
+  Snapshots: `agents/curator/__snapshots__/<topic>.message.txt` (review their diff).
+- **Board descriptions** (`describeBoard`, renderer `catalog/board-description.ts`, pure, generic
+  over the registries): what earlier beats of the board left on screen, then what this beat adds;
+  each item with its screen texts and drawn numbers by prop path (`schema-leaves.ts`), colours,
+  icons, refs (pins with their side, connector ends), a pattern's anchors and inner elements,
+  this beat's events with the narration word each happens on (index and word as written), and
+  its state as the beat ends; the focus over the beat. `reviewBeatTexts` gives the quote checks
+  the same texts (narration, headline, tags, stat card values and labels, source line, each
+  element's texts and values), so anything the message shows can be quoted.
+- **The review's output** (shared `curator/review.ts`): `CuratorReviewSchema` (`issues`, and
+  `previous` statuses in a second round), registered in `ROLE_OUTPUT_SCHEMAS`. Each issue: beat,
+  category (`REVIEW_CATEGORIES`), severity, owner, `fields` (`FIX_FIELDS`, each owned by one agent:
+  `FIELD_OWNERS`), evidence (narration, headline, tag, stat card or source quotes; a label quote
+  with its `elementId`; a fact or number id; a note quote), problem and fix. `CATEGORY_RULES` give
+  each category its owners, its severity cap per level and the evidence it needs;
+  `capSeverity` lowers a severity past the cap (clarity blocks only at beginner).
+- **Verification** (`curatorIssueProblems`, shared `curator/review-checks.ts`, pure, takes any
+  JSON; the review's `callJson` check): `unknown_beat`, `quote_not_found` (quotes match
+  case-insensitively with typographic quotes and dashes made plain, end punctuation ignored, and
+  "..." for words left out, pieces in order), `unknown_element`, `unknown_research_id`,
+  `evidence_missing`, `number_not_in_quote` (a `number_wrong_meaning` issue must quote text that
+  states its number's value), `owner_not_allowed`, `field_not_owned`, and in a second round
+  `previous_status_missing` / `unknown_previous_issue`.
 
 API conventions: routes under `/api`, inputs validated with the `validate()` helper against schemas
 from `packages/shared/src/api`, list responses wrapped as `{ items }`, and every error is

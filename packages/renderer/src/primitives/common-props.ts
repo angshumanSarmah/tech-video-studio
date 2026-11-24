@@ -40,6 +40,14 @@ export function steppingNumber<T extends z.ZodType>(schema: T): T {
   return schema.meta({ displayNumber: { steps: MAX_DISPLAY_STEP } });
 }
 
+/**
+ * Marks a patterned string prop as screen text (a `data_block` field name): drawn as written, so
+ * text checks and descriptions read it although its pattern looks like an id's.
+ */
+export function drawnText<T extends z.ZodType>(schema: T): T {
+  return schema.meta({ screenText: true });
+}
+
 /** Marks a string prop as not plain screen text (LaTeX), so text checks skip it. */
 export function notScreenText<T extends z.ZodType>(schema: T): T {
   return schema.meta({ screenText: false });
