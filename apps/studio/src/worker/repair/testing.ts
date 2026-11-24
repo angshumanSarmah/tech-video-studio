@@ -53,3 +53,33 @@ export function fixtureTts(topic: FixtureTopicId, wavDir: string): FixtureTts {
   };
   return { provider, calls, failOnce: (text) => failing.add(text) };
 }
+
+/** Every text read at `wordSec` a word: lengths stay inside their plans whatever the beat. */
+export function uniformTts(wavDir: string, wordSec = 0.3): FixtureTts {
+  const calls: string[] = [];
+  const failing = new Set<string>();
+  mkdirSync(wavDir, { recursive: true });
+  const provider: TtsProvider = {
+    synthesize(text) {
+      calls.push(text);
+      if (failing.delete(text)) return Promise.reject(new Error('TTS crashed (test)'));
+      const words = narrationWords(text).map((w, i) => ({
+        text: w,
+        startSec: 0.1 + i * wordSec,
+        endSec: 0.1 + (i + 1) * wordSec - 0.03,
+      }));
+      const durationSec = (words.at(-1)?.endSec ?? 0) + 0.15;
+      const wavPath = join(wavDir, `${calls.length}.wav`);
+      writeFileSync(wavPath, makeWav(new Array<number>(Math.round(durationSec * 1000)).fill(1000)));
+      return Promise.resolve({ wavPath, words, durationSec, cached: false });
+    },
+    close: () => Promise.resolve(),
+  };
+  return { provider, calls, failOnce: (text) => failing.add(text) };
+}
+
+/** A TTS for runs that must not narrate (review only): any call is a bug. */
+export const NO_TTS: TtsProvider = {
+  synthesize: () => Promise.reject(new Error('This run reviews only: nothing should be narrated.')),
+  close: () => Promise.resolve(),
+};

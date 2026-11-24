@@ -214,7 +214,12 @@ function scriptOf(spec: RenderableVideoSpec, beatId: string) {
  * replacement's last word). The spec loses its timing layer:
  * the audio no longer matches, so timing is estimated, as before TTS.
  */
-function editNarration(spec: RenderableVideoSpec, beatId: string, from: string, to: string): void {
+export function editNarration(
+  spec: RenderableVideoSpec,
+  beatId: string,
+  from: string,
+  to: string,
+): void {
   const script = scriptOf(spec, beatId);
   const at = script.narration.indexOf(from);
   if (at < 0) throw new Error(`"${from}" is not in ${beatId}'s narration`);

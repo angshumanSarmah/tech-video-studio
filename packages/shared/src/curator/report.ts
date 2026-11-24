@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { ExplanationLevelSchema } from '../config/video.ts';
 import { CuratorOwnerSchema, IssueSeveritySchema } from './issue.ts';
+import { RepairOutputSchema, RepairRequestSchema } from './repair.ts';
+import { LlmUsageSchema } from './usage.ts';
 import { ClaimSchema, CuratorIssueSchema, PreviousStatusSchema } from './review.ts';
 
 /**
@@ -39,22 +41,56 @@ export const DroppedIssueSchema = z.strictObject({
 });
 export type DroppedIssue = z.infer<typeof DroppedIssueSchema>;
 
-export const LlmUsageSchema = z.strictObject({
-  calls: z.number().int().min(0),
-  costUsd: z.number().min(0),
-  inCached: z.number().int().min(0),
-  inUncached: z.number().int().min(0),
-  out: z.number().int().min(0),
-  reasoning: z.number().int().min(0),
+/** One repair round: what was asked, what the repair did, and the blocking set around it. */
+export const CurateRoundSchema = z.strictObject({
+  round: z.number().int().min(1),
+  requests: z.array(RepairRequestSchema),
+  repair: RepairOutputSchema,
+  /** Beats put back to the version before the round (they came out with more blocking issues). */
+  restored: z.array(z.string()),
+  /** `<beat>:<code or category>` of every blocking issue, before and after the round. */
+  blockingBefore: z.array(z.string()),
+  blockingAfter: z.array(z.string()),
 });
-export type LlmUsage = z.infer<typeof LlmUsageSchema>;
+export type CurateRound = z.infer<typeof CurateRoundSchema>;
+
+/** Why the repair loop ended. */
+export const CURATE_STOPS = [
+  'clean',
+  'nothing_repairable',
+  'no_progress',
+  'max_rounds',
+  'repair_failed',
+  'repair_off',
+  'invalid_spec',
+] as const;
+
+/** One issue as gate 3 shows it: a badge on its beat (or the whole video). */
+export const GateBadgeSchema = z.strictObject({
+  beatId: z.string().nullable(),
+  source: z.enum(['code', 'review']),
+  /** The code check's code, or the review's category. */
+  code: z.string(),
+  severity: IssueSeveritySchema,
+  owner: CuratorOwnerSchema,
+  message: z.string(),
+  /** Owned by the Director or the Researcher: no repair can fix it, the plan or notes must change. */
+  needsPlanChange: z.boolean(),
+});
+export type GateBadge = z.infer<typeof GateBadgeSchema>;
 
 export const CuratorReportSchema = z.strictObject({
+  /** The version the job was given, and the version it ended on (after repairs). */
   specVersionId: z.number().int().positive(),
   version: z.number().int().positive(),
+  final: z.strictObject({
+    specVersionId: z.number().int().positive(),
+    version: z.number().int().positive(),
+  }),
   explanationLevel: ExplanationLevelSchema,
+  /** The code checks on the final version. */
   codeIssues: z.array(CodeIssueSchema),
-  /** Null when the spec failed validation (nothing to review until its errors are fixed). */
+  /** The review as it stands on the final version (issues carried over and new). */
   review: z
     .strictObject({
       /** Verified issues, severities capped (`capSeverity`). */
@@ -78,7 +114,16 @@ export const CuratorReportSchema = z.strictObject({
       usage: LlmUsageSchema,
     })
     .nullable(),
-  /** Any blocking issue, code's or the review's: gate 3 does not auto-approve. */
+  rounds: z.array(CurateRoundSchema),
+  stop: z.enum(CURATE_STOPS),
+  /** Every issue left, for gate 3. */
+  badges: z.array(GateBadgeSchema),
+  /** Any blocking issue left, code's or the review's: gate 3 does not auto-approve. */
   blocking: z.boolean(),
+  cost: z.strictObject({
+    reviewUsd: z.number().min(0),
+    repairUsd: z.number().min(0),
+    totalUsd: z.number().min(0),
+  }),
 });
 export type CuratorReport = z.infer<typeof CuratorReportSchema>;

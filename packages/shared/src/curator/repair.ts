@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { SpecIdSchema } from '../spec/ids.ts';
 import { FixFieldSchema } from './review.ts';
-import { LlmUsageSchema } from './report.ts';
+import { LlmUsageSchema } from './usage.ts';
 
 /**
  * The Curator's repairs of single beats (P1C.8): what a repair is asked to fix, and what it did.

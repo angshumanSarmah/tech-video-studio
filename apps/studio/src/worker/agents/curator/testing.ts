@@ -15,13 +15,17 @@ import { seededSpec, seedResponsesDir, type CuratorSeed } from './fixtures.ts';
  * version, and the recorded answers to replay. Not imported by any entrypoint.
  */
 
-/** The fixture spec (seeded or not) saved to the run, and the `curate` job queued for it. */
+/**
+ * The fixture spec (seeded or not) saved to the run, and the `curate` job queued for it: review
+ * only unless `repair` (recorded reviews have no recorded repairs).
+ */
 export function queueFixtureCurate(
   db: Db,
   dataDir: string,
   runId: number,
   topic: FixtureTopicId,
   seed?: CuratorSeed,
+  options: { readonly repair?: boolean } = {},
 ): number {
   const base = fixtureGeneratedSpec(topic);
   const spec = seed ? seededSpec(base, seed) : base;
@@ -29,7 +33,7 @@ export function queueFixtureCurate(
   return enqueueJob(db, {
     type: CURATE_JOB_TYPE,
     runId,
-    payload: { specVersionId: saved.version.id },
+    payload: { specVersionId: saved.version.id, repair: options.repair ?? false },
   }).id;
 }
 

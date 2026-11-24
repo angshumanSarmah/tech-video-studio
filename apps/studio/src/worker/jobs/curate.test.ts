@@ -33,6 +33,7 @@ import { loadPromptTemplates, PROMPTS_DIR } from '../agents/prompts/templates.ts
 import { seedRunWithUploads } from '../agents/researcher/testing.ts';
 import { createLlmClient } from '../llm/client.ts';
 import { dryRunTransport, type DryRunFixtures, type DryRunResponse } from '../llm/dry-run.ts';
+import { NO_TTS } from '../repair/testing.ts';
 import { runNextJob } from '../runner.ts';
 import { CURATE_JOB_TYPE, curateJobHandler } from './curate.ts';
 import { DIRECT_JOB_TYPE, directJobHandler } from './direct.ts';
@@ -58,7 +59,7 @@ function registry(fixtures: DryRunFixtures): JobRegistry {
     llm: settings.llm,
     transport: dryRunTransport(fixtures),
   });
-  const deps = { db: t.db, dataDir: t.dataDir, llm, prompts, settings };
+  const deps = { db: t.db, dataDir: t.dataDir, llm, prompts, settings, tts: NO_TTS };
   return createJobRegistry([
     ingestJobHandler(deps),
     researchJobHandler(deps),

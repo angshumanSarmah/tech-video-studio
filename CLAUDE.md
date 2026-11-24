@@ -774,15 +774,19 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   keyed recording only when the job finished within `--max-repairs` per beat.
   `jobs/generate.test.ts` replays both topics' recordings (P1C.7's acceptance: every recorded
   call used, no retry, nothing for gate 3).
-- **`draft:fixture [--topic] [--live]`** (needs `pnpm tts:setup`): the whole pipeline to a
-  draft through the real job handlers, in `<DATA_DIR>/draft/fixture/<topic>/` (rebuilt each
-  run; the Kokoro cache stays in the main data dir): the recorded chain, spec v1, `tts`,
-  `generate` (replayed; `--live` calls the model), `tts` again (landing holds),
-  `render_draft` and `render_stills`. Prints each stage's time, the Curator's checks on the
-  final version and the run's warning logs, and writes `contact-sheet.png` (one still per beat,
-  `scripts/contact-sheet.ts`).
+- **`draft:fixture [--topic] [--live] [--live-curate] [--timeout <sec>]`** (needs
+  `pnpm tts:setup`): the whole pipeline to a draft through the real job handlers, in
+  `<DATA_DIR>/draft/fixture/<topic>/` (rebuilt each run; the Kokoro cache stays in the main
+  data dir): the recorded chain, spec v1, `tts`, `generate` (replayed; `--live` calls the
+  model), `tts` again (landing holds), `curate` (replayed review only; `--live-curate`: the
+  review and its repair loop live on their own client, the Scriptwriter and Generator repairs
+  included, with Kokoro), then `render_draft` and `render_stills` of the curation's final
+  version. Prints each stage's time, the curation (blocking set, each round's requests, every
+  repaired beat's script and board outcome with its narration before and after, what was put
+  back, why it stopped, gate 3's badges, cost) and the run's warning logs, and writes
+  `contact-sheet.png` (one still per beat, `scripts/contact-sheet.ts`). Nothing is recorded.
 
-### Curator (P1C.8; job `jobs/curate.ts` and `repairBeats`; the repair loop in the job follows)
+### Curator (P1C.8; job `jobs/curate.ts`, its repair loop and `repairBeats`)
 
 - **`curatorCodeChecks(spec, ctx)`** (`renderer/src/catalog/curator-checks.ts`, pure, exported
   through `catalog` so gate saves can run it): every code check on a finished spec (the re-timed
@@ -893,8 +897,8 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   states its number's value), `owner_not_allowed`, `field_not_owned`, and in a second round
   `previous_status_missing` / `unknown_previous_issue`.
 
-- **`curate` job** (`jobs/curate.ts`, payload `{ specVersionId }`: the re-timed spec after the
-  Generator): the code checks on the pinned version (context from the run: the plan's research
+- **`curate` job** (`jobs/curate.ts`, payload `{ specVersionId, repair }`: the re-timed spec
+  after the Generator; `repair` defaults to true): the code checks on the pinned version (context from the run: the plan's research
   step's notes and sources, series and handle, resolved video settings and pauses,
   `directorMemory` usage, the DB's approved assets), then the two review passes
   (`agents/curator/review.ts`, `reviewSpec`; check `passCheck`, soft on the last attempt), then
@@ -904,9 +908,33 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   severities are capped. A spec that fails validation gets its
   errors and no review. One `run_steps` row per job (stage `curate`):
   `curate/input-<step>.json` (`CurateInputSchema`) and `curate/report-<step>.json`
-  (`CuratorReportSchema`: code issues, the review's issues, dropped, capped, the claim audit,
-  coverage (repair turns, what stayed out), calls per pass, usage, `blocking`).
-  `latestCuration` (`#core/services/curation.ts`) is gate 3's read.
+  (`CuratorReportSchema`: the code issues and review issues standing on the final version, with
+  dropped, capped, calls per pass and usage summed over every review and the last review's
+  claim audit and coverage; the input version and `final` (the version the loop ended on),
+  `rounds`, `stop`, `badges`, `blocking` and `cost` (review, repairs, total)).
+  `latestCuration` (`#core/services/curation.ts`) is gate 3's read: `blocking` keeps the gate
+  from auto-approving, `badges` (`GateBadgeSchema`: beat or null, `code` | `review`, code or
+  category, severity, owner, message, `needsPlanChange`) are what is left on each beat.
+- **Repair loop** (in the job; pure parts in `agents/curator/loop.ts`): at most
+  `MAX_REPAIR_ROUNDS` (2) rounds, each: `repairRequests` (one request per beat and owner from
+  every blocking issue the Scriptwriter or the Generator owns on a beat: a code issue's fields
+  from its path, `board` for the Generator; a review issue's own fields, its quotes kept) →
+  `repairBeats` → the code checks on the repaired version → a scoped review (second round:
+  `previous` = the standing issues numbered `issue-<n>`, `changedBeatIds` = beats whose script
+  was revised or board not kept) merged by `mergeRoundReview` (issues on unchanged beats carry
+  over; on changed beats the new ones, plus an earlier one marked `not_fixed` and not filed
+  again) → keep-best: a changed beat with more blocking issues than before (`blockingPerBeat`)
+  is put back with its whole board chain (`restoreBeats`, repair-beats.ts: script, board and
+  the chain's later beats from the better version, re-timed, saved) and keeps its earlier
+  issues. A round is judged by `blockingKeys` (`<beat>:<code or category>`). Stops
+  (`CURATE_STOPS`): `clean` (nothing blocking), `nothing_repairable` (only the Director's,
+  the Researcher's or beat-less issues block: they go to the gate unrepaired, badged
+  `needsPlanChange`), `no_progress` (a round leaves the same blocking set), `max_rounds`,
+  `repair_failed` (an agent's `LlmOutputInvalidError`: issues to the gate), `repair_off`
+  (payload `repair: false`; `curator:fixture` and the recorded replays use it) and
+  `invalid_spec` (validation errors: no review). Tests: `jobs/curate-loop.test.ts` (seeded
+  hook number fixed in one round by a remap; a Director issue to the gate; oscillation stops
+  at `max_rounds`; keep-best then `no_progress`), with `uniformTts` (0.3 s a word).
 - **Fixture eval** (`agents/curator/fixtures.ts`): per topic `TOPIC_EXPECTATIONS` (must-find,
   may-find, must-not-flag with optional `allowedOwners`), matched by beat, category and evidence
   (an element id or a quote); `CURATOR_SEEDS`, one planted fault per review category

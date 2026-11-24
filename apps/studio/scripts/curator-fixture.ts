@@ -39,6 +39,7 @@ import {
 } from '#worker/agents/curator/testing.ts';
 import { fixtureTopic, type FixtureTopic } from '#worker/agents/fixture-topics.ts';
 import { fixtureGeneratedSpec } from '#worker/agents/generator/testing.ts';
+import { NO_TTS } from '#worker/repair/testing.ts';
 import { loadPromptTemplates, PROMPTS_DIR } from '#worker/agents/prompts/templates.ts';
 import { curateJobHandler } from '#worker/jobs/curate.ts';
 import { DIRECT_JOB_TYPE, directJobHandler } from '#worker/jobs/direct.ts';
@@ -96,8 +97,11 @@ function registryFor(config: AppConfig, db: Db, dataDir: string, transport: LlmT
       video: config.video,
       research: config.research,
       timing: config.timing,
+      tts: config.tts,
       llm: config.llm,
     },
+    // Review only (`repair: false`): nothing is narrated.
+    tts: NO_TTS,
   };
   return createJobRegistry([
     ingestJobHandler(deps),

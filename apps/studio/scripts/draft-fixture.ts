@@ -1,32 +1,28 @@
 /**
- * `pnpm --filter @explainer-studio/studio draft:fixture [--topic <id>] [--live]` (P1C.7 step 12;
- * needs `pnpm tts:setup`): a fixture topic from sources to a draft video, through the real job
- * handlers, in a scratch data dir (`<DATA_DIR>/draft/fixture/<topic>/`, rebuilt each run):
+ * `pnpm --filter @explainer-studio/studio draft:fixture [--topic <id>] [--live] [--live-curate]
+ * [--timeout <sec>]` (P1C.7 step 12, P1C.8 step 10; needs `pnpm tts:setup`): a fixture topic from
+ * sources to a draft video, through the real job handlers, in a scratch data dir
+ * (`<DATA_DIR>/draft/fixture/<topic>/`, rebuilt each run):
  *   1. ingest, research, direct and script, replayed from the topic's recordings;
  *   2. spec v1 from the plan and script (as P1C.9 will save it);
  *   3. `tts` with Kokoro (its cache in the main data dir, shared with the worker);
  *   4. `generate`, replayed from the Generator recording (`--live`: the configured model);
  *   5. `tts` again: all cache hits, adds the landing holds now that boards exist;
- *   6. `render_draft` and `render_stills`, then a contact sheet of the stills.
- * Prints each stage's time, the spec's warnings (validation, layout, HUD, subtitles, beat
- * checks), the run's warning logs and the paths of `draft.mp4`, the stills, the contact sheet
- * and `missing-assets.json`.
+ *   6. `curate`: replayed, review only, from the Curator recording; `--live-curate`: the review
+ *      and its repair loop live (the Curator, and the Scriptwriter and Generator it sends repairs
+ *      to, on the configured models; Kokoro narrates changed beats);
+ *   7. `render_draft` and `render_stills` of the curated version, then a contact sheet.
+ * Prints each stage's time, the curation (issues found, every repair round with how each beat's
+ * board was kept, remapped or redrawn and the new narration of each changed beat, why it
+ * stopped, what reached the gate, the cost), the run's warning logs and the paths of
+ * `draft.mp4`, the stills, the contact sheet and `missing-assets.json`. Nothing is recorded.
  */
 import { existsSync, rmSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import {
-  beatCheckWarnings,
-  hudTextWarnings,
-  specLayoutWarnings,
-  subtitleWarnings,
-  withRegistryChecks,
-} from '@explainer-studio/renderer/catalog';
-import { getTheme } from '@explainer-studio/renderer/theme';
-import {
   assembleScriptedSpec,
-  validateRenderableVideoSpec,
   validateVideoSpec,
-  type SpecError,
+  type CuratorReport,
 } from '@explainer-studio/shared';
 import { loadConfig, type AppConfig } from '#core/config.ts';
 import {
@@ -40,7 +36,8 @@ import { closeDatabase, migrationsDirFor, openDatabase, type Db } from '#core/db
 import { prepareDatabase } from '#core/db/prepare.ts';
 import { listEventsSince } from '#core/db/repositories/events.ts';
 import { enqueueJob, listRunJobs } from '#core/db/repositories/jobs.ts';
-import { getLatestSpecVersion } from '#core/db/repositories/spec-versions.ts';
+import { getLatestSpecVersion, getSpecVersion } from '#core/db/repositories/spec-versions.ts';
+import { latestCuration } from '#core/services/curation.ts';
 import { latestDirection } from '#core/services/direction.ts';
 import { latestScript } from '#core/services/script.ts';
 import { saveSpecVersion } from '#core/services/spec-versions.ts';
@@ -50,6 +47,7 @@ import {
   type FixtureTopic,
 } from '#worker/agents/fixture-topics.ts';
 import { loadPromptTemplates, PROMPTS_DIR } from '#worker/agents/prompts/templates.ts';
+import { CURATE_JOB_TYPE, curateJobHandler } from '#worker/jobs/curate.ts';
 import { DIRECT_JOB_TYPE } from '#worker/jobs/direct.ts';
 import { GENERATE_JOB_TYPE } from '#worker/jobs/generate.ts';
 import { createJobHandlers, createJobRegistry, type JobRegistry } from '#worker/jobs/registry.ts';
@@ -59,13 +57,13 @@ import { SCRIPT_JOB_TYPE } from '#worker/jobs/script.ts';
 import { TTS_JOB_TYPE } from '#worker/jobs/tts.ts';
 import {
   createLlmClient,
+  createLlmTransport,
   dryRunTransport,
   loadDryRunFixtures,
   type LlmTransport,
 } from '#worker/llm/index.ts';
 import { probeArgs } from '#worker/render/ffmpeg-args.ts';
 import { runFf, runFfmpeg } from '#worker/render/ffmpeg.ts';
-import { loadRunRenderInput } from '#worker/render/run-target.ts';
 import { createRemotionEngine } from '#worker/render/remotion-engine.ts';
 import { createKokoroTts } from '#worker/tts/kokoro.ts';
 import {
@@ -113,25 +111,6 @@ function saveScriptedSpec(db: Db, dataDir: string, runId: number, topic: Fixture
 /** The newest spec version's row id (each job that changes the spec saves one). */
 const latestVersionId = (db: Db, runId: number) => getLatestSpecVersion(db, runId)!.id;
 
-/** The Curator's checks on the rendered version: validation, layout, HUD, subtitles, beats. */
-function specWarnings(db: Db, dataDir: string, runId: number, specVersionId: number): SpecError[] {
-  const input = loadRunRenderInput(db, dataDir, runId, specVersionId);
-  const { spec, props } = input.target;
-  const theme = getTheme();
-  const checked = withRegistryChecks(validateRenderableVideoSpec(spec), spec);
-  return [
-    ...checked.errors,
-    ...checked.warnings,
-    ...specLayoutWarnings(spec, theme),
-    ...hudTextWarnings(spec, theme, {
-      seriesLabel: props.series.label,
-      channelHandle: props.channelHandle,
-    }),
-    ...subtitleWarnings(spec, theme),
-    ...beatCheckWarnings(spec),
-  ];
-}
-
 function warningLogs(db: Db, runId: number): string[] {
   return listEventsSince(db, { runId, afterId: 0, limit: 2_000 })
     .filter((e) => e.type === 'log')
@@ -153,10 +132,62 @@ async function writeContactSheet(dataDir: string, runId: number, beatIds: readon
   return path;
 }
 
+function withTimeout(config: AppConfig): AppConfig {
+  const i = process.argv.indexOf('--timeout');
+  if (i < 0) return config;
+  return { ...config, llm: { ...config.llm, requestTimeoutSec: Number(process.argv[i + 1]) } };
+}
+
+/** The curation: what was found, each repair round, why it stopped, the gate, the cost. */
+function printCuration(report: CuratorReport): void {
+  const start =
+    report.rounds[0]?.blockingBefore ??
+    report.badges
+      .filter((b) => b.severity === 'blocking')
+      .map((b) => `${b.beatId ?? ''}:${b.code}`);
+  console.log(
+    `\n  curation: v${report.version} -> v${report.final.version}, stopped: ${report.stop}`,
+  );
+  console.log(`  blocking at the start: ${start.join(', ') || 'none'}`);
+  for (const round of report.rounds) {
+    console.log(`  round ${round.round}:`);
+    for (const r of round.requests) {
+      const codes = r.issues.map((i) => i.code).join(', ');
+      console.log(`    request ${r.beatId} -> ${r.owner} (${r.fields.join(', ')}): ${codes}`);
+    }
+    for (const b of round.repair.beats) {
+      const lost = b.lost ? ` (lost: ${b.lost.join(', ')})` : '';
+      console.log(`    ${b.beatId}: script ${b.script}, board ${b.board}${lost}`);
+      if (b.narration) {
+        console.log(`      before: ${b.narration.before}`);
+        console.log(`      after:  ${b.narration.after}`);
+      }
+    }
+    if (round.restored.length > 0) console.log(`    put back: ${round.restored.join(', ')}`);
+    console.log(`    blocking after: ${round.blockingAfter.join(', ') || 'none'}`);
+    const u = round.repair.usage;
+    console.log(`    repair cost: $${u.costUsd.toFixed(4)} (${u.calls} calls)`);
+  }
+  console.log(
+    `  gate 3: ${report.blocking ? 'BLOCKED' : 'clear'}; ${report.badges.length} badge(s)`,
+  );
+  for (const b of report.badges) {
+    const plan = b.needsPlanChange ? ' [needs a plan change]' : '';
+    console.log(`    ${b.severity} ${b.owner} ${b.beatId ?? 'video'} ${b.source}:${b.code}${plan}`);
+  }
+  const calls = report.review?.calls;
+  console.log(
+    `  curation cost: $${report.cost.totalUsd.toFixed(4)} (review ` +
+      `$${report.cost.reviewUsd.toFixed(4)}, repairs $${report.cost.repairUsd.toFixed(4)}; ` +
+      `review calls ${calls?.claims ?? 0} claims + ${calls?.story ?? 0} story)`,
+  );
+}
+
 async function main(): Promise<number> {
-  const config = loadConfig();
+  const config = withTimeout(loadConfig());
   const topic = topicArg(process.argv);
   const live = process.argv.includes('--live');
+  const liveCurate = process.argv.includes('--live-curate');
   const dataDir = join(config.dataDir, 'draft', 'fixture', topic.id);
   const shown = (path: string) => relative(config.workspaceRoot, path);
   rmSync(dataDir, { recursive: true, force: true });
@@ -194,10 +225,35 @@ async function main(): Promise<number> {
       prompts: loadPromptTemplates(join(config.workspaceRoot, PROMPTS_DIR)),
     }),
   );
+  // The curate job on its own client: live, its repairs' Scriptwriter and Generator calls go to
+  // the model while every earlier stage replays the same roles' recordings.
+  const curateRegistry = liveCurate
+    ? createJobRegistry([
+        curateJobHandler({
+          db,
+          dataDir,
+          tts: tts.provider,
+          settings,
+          llm: createLlmClient({
+            db,
+            dataDir,
+            llm: config.llm,
+            transport: createLlmTransport(config.llm),
+          }),
+          prompts: loadPromptTemplates(join(config.workspaceRoot, PROMPTS_DIR)),
+        }),
+      ])
+    : registry;
   try {
-    console.log(`${topic.id} draft fixture: Generator ${live ? 'live' : 'replayed'}`);
+    console.log(
+      `${topic.id} draft fixture: Generator ${live ? 'live' : 'replayed'}, ` +
+        `curate ${liveCurate ? 'live with repairs' : 'replayed, review only'}`,
+    );
     const stages: Stage[] = [];
-    const runId = await runStages(db, dataDir, registry, topic, stages);
+    const runId = await runStages(db, dataDir, registry, topic, stages, {
+      registry: curateRegistry,
+      repair: liveCurate,
+    });
     for (const s of stages) console.log(`  ${s.name.padEnd(14)} ${s.sec.toFixed(1)} s`);
     if (runId === undefined) return 1;
     await report(db, dataDir, runId, shown);
@@ -215,6 +271,7 @@ async function runStages(
   registry: JobRegistry,
   topic: FixtureTopic,
   stages: Stage[],
+  curation: { readonly registry: JobRegistry; readonly repair: boolean },
 ): Promise<number | undefined> {
   const { runId } = seedFixtureRun(db, dataDir, topic, undefined);
   const timed = async (name: string, step: () => Promise<boolean>) => {
@@ -227,6 +284,10 @@ async function runStages(
     runAgentJob(db, registry, enqueueJob(db, { type, runId, payload }).id, 'draft-fixture');
   const onVersion = (type: string) => () =>
     job(type, { specVersionId: latestVersionId(db, runId) })();
+  // The version the curation ended on (keep-best may have put beats back).
+  const curated = () => ({
+    specVersionId: latestCuration(db, dataDir, runId)!.report.final.specVersionId,
+  });
   const ok =
     (await timed('ingest', () =>
       runAgentJob(db, registry, listRunJobs(db, runId)[0]!.id, 'draft-fixture'),
@@ -240,8 +301,20 @@ async function runStages(
     (await timed('tts', onVersion(TTS_JOB_TYPE))) &&
     (await timed('generate', onVersion(GENERATE_JOB_TYPE))) &&
     (await timed('tts (holds)', onVersion(TTS_JOB_TYPE))) &&
-    (await timed('render_draft', onVersion(RENDER_JOB_TYPES.draft))) &&
-    (await timed('render_stills', onVersion(RENDER_JOB_TYPES.stills)));
+    (await timed('curate', () =>
+      runAgentJob(
+        db,
+        curation.registry,
+        enqueueJob(db, {
+          type: CURATE_JOB_TYPE,
+          runId,
+          payload: { specVersionId: latestVersionId(db, runId), repair: curation.repair },
+        }).id,
+        'draft-fixture',
+      ),
+    )) &&
+    (await timed('render_draft', job(RENDER_JOB_TYPES.draft, curated()))) &&
+    (await timed('render_stills', job(RENDER_JOB_TYPES.stills, curated())));
   if (ok) return runId;
   for (const line of warningLogs(db, runId)) console.log(`  ${line}`);
   return undefined;
@@ -254,13 +327,13 @@ async function report(
   runId: number,
   shown: (path: string) => string,
 ): Promise<void> {
-  const version = getLatestSpecVersion(db, runId)!;
+  const curation = latestCuration(db, dataDir, runId)!.report;
+  const version = getSpecVersion(db, curation.final.specVersionId)!;
   const spec = validateVideoSpec(readDataJson(dataDir, version.jsonPath)).spec!;
   const draft = resolveDataPath(dataDir, runDraftPath(runId));
   const facts = parseProbe(await runFf('ffprobe', probeArgs(draft)));
   const beatIds = spec.story.beats.map((b) => b.id);
   const sheet = await writeContactSheet(dataDir, runId, beatIds);
-  const warnings = specWarnings(db, dataDir, runId, version.id);
   const logs = warningLogs(db, runId);
   console.log(
     `\n  spec v${version.version}: ${beatIds.length} beats, ${spec.timing?.endSec?.toFixed(2) ?? '?'} s`,
@@ -268,8 +341,7 @@ async function report(
   console.log(
     `  draft.mp4: ${facts.durationSec.toFixed(2)} s, ${facts.video?.width}x${facts.video?.height} @ ${facts.video?.fps}`,
   );
-  console.log(`  spec warnings: ${warnings.length}`);
-  for (const w of warnings) console.log(`    ${w.code} ${w.path}: ${w.message}`);
+  printCuration(curation);
   console.log(`  warning logs: ${logs.length}`);
   for (const line of logs) console.log(`    ${line}`);
   const missing = resolveDataPath(dataDir, missingAssetsPath(runId));

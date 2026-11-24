@@ -34,6 +34,11 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       each), the other must-finds every time, and flagged no correct line. "Corrowby bills" is
       still hit or miss: decide between a second claims sample merged with the first (about
       +$0.02 a video) and accepting one sample. The hook-retold seed has never been caught.
+- [ ] **P1C.8 — Advisory issues a repair adds.** Keep-best and the round's blocking set count
+      only blocking issues, so a repair that adds advisory ones is kept. In the live tokenizer
+      run, b7's narration fix (remapped) moved board events into the last sentence:
+      `events_under_ending_card` reached gate 3. Decide whether a remapped board that gains a
+      Generator warning should be redrawn in the same repair, or whether the gate badge is enough.
 - [ ] **P1C.8 — Severity of key-idea clarity.** The above-level seed's "an atomic script" came
       back advisory although the issue itself says it is the beat's key idea; at beginner such an
       issue may block (the cap allows it). Check over more runs whether the model under-rates
@@ -178,7 +183,9 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       again on the new version: every beat is a cache hit, and the timing step adds the landing
       holds from the scenes. The Curator checks the re-timed spec (its layout, `draw_cut_short`
       and highlight timing depend on the holds). Gate edits that change narration or scenes
-      re-time the same way before the next render.
+      re-time the same way before the next render. The Curator's repairs already re-time the
+      version they save (`repairBeats`), so render `report.final.specVersionId`, not the newest
+      version (keep-best can put beats back); `draft:fixture` does.
 - [ ] **P1B.1 — Pronunciation editing.** `readPronunciations` only reads. Settings (GET/PUT
       `/api/pronunciations`) needs a `savePronunciations` (atomic, validated) in core. Keys are
       single tokens; multi-word keys ("Kafka Streams") and misaki's inline IPA override
@@ -390,7 +397,9 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       middle element's cluster (with its pins), so a hub with a side pin sits off centre.
 - [ ] **P1D — Layout warnings at the scene gate.** `curatorCodeChecks` runs every code check
       (layout included, with the run's theme and format) on the finished spec; the scene gate
-      shows its findings and runs it on saves.
+      shows its findings and runs it on saves. Gate 3 reads `latestCuration`: `report.blocking`
+      holds the gate, `report.badges` go on their beats (`needsPlanChange` ones offer "back to
+      gate 2" rather than "regenerate beat"), and `report.rounds` shows what was repaired.
 - [ ] **Recover without a reject.** A `recover` on an element or part that was never rejected
       (in its `continuesPrevious` chain) is a silent no-op. Add a timeline warning
       (`recover_without_reject`) so agents repair it; the board fixtures are checked by a test.

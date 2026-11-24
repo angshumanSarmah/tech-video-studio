@@ -49,6 +49,7 @@ import { pinnedSpecVersion, saveSpecVersion } from '#core/services/spec-versions
 import { activeStyleRules } from '#core/services/style-rules.ts';
 import type { BeatStepContext } from '../agents/generator/beat-step.ts';
 import { placeholderScene } from '../agents/generator/board.ts';
+import { beatAncestors, beatDependents } from '../agents/generator/schedule.ts';
 import { buildPrompt } from '../agents/prompt-builder.ts';
 import { resolvePromptVariables, type PromptVariables } from '../agents/prompt-variables.ts';
 import type { PromptTemplates } from '../agents/prompts/templates.ts';
@@ -557,4 +558,55 @@ function summarize(output: RepairOutput, version: number): string {
     `Repair of v${version}: ${beats || 'nothing changed'}; ${saved}; ` +
     `${output.usage.calls} call(s), $${output.usage.costUsd.toFixed(4)}.`
   );
+}
+
+// --- Keep-best: putting beats back -----------------------------------------------------------
+
+/**
+ * Beats put back as they were in an earlier version (`best`), with every beat on their boards
+ * (a board's beats share one layout), and the spec re-timed and saved as the run's next version.
+ * The Curator's loop does this for a beat a round left with more blocking issues than before.
+ */
+export async function restoreBeats(
+  deps: RepairDeps,
+  args: {
+    readonly runId: number;
+    readonly current: VideoSpec;
+    readonly best: VideoSpec;
+    readonly beatIds: readonly string[];
+    readonly signal: AbortSignal;
+  },
+): Promise<{ specVersionId: number; version: number; beatIds: string[] }> {
+  const run = getRun(deps.db, args.runId);
+  if (!run) throw new NotFoundError('run', args.runId);
+  const beats = args.current.story.beats;
+  const group = new Set<number>();
+  for (const id of args.beatIds) {
+    const i = beats.findIndex((b) => b.id === id);
+    if (i < 0) continue;
+    for (const j of [...beatAncestors(args.current, i), i, ...beatDependents(args.current, i)]) {
+      group.add(j);
+    }
+  }
+  const ids = [...group].sort((a, b) => a - b).map((i) => beats[i]!.id);
+  const pick = <T extends { beatId: string }>(now: readonly T[], before: readonly T[]) =>
+    now.map((item) =>
+      ids.includes(item.beatId) ? (before.find((b) => b.beatId === item.beatId) ?? item) : item,
+    );
+  const spec: VideoSpec = {
+    ...args.current,
+    script: pick(args.current.script ?? [], args.best.script ?? []),
+    scenes: pick(args.current.scenes ?? [], args.best.scenes ?? []),
+  };
+  const options = resolveTtsOptions(run.settings, deps.settings.tts);
+  const pauses = resolveTimingOptions(run.settings, deps.settings.timing);
+  const narrated = await synthesizeScript(deps.tts, spec.script ?? [], options, args.signal);
+  const timed = timedSpec(deps.dataDir, run.id, spec, narrated, pauses);
+  const saved = saveSpecVersion(deps.db, deps.dataDir, {
+    runId: run.id,
+    spec: timed.spec,
+    createdBy: 'agent',
+    note: `Restored ${ids.join(', ')} as they were before the last repair round.`,
+  });
+  return { specVersionId: saved.version.id, version: saved.version.version, beatIds: ids };
 }

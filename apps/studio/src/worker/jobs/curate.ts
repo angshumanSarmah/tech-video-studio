@@ -12,7 +12,13 @@ import {
   validateRenderableVideoSpec,
   type CodeIssue,
   type CurateInput,
+  type CurateRound,
+  type CuratorIssue,
   type CuratorReport,
+  type LlmSettings,
+  type RepairOutput,
+  type RepairRequest,
+  type TtsSettings,
   type LlmUsage,
   type RenderableVideoSpec,
   type ResearchNotes,
@@ -44,11 +50,23 @@ import { NotFoundError } from '#core/errors.ts';
 import { directorMemory } from '#core/services/director-memory.ts';
 import { latestDirection } from '#core/services/direction.ts';
 import { researchOfStep } from '#core/services/research-notes.ts';
+import { getSpecVersion } from '#core/db/repositories/spec-versions.ts';
 import { pinnedSpecVersion } from '#core/services/spec-versions.ts';
+import type { CuratorRound } from '../agents/curator/input.ts';
+import {
+  blockingKeys,
+  blockingPerBeat,
+  gateBadges,
+  mergeRoundReview,
+  numbered,
+  repairRequests,
+} from '../agents/curator/loop.ts';
 import { reviewSpec, type ReviewResult } from '../agents/curator/review.ts';
 import { resolvePromptVariables, type PromptVariables } from '../agents/prompt-variables.ts';
 import type { PromptTemplates } from '../agents/prompts/templates.ts';
-import type { LlmClient } from '../llm/client.ts';
+import { LlmOutputInvalidError, type LlmClient } from '../llm/client.ts';
+import { repairBeats, restoreBeats } from '../repair/repair-beats.ts';
+import type { TtsProvider } from '../tts/provider.ts';
 import { resolveTimingOptions } from '../timing/assemble.ts';
 import { defineJobHandler, type JobContext, type JobHandler } from './handler.ts';
 
@@ -59,28 +77,46 @@ export interface CurateJobDeps {
   readonly dataDir: string;
   readonly llm: LlmClient;
   readonly prompts: PromptTemplates;
+  /** Repairs narrate changed beats (unchanged ones are cache hits). */
+  readonly tts: TtsProvider;
   readonly settings: {
     readonly video: VideoSettings;
     readonly timing: TimingSettings;
-    readonly llm: { readonly models: { readonly curator: string } };
+    readonly tts: TtsSettings;
+    readonly llm: Pick<LlmSettings, 'models'>;
   };
 }
 
-const PayloadSchema = z.strictObject({ specVersionId: z.number().int().positive() });
+/** Repair rounds a curate job runs at most. */
+export const MAX_REPAIR_ROUNDS = 2;
+
+const PayloadSchema = z.strictObject({
+  specVersionId: z.number().int().positive(),
+  /** Run the repair loop (default); false reviews only (the fixture scripts' recorded reviews). */
+  repair: z.boolean().default(true),
+});
 type Ctx = JobContext<z.output<typeof PayloadSchema>>;
 
 /**
- * The Curator (P1C.8), review only: the code checks (`curatorCodeChecks`) and the model's review
- * of the pinned spec version, which should be the re-timed spec after the Generator. One
- * `run_steps` row per job (stage `curate`) with `curate/input-<step>.json` and
- * `curate/report-<step>.json` (`CuratorReportSchema`); the newest finished one is
- * `latestCuration`, gate 3's input. A spec that fails validation gets its errors and no review.
- * The repair loop comes later (P1C.8 steps 8-9).
+ * The Curator (P1C.8): code checks and the two-pass review of the pinned spec version (the
+ * re-timed spec after the Generator), then the repair loop. Each round sends every repairable
+ * blocking issue (the Scriptwriter's or the Generator's, on a beat) to `repairBeats`, runs the
+ * code checks on the repaired version and a scoped review (new issues only on the beats the round
+ * changed; issues on the others carry over), puts back a beat that came out with more blocking
+ * issues than it had (keep-best, `restoreBeats`), and stops when nothing blocking is left, when
+ * nothing left is repairable, when a round leaves the same blocking set, or after
+ * `MAX_REPAIR_ROUNDS`. The Director's and the Researcher's issues go to the gate unrepaired,
+ * marked as needing a plan change. One `run_steps` row per job (stage `curate`):
+ * `curate/input-<step>.json` and `curate/report-<step>.json` (`CuratorReportSchema`: the final
+ * version, its code issues and review, every round, why it stopped, gate 3's badges and blocking
+ * flag, the cost); `latestCuration` is gate 3's read. A spec that fails validation gets its errors
+ * and no review.
  */
 export function curateJobHandler(deps: CurateJobDeps): JobHandler {
   return defineJobHandler({
     type: CURATE_JOB_TYPE,
-    description: 'Check and review the finished spec: code checks, then the Curator model.',
+    description:
+      'Check and review the finished spec, then repair blocking issues (at most 2 rounds).',
     payloadSchema: PayloadSchema,
     run: (ctx) => curate(deps, ctx),
   });
@@ -102,31 +138,7 @@ async function curate(deps: CurateJobDeps, ctx: Ctx): Promise<void> {
       step.id,
       writeDataJson(deps.dataDir, curateInputPath(runId, step.id), job.input),
     );
-    const codeIssues = curatorCodeChecks(job.spec, job.checks);
-    ctx.progress(20, `Code checks: ${codeIssues.length} finding(s)`);
-    const review = job.valid
-      ? await reviewSpec(
-          {
-            llm: deps.llm,
-            prompts: deps.prompts,
-            variables: job.variables,
-            registries: job.checks.registries ?? DEFAULT_REGISTRIES,
-            runId,
-            stepId: step.id,
-            signal: ctx.signal,
-            log: ctx.log,
-          },
-          {
-            spec: job.spec,
-            notes: job.checks.notes,
-            level: job.input.explanationLevel,
-            codeIssues,
-          },
-        )
-      : undefined;
-    if (!job.valid)
-      ctx.log('warn', 'The spec has validation errors: no review until they are fixed.');
-    const report = buildReport(deps.db, runId, job.input, codeIssues, review);
+    const report = await curateLoop(deps, ctx, job, runId, step.id);
     finishRunStep(
       deps.db,
       step.id,
@@ -138,6 +150,202 @@ async function curate(deps: CurateJobDeps, ctx: Ctx): Promise<void> {
     failRunStep(deps.db, step.id, error instanceof Error ? error.message : String(error));
     throw error;
   }
+}
+
+/** Where the loop stands: the current version, its code issues and the review's issues. */
+interface Standing {
+  readonly spec: RenderableVideoSpec;
+  readonly specVersionId: number;
+  readonly version: number;
+  readonly code: CodeIssue[];
+  readonly issues: CuratorIssue[];
+}
+
+async function curateLoop(
+  deps: CurateJobDeps,
+  ctx: Ctx,
+  job: CurateJob,
+  runId: number,
+  stepId: number,
+): Promise<CuratorReport> {
+  const checks = (spec: RenderableVideoSpec) => curatorCodeChecks(spec, job.checks);
+  const reviews: ReviewResult[] = [];
+  const review = async (spec: RenderableVideoSpec, code: CodeIssue[], round?: CuratorRound) => {
+    const result = await reviewSpec(
+      {
+        llm: deps.llm,
+        prompts: deps.prompts,
+        variables: job.variables,
+        registries: job.checks.registries ?? DEFAULT_REGISTRIES,
+        runId,
+        stepId,
+        signal: ctx.signal,
+        log: ctx.log,
+      },
+      {
+        spec,
+        notes: job.checks.notes,
+        level: job.input.explanationLevel,
+        codeIssues: code,
+        ...(round ? { round } : {}),
+      },
+    );
+    reviews.push(result);
+    return result;
+  };
+  const firstCode = checks(job.spec);
+  ctx.progress(10, `Code checks: ${firstCode.length} finding(s)`);
+  let now: Standing = {
+    spec: job.spec,
+    specVersionId: job.input.specVersionId,
+    version: job.input.version,
+    code: firstCode,
+    issues: job.valid ? (await review(job.spec, firstCode)).issues : [],
+  };
+  const rounds: CurateRound[] = [];
+  let stop: CuratorReport['stop'] = job.valid
+    ? ctx.payload.repair
+      ? 'clean'
+      : 'repair_off'
+    : 'invalid_spec';
+  if (!job.valid)
+    ctx.log('warn', 'The spec has validation errors: no review until they are fixed.');
+  for (let round = 1; job.valid && ctx.payload.repair && round <= MAX_REPAIR_ROUNDS; round += 1) {
+    const requests = repairRequests(now.spec, now.code, now.issues);
+    const before = blockingKeys(now.spec, now.code, now.issues);
+    if (requests.length === 0) {
+      stop = before.length > 0 ? 'nothing_repairable' : 'clean';
+      break;
+    }
+    ctx.progress(20 + round * 30, `Repair round ${round}: ${requests.length} request(s)`);
+    const repaired = await repairRound(deps, ctx, now, requests, runId);
+    if (!repaired) {
+      stop = 'repair_failed';
+      break;
+    }
+    const next = await reviewRound(deps, ctx, now, repaired, runId, checks, review);
+    rounds.push({
+      round,
+      requests,
+      repair: repaired.output,
+      restored: next.restored,
+      blockingBefore: before,
+      blockingAfter: blockingKeys(next.standing.spec, next.standing.code, next.standing.issues),
+    });
+    now = next.standing;
+    const after = rounds.at(-1)!.blockingAfter;
+    if (after.length === 0) {
+      stop = 'clean';
+      break;
+    }
+    if (after.join() === before.join()) {
+      stop = 'no_progress';
+      break;
+    }
+    stop = 'max_rounds';
+  }
+  return buildReport(deps.db, runId, job.input, now, reviews, rounds, stop);
+}
+
+/** One repair; undefined (logged) when an agent could not produce a valid fix. */
+async function repairRound(
+  deps: CurateJobDeps,
+  ctx: Ctx,
+  now: Standing,
+  requests: RepairRequest[],
+  runId: number,
+): Promise<{ output: RepairOutput; spec: RenderableVideoSpec } | undefined> {
+  try {
+    const result = await repairBeats(
+      { ...deps },
+      { runId, specVersionId: now.specVersionId, requests, signal: ctx.signal, log: ctx.log },
+    );
+    const output: RepairOutput = {
+      specVersionId: result.specVersionId,
+      version: result.version,
+      created: result.created,
+      beats: result.beats,
+      usage: result.usage,
+    };
+    return { output, spec: loadSpec(deps, result.specVersionId) };
+  } catch (error) {
+    if (!(error instanceof LlmOutputInvalidError)) throw error;
+    ctx.log('warn', `A repair could not be made (${error.role}); the issues go to the gate.`);
+    return undefined;
+  }
+}
+
+/**
+ * After a repair: the code checks and a scoped review on the repaired version, merged with what
+ * carries over; then keep-best: a changed beat that came out with more blocking issues than it
+ * had is put back (with its board) and keeps its earlier issues.
+ */
+async function reviewRound(
+  deps: CurateJobDeps,
+  ctx: Ctx,
+  now: Standing,
+  repaired: { output: RepairOutput; spec: RenderableVideoSpec },
+  runId: number,
+  checks: (spec: RenderableVideoSpec) => CodeIssue[],
+  review: (
+    spec: RenderableVideoSpec,
+    code: CodeIssue[],
+    round?: CuratorRound,
+  ) => Promise<ReviewResult>,
+): Promise<{ standing: Standing; restored: string[] }> {
+  const changed = new Set(
+    repaired.output.beats
+      .filter((b) => b.script === 'revised' || b.board !== 'kept')
+      .map((b) => b.beatId),
+  );
+  const code = checks(repaired.spec);
+  const second = await review(repaired.spec, code, {
+    previous: numbered(now.issues),
+    changedBeatIds: [...changed],
+  });
+  const issues = mergeRoundReview(now.issues, second, changed);
+  const was = blockingPerBeat(now.spec, now.code, now.issues);
+  const is = blockingPerBeat(repaired.spec, code, issues);
+  const worse = [...changed].filter((id) => (is.get(id) ?? 0) > (was.get(id) ?? 0));
+  const standing: Standing = {
+    spec: repaired.spec,
+    specVersionId: repaired.output.specVersionId,
+    version: repaired.output.version,
+    code,
+    issues,
+  };
+  if (worse.length === 0) return { standing, restored: [] };
+  const restored = await restoreBeats(deps, {
+    runId,
+    current: repaired.spec,
+    best: now.spec,
+    beatIds: worse,
+    signal: ctx.signal,
+  });
+  ctx.log('warn', `Beats ${restored.beatIds.join(', ')} came out worse: put back as they were.`);
+  const spec = loadSpec(deps, restored.specVersionId);
+  const back = new Set(restored.beatIds);
+  return {
+    standing: {
+      spec,
+      specVersionId: restored.specVersionId,
+      version: restored.version,
+      code: checks(spec),
+      issues: [
+        ...issues.filter((i) => !back.has(i.beatId)),
+        ...now.issues.filter((i) => back.has(i.beatId)),
+      ],
+    },
+    restored: restored.beatIds,
+  };
+}
+
+function loadSpec(deps: CurateJobDeps, specVersionId: number): RenderableVideoSpec {
+  const version = getSpecVersion(deps.db, specVersionId);
+  if (!version) throw new Error(`Spec version ${specVersionId} does not exist.`);
+  const result = validateRenderableVideoSpec(readDataJson(deps.dataDir, version.jsonPath));
+  if (!result.ok) throw new Error(`Spec v${version.version} is not renderable.`);
+  return result.spec;
 }
 
 interface CurateJob {
@@ -224,30 +432,51 @@ function buildReport(
   db: Db,
   runId: number,
   input: CurateInput,
-  codeIssues: readonly CodeIssue[],
-  review: ReviewResult | undefined,
+  now: Standing,
+  reviews: readonly ReviewResult[],
+  rounds: readonly CurateRound[],
+  stop: CuratorReport['stop'],
 ): CuratorReport {
+  const last = reviews.at(-1);
   const blocking =
-    codeIssues.some((i) => i.severity === 'blocking') ||
-    (review?.issues.some((i) => i.severity === 'blocking') ?? false);
+    now.code.some((i) => i.severity === 'blocking') ||
+    now.issues.some((i) => i.severity === 'blocking');
+  const reviewUsage = usageOf(
+    db,
+    runId,
+    reviews.flatMap((r) => [...r.calls.claims, ...r.calls.story]),
+  );
+  const repairUsd = rounds.reduce((sum, r) => sum + r.repair.usage.costUsd, 0);
   return {
     specVersionId: input.specVersionId,
     version: input.version,
+    final: { specVersionId: now.specVersionId, version: now.version },
     explanationLevel: input.explanationLevel,
-    codeIssues: [...codeIssues],
-    review: review
+    codeIssues: now.code,
+    review: last
       ? {
-          issues: review.issues,
-          dropped: review.dropped,
-          capped: review.capped,
-          ...(review.previous ? { previous: review.previous } : {}),
-          claims: review.claims,
-          coverage: review.coverage,
-          calls: { claims: review.calls.claims.length, story: review.calls.story.length },
-          usage: usageOf(db, runId, [...review.calls.claims, ...review.calls.story]),
+          issues: now.issues,
+          dropped: reviews.flatMap((r) => r.dropped),
+          capped: reviews.reduce((sum, r) => sum + r.capped, 0),
+          ...(last.previous ? { previous: last.previous } : {}),
+          claims: last.claims,
+          coverage: last.coverage,
+          calls: {
+            claims: reviews.reduce((sum, r) => sum + r.calls.claims.length, 0),
+            story: reviews.reduce((sum, r) => sum + r.calls.story.length, 0),
+          },
+          usage: reviewUsage,
         }
       : null,
+    rounds: [...rounds],
+    stop,
+    badges: gateBadges(now.spec, now.code, now.issues),
     blocking,
+    cost: {
+      reviewUsd: reviewUsage.costUsd,
+      repairUsd,
+      totalUsd: reviewUsage.costUsd + repairUsd,
+    },
   };
 }
 
@@ -266,19 +495,21 @@ function usageOf(db: Db, runId: number, callIds: readonly number[]): LlmUsage {
   };
 }
 
-/** One log line: findings by source and severity, what was dropped, the cost. */
+/** One log line: the rounds, what is left, the cost. */
 export function summarize(report: CuratorReport): string {
-  const blocking = (list: readonly { severity: string }[]) =>
-    list.filter((i) => i.severity === 'blocking').length;
-  const code = `${report.codeIssues.length} code finding(s) (${blocking(report.codeIssues)} blocking)`;
-  if (!report.review) return `Curator on v${report.version}: ${code}; not reviewed (invalid spec).`;
-  const { issues, dropped, capped, usage, claims, coverage } = report.review;
+  const blocking = report.badges.filter((b) => b.severity === 'blocking').length;
+  const plan = report.badges.filter((b) => b.needsPlanChange).length;
+  const rounds = report.rounds
+    .map((r) => {
+      const beats = r.repair.beats.map((b) => `${b.beatId} ${b.board}`).join(', ');
+      const back = r.restored.length > 0 ? `; put back ${r.restored.join(', ')}` : '';
+      return `round ${r.round}: ${r.requests.length} request(s) (${beats}${back})`;
+    })
+    .join('; ');
   return (
-    `Curator on v${report.version}: ${code}; review ${issues.length} issue(s) ` +
-    `(${blocking(issues)} blocking), ${dropped.length} dropped, ${capped} capped; ` +
-    `${claims.length} claims audited (${coverage.repairs} coverage repair(s), ` +
-    `${coverage.missing.length} left out); ` +
-    `${usage.calls} call(s), $${usage.costUsd.toFixed(4)}. ` +
-    (report.blocking ? 'Blocking issues: gate 3 waits.' : 'Nothing blocking.')
+    `Curator: v${report.version} -> v${report.final.version}; ${rounds || 'no repairs'}; ` +
+    `stopped: ${report.stop}. Left for gate 3: ${report.badges.length} issue(s), ${blocking} ` +
+    `blocking, ${plan} needing a plan change. $${report.cost.totalUsd.toFixed(4)} ` +
+    `(review $${report.cost.reviewUsd.toFixed(4)}, repairs $${report.cost.repairUsd.toFixed(4)}).`
   );
 }
