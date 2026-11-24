@@ -124,6 +124,26 @@ describe('generatorCheck: seeded faults, with paths into the answer', () => {
     expect(found?.message).not.toContain('Use fewer or smaller elements');
   });
 
+  it('a board pushed over its element limit by a continuing beat says pins do not count', () => {
+    const board = countBoard();
+    for (const n of [1, 2, 3, 4, 5, 6, 7]) {
+      board.elements.push({
+        id: `extra-${n}`,
+        primitive: 'node_card',
+        props: { title: `Node ${n}` },
+      });
+    }
+    const scenes = [undefined, undefined, sceneFor(2, storeBoard())];
+    const found = issues(3, board, scenes).find((i) => i.code === 'too_many_elements');
+    expect(found?.path).toBe('$.scenes[2]');
+    expect(found?.message).toMatch(
+      /^Your additions put this board over its element limit: \d+ elements in versus_split/,
+    );
+    expect(found?.message).toContain('Pinned elements do not count as elements here');
+    expect(found?.message).toContain('pin each new script tag to an element already ON SCREEN');
+    expect(found?.message).not.toContain('Split the beat');
+  });
+
   it('keeps the plain "caused in an earlier beat" message for other issues', () => {
     const board = countBoard();
     board.elements.push(

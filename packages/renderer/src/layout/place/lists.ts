@@ -1,14 +1,38 @@
 import type { Rect } from '../../theme/index.ts';
-import { column, combine, EMPTY_BLOCK, fromRects, row, shift } from '../blocks.ts';
+import {
+  column,
+  combine,
+  EMPTY_BLOCK,
+  fromRects,
+  row,
+  shift,
+  type Block,
+  type GapAfter,
+} from '../blocks.ts';
 import { rectAt } from '../rect.ts';
 import type { ModeContext, ModePlacer } from '../types.ts';
-import { withAside, wrappedRow, zoneBlocks, zoneColumn, zoneUnits } from './common.ts';
+import { unitBlock, withAside, wrappedRow, zoneBlocks, zoneColumn, zoneUnits } from './common.ts';
 
 /** Placers for list-like modes: stacked_list, grid, two_column, versus_split. */
 
-/** Rows top to bottom, centred. */
-export const placeStackedList: ModePlacer = (ctx) =>
-  withAside(ctx, column(zoneBlocks(ctx, 'row'), ctx.gap));
+/**
+ * Rows top to bottom, centred. Two rows a link joins get the link gap between them (room for its
+ * label and any midpoint pin), others the plain gap.
+ */
+export const placeStackedList: ModePlacer = (ctx) => {
+  const gapAfter: GapAfter = (block, next) =>
+    next && linked(ctx, keysOf(block), keysOf(next)) ? ctx.linkGap : ctx.gap;
+  return withAside(ctx, column(zoneBlocks(ctx, 'row'), gapAfter));
+};
+
+const keysOf = (block: Block): string[] => [...block.rects.keys()];
+
+/** Whether a link joins a unit of `a` with a unit of `b`, either way. */
+function linked(ctx: ModeContext, a: readonly string[], b: readonly string[]): boolean {
+  return ctx.links.some(
+    (l) => (a.includes(l.from) && b.includes(l.to)) || (b.includes(l.from) && a.includes(l.to)),
+  );
+}
 
 /**
  * Equal cells: the column count whose grid is closest to the frame's shape, every cell as large as
@@ -54,6 +78,19 @@ function bestColumns(
   return best;
 }
 
+/**
+ * One half of versus_split: its units top to bottom, those a link from the shared row reaches
+ * first (otherwise every route from the shared row would cross the units above them), the rest
+ * in spec order.
+ */
+function halfColumn(ctx: ModeContext, zone: string): Block {
+  const shared = zoneUnits(ctx, 'shared').map((u) => u.key);
+  const units = zoneUnits(ctx, zone);
+  const reached = (key: string) => linked(ctx, shared, [key]);
+  const ordered = [...units.filter((u) => reached(u.key)), ...units.filter((u) => !reached(u.key))];
+  return ordered.length > 0 ? column(ordered.map(unitBlock), ctx.gap) : EMPTY_BLOCK;
+}
+
 /** Left column, then right column, centred on each other. */
 export const placeTwoColumn: ModePlacer = (ctx) =>
   withAside(ctx, row([zoneColumn(ctx, 'left'), zoneColumn(ctx, 'right')], ctx.linkGap));
@@ -63,8 +100,8 @@ export const placeTwoColumn: ModePlacer = (ctx) =>
  * both halves (the event that hits both), so links from them run down into each half.
  */
 export const placeVersusSplit: ModePlacer = (ctx) => {
-  const left = zoneColumn(ctx, 'left');
-  const right = zoneColumn(ctx, 'right');
+  const left = halfColumn(ctx, 'left');
+  const right = halfColumn(ctx, 'right');
   const gap = Math.max(2 * ctx.gap, ctx.linkGap);
   const height = Math.max(left.height, right.height);
   const halves = combine(

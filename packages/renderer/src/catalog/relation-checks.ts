@@ -119,12 +119,16 @@ function refError(
     return error(path, 'invalid_element_ref', `"${owner}" cannot point to itself.`);
   }
   const entry = scope.get(ref.id);
-  if (ref.pin !== undefined && entry && registries.patterns.has(entry.label)) {
+  const inner = ref.id.includes('/');
+  if (ref.pin !== undefined && (inner || (entry && registries.patterns.has(entry.label)))) {
     const hosts = pinHosts(scope, owner, ref.pin === 'middle' ? 'middle' : 'sides', registries);
+    const what = inner
+      ? `inside the pattern instance "${ref.id.split('/')[0] ?? ''}"`
+      : 'a pattern instance';
     return error(
       path,
       'invalid_element_ref',
-      `"${ref.id}" is ${INSTANCE_PIN_MESSAGE}. Pin to one of this board's own elements` +
+      `"${ref.id}" is ${what}: ${INSTANCE_PIN_MESSAGE}. Pin to one of this board's own elements` +
         `${hosts.length > 0 ? ` (${hosts.join(', ')})` : ''}, or give it a zone instead.`,
     );
   }

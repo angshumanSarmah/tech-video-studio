@@ -176,6 +176,20 @@ describe('generatorUserMessage', () => {
     expect(message('rate-limiter', 0)).not.toContain('## FEEDBACK');
   });
 
+  it('quotes each script item as JSON, so an edge space shows', () => {
+    const spec = structuredClone(tokenizer);
+    spec.script![0]!.tags = [' Paris', 'caps form'];
+    const text = generatorUserMessage({
+      spec,
+      scenes: [],
+      beatIndex: 0,
+      notes: recordedNotes('tokenizer'),
+    });
+    const script = sectionOf(text, 'SCRIPT') ?? '';
+    expect(script).toContain('" Paris"');
+    expect(script).toContain("Why do ' Paris' and 'PARIS'");
+  });
+
   it('is the same for the same input (no clock, no randomness)', () => {
     expect(message('rate-limiter', 3, [undefined, undefined, storeScene])).toBe(
       message('rate-limiter', 3, [undefined, undefined, storeScene]),

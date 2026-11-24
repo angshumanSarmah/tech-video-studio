@@ -24,7 +24,7 @@ export function pinHostText(host: PinHost): string {
 }
 
 export const INSTANCE_PIN_MESSAGE =
-  'a pattern instance: neither it nor the elements inside it can host a pin';
+  'neither a pattern instance nor the elements inside it can host a pin';
 
 /** Whether a primitive's props take a `pin` (a tag, a counter; not a stat card). */
 export function takesPin(definition: PrimitiveDefinition | undefined): boolean {

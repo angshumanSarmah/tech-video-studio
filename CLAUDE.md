@@ -1098,6 +1098,14 @@ theme)` lays out a whole spec, memoised per spec object and theme (never per fra
     corners. Followers are placed twice so routes also avoid midpoint pins. `packet_stream` reuses
     the route; midpoint pins sit beside the middle of the segment holding its midpoint (the free
     side). `connector_crosses` means no candidate cleared.
+  - **Mode details:** `stacked_list` puts the link gap (room for a label or midpoint pin)
+    between two rows a link joins, the plain gap elsewhere; each `versus_split` half lists the
+    units a link from the shared row reaches first, so no route from the shared row crosses a
+    unit above them; a zone-less stat card in `versus_split` goes in the shared row.
+  - **Room warnings say what to change:** `text_too_small` names the widest units at full size
+    and what is pinned to their sides (`roomTakers`); on a continuing beat, `text_too_small` and
+    `too_many_elements` in an earlier beat of its board say only its additions can change, and
+    that pinned elements are not counted as elements.
   - **Pins:** `tag`, `counter`, `timer_ring` and `callout` take `pin: { to, side }` (`top`,
     `bottom`, `left`, `right`, or `middle` of a connector: beside its midpoint). The layout keeps
     them on that side of their host wherever it goes; unresolved pins get `pin_unresolved`.

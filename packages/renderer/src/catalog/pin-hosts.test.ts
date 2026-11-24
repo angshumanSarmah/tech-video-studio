@@ -45,16 +45,33 @@ describe('a pin to a pattern instance', () => {
     const found = result.errors.filter((e) => e.code === 'invalid_element_ref');
     expect(found.map((e) => e.path)).toEqual(['$.scenes[0].elements[1].props.pin.to']);
     expect(found[0]?.message).toBe(
-      '"atomic-lock" is a pattern instance: neither it nor the elements inside it can host a ' +
-        "pin. Pin to one of this board's own elements (gate), or give it a zone instead.",
+      '"atomic-lock" is a pattern instance: neither a pattern instance nor the elements inside ' +
+        "it can host a pin. Pin to one of this board's own elements (gate), or give it a zone " +
+        'instead.',
     );
+  });
+
+  it('explains a pin to an element inside an instance the same way, not with a slug error', () => {
+    const spec = pinnedTo('atomic-lock/resource');
+    const result = withRegistryChecks(validateRenderableVideoSpec(spec), spec);
+    const found = result.errors.filter((e) => e.path === '$.scenes[0].elements[1].props.pin.to');
+    expect(found.map((e) => e.code)).toEqual(['invalid_element_ref']);
+    expect(found[0]?.message).toBe(
+      '"atomic-lock/resource" is inside the pattern instance "atomic-lock": neither a pattern ' +
+        "instance nor the elements inside it can host a pin. Pin to one of this board's own " +
+        'elements (gate), or give it a zone instead.',
+    );
+    const layout = specLayout(spec, getTheme());
+    const chain = layout.beats.get(patternFlowBoardSpec.scenes[0]!.beatId)!.chain;
+    const pin = chain.board.warnings.find((w) => w.code === 'pin_unresolved');
+    expect(pin?.message).toContain('neither a pattern instance nor the elements inside it');
   });
 
   it('gets the same explanation from the layout, not "not on this board"', () => {
     const layout = specLayout(pinnedTo('atomic-lock'), getTheme());
     const chain = layout.beats.get(patternFlowBoardSpec.scenes[0]!.beatId)!.chain;
     const pin = chain.board.warnings.find((w) => w.code === 'pin_unresolved');
-    expect(pin?.message).toContain('a pattern instance: neither it nor the elements inside it');
+    expect(pin?.message).toContain('neither a pattern instance nor the elements inside it');
     expect(pin?.message).not.toContain('not on this board');
   });
 

@@ -51,10 +51,37 @@ function readabilityWarnings({ analysis, scale, theme }: Input): LayoutWarning[]
   return [
     {
       code: 'text_too_small',
-      message: `The board only fits at ${Math.round(scale * 100)}% (labels ${px}px; readable needs ${Math.round(min * 100)}%). Use fewer or smaller elements.`,
+      message:
+        `The board only fits at ${Math.round(scale * 100)}% (labels ${px}px; readable needs ` +
+        `${Math.round(min * 100)}%). ${roomTakers(analysis)} Use fewer or smaller elements.`,
       keys: analysis.units.map((u) => u.key),
     },
   ];
+}
+
+/** How many units `roomTakers` names. */
+const ROOM_TAKERS = 3;
+
+/**
+ * The widest units at full size, with what is pinned to their sides: pins left or right of a
+ * unit widen it as much as the unit itself, so naming only the unit hides the cause.
+ */
+function roomTakers(analysis: Analysis): string {
+  const n = (v: number) => Math.round(v).toLocaleString('en-US');
+  const widest = [...analysis.units]
+    .sort((a, b) => b.size.width - a.size.width)
+    .slice(0, ROOM_TAKERS)
+    .map((u) => {
+      const pins = analysis.items
+        .filter((i) => i.pin?.host === u.key && i.pin.side !== 'middle')
+        .map((i) => `${i.key} (${i.pin?.side})`);
+      const pinned = pins.length > 0 ? ` with ${pins.join(', ')} pinned to it` : '';
+      return `${u.key} ${n(u.size.width)} x ${n(u.size.height)} px${pinned}`;
+    });
+  return (
+    `Widest at full size: ${widest.join('; ')}. Pins on the left or right of an element add ` +
+    'to its width, on the top or bottom to its height.'
+  );
 }
 
 /** Pairs of solid items that overlap (an item never overlaps what it is pinned to: pins touch). */

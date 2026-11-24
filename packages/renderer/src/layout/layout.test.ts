@@ -217,6 +217,63 @@ describe('layout modes', () => {
     expect(centre(byKey(result, 'b').rect).x).toBeLessThan(result.guides[0]!.from.x);
   });
 
+  it('names what widens a board too small to read, side pins included', () => {
+    const items = [
+      node('wide', undefined, 'A VERY WIDE CARD TITLE'),
+      tag('lefty', undefined, { text: 'LEFT SIDE NOTE', pin: { to: 'wide', side: 'left' } }),
+      tag('righty', undefined, { text: 'RIGHT SIDE NOTE', pin: { to: 'wide', side: 'right' } }),
+    ];
+    const result = layout({ items, mode: 'centered_focus', focus: [] }, theme, fullFrame());
+    const warning = result.warnings.find((w) => w.code === 'text_too_small');
+    expect(warning?.message).toMatch(
+      /Widest at full size: wide [\d,]+ x [\d,]+ px with lefty \(left\), righty \(right\) pinned to it\./,
+    );
+    expect(warning?.message).toContain('Pins on the left or right of an element add to its width');
+  });
+
+  it('keeps linked stacked_list rows a link gap apart, so a midpoint pin clears both', () => {
+    const items = [
+      node('gateway', 'row', 'GATEWAY NODE'),
+      node('store', 'row', 'SHARED STORE'),
+      link('hop', 'gateway', 'store'),
+      tag('hop-tag', undefined, { text: 'NETWORK HOP', pin: { to: 'hop', side: 'middle' } }),
+    ];
+    const result = layout({ items, mode: 'stacked_list', focus: [] }, theme, fullFrame());
+    expect(result.warnings.filter((w) => w.code === 'overlap')).toEqual([]);
+    const gap =
+      byKey(result, 'store').rect.y -
+      (byKey(result, 'gateway').rect.y + byKey(result, 'gateway').rect.height);
+    expect(gap).toBeGreaterThan(byKey(result, 'hop-tag').rect.height);
+    // Unlinked rows keep the plain gap.
+    const plain = layout(
+      { items: [node('a', 'row'), node('b', 'row')], mode: 'stacked_list', focus: [] },
+      theme,
+      fullFrame(),
+    );
+    const plainGap =
+      byKey(plain, 'b').rect.y - (byKey(plain, 'a').rect.y + byKey(plain, 'a').rect.height);
+    expect(plainGap).toBeLessThan(gap);
+  });
+
+  it('puts the units a shared-row link reaches at the top of their versus half', () => {
+    const items = [
+      node('event', 'shared', 'SAME ANSWER'),
+      item(
+        'rate',
+        'stat_card',
+        { value: 'about 1.3', label: 'tokens per word', source: 'x' },
+        'left',
+      ),
+      node('english', 'left', 'ENGLISH REPLY'),
+      node('rare', 'right', 'RARE LANGUAGE'),
+      link('to-english', 'event', 'english'),
+      link('to-rare', 'event', 'rare'),
+    ];
+    const result = layout({ items, mode: 'versus_split', focus: [] }, theme, fullFrame());
+    expect(byKey(result, 'english').rect.y).toBeLessThan(byKey(result, 'rate').rect.y);
+    expect(result.warnings.filter((w) => w.code === 'connector_crosses')).toEqual([]);
+  });
+
   it('puts the cycle steps on a ring, clockwise from the top', () => {
     const result = layout(
       { items: SCENES.cycle.items, mode: 'cycle', focus: [] },

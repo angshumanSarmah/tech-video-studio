@@ -1,4 +1,4 @@
-import { SpecIdSchema } from '@explainer-studio/shared';
+import { EventTargetSchema, SpecIdSchema } from '@explainer-studio/shared';
 import { z } from 'zod';
 import { SEMANTIC_COLOURS, type SemanticColour } from '../theme/index.ts';
 import { PIN_SIDES, type ElementRef } from './types.ts';
@@ -127,7 +127,11 @@ export const idsOf = (items: readonly { id: string }[]): string[] => items.map((
  */
 export const PinSchema = z
   .strictObject({
-    to: elementRefProp('Id of the element in this beat to pin to (a connector, for middle).'),
+    // Any target id, `<instance>/<id>` included, so the registry check can say why an instance
+    // or its inner elements cannot host a pin (and name the hosts) instead of a bare slug error.
+    to: EventTargetSchema.describe(
+      'Id of an element of this board to pin to (a connector, for middle); never a pattern instance or an element inside one.',
+    ),
     side: z
       .enum(PIN_SIDES)
       .default('top')

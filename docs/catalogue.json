@@ -102,9 +102,9 @@
             "properties": {
               "to": {
                 "type": "string",
-                "maxLength": 64,
-                "pattern": "^[a-z0-9][a-z0-9_-]*$",
-                "description": "Id of the element in this beat to pin to (a connector, for middle)."
+                "maxLength": 129,
+                "pattern": "^[a-z0-9][a-z0-9_-]*(\\/[a-z0-9][a-z0-9_-]*)?$",
+                "description": "Id of an element of this board to pin to (a connector, for middle); never a pattern instance or an element inside one."
               },
               "side": {
                 "default": "top",
@@ -538,9 +538,9 @@
             "properties": {
               "to": {
                 "type": "string",
-                "maxLength": 64,
-                "pattern": "^[a-z0-9][a-z0-9_-]*$",
-                "description": "Id of the element in this beat to pin to (a connector, for middle)."
+                "maxLength": 129,
+                "pattern": "^[a-z0-9][a-z0-9_-]*(\\/[a-z0-9][a-z0-9_-]*)?$",
+                "description": "Id of an element of this board to pin to (a connector, for middle); never a pattern instance or an element inside one."
               },
               "side": {
                 "default": "top",
@@ -1496,9 +1496,9 @@
             "properties": {
               "to": {
                 "type": "string",
-                "maxLength": 64,
-                "pattern": "^[a-z0-9][a-z0-9_-]*$",
-                "description": "Id of the element in this beat to pin to (a connector, for middle)."
+                "maxLength": 129,
+                "pattern": "^[a-z0-9][a-z0-9_-]*(\\/[a-z0-9][a-z0-9_-]*)?$",
+                "description": "Id of an element of this board to pin to (a connector, for middle); never a pattern instance or an element inside one."
               },
               "side": {
                 "default": "top",
@@ -1895,9 +1895,9 @@
             "properties": {
               "to": {
                 "type": "string",
-                "maxLength": 64,
-                "pattern": "^[a-z0-9][a-z0-9_-]*$",
-                "description": "Id of the element in this beat to pin to (a connector, for middle)."
+                "maxLength": 129,
+                "pattern": "^[a-z0-9][a-z0-9_-]*(\\/[a-z0-9][a-z0-9_-]*)?$",
+                "description": "Id of an element of this board to pin to (a connector, for middle); never a pattern instance or an element inside one."
               },
               "side": {
                 "default": "top",

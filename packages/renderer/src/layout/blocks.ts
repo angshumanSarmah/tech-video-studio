@@ -84,17 +84,21 @@ export function row(blocks: readonly Block[], gap: number): Block {
 }
 
 /** Blocks stacked top to bottom, centred on a shared vertical axis. */
-export function column(blocks: readonly Block[], gap: number): Block {
+export function column(blocks: readonly Block[], gap: number | GapAfter): Block {
   const parts = blocks.filter((b) => !isEmpty(b));
   const width = Math.max(0, ...parts.map((b) => b.width));
+  const after = typeof gap === 'number' ? () => gap : gap;
   let y = 0;
-  const placed = parts.map((b) => {
+  const placed = parts.map((b, i) => {
     const moved = shift(b, (width - b.width) / 2, y);
-    y += b.height + gap;
+    y += b.height + after(b, parts[i + 1]);
     return moved;
   });
   return combine(placed);
 }
+
+/** The space after `block` in a column, given the block below it (none after the last). */
+export type GapAfter = (block: Block, next: Block | undefined) => number;
 
 /** Rows of blocks no wider than `maxWidth` (a block wider than that gets a row of its own). */
 export function wrap(blocks: readonly Block[], maxWidth: number, gap: number): Block {

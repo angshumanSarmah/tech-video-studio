@@ -201,8 +201,9 @@ function pinProblem(item: SceneItem, byKey: ReadonlyMap<string, SceneItem>): str
   const pin = item.pin;
   if (!pin) return undefined;
   const host = byKey.get(pin.host);
-  if (!host && [...byKey.keys()].some((key) => key.startsWith(`${pin.host}/`))) {
-    return `is pinned to "${pin.host}", ${INSTANCE_PIN_MESSAGE}; pin it to one of this board's own elements. Placed on its own.`;
+  const instance = !host && [...byKey.keys()].some((key) => key.startsWith(`${pin.host}/`));
+  if (instance || pin.host.includes('/')) {
+    return `is pinned to "${pin.host}": ${INSTANCE_PIN_MESSAGE}; pin it to one of this board's own elements. Placed on its own.`;
   }
   if (!host || host.role === 'overlay') {
     return `is pinned to "${pin.host}", which is not on this board; placed on its own.`;
