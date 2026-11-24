@@ -231,6 +231,54 @@ describe('layout modes', () => {
     expect(warning?.message).toContain('Pins on the left or right of an element add to its width');
   });
 
+  describe('centered_focus with pins on the middle', () => {
+    const pin = (to: string, side: string) => ({ pin: { to, side } });
+    const run = (items: WorldItem[]) =>
+      layout({ items, mode: 'centered_focus', focus: [] }, theme, fullFrame());
+    const midY = (result: ReturnType<typeof run>, key: string) => centre(byKey(result, key).rect).y;
+
+    it('stacks the others in a tall frame when no link joins them, whatever the pins', () => {
+      const result = run([
+        node('bucket', 'center', 'TOKEN BUCKET'),
+        tag('above', undefined, { text: 'PER KEY', ...pin('bucket', 'top') }),
+        tag('below', undefined, { text: 'SPEND ONE', ...pin('bucket', 'bottom') }),
+        node('req', 'around', 'REQUEST'),
+        node('refill', 'around', 'REFILL'),
+      ]);
+      expect(midY(result, 'req')).toBeLessThan(byKey(result, 'above').rect.y);
+      expect(midY(result, 'refill')).toBeGreaterThan(
+        byKey(result, 'below').rect.y + byKey(result, 'below').rect.height,
+      );
+      expect(result.warnings.filter((w) => w.code === 'text_too_small')).toEqual([]);
+    });
+
+    it('puts every other unit on the free side when only one of top and bottom is pinned', () => {
+      const result = run([
+        node('tok', 'center', 'MODEL TOKENIZER'),
+        tag('tok-tag', undefined, { text: 'EXACT ONE', ...pin('tok', 'bottom') }),
+        node('budget', 'around', 'BUDGETS'),
+        node('limit', 'around', 'LIMITS'),
+        link('flow', 'tok', 'budget'),
+      ]);
+      expect(midY(result, 'budget')).toBeLessThan(byKey(result, 'tok').rect.y);
+      expect(midY(result, 'limit')).toBeLessThan(byKey(result, 'tok').rect.y);
+      expect(result.warnings.filter((w) => w.code === 'connector_crosses')).toEqual([]);
+    });
+
+    it('keeps the pin axis free when a link joins the middle and both its top and bottom are pinned', () => {
+      const result = run([
+        node('core', 'center', 'CORE'),
+        tag('up', undefined, { text: 'UP', ...pin('core', 'top') }),
+        tag('down', undefined, { text: 'DOWN', ...pin('core', 'bottom') }),
+        node('peer', 'around', 'PEER'),
+        link('to-peer', 'core', 'peer'),
+      ]);
+      const core = byKey(result, 'core').rect;
+      expect(midY(result, 'peer')).toBeGreaterThan(core.y);
+      expect(midY(result, 'peer')).toBeLessThan(core.y + core.height);
+    });
+  });
+
   it('keeps linked stacked_list rows a link gap apart, so a midpoint pin clears both', () => {
     const items = [
       node('gateway', 'row', 'GATEWAY NODE'),

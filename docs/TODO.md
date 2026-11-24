@@ -4,13 +4,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 
 ## Open
 
-- [ ] **Layout — `centered_focus` with pins on the middle.** When the middle element has pins on
-      top or bottom only, `placeCenteredFocus` (`place/radial.ts`, `stacked`) puts every other unit
-      left and right of it, even in a tall frame and with no link into the middle, and the fit cannot
-      flip it. In the generator recordings (2026-11-24) this failed rate limiter beat2 (62%: four units
-      in one row), beat6 (50%) and tokenizer b7 (68%) with `text_too_small` on a first attempt.
-      Proposal: apply the pin axis only when a link joins the middle to an around unit, and with one
-      vertical side pinned put the others on the free side.
 - [ ] **P1C.5 — Record catalogue versions per call.** The block's `CATALOGUE VERSIONS` line
       lands in the prompt file and the Director's step input (`catalogueVersions`); a column on
       `llm_calls` would make it queryable.

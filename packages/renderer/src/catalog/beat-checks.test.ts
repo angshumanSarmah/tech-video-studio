@@ -126,6 +126,61 @@ describe('zoom_from_unplanned', () => {
   });
 });
 
+describe('element_without_enter', () => {
+  // Golden `bucket` (scene 2): tokens and refill (the focus), reply pinned under tokens.
+  // Golden `store` (scene 3): api enters on a word and is not in the focus.
+  const withoutEnter = (s: Scenes, id: string, i = 2) => {
+    const beat = scene(s, i);
+    beat.events = beat.events.filter((e) => !(e.action === 'enter' && e.targets.includes(id)));
+  };
+  const found = (spec: RenderableVideoSpec) =>
+    codes(spec).filter((c) => c.endsWith('element_without_enter'));
+
+  it('flags a new element with no enter event', () => {
+    const spec = golden((s) => withoutEnter(s, 'api', 3));
+    expect(found(spec)).toEqual(['$.scenes[3].elements[0] element_without_enter']);
+    expect(beatCheckWarnings(spec).find((w) => w.code === 'element_without_enter')?.message).toBe(
+      '"api" is on screen from the start of the beat, before the narration gets to it. Add an ' +
+        '`enter` event on the word where the narration first names it. Only the starting focus ' +
+        '(`focus`) may be there from the start; a pinned element comes in with its host.',
+    );
+  });
+
+  it('flags an enter anchored to the beat edge instead of a word', () => {
+    const spec = golden((s) => {
+      const enter = scene(s, 3).events.find((e) => e.targets.includes('api'))!;
+      enter.at = { type: 'beat', edge: 'start', offsetSec: 0 };
+    });
+    expect(found(spec)).toEqual(['$.scenes[3].elements[0] element_without_enter']);
+  });
+
+  it('lets the starting focus be there from the start', () => {
+    expect(found(golden((s) => withoutEnter(s, 'refill')))).toEqual([]);
+  });
+
+  it('lets a pinned element come in with a host that enters, but not with one that does not', () => {
+    expect(found(golden((s) => withoutEnter(s, 'reply')))).toEqual([]);
+    const hostStill = golden((s) => {
+      withoutEnter(s, 'reply');
+      withoutEnter(s, 'tokens');
+    });
+    expect(found(hostStill)).toEqual(['$.scenes[2].elements[1] element_without_enter']);
+  });
+
+  it('flags a pattern instance whose entrances sit on the beat edge, unless it is the focus', () => {
+    const edge = (s: Scenes) => {
+      const at = scene(s, 6).patterns[0]!.params.at as Record<string, unknown>;
+      for (const name of Object.keys(at)) at[name] = { type: 'beat', edge: 'start', offsetSec: 0 };
+    };
+    expect(found(golden(edge))).toEqual([]);
+    const unfocused = golden((s) => {
+      edge(s);
+      scene(s, 6).focus = [];
+    });
+    expect(found(unfocused)).toEqual(['$.scenes[6].patterns[0] element_without_enter']);
+  });
+});
+
 describe('events_share_word', () => {
   const word = { type: 'word', index: 4 } as const;
 

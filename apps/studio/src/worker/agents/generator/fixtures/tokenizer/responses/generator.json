@@ -121,39 +121,21 @@
   ],
   "b7": [
     {
-      "content": "{\n  \"elements\": [\n    {\n      \"id\": \"tok\",\n      \"primitive\": \"node_card\",\n      \"props\": {\n        \"title\": \"MODEL TOKENIZER\",\n        \"subtitle\": \"the exact one it calls\",\n        \"icon\": \"scan_text\",\n        \"semantic\": \"focus\"\n      },\n      \"zone\": \"center\"\n    },\n    {\n      \"id\": \"tok_tag\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"exact tokenizer\",\n        \"semantic\": \"focus\",\n        \"pin\": {\n          \"to\": \"tok\",\n          \"side\": \"bottom\"\n        }\n      },\n      \"zone\": \"around\"\n    },\n    {\n      \"id\": \"budget\",\n      \"primitive\": \"node_card\",\n      \"props\": {\n        \"title\": \"LANGUAGE BUDGETS\",\n        \"subtitle\": \"written in tokens\",\n        \"icon\": \"bar_chart\",\n        \"semantic\": \"ok\"\n      },\n      \"zone\": \"around\"\n    },\n    {\n      \"id\": \"budget_tag\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"budgets in tokens\",\n        \"semantic\": \"ok\",\n        \"pin\": {\n          \"to\": \"budget\",\n          \"side\": \"bottom\"\n        }\n      },\n      \"zone\": \"around\"\n    },\n    {\n      \"id\": \"count_flow\",\n      \"primitive\": \"connector\",\n      \"props\": {\n        \"from\": \"tok\",\n        \"to\": \"budget\",\n        \"label\": \"token count\",\n        \"semantic\": \"concept\"\n      },\n      \"zone\": \"around\"\n    }\n  ],\n  \"patterns\": [],\n  \"events\": [\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 2\n      },\n      \"action\": \"enter\",\n      \"targets\": [\"tok\"]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 6\n      },\n      \"action\": \"enter\",\n      \"targets\": [\"tok_tag\"]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 14\n      },\n      \"action\": \"enter\",\n      \"targets\": [\"budget\"]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 16\n      },\n      \"action\": \"enter\",\n      \"targets\": [\"count_flow\"]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 17\n      },\n      \"action\": \"enter\",\n      \"targets\": [\"budget_tag\"]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 18\n      },\n      \"action\": \"move\",\n      \"targets\": [\"count_flow\"]\n    }\n  ],\n  \"focus\": [\"tok\"],\n  \"transitionIn\": \"fade\"\n}",
+      "content": "{\"elements\":[{\"id\":\"tokenizer-card\",\"primitive\":\"node_card\",\"zone\":\"center\",\"props\":{\"title\":\"TOKENIZER\",\"subtitle\":\"the model's own\",\"icon\":\"scan_text\",\"semantic\":\"focus\"}},{\"id\":\"exact-tokenizer\",\"primitive\":\"tag\",\"zone\":\"around\",\"props\":{\"text\":\"exact tokenizer\",\"semantic\":\"focus\",\"pin\":{\"to\":\"tokenizer-card\",\"side\":\"top\"}}},{\"id\":\"budgets-tokens\",\"primitive\":\"tag\",\"zone\":\"aside\",\"props\":{\"text\":\"budgets in tokens\",\"semantic\":\"concept\"}}],\"patterns\":[],\"events\":[{\"at\":{\"type\":\"word\",\"index\":7},\"action\":\"enter\",\"targets\":[\"tokenizer-card\"]},{\"at\":{\"type\":\"word\",\"index\":15},\"action\":\"enter\",\"targets\":[\"budgets-tokens\"]}],\"focus\":[\"tokenizer-card\"],\"transitionIn\":\"fade\"}",
       "servedModel": "deepseek-flash",
       "finishReason": "stop",
       "usage": {
         "prompt_tokens": 33939,
-        "completion_tokens": 3669,
-        "prompt_cache_hit_tokens": 32896,
-        "prompt_cache_miss_tokens": 1043,
+        "completion_tokens": 3025,
+        "prompt_cache_hit_tokens": 33792,
+        "prompt_cache_miss_tokens": 147,
         "prompt_tokens_details": {
-          "cached_tokens": 32896
+          "cached_tokens": 33792
         },
         "completion_tokens_details": {
-          "reasoning_tokens": 3019
+          "reasoning_tokens": 2826
         },
-        "total_tokens": 37608
-      }
-    },
-    {
-      "content": "{\n  \"elements\": [\n    {\n      \"id\": \"tok\",\n      \"primitive\": \"node_card\",\n      \"props\": {\n        \"title\": \"TOKENIZER\",\n        \"icon\": \"scan_text\",\n        \"semantic\": \"focus\"\n      },\n      \"zone\": \"center\"\n    },\n    {\n      \"id\": \"tok_tag\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"exact tokenizer\",\n        \"semantic\": \"focus\",\n        \"pin\": {\n          \"to\": \"tok\",\n          \"side\": \"bottom\"\n        }\n      },\n      \"zone\": \"around\"\n    },\n    {\n      \"id\": \"budget\",\n      \"primitive\": \"node_card\",\n      \"props\": {\n        \"title\": \"BUDGETS\",\n        \"icon\": \"bar_chart\",\n        \"semantic\": \"ok\"\n      },\n      \"zone\": \"around\"\n    },\n    {\n      \"id\": \"budget_tag\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"budgets in tokens\",\n        \"semantic\": \"ok\",\n        \"pin\": {\n          \"to\": \"budget\",\n          \"side\": \"bottom\"\n        }\n      },\n      \"zone\": \"around\"\n    }\n  ],\n  \"patterns\": [],\n  \"events\": [\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 2\n      },\n      \"action\": \"enter\",\n      \"targets\": [\"tok\"]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 6\n      },\n      \"action\": \"enter\",\n      \"targets\": [\"tok_tag\"]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 14\n      },\n      \"action\": \"enter\",\n      \"targets\": [\"budget\"]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 17\n      },\n      \"action\": \"enter\",\n      \"targets\": [\"budget_tag\"]\n    }\n  ],\n  \"focus\": [\"tok\"],\n  \"transitionIn\": \"fade\"\n}",
-      "servedModel": "deepseek-flash",
-      "finishReason": "stop",
-      "usage": {
-        "prompt_tokens": 34728,
-        "completion_tokens": 1582,
-        "prompt_cache_hit_tokens": 33920,
-        "prompt_cache_miss_tokens": 808,
-        "prompt_tokens_details": {
-          "cached_tokens": 33920
-        },
-        "completion_tokens_details": {
-          "reasoning_tokens": 1110
-        },
-        "total_tokens": 36310
+        "total_tokens": 36964
       }
     }
   ]

@@ -45,3 +45,10 @@ export function zoneColumn(ctx: ModeContext, zone: string): Block {
   const blocks = zoneBlocks(ctx, zone);
   return blocks.length > 0 ? column(blocks, ctx.gap) : EMPTY_BLOCK;
 }
+
+/** Whether a link joins a unit of `a` with a unit of `b`, either way. */
+export function linked(ctx: ModeContext, a: readonly string[], b: readonly string[]): boolean {
+  return ctx.links.some(
+    (l) => (a.includes(l.from) && b.includes(l.to)) || (b.includes(l.from) && a.includes(l.to)),
+  );
+}

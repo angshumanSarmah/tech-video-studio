@@ -39,39 +39,21 @@
   ],
   "beat2": [
     {
-      "content": "{\n  \"elements\": [\n    {\n      \"id\": \"req\",\n      \"primitive\": \"item_icon\",\n      \"props\": {\n        \"asset\": \"credit_card\",\n        \"caption\": \"checkout request\",\n        \"semantic\": \"neutral\"\n      },\n      \"zone\": \"around\"\n    },\n    {\n      \"id\": \"key\",\n      \"primitive\": \"icon\",\n      \"props\": {\n        \"asset\": \"key\",\n        \"semantic\": \"concept\"\n      },\n      \"zone\": \"around\"\n    },\n    {\n      \"id\": \"bucket\",\n      \"primitive\": \"counter_transition\",\n      \"props\": {\n        \"from\": 100,\n        \"to\": 99,\n        \"unit\": \"tokens\",\n        \"label\": \"in the bucket\",\n        \"fromSemantic\": \"ok\",\n        \"toSemantic\": \"focus\"\n      },\n      \"zone\": \"center\"\n    },\n    {\n      \"id\": \"refill\",\n      \"primitive\": \"counter\",\n      \"props\": {\n        \"value\": 10,\n        \"unit\": \"tokens/s\",\n        \"label\": \"refill rate\",\n        \"semantic\": \"ok\"\n      },\n      \"zone\": \"around\"\n    },\n    {\n      \"id\": \"tag-perkey\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"per-key bucket\",\n        \"semantic\": \"concept\",\n        \"pin\": {\n          \"to\": \"bucket\",\n          \"side\": \"top\"\n        }\n      }\n    },\n    {\n      \"id\": \"tag-spend\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"spend one token\",\n        \"semantic\": \"focus\",\n        \"pin\": {\n          \"to\": \"bucket\",\n          \"side\": \"bottom\"\n        }\n      }\n    }\n  ],\n  \"events\": [\n    {\n      \"at\": { \"type\": \"word\", \"index\": 1 },\n      \"action\": \"enter\",\n      \"targets\": [\"req\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 1 },\n      \"action\": \"focus\",\n      \"targets\": [\"req\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 5 },\n      \"action\": \"enter\",\n      \"targets\": [\"key\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 5 },\n      \"action\": \"focus\",\n      \"targets\": [\"key\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 16 },\n      \"action\": \"enter\",\n      \"targets\": [\"bucket\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 16 },\n      \"action\": \"focus\",\n      \"targets\": [\"bucket\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 17 },\n      \"action\": \"enter\",\n      \"targets\": [\"tag-perkey\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 23 },\n      \"action\": \"enter\",\n      \"targets\": [\"refill\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 26 },\n      \"action\": \"enter\",\n      \"targets\": [\"tag-spend\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 28 },\n      \"action\": \"count\",\n      \"targets\": [\"bucket\"]\n    }\n  ],\n  \"focus\": [\"bucket\"],\n  \"transitionIn\": \"fade\"\n}",
+      "content": "{\n  \"elements\": [\n    {\n      \"id\": \"request\",\n      \"primitive\": \"item_icon\",\n      \"zone\": \"around\",\n      \"props\": {\n        \"asset\": \"credit_card\",\n        \"caption\": \"checkout request\",\n        \"semantic\": \"neutral\"\n      }\n    },\n    {\n      \"id\": \"bucket\",\n      \"primitive\": \"counter_transition\",\n      \"zone\": \"center\",\n      \"props\": {\n        \"from\": 100,\n        \"to\": 99,\n        \"unit\": \"tokens\",\n        \"label\": \"capacity\",\n        \"fromSemantic\": \"neutral\",\n        \"toSemantic\": \"focus\"\n      }\n    },\n    {\n      \"id\": \"perkey_tag\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"per-key bucket\",\n        \"semantic\": \"concept\",\n        \"pin\": {\n          \"to\": \"bucket\",\n          \"side\": \"top\"\n        }\n      }\n    },\n    {\n      \"id\": \"refill\",\n      \"primitive\": \"counter\",\n      \"zone\": \"around\",\n      \"props\": {\n        \"value\": 10,\n        \"from\": 0,\n        \"unit\": \"tokens/s\",\n        \"label\": \"refill rate\",\n        \"semantic\": \"concept\"\n      }\n    },\n    {\n      \"id\": \"spend_tag\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"spend one token\",\n        \"semantic\": \"focus\",\n        \"pin\": {\n          \"to\": \"bucket\",\n          \"side\": \"bottom\"\n        }\n      }\n    }\n  ],\n  \"patterns\": [],\n  \"events\": [\n    {\n      \"at\": { \"type\": \"word\", \"index\": 1 },\n      \"action\": \"enter\",\n      \"targets\": [\"request\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 8 },\n      \"action\": \"enter\",\n      \"targets\": [\"bucket\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 9 },\n      \"action\": \"enter\",\n      \"targets\": [\"perkey_tag\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 22 },\n      \"action\": \"enter\",\n      \"targets\": [\"refill\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 23 },\n      \"action\": \"count\",\n      \"targets\": [\"refill\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 27 },\n      \"action\": \"enter\",\n      \"targets\": [\"spend_tag\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 28 },\n      \"action\": \"count\",\n      \"targets\": [\"bucket\"]\n    }\n  ],\n  \"focus\": [\"bucket\"],\n  \"transitionIn\": \"fade\"\n}",
       "servedModel": "deepseek-flash",
       "finishReason": "stop",
       "usage": {
         "prompt_tokens": 34148,
-        "completion_tokens": 16047,
-        "prompt_cache_hit_tokens": 32896,
-        "prompt_cache_miss_tokens": 1252,
+        "completion_tokens": 7292,
+        "prompt_cache_hit_tokens": 33920,
+        "prompt_cache_miss_tokens": 228,
         "prompt_tokens_details": {
-          "cached_tokens": 32896
+          "cached_tokens": 33920
         },
         "completion_tokens_details": {
-          "reasoning_tokens": 15255
+          "reasoning_tokens": 6645
         },
-        "total_tokens": 50195
-      }
-    },
-    {
-      "content": "{\n  \"elements\": [\n    {\n      \"id\": \"bucket\",\n      \"primitive\": \"counter_transition\",\n      \"props\": {\n        \"from\": 100,\n        \"to\": 99,\n        \"unit\": \"tokens\",\n        \"fromSemantic\": \"ok\",\n        \"toSemantic\": \"focus\"\n      },\n      \"zone\": \"center\"\n    },\n    {\n      \"id\": \"refill\",\n      \"primitive\": \"counter\",\n      \"props\": {\n        \"value\": 10,\n        \"unit\": \"tokens/s\",\n        \"label\": \"refill rate\",\n        \"semantic\": \"ok\"\n      },\n      \"zone\": \"around\"\n    },\n    {\n      \"id\": \"tag-perkey\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"per-key bucket\",\n        \"semantic\": \"concept\",\n        \"pin\": {\n          \"to\": \"bucket\",\n          \"side\": \"top\"\n        }\n      }\n    },\n    {\n      \"id\": \"tag-spend\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"spend one token\",\n        \"semantic\": \"focus\",\n        \"pin\": {\n          \"to\": \"bucket\",\n          \"side\": \"bottom\"\n        }\n      }\n    }\n  ],\n  \"events\": [\n    {\n      \"at\": { \"type\": \"word\", \"index\": 8 },\n      \"action\": \"enter\",\n      \"targets\": [\"bucket\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 8 },\n      \"action\": \"focus\",\n      \"targets\": [\"bucket\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 9 },\n      \"action\": \"enter\",\n      \"targets\": [\"tag-perkey\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 23 },\n      \"action\": \"enter\",\n      \"targets\": [\"refill\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 28 },\n      \"action\": \"enter\",\n      \"targets\": [\"tag-spend\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 29 },\n      \"action\": \"count\",\n      \"targets\": [\"bucket\"]\n    }\n  ],\n  \"focus\": [\"bucket\"],\n  \"transitionIn\": \"fade\"\n}",
-      "servedModel": "deepseek-flash",
-      "finishReason": "stop",
-      "usage": {
-        "prompt_tokens": 35091,
-        "completion_tokens": 3721,
-        "prompt_cache_hit_tokens": 34048,
-        "prompt_cache_miss_tokens": 1043,
-        "prompt_tokens_details": {
-          "cached_tokens": 34048
-        },
-        "completion_tokens_details": {
-          "reasoning_tokens": 3191
-        },
-        "total_tokens": 38812
+        "total_tokens": 41440
       }
     }
   ],
@@ -173,57 +155,21 @@
   ],
   "beat6": [
     {
-      "content": "{\"elements\":[{\"id\":\"store\",\"primitive\":\"node_card\",\"props\":{\"title\":\"SHARED STORE\",\"subtitle\":\"holds every bucket\",\"icon\":\"database\",\"semantic\":\"neutral\"},\"zone\":\"around\"},{\"id\":\"limiter\",\"primitive\":\"node_card\",\"props\":{\"title\":\"RATE LIMITER\",\"subtitle\":\"checks against the store\",\"icon\":\"server\",\"semantic\":\"neutral\"},\"zone\":\"around\"},{\"id\":\"latency\",\"primitive\":\"counter_transition\",\"props\":{\"from\":1,\"to\":80,\"unit\":\"ms\",\"label\":\"STORE CALL\",\"fromSemantic\":\"ok\",\"toSemantic\":\"problem\"},\"zone\":\"center\"},{\"id\":\"replica_tag\",\"primitive\":\"tag\",\"props\":{\"text\":\"cross-zone replica\",\"semantic\":\"concept\",\"pin\":{\"to\":\"store\",\"side\":\"top\"}}},{\"id\":\"timeout_tag\",\"primitive\":\"tag\",\"props\":{\"text\":\"past the timeout\",\"semantic\":\"problem\",\"pin\":{\"to\":\"latency\",\"side\":\"top\"}}},{\"id\":\"store_latency_stat\",\"primitive\":\"stat_card\",\"props\":{\"value\":\"80 ms\",\"label\":\"Store call after failover\",\"source\":\"Post-incident report: checkout errors on 14 March 2025\",\"semantic\":\"problem\"},\"zone\":\"aside\"}],\"patterns\":[],\"events\":[{\"at\":{\"type\":\"word\",\"index\":3},\"action\":\"enter\",\"targets\":[\"store\"]},{\"at\":{\"type\":\"word\",\"index\":9},\"action\":\"enter\",\"targets\":[\"replica_tag\"]},{\"at\":{\"type\":\"word\",\"index\":13},\"action\":\"enter\",\"targets\":[\"latency\"]},{\"at\":{\"type\":\"word\",\"index\":20},\"action\":\"count\",\"targets\":[\"latency\"]},{\"at\":{\"type\":\"word\",\"index\":21},\"action\":\"enter\",\"targets\":[\"store_latency_stat\"]},{\"at\":{\"type\":\"word\",\"index\":25},\"action\":\"enter\",\"targets\":[\"timeout_tag\"]},{\"at\":{\"type\":\"word\",\"index\":28},\"action\":\"focus\",\"targets\":[\"limiter\"]},{\"at\":{\"type\":\"word\",\"index\":29},\"action\":\"enter\",\"targets\":[\"limiter\"]},{\"at\":{\"type\":\"word\",\"index\":34},\"action\":\"reject\",\"targets\":[\"limiter\"]}],\"focus\":[\"latency\"],\"transitionIn\":\"fade\"}",
+      "content": "{\n  \"elements\": [\n    {\n      \"id\": \"store\",\n      \"primitive\": \"node_card\",\n      \"zone\": \"center\",\n      \"props\": {\n        \"title\": \"STORE\",\n        \"subtitle\": \"replica in another zone\",\n        \"icon\": \"database\",\n        \"semantic\": \"neutral\"\n      }\n    },\n    {\n      \"id\": \"check_card\",\n      \"primitive\": \"node_card\",\n      \"zone\": \"around\",\n      \"props\": {\n        \"title\": \"LIMITER CHECK\",\n        \"subtitle\": \"calls the store\",\n        \"icon\": \"search\",\n        \"semantic\": \"neutral\"\n      }\n    },\n    {\n      \"id\": \"latency_card\",\n      \"primitive\": \"stat_card\",\n      \"zone\": \"around\",\n      \"props\": {\n        \"value\": \"80 ms\",\n        \"label\": \"Store call after failover\",\n        \"source\": \"Post-incident report: checkout errors on 14 March 2025\",\n        \"semantic\": \"problem\"\n      }\n    },\n    {\n      \"id\": \"zone_tag\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"cross-zone replica\",\n        \"semantic\": \"concept\",\n        \"pin\": {\n          \"to\": \"store\",\n          \"side\": \"bottom\"\n        }\n      }\n    },\n    {\n      \"id\": \"timeout_tag\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"past the timeout\",\n        \"semantic\": \"problem\",\n        \"pin\": {\n          \"to\": \"latency_card\",\n          \"side\": \"top\"\n        }\n      }\n    }\n  ],\n  \"patterns\": [],\n  \"events\": [\n    {\n      \"at\": { \"type\": \"word\", \"index\": 3 },\n      \"action\": \"enter\",\n      \"targets\": [\"store\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 9 },\n      \"action\": \"enter\",\n      \"targets\": [\"zone_tag\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 13 },\n      \"action\": \"enter\",\n      \"targets\": [\"check_card\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 20 },\n      \"action\": \"enter\",\n      \"targets\": [\"latency_card\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 20 },\n      \"action\": \"focus\",\n      \"targets\": [\"latency_card\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 27 },\n      \"action\": \"enter\",\n      \"targets\": [\"timeout_tag\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 28 },\n      \"action\": \"focus\",\n      \"targets\": [\"check_card\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 31 },\n      \"action\": \"reject\",\n      \"targets\": [\"check_card\"]\n    }\n  ],\n  \"focus\": [\"store\"],\n  \"transitionIn\": \"fade\"\n}",
       "servedModel": "deepseek-flash",
       "finishReason": "stop",
       "usage": {
         "prompt_tokens": 34177,
-        "completion_tokens": 7014,
-        "prompt_cache_hit_tokens": 32896,
-        "prompt_cache_miss_tokens": 1281,
+        "completion_tokens": 10513,
+        "prompt_cache_hit_tokens": 34043,
+        "prompt_cache_miss_tokens": 134,
         "prompt_tokens_details": {
-          "cached_tokens": 32896
+          "cached_tokens": 34043
         },
         "completion_tokens_details": {
-          "reasoning_tokens": 6509
+          "reasoning_tokens": 9819
         },
-        "total_tokens": 41191
-      }
-    },
-    {
-      "content": "{\"elements\":[{\"id\":\"store\",\"primitive\":\"icon\",\"props\":{\"asset\":\"database\",\"semantic\":\"concept\"},\"zone\":\"around\"},{\"id\":\"latency\",\"primitive\":\"counter_transition\",\"props\":{\"from\":1,\"to\":80,\"unit\":\"ms\",\"label\":\"STORE CALL\",\"fromSemantic\":\"ok\",\"toSemantic\":\"problem\"},\"zone\":\"center\"},{\"id\":\"replica_tag\",\"primitive\":\"tag\",\"props\":{\"text\":\"cross-zone replica\",\"semantic\":\"concept\",\"pin\":{\"to\":\"store\",\"side\":\"top\"}}},{\"id\":\"timeout_tag\",\"primitive\":\"tag\",\"props\":{\"text\":\"past the timeout\",\"semantic\":\"problem\",\"pin\":{\"to\":\"latency\",\"side\":\"top\"}}},{\"id\":\"store_latency_stat\",\"primitive\":\"stat_card\",\"props\":{\"value\":\"80 ms\",\"label\":\"Store call after failover\",\"source\":\"Post-incident report: checkout errors on 14 March 2025\",\"semantic\":\"problem\"},\"zone\":\"aside\"}],\"patterns\":[],\"events\":[{\"at\":{\"type\":\"word\",\"index\":3},\"action\":\"enter\",\"targets\":[\"store\"]},{\"at\":{\"type\":\"word\",\"index\":9},\"action\":\"enter\",\"targets\":[\"replica_tag\"]},{\"at\":{\"type\":\"word\",\"index\":13},\"action\":\"enter\",\"targets\":[\"latency\"]},{\"at\":{\"type\":\"word\",\"index\":20},\"action\":\"count\",\"targets\":[\"latency\"]},{\"at\":{\"type\":\"word\",\"index\":21},\"action\":\"enter\",\"targets\":[\"store_latency_stat\"]},{\"at\":{\"type\":\"word\",\"index\":25},\"action\":\"enter\",\"targets\":[\"timeout_tag\"]},{\"at\":{\"type\":\"word\",\"index\":31},\"action\":\"reject\",\"targets\":[\"latency\"]}],\"focus\":[\"latency\"],\"transitionIn\":\"fade\"}",
-      "servedModel": "deepseek-flash",
-      "finishReason": "stop",
-      "usage": {
-        "prompt_tokens": 34839,
-        "completion_tokens": 2160,
-        "prompt_cache_hit_tokens": 34176,
-        "prompt_cache_miss_tokens": 663,
-        "prompt_tokens_details": {
-          "cached_tokens": 34176
-        },
-        "completion_tokens_details": {
-          "reasoning_tokens": 1759
-        },
-        "total_tokens": 36999
-      }
-    },
-    {
-      "content": "{\"elements\":[{\"id\":\"store\",\"primitive\":\"icon\",\"props\":{\"asset\":\"database\",\"semantic\":\"concept\"},\"zone\":\"around\"},{\"id\":\"latency\",\"primitive\":\"counter_transition\",\"props\":{\"from\":1,\"to\":80,\"unit\":\"ms\",\"label\":\"STORE CALL\",\"fromSemantic\":\"ok\",\"toSemantic\":\"problem\"},\"zone\":\"center\"},{\"id\":\"replica_tag\",\"primitive\":\"tag\",\"props\":{\"text\":\"cross-zone replica\",\"semantic\":\"concept\",\"pin\":{\"to\":\"store\",\"side\":\"top\"}}},{\"id\":\"timeout_tag\",\"primitive\":\"tag\",\"props\":{\"text\":\"past the timeout\",\"semantic\":\"problem\",\"pin\":{\"to\":\"latency\",\"side\":\"top\"}}},{\"id\":\"store_latency_stat\",\"primitive\":\"stat_card\",\"props\":{\"value\":\"80 ms\",\"label\":\"Store call after failover\",\"source\":\"Post-incident report: checkout errors on 14 March 2025\",\"semantic\":\"problem\"},\"zone\":\"aside\"}],\"patterns\":[],\"events\":[{\"at\":{\"type\":\"word\",\"index\":3},\"action\":\"enter\",\"targets\":[\"store\"]},{\"at\":{\"type\":\"word\",\"index\":9},\"action\":\"enter\",\"targets\":[\"replica_tag\"]},{\"at\":{\"type\":\"word\",\"index\":13},\"action\":\"enter\",\"targets\":[\"latency\"]},{\"at\":{\"type\":\"word\",\"index\":20},\"action\":\"count\",\"targets\":[\"latency\"]},{\"at\":{\"type\":\"word\",\"index\":21},\"action\":\"enter\",\"targets\":[\"store_latency_stat\"]},{\"at\":{\"type\":\"word\",\"index\":25},\"action\":\"enter\",\"targets\":[\"timeout_tag\"]},{\"at\":{\"type\":\"word\",\"index\":31},\"action\":\"pulse\",\"targets\":[\"timeout_tag\"]}],\"focus\":[\"latency\"],\"transitionIn\":\"fade\"}",
-      "servedModel": "deepseek-flash",
-      "finishReason": "stop",
-      "usage": {
-        "prompt_tokens": 35321,
-        "completion_tokens": 705,
-        "prompt_cache_hit_tokens": 34816,
-        "prompt_cache_miss_tokens": 505,
-        "prompt_tokens_details": {
-          "cached_tokens": 34816
-        },
-        "completion_tokens_details": {
-          "reasoning_tokens": 303
-        },
-        "total_tokens": 36026
+        "total_tokens": 44690
       }
     }
   ],

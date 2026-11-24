@@ -669,8 +669,11 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   `events_under_ending_card` (an event or pattern anchor in the final beat's last sentence),
   `board_too_busy` (more than `MAX_BOARD_UNITS` (7) layout units plus overlay children at the
   beat's settled moment; 7 is the busiest golden or pattern board, `split_brain`, and a test
-  recomputes it) and `highlight_everything` (one highlight covering every unit of a board of 3
-  or more). A continuing beat that declares an inherited id again is `duplicate_id`
+  recomputes it), `highlight_everything` (one highlight covering every unit of a board of 3
+  or more) and `element_without_enter` (an element or pattern instance the beat adds has no
+  `enter` on a word, so it shows before the narration names it; the beat's starting `focus` and
+  anything pinned to, inside or following an element that enters on a word are exempt). A
+  continuing beat that declares an inherited id again is `duplicate_id`
   (`validateVideoSpec`).
 - **Schema metadata** (`common-props.ts`): `AssetIdSchema` carries `assetId`, `displayNumber()`
   marks numbers drawn on screen (with a `unit`: `sec` for durations; counter, timer, time bar,
@@ -1100,7 +1103,10 @@ theme)` lays out a whole spec, memoised per spec object and theme (never per fra
     corners. Followers are placed twice so routes also avoid midpoint pins. `packet_stream` reuses
     the route; midpoint pins sit beside the middle of the segment holding its midpoint (the free
     side). `connector_crosses` means no candidate cleared.
-  - **Mode details:** `stacked_list` puts the link gap (room for a label or midpoint pin)
+  - **Mode details:** `centered_focus` and `hub_spoke` put the others above and below the
+    middle in a tall frame (beside it in a wide one), all on the free side when only one of the
+    middle's top and bottom holds pins; only when a link joins the middle to them and its pins
+    sit on one axis do they take the other axis (`arrangement`). `stacked_list` puts the link gap (room for a label or midpoint pin)
     between two rows a link joins, the plain gap elsewhere; each `versus_split` half lists the
     units a link from the shared row reaches first, so no route from the shared row crosses a
     unit above them; a zone-less stat card in `versus_split` goes in the shared row.

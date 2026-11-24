@@ -10,6 +10,8 @@ import {
   type EffectiveTiming,
   type EventAnchor,
   type RenderableVideoSpec,
+  type SceneElement,
+  type ScenePattern,
   type SpecError,
 } from '@explainer-studio/shared';
 import { endingStartSec, hasEndingCard } from '../ending/ending-state.ts';
@@ -18,6 +20,7 @@ import { beatLayoutMode, LAYOUT_MODES } from '../layout/modes.ts';
 import { specLayout } from '../layout/spec-layout.ts';
 import type { Transform } from '../layout/fit.ts';
 import { elementState, type ElementEvent } from '../primitives/element-state.ts';
+import type { ElementRef } from '../primitives/types.ts';
 import { beatWorld, sceneChain, type WorldItem } from '../scene/beat-world.ts';
 import { getTheme, type Theme } from '../theme/index.ts';
 import { sceneEndSec } from '../timing/frames.ts';
@@ -29,8 +32,8 @@ import { settledSec } from './settled.ts';
  * agents repair them; specs stay valid. Each beat needs a focus, at least one change that moves,
  * and something visibly new; a board holds at most `MAX_BOARD_UNITS` things at once; one word
  * carries at most `MAX_UNRELATED_CHANGES_PER_WORD` unrelated changes; a highlight never covers
- * the whole board; only a `semantic_zoom` beat zooms from the previous board; and nothing is
- * anchored under the ending card. Pure; run on a spec that passed validation.
+ * the whole board; only a `semantic_zoom` beat zooms from the previous board; everything a beat
+ * adds enters on a word; and nothing is anchored under the ending card. Pure; run on a spec that passed validation.
  */
 
 /**
@@ -75,6 +78,7 @@ export function beatCheckWarnings(
     ...beatWithoutMotion(scene, i),
     ...beatWithoutChange(ctx, scene, i),
     ...zoomFromUnplanned(ctx, scene, i),
+    ...elementWithoutEnter(ctx, scene, i),
     ...eventsShareWord(ctx, scene, i),
     ...eventsUnderEndingCard(ctx, scene, i),
     ...boardChecks(ctx, scene, i),
@@ -173,6 +177,99 @@ function zoomFromUnplanned(ctx: Ctx, scene: BeatScene, i: number): SpecError[] {
         '`zoomFrom` out and use another transition.',
     ),
   ];
+}
+
+/**
+ * Everything a beat adds enters on a word, so nothing is on screen before the narration gets to
+ * it: each new element has an `enter` event anchored to a word, and each new pattern instance
+ * stages its entrances on words (`params.at`). Exempt: the beat's starting focus (`focus`), which
+ * may be there from the start, and an element pinned to, inside or following one that enters on
+ * a word in this beat (it comes in with its host).
+ */
+function elementWithoutEnter(ctx: Ctx, scene: BeatScene, i: number): SpecError[] {
+  const arrives = arrivingIds(ctx, scene);
+  const start = new Set(scene.focus);
+  const missing = (id: string) => !arrives.has(id) && !start.has(id);
+  const elements = scene.elements.flatMap((element, j) =>
+    missing(element.id)
+      ? [warning(['scenes', i, 'elements', j], 'element_without_enter', elementMessage(element.id))]
+      : [],
+  );
+  const patterns = scene.patterns.flatMap((pattern, j) =>
+    missing(pattern.id) && !instanceEntersOnWords(ctx, pattern)
+      ? [
+          warning(
+            ['scenes', i, 'patterns', j],
+            'element_without_enter',
+            instanceMessage(pattern.id),
+          ),
+        ]
+      : [],
+  );
+  return [...elements, ...patterns];
+}
+
+const elementMessage = (id: string) =>
+  `"${id}" is on screen from the start of the beat, before the narration gets to it. Add an ` +
+  '`enter` event on the word where the narration first names it. Only the starting focus ' +
+  '(`focus`) may be there from the start; a pinned element comes in with its host.';
+
+const instanceMessage = (id: string) =>
+  `Pattern instance "${id}" enters at the beat's edge, not on a word. Anchor its \`params.at\` ` +
+  'entrances to the words where the narration names each step.';
+
+const isWordAnchor = (anchor: EventAnchor) => anchor.type === 'word' || anchor.type === 'word_text';
+
+/**
+ * Ids that enter on a word in this beat: an `enter` event on a word, then (to a fixed point)
+ * elements pinned to, contained in or following one of them.
+ */
+function arrivingIds(ctx: Ctx, scene: BeatScene): Set<string> {
+  const arrives = new Set(
+    scene.events
+      .filter((e) => e.action === 'enter' && isWordAnchor(e.at))
+      .flatMap((e) => e.targets),
+  );
+  const hosts = hostsOf(ctx, scene);
+  for (let grew = true; grew;) {
+    grew = false;
+    for (const [id, of] of hosts) {
+      if (!arrives.has(id) && of.some((h) => arrives.has(h))) {
+        arrives.add(id);
+        grew = true;
+      }
+    }
+  }
+  return arrives;
+}
+
+/** Each element's hosts in this beat: what it is pinned to or follows, and its container. */
+function hostsOf(ctx: Ctx, scene: BeatScene): Map<string, string[]> {
+  const hosts = new Map<string, string[]>();
+  const add = (id: string, host: string) => hosts.set(id, [...(hosts.get(id) ?? []), host]);
+  for (const element of scene.elements) {
+    for (const ref of elementRefsOf(ctx, element)) {
+      if (ref.pin || ref.follows) add(element.id, ref.id);
+      if (ref.contains) add(ref.id, element.id);
+    }
+  }
+  return hosts;
+}
+
+function elementRefsOf(ctx: Ctx, element: SceneElement): ElementRef[] {
+  const definition = ctx.registries.primitives.get(element.primitive);
+  const props = definition?.propsSchema.safeParse(element.props);
+  if (!definition?.elementRefs || !props?.success) return [];
+  return definition.elementRefs(props.data);
+}
+
+/** An instance's expansion enters only on word anchors (its params fail elsewhere if invalid). */
+function instanceEntersOnWords(ctx: Ctx, pattern: ScenePattern): boolean {
+  const definition = ctx.registries.patterns.get(pattern.pattern);
+  const params = definition?.paramsSchema.safeParse(pattern.params);
+  if (!definition || !params?.success) return true;
+  const enters = definition.expand(params.data).events.filter((e) => e.action === 'enter');
+  return enters.length > 0 && enters.every((e) => isWordAnchor(e.at));
 }
 
 /** A beat's anchored changes: its events, and each anchor in its patterns' `params.at`. */

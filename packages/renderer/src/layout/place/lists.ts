@@ -11,7 +11,15 @@ import {
 } from '../blocks.ts';
 import { rectAt } from '../rect.ts';
 import type { ModeContext, ModePlacer } from '../types.ts';
-import { unitBlock, withAside, wrappedRow, zoneBlocks, zoneColumn, zoneUnits } from './common.ts';
+import {
+  linked,
+  unitBlock,
+  withAside,
+  wrappedRow,
+  zoneBlocks,
+  zoneColumn,
+  zoneUnits,
+} from './common.ts';
 
 /** Placers for list-like modes: stacked_list, grid, two_column, versus_split. */
 
@@ -26,13 +34,6 @@ export const placeStackedList: ModePlacer = (ctx) => {
 };
 
 const keysOf = (block: Block): string[] => [...block.rects.keys()];
-
-/** Whether a link joins a unit of `a` with a unit of `b`, either way. */
-function linked(ctx: ModeContext, a: readonly string[], b: readonly string[]): boolean {
-  return ctx.links.some(
-    (l) => (a.includes(l.from) && b.includes(l.to)) || (b.includes(l.from) && a.includes(l.to)),
-  );
-}
 
 /**
  * Equal cells: the column count whose grid is closest to the frame's shape, every cell as large as

@@ -2,14 +2,17 @@ import type { Rect } from '../../theme/index.ts';
 import { column, fromRects, row, wrap, type Block } from '../blocks.ts';
 import { inflate, overlaps, rectAt } from '../rect.ts';
 import type { ModeContext, ModePlacer, Unit } from '../types.ts';
-import { unitBlock, withAside, zoneUnits } from './common.ts';
+import { linked, unitBlock, withAside, zoneUnits } from './common.ts';
 
 /** Placers with a middle: centered_focus, hub_spoke and cycle. */
 
 /**
  * One element in the middle with the rest around it: above and below in a tall frame (rows, the
- * first half above), left and right in a wide one (columns), or on the axis the middle's pins leave
- * free. Without a `center` element, the first focus element moves to the middle.
+ * first half above), left and right in a wide one (columns). The middle's pins steer this: with
+ * one of its top and bottom pinned the others all go on the free one, and when a link joins the
+ * middle to the others and its pins sit on one axis only, the others take the other axis, so links
+ * never run through the pins. Without a `center` element, the first focus element moves to the
+ * middle.
  */
 export const placeCenteredFocus: ModePlacer = (ctx) => placeAround(ctx, 'center', 'around');
 
@@ -19,29 +22,55 @@ export const placeHubSpoke: ModePlacer = (ctx) => placeAround(ctx, 'hub', 'spoke
 function placeAround(ctx: ModeContext, middleZone: string, aroundZone: string): Block {
   const { middle, around } = splitMiddle(ctx, middleZone, aroundZone);
   const centre = column(middle.map(unitBlock), ctx.gap);
-  const half = Math.ceil(around.length / 2);
-  const first = around.slice(0, half).map(unitBlock);
-  const second = around.slice(half).map(unitBlock);
-  const main = stacked(ctx, middle)
-    ? column(
-        [wrap(first, ctx.maxRowWidth, ctx.gap), centre, wrap(second, ctx.maxRowWidth, ctx.gap)],
-        ctx.linkGap,
-      )
-    : row([column(first, ctx.gap), centre, column(second, ctx.gap)], ctx.linkGap);
-  return withAside(ctx, main);
+  const how = arrangement(ctx, middle, around);
+  return withAside(
+    ctx,
+    how.stacked ? stackedAround(ctx, centre, around, how.free) : sideBySide(ctx, centre, around),
+  );
 }
 
+type Arrangement = { stacked: boolean; free?: 'top' | 'bottom' };
+
 /**
- * Whether the others go above and below the middle (else left and right): by the frame's shape,
- * unless the middle has pins on one axis only; then the others take the other axis, so their links
- * never run through the pins.
+ * Whether the others go above and below the middle (else left and right), and on which side when
+ * only one of the middle's top and bottom is free.
  */
-function stacked(ctx: ModeContext, middle: readonly Unit[]): boolean {
+export function arrangement(
+  ctx: ModeContext,
+  middle: readonly Unit[],
+  around: readonly Unit[],
+): Arrangement {
   const sides = new Set(middle.flatMap((u) => [...(ctx.pinnedSides.get(u.key) ?? [])]));
   const across = sides.has('left') || sides.has('right');
   const along = sides.has('top') || sides.has('bottom');
-  if (across !== along) return across;
-  return ctx.aspect < 1.2;
+  const oneVertical = sides.has('top') !== sides.has('bottom');
+  const keys = (units: readonly Unit[]) => units.map((u) => u.key);
+  const pinAxis =
+    across !== along && !(oneVertical && !across) && linked(ctx, keys(middle), keys(around));
+  const stacked = pinAxis ? across : ctx.aspect < 1.2;
+  if (!stacked || !oneVertical) return { stacked };
+  return { stacked, free: sides.has('top') ? 'bottom' : 'top' };
+}
+
+/** Rows above and below the middle (the first half above), or all on its free side. */
+function stackedAround(
+  ctx: ModeContext,
+  centre: Block,
+  around: readonly Unit[],
+  free: 'top' | 'bottom' | undefined,
+): Block {
+  const rows = (units: readonly Unit[]) => wrap(units.map(unitBlock), ctx.maxRowWidth, ctx.gap);
+  if (free === 'top') return column([rows(around), centre], ctx.linkGap);
+  if (free === 'bottom') return column([centre, rows(around)], ctx.linkGap);
+  const half = Math.ceil(around.length / 2);
+  return column([rows(around.slice(0, half)), centre, rows(around.slice(half))], ctx.linkGap);
+}
+
+/** Columns left and right of the middle, the first half on the left. */
+function sideBySide(ctx: ModeContext, centre: Block, around: readonly Unit[]): Block {
+  const half = Math.ceil(around.length / 2);
+  const col = (units: readonly Unit[]) => column(units.map(unitBlock), ctx.gap);
+  return row([col(around.slice(0, half)), centre, col(around.slice(half))], ctx.linkGap);
 }
 
 function splitMiddle(ctx: ModeContext, middleZone: string, aroundZone: string) {
