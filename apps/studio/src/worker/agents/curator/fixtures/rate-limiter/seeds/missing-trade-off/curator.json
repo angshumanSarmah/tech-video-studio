@@ -1,0 +1,56 @@
+[
+  {
+    "content": "{\"issues\":[{\"beatId\":\"beat5\",\"category\":\"visual_contradicts\",\"severity\":\"blocking\",\"owner\":\"generator\",\"fields\":[\"board\"],\"evidence\":[{\"kind\":\"label\",\"elementId\":\"latency\",\"quote\":\"round trip per request\"},{\"kind\":\"narration\",\"quote\":\"Say the median round trip is zero point four milliseconds. At p ninety-nine, two point one.\"},{\"kind\":\"number\",\"id\":\"num-5\"},{\"kind\":\"number\",\"id\":\"num-6\"}],\"problem\":\"The single counter climbs from 0.4 to 2.1 and turns to the problem colour, so the board reads as one round trip getting slower, while the notes give 0.4 ms and 2.1 ms as two statistics of the same measurement and the same moment.\",\"fix\":\"Draw 0.4 ms and 2.1 ms as two separate static readouts labelled median and p99 instead of morphing one counter from one value to the other.\"},{\"beatId\":\"beat5\",\"category\":\"above_level\",\"severity\":\"advisory\",\"owner\":\"scriptwriter\",\"fields\":[\"narration\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"At p ninety-nine, two point one.\"},{\"kind\":\"label\",\"elementId\":\"latency\",\"quote\":\"round trip per request\"}],\"problem\":\"\\\"p ninety-nine\\\" is percentile jargon said without a plain gloss, and neither narration nor the board's \\\"round trip per request\\\" label tells a beginner it means the slow tail of the same measurement.\",\"fix\":\"Say it in plain words, e.g. \\\"the slowest one percent of checks take two point one milliseconds\\\".\"},{\"beatId\":\"beat8\",\"category\":\"missing_trade_off\",\"severity\":\"advisory\",\"owner\":\"scriptwriter\",\"fields\":[\"narration\"],\"evidence\":[{\"kind\":\"note\",\"quote\":\"A slow store becomes user-visible refusals\"},{\"kind\":\"note\",\"quote\":\"When the store is slow, requests wait longer instead of failing fast\"},{\"kind\":\"fact\",\"id\":\"fact-23\"}],\"problem\":\"The resolution presents fail closed and the longer timeout as pure wins, but the notes say the fix turns store slowness into real refusals and makes requests wait longer, so the beat hides what it costs.\",\"fix\":\"Add one clause that a slow store now means refused or delayed checkouts, so the fix trades uncounted traffic for waiting.\"}]}",
+    "servedModel": "deepseek-flash",
+    "finishReason": "stop",
+    "usage": {
+      "prompt_tokens": 14574,
+      "completion_tokens": 13861,
+      "prompt_cache_hit_tokens": 13184,
+      "prompt_cache_miss_tokens": 1390,
+      "prompt_tokens_details": {
+        "cached_tokens": 13184
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 13354
+      },
+      "total_tokens": 28435
+    }
+  },
+  {
+    "content": "{\"issues\":[{\"beatId\":\"beat5\",\"category\":\"visual_contradicts\",\"severity\":\"blocking\",\"owner\":\"generator\",\"fields\":[\"board\"],\"evidence\":[{\"kind\":\"label\",\"elementId\":\"latency\",\"quote\":\"round trip per request\"},{\"kind\":\"narration\",\"quote\":\"Say the median round trip is zero point four milliseconds. At p ninety-nine, two point one.\"},{\"kind\":\"number\",\"id\":\"num-5\"},{\"kind\":\"number\",\"id\":\"num-6\"}],\"problem\":\"The single counter climbs from 0.4 to 2.1 and turns to the problem colour, so the board reads as one round trip getting slower, while the notes give 0.4 ms and 2.1 ms as two statistics of the same measurement and the same moment.\",\"fix\":\"Draw 0.4 ms and 2.1 ms as two separate static readouts labelled median and p99 instead of morphing one counter from one value to the other.\"},{\"beatId\":\"beat5\",\"category\":\"above_level\",\"severity\":\"advisory\",\"owner\":\"scriptwriter\",\"fields\":[\"narration\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"At p ninety-nine, two point one.\"},{\"kind\":\"label\",\"elementId\":\"latency\",\"quote\":\"round trip per request\"}],\"problem\":\"\\\"p ninety-nine\\\" is percentile jargon said without a plain gloss, and neither narration nor the board's \\\"round trip per request\\\" label tells a beginner it means the slow tail of the same measurement.\",\"fix\":\"Say it in plain words, e.g. \\\"the slowest one percent of checks take two point one milliseconds\\\".\"},{\"beatId\":\"beat8\",\"category\":\"missing_trade_off\",\"severity\":\"advisory\",\"owner\":\"director\",\"fields\":[\"narration\"],\"evidence\":[{\"kind\":\"note\",\"quote\":\"A slow store becomes user-visible refusals\"},{\"kind\":\"note\",\"quote\":\"When the store is slow, requests wait longer instead of failing fast\"},{\"kind\":\"fact\",\"id\":\"fact-23\"}],\"problem\":\"The resolution presents fail closed and the longer timeout as pure wins, but the notes say the fix turns store slowness into real refusals and makes requests wait longer, so the beat hides what it costs.\",\"fix\":\"Add one clause that a slow store now means refused or delayed checkouts, so the fix trades uncounted traffic for waiting.\"}]}",
+    "servedModel": "deepseek-flash",
+    "finishReason": "stop",
+    "usage": {
+      "prompt_tokens": 15157,
+      "completion_tokens": 695,
+      "prompt_cache_hit_tokens": 14464,
+      "prompt_cache_miss_tokens": 693,
+      "prompt_tokens_details": {
+        "cached_tokens": 14464
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 188
+      },
+      "total_tokens": 15852
+    }
+  },
+  {
+    "content": "{\"issues\":[{\"beatId\":\"beat5\",\"category\":\"visual_contradicts\",\"severity\":\"blocking\",\"owner\":\"generator\",\"fields\":[\"board\"],\"evidence\":[{\"kind\":\"label\",\"elementId\":\"latency\",\"quote\":\"round trip per request\"},{\"kind\":\"narration\",\"quote\":\"Say the median round trip is zero point four milliseconds. At p ninety-nine, two point one.\"},{\"kind\":\"number\",\"id\":\"num-5\"},{\"kind\":\"number\",\"id\":\"num-6\"}],\"problem\":\"The single counter climbs from 0.4 to 2.1 and turns to the problem colour, so the board reads as one round trip getting slower, while the notes give 0.4 ms and 2.1 ms as two statistics of the same measurement and the same moment.\",\"fix\":\"Draw 0.4 ms and 2.1 ms as two separate static readouts labelled median and p99 instead of morphing one counter from one value to the other.\"},{\"beatId\":\"beat5\",\"category\":\"above_level\",\"severity\":\"advisory\",\"owner\":\"scriptwriter\",\"fields\":[\"narration\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"At p ninety-nine, two point one.\"},{\"kind\":\"label\",\"elementId\":\"latency\",\"quote\":\"round trip per request\"}],\"problem\":\"\\\"p ninety-nine\\\" is percentile jargon said without a plain gloss, and neither narration nor the board's \\\"round trip per request\\\" label tells a beginner it means the slow tail of the same measurement.\",\"fix\":\"Say it in plain words, e.g. \\\"the slowest one percent of checks take two point one milliseconds\\\".\"},{\"beatId\":\"beat8\",\"category\":\"missing_trade_off\",\"severity\":\"advisory\",\"owner\":\"director\",\"fields\":[\"plan\"],\"evidence\":[{\"kind\":\"note\",\"quote\":\"A slow store becomes user-visible refusals\"},{\"kind\":\"note\",\"quote\":\"When the store is slow, requests wait longer instead of failing fast\"},{\"kind\":\"fact\",\"id\":\"fact-23\"}],\"problem\":\"The resolution presents fail closed and the longer timeout as pure wins, but the notes say the fix turns store slowness into real refusals and makes requests wait longer, so the beat hides what it costs.\",\"fix\":\"Add one clause that a slow store now means refused or delayed checkouts, so the fix trades uncounted traffic for waiting.\"}]}",
+    "servedModel": "deepseek-flash",
+    "finishReason": "stop",
+    "usage": {
+      "prompt_tokens": 15732,
+      "completion_tokens": 639,
+      "prompt_cache_hit_tokens": 15104,
+      "prompt_cache_miss_tokens": 628,
+      "prompt_tokens_details": {
+        "cached_tokens": 15104
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 133
+      },
+      "total_tokens": 16371
+    }
+  }
+]

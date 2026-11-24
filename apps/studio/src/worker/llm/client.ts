@@ -50,9 +50,12 @@ export interface CallJsonRequest<S extends z.ZodType> {
   /**
    * Checks beyond the schema (e.g. registry checks); its issues are repaired the same way. It runs
    * on every answer that parses as JSON, also one that fails the schema (then on the parsed JSON),
-   * so one repair message lists every problem: it must accept any JSON value.
+   * so one repair message lists every problem: it must accept any JSON value. `attempt.final` is
+   * true on the last attempt (no repair follows): a check may then mark what it would have had
+   * repaired `soft`, so the answer comes back and the caller handles it (the Curator drops
+   * unverified issues instead of failing the review).
    */
-  readonly check?: (value: unknown) => readonly OutputIssue[];
+  readonly check?: (value: unknown, attempt: CheckAttempt) => readonly OutputIssue[];
   readonly signal?: AbortSignal;
   /**
    * Which recorded answers a dry run replays for this call (the Generator's beat id), so calls
@@ -62,6 +65,14 @@ export interface CallJsonRequest<S extends z.ZodType> {
   /** Where normalizer fixes and repairs are reported (a job's `ctx.log`). */
   readonly log?: (level: LogLevel, message: string) => void;
 }
+
+/** Which attempt a `check` runs on. */
+export interface CheckAttempt {
+  /** The last attempt: nothing is repaired after it. */
+  readonly final: boolean;
+}
+
+const FIRST_ATTEMPT: CheckAttempt = { final: false };
 
 export interface CallJsonResult<T> {
   readonly value: T;
@@ -131,6 +142,7 @@ export function repairMessage(issues: readonly OutputIssue[]): string {
 export function evaluateAnswer<S extends z.ZodType>(
   response: Pick<TransportResponse, 'content' | 'finishReason'>,
   request: Pick<CallJsonRequest<S>, 'schema' | 'aliases' | 'check'>,
+  attempt: CheckAttempt = FIRST_ATTEMPT,
 ): Outcome<z.output<S>> {
   if (!response.content?.trim()) {
     const reason = response.finishReason ?? 'unknown';
@@ -153,8 +165,11 @@ export function evaluateAnswer<S extends z.ZodType>(
   }
   const parsed = request.schema.safeParse(normalized.value);
   const issues = parsed.success
-    ? [...(request.check?.(parsed.data) ?? [])]
-    : [...schemaIssues(parsed.error), ...checkUnvalidated(request.check, normalized.value)];
+    ? [...(request.check?.(parsed.data, attempt) ?? [])]
+    : [
+        ...schemaIssues(parsed.error),
+        ...checkUnvalidated(request.check, normalized.value, attempt),
+      ];
   if (!parsed.success || blockingIssues(issues).length > 0) {
     return { ok: false, issues, fixes: normalized.fixes };
   }
@@ -170,11 +185,12 @@ function schemaIssues(error: z.ZodError): OutputIssue[] {
  * adds nothing: the schema issues are repaired alone and the check runs on the next answer.
  */
 function checkUnvalidated(
-  check: ((value: unknown) => readonly OutputIssue[]) | undefined,
+  check: CallJsonRequest<z.ZodType>['check'],
   value: unknown,
+  attempt: CheckAttempt,
 ): readonly OutputIssue[] {
   try {
-    return check?.(value) ?? [];
+    return check?.(value, attempt) ?? [];
   } catch {
     return [];
   }
@@ -269,7 +285,9 @@ export function createLlmClient(deps: LlmClientDeps): LlmClient {
       reasoningContent: response.reasoningContent,
       usage: response.rawUsage,
     });
-    const outcome = evaluateAnswer(response, request);
+    const outcome = evaluateAnswer(response, request, {
+      final: attemptNo >= MAX_REPAIR_ATTEMPTS,
+    });
     const row = insertLlmCall(deps.db, {
       ...base,
       servedModel: response.servedModel,

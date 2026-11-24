@@ -1,0 +1,38 @@
+[
+  {
+    "content": "{\"issues\":[{\"beatId\":\"b5\",\"category\":\"wrong_simplification\",\"severity\":\"blocking\",\"owner\":\"scriptwriter\",\"fields\":[\"narration\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"A space sticks to the next word; capitals break the pattern.\"},{\"kind\":\"label\",\"elementId\":\"t-caps\",\"quote\":\"capitals split\"},{\"kind\":\"fact\",\"id\":\"fact-15\",\"quote\":\"letters stay together, punctuation is split off, and a space is kept at the start of the word that follows it\"},{\"kind\":\"fact\",\"id\":\"fact-20\",\"quote\":\"Capital letters, leading spaces and rare spellings change how a word splits\"},{\"kind\":\"note\",\"quote\":\"A word's token count depends on how common its pieces were in the training text, so counts vary by word, case and language.\"}],\"problem\":\"Said inside the pre-tokenization rule list, \\\"capitals break the pattern\\\" reads as a chunking rule, but the notes' pre-tokenization rules cover only letters, punctuation, spaces and digits; capitals change the split because uppercase pieces were rare in training, not because pre-tokenization cuts them.\",\"fix\":\"Replace it with a case note tied to the merges, e.g. \\\"capitals were rare in training, so fewer learned merges join them\\\", instead of listing capitals as a pre-tokenization wall.\"},{\"beatId\":\"b5\",\"category\":\"small_stat_card\",\"severity\":\"advisory\",\"owner\":\"scriptwriter\",\"fields\":[\"stat_cards\"],\"evidence\":[{\"kind\":\"stat_card\",\"quote\":\"3\"},{\"kind\":\"narration\",\"quote\":\"and PARIS needs three\"}],\"problem\":\"The card \\\"3 / tokens for PARIS\\\" repeats a count of three that the narration already says and that the three TOKEN slots in \\\"ALL CAPS\\\" already draw.\",\"fix\":\"Drop the stat card and let the three-slot grid carry the count.\"},{\"beatId\":\"b7\",\"category\":\"missing_trade_off\",\"severity\":\"advisory\",\"owner\":\"scriptwriter\",\"fields\":[\"narration\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"So Corrowby counts tokens with the exact tokenizer of the model it calls\"},{\"kind\":\"note\",\"quote\":\"You must ship and run the exact tokenizer and build per-language reporting; the team still argues over whether to use per-language tables or count every message.\"}],\"problem\":\"The ending presents counting with the model's own tokenizer as a free fix, while the cost the notes attach to it — shipping and running that exact tokenizer and building per-language reporting — never appears.\",\"fix\":\"Add one short clause to the closing line noting that this means shipping and running the model's exact tokenizer, keeping the time by trimming words elsewhere in the same line.\"}]}",
+    "servedModel": "deepseek-flash",
+    "finishReason": "stop",
+    "usage": {
+      "prompt_tokens": 12491,
+      "completion_tokens": 13487,
+      "prompt_cache_hit_tokens": 10496,
+      "prompt_cache_miss_tokens": 1995,
+      "prompt_tokens_details": {
+        "cached_tokens": 10496
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 12899
+      },
+      "total_tokens": 25978
+    }
+  },
+  {
+    "content": "{\"issues\":[{\"beatId\":\"b5\",\"category\":\"wrong_simplification\",\"severity\":\"blocking\",\"owner\":\"scriptwriter\",\"fields\":[\"narration\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"A space sticks to the next word; capitals break the pattern.\"},{\"kind\":\"label\",\"elementId\":\"t-caps\",\"quote\":\"capitals split\"},{\"kind\":\"fact\",\"id\":\"fact-15\",\"quote\":\"letters stay together, punctuation is split off, and a space is kept at the start of the word that follows it\"},{\"kind\":\"fact\",\"id\":\"fact-20\",\"quote\":\"Capital letters, leading spaces and rare spellings change how a word splits\"},{\"kind\":\"note\",\"quote\":\"A word's token count depends on how common its pieces were in the training text, so counts vary by word, case and language.\"}],\"problem\":\"In the pre-tokenization rule list, \\\"capitals break the pattern\\\" reads as a chunking rule, but the notes' chunk rules cover only letters, punctuation, spaces and digits; capitals change the split because uppercase pieces were rare in training.\",\"fix\":\"Replace it with a case note tied to the merges, e.g. \\\"capitals were rare in training, so fewer learned merges join them\\\", instead of listing capitals as a pre-tokenization wall.\"},{\"beatId\":\"b5\",\"category\":\"small_stat_card\",\"severity\":\"advisory\",\"owner\":\"scriptwriter\",\"fields\":[\"stat_cards\"],\"evidence\":[{\"kind\":\"stat_card\",\"quote\":\"3\"},{\"kind\":\"narration\",\"quote\":\"and PARIS needs three\"}],\"problem\":\"The card \\\"3 / tokens for PARIS\\\" repeats a count of three that the narration already says and that the three TOKEN slots in \\\"ALL CAPS\\\" already draw.\",\"fix\":\"Drop the stat card and let the three-slot grid carry the count.\"},{\"beatId\":\"b7\",\"category\":\"missing_trade_off\",\"severity\":\"advisory\",\"owner\":\"director\",\"fields\":[\"plan\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"So Corrowby counts tokens with the exact tokenizer of the model it calls\"},{\"kind\":\"note\",\"quote\":\"You must ship and run the exact tokenizer and build per-language reporting; the team still argues over whether to use per-language tables or count every message.\"}],\"problem\":\"The ending presents counting with the model's own tokenizer as a free fix, while the cost the notes attach to it — shipping and running that exact tokenizer and building per-language reporting — never appears.\",\"fix\":\"Plan b7 to include that cost in its closing line, e.g. note that this means shipping and running the model's exact tokenizer, and trims elsewhere in the beat to keep its length.\"}]}",
+    "servedModel": "deepseek-flash",
+    "finishReason": "stop",
+    "usage": {
+      "prompt_tokens": 13174,
+      "completion_tokens": 885,
+      "prompt_cache_hit_tokens": 12416,
+      "prompt_cache_miss_tokens": 758,
+      "prompt_tokens_details": {
+        "cached_tokens": 12416
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 305
+      },
+      "total_tokens": 14059
+    }
+  }
+]

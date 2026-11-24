@@ -1,0 +1,20 @@
+[
+  {
+    "content": "{\"issues\":[{\"beatId\":\"b7\",\"category\":\"unsupported_claim\",\"severity\":\"blocking\",\"owner\":\"scriptwriter\",\"fields\":[\"narration\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"That reply with Paris now fits.\"},{\"kind\":\"fact\",\"id\":\"fact-26\",\"quote\":\"After the change, Corrowby counts tokens with the exact tokenizer of the model it calls, writes prompt and reply budgets in tokens, and produces per-language cost reports.\"}],\"problem\":\"The closing line claims the Paris reply now fits, an outcome for that specific reply that no fact or number in the notes states; the notes only say Corrowby switched to the model's exact tokenizer and to token budgets.\",\"fix\":\"End on what fact-26 supports (exact tokenizer counts, budgets written in tokens, per-language cost reports) and drop the assertion that this particular reply now fits.\"}]}",
+    "servedModel": "deepseek-flash",
+    "finishReason": "stop",
+    "usage": {
+      "prompt_tokens": 12284,
+      "completion_tokens": 21268,
+      "prompt_cache_hit_tokens": 2944,
+      "prompt_cache_miss_tokens": 9340,
+      "prompt_tokens_details": {
+        "cached_tokens": 2944
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 21077
+      },
+      "total_tokens": 33552
+    }
+  }
+]

@@ -108,7 +108,7 @@ describe('buildPrompt', () => {
       'new to this topic (explanation level: beginner)',
     );
     expect(render(buildPrompt(templates, parts('curator')))).toContain(
-      'clarity at the beginner level',
+      'useful to an engineer at the beginner level?',
     );
   });
 

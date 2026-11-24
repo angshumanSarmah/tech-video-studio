@@ -208,7 +208,7 @@ function findingsByBeat(
   return byBeat;
 }
 
-function beatOfPath(spec: RenderableVideoSpec, path: string): string {
+export function beatOfPath(spec: RenderableVideoSpec, path: string): string {
   const match = /^\$\.(scenes|script|story\.beats)\[(\d+)\]/.exec(path);
   if (!match) return '';
   const i = Number(match[2]);

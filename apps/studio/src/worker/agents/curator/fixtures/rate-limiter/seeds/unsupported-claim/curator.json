@@ -1,0 +1,20 @@
+[
+  {
+    "content": "{\"issues\":[{\"beatId\":\"beat2\",\"category\":\"wrong_simplification\",\"severity\":\"blocking\",\"owner\":\"generator\",\"fields\":[\"board\"],\"evidence\":[{\"kind\":\"label\",\"elementId\":\"bucket\",\"quote\":\"capacity\"},{\"kind\":\"number\",\"id\":\"num-1\"},{\"kind\":\"narration\",\"quote\":\"each request spends one\"}],\"problem\":\"The counter labelled \\\"capacity\\\" runs from 100 down to 99, implying the bucket's capacity shrinks, while the research says capacity is the fixed maximum and only the token count falls.\",\"fix\":\"Label the countdown \\\"tokens left\\\" and keep capacity 100 as a separate fixed figure next to it.\"},{\"beatId\":\"beat5\",\"category\":\"visual_contradicts\",\"severity\":\"blocking\",\"owner\":\"generator\",\"fields\":[\"board\"],\"evidence\":[{\"kind\":\"label\",\"elementId\":\"latency\",\"quote\":\"round trip per request\"},{\"kind\":\"narration\",\"quote\":\"Say the median round trip is zero point four milliseconds. At p ninety-nine, two point one.\"},{\"kind\":\"number\",\"id\":\"num-5\"},{\"kind\":\"number\",\"id\":\"num-6\"}],\"problem\":\"One counter animating 0.4 to 2.1 draws the median and the p99 as if the round trip changed, but they are two statistics of the same measurement, not a before and after.\",\"fix\":\"Show two separate, labelled values (median 0.4 ms, p99 2.1 ms) instead of a single counter moving from one to the other.\"},{\"beatId\":\"beat5\",\"category\":\"above_level\",\"severity\":\"advisory\",\"owner\":\"scriptwriter\",\"fields\":[\"narration\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"At p ninety-nine, two point one.\"}],\"problem\":\"\\\"p ninety-nine\\\" is percentile jargon with no plain gloss, so a beginner cannot tell that 2.1 ms is the slow tail rather than a typical value.\",\"fix\":\"Add a four-word gloss: \\\"at p ninety-nine, the slowest one percent of calls, two point one milliseconds\\\".\"},{\"beatId\":\"beat6\",\"category\":\"unsupported_claim\",\"severity\":\"blocking\",\"owner\":\"scriptwriter\",\"fields\":[\"narration\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"The replica had run out of memory.\"},{\"kind\":\"note\",\"quote\":\"What makes a cross-zone store replica slow enough to trip the timeout, and how should the timeout be sized in general?\"},{\"kind\":\"fact\",\"id\":\"fact-19\"}],\"problem\":\"Nothing in the notes says the replica ran out of memory; the cause of the 80 ms cross-zone latency is listed as an open question, not a memory failure.\",\"fix\":\"Cut the sentence and end on the measured jump from about 1 ms to 80 ms.\"}]}",
+    "servedModel": "deepseek-flash",
+    "finishReason": "stop",
+    "usage": {
+      "prompt_tokens": 14591,
+      "completion_tokens": 9191,
+      "prompt_cache_hit_tokens": 9088,
+      "prompt_cache_miss_tokens": 5503,
+      "prompt_tokens_details": {
+        "cached_tokens": 9088
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 8591
+      },
+      "total_tokens": 23782
+    }
+  }
+]

@@ -359,7 +359,9 @@ stepId?, aliases?, check?, signal?, log? })`** is the only way to call a model (
   with `schema` and run `check` (e.g. registry checks) on it, both together: `check` also runs on
   JSON that fails the schema, so it takes `unknown` and must accept any shape (a throw there is
   ignored). On failure all the errors go back in one assistant + user turn, at most
-  `MAX_REPAIR_ATTEMPTS` (2) times, then `LlmOutputInvalidError`.
+  `MAX_REPAIR_ATTEMPTS` (2) times, then `LlmOutputInvalidError`. `check(value, { final })`:
+  `final` is true on the last attempt, so a check may mark what it would have repaired `soft`
+  and handle it after the call (the Curator drops unverified issues instead of failing).
 - **Transports:** `httpTransport` (`createLlmTransport(config.llm)`) posts to
   `<baseUrl>/chat/completions` in JSON mode. It retries 429/5xx up to 2 times (1 s, 2 s, or
   `Retry-After` up to 60 s; `src/worker/http/retry.ts`), and a body cut off mid-stream
@@ -779,7 +781,7 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   final version and the run's warning logs, and writes `contact-sheet.png` (one still per beat,
   `scripts/contact-sheet.ts`).
 
-### Curator (P1C.8; code checks and the review's input and output so far, the job and repair loop follow)
+### Curator (P1C.8; job `jobs/curate.ts`, review only so far: the repair loop follows)
 
 - **`curatorCodeChecks(spec, ctx)`** (`renderer/src/catalog/curator-checks.ts`, pure, exported
   through `catalog` so gate saves can run it): every code check on a finished spec (the re-timed
@@ -867,6 +869,29 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   `evidence_missing`, `number_not_in_quote` (a `number_wrong_meaning` issue must quote text that
   states its number's value), `owner_not_allowed`, `field_not_owned`, and in a second round
   `previous_status_missing` / `unknown_previous_issue`.
+
+- **`curate` job** (`jobs/curate.ts`, payload `{ specVersionId }`: the re-timed spec after the
+  Generator): the code checks on the pinned version (context from the run: the plan's research
+  step's notes and sources, series and handle, resolved video settings and pauses,
+  `directorMemory` usage, the DB's approved assets), then one review call
+  (`agents/curator/review.ts`, `reviewSpec`; `CuratorReviewSchema`, check `reviewCheck`), then
+  `settleReview`: unverified issues are dropped (`why: unverified`, with the reasons), so are
+  issues that repeat a code finding on the same beat (`repeats_code_finding`: `hook_retold` over
+  `hook_number_repeated`), and severities are capped. A spec that fails validation gets its
+  errors and no review. One `run_steps` row per job (stage `curate`):
+  `curate/input-<step>.json` (`CurateInputSchema`) and `curate/report-<step>.json`
+  (`CuratorReportSchema`: code issues, the review's issues, dropped, capped, usage, `blocking`).
+  `latestCuration` (`#core/services/curation.ts`) is gate 3's read.
+- **Fixture eval** (`agents/curator/fixtures.ts`): per topic `TOPIC_EXPECTATIONS` (must-find,
+  may-find, must-not-flag with optional `allowedOwners`), matched by beat, category and evidence
+  (an element id or a quote); `CURATOR_SEEDS`, one planted fault per review category
+  (`visual_distracts` aside), each a pure edit of the recorded spec (narration edits keep the
+  board's word anchors on their words and drop the timing layer). The studio script
+  `curator:fixture [--topic] [--seeded <id>] [--replay] [--record]` runs the review (live, or
+  `--replay`) in `<DATA_DIR>/curator/fixture/<topic>[-<seed>]/` and prints the attempts, code findings, every issue with its evidence and fix, what was dropped,
+  usage and the eval; `--record` writes `curator.json` and `eval.json` to
+  `agents/curator/fixtures/<topic>/responses/` (a seed: `.../<topic>/seeds/<id>/`).
+  `jobs/curate.test.ts` replays every recording and expects its recorded eval.
 
 API conventions: routes under `/api`, inputs validated with the `validate()` helper against schemas
 from `packages/shared/src/api`, list responses wrapped as `{ items }`, and every error is

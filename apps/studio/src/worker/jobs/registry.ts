@@ -1,3 +1,4 @@
+import { curateJobHandler, type CurateJobDeps } from './curate.ts';
 import { directJobHandler, type DirectJobDeps } from './direct.ts';
 import { generateJobHandler, type GenerateJobDeps } from './generate.ts';
 import type { JobHandler } from './handler.ts';
@@ -33,7 +34,8 @@ export type WorkerDeps = RenderJobDeps &
   ResearchJobDeps &
   DirectJobDeps &
   ScriptJobDeps &
-  GenerateJobDeps;
+  GenerateJobDeps &
+  CurateJobDeps;
 
 /** Every job type the worker runs. Add a handler here; nothing else changes. */
 export function createJobHandlers(deps: WorkerDeps): JobHandler[] {
@@ -44,6 +46,7 @@ export function createJobHandlers(deps: WorkerDeps): JobHandler[] {
     directJobHandler(deps),
     scriptJobHandler(deps),
     generateJobHandler(deps),
+    curateJobHandler(deps),
     ...renderJobHandlers(deps),
     ttsJobHandler(deps),
   ];

@@ -21,7 +21,7 @@ This is a rebuild: the previous app produced monotonous videos (the same 3–4 b
 | Characters (phase 2) | Low-poly 3D characters on one shared skeleton, pre-made animation clips, props and effects (speech bubbles, siren head) |
 | Trigger | Manual. You start each run; nothing runs on a schedule |
 | Review | Per-gate auto-approve checkbox or manual review |
-| Narration | English, local Kokoro TTS (Python) with word timestamps; Hinglish later. Pace is configurable: defaults Kokoro speed 1.0 (about 2.7 words/s) and no added pauses; TTS speed, beat gap, landing hold and the Scriptwriter's words per second are settings, overridable per run |
+| Narration | English, local Kokoro TTS (Python) with word timestamps; Hinglish later. Pace is configurable: defaults Kokoro speed 1.0 (about 2.56 words/s) and no added pauses; TTS speed, beat gap, landing hold and the Scriptwriter's words per second are settings, overridable per run |
 | On-screen text | English in phase 1; Hinglish headlines/captions later |
 | Subtitles | Burned in, word-by-word |
 | Music | Later phase |
@@ -938,30 +938,53 @@ Common mistakes to avoid
 **Curator (review and repair)**
 
 ```text
-Role: Curator. Code has already checked the schema, ids and layout. You check meaning: does each beat
-say and show something true, clear and useful to an engineer?
+Role: Curator. You review a finished video, beat by beat, for meaning: does each beat say and show
+something true, clear and useful to an engineer at the {{explanationLevel}} level? Code has already
+checked ids, layout, text sizes, timing, length, word budgets, and that every number on screen or
+in the narration is a research value; its findings are under CODE FINDINGS. Don't repeat them.
 
-For each beat, compare the narration, on-screen text and visuals with the research notes. Report:
-- claims the notes don't support (blocking);
-- simplifications that become wrong for an engineer (blocking);
-- a visual that contradicts the narration (blocking) or distracts from it (advisory);
-- a trade-off or failure mode in the notes that the video skips (advisory);
-- wording that copies a reference video (blocking);
-- clarity at the {{explanationLevel}} level: a term relied on before it is explained, more than
-  one new idea in a beat, or an abstract sentence with no example (blocking at beginner, advisory
-  otherwise).
-Each issue: beat id, severity, what is wrong, the fact id involved, and the smallest fix. Don't
-rewrite beats yourself.
+You can't see the video. Each beat's BOARD is written by code: every element, its text, its colour
+meaning (problem, ok, focus, concept, neutral), the narration word it enters on, what happens to it
+and on which word, and where the focus is. Judge the picture only from that description.
+NUMBERS lists every number said or shown in a beat with the research numbers that share its value;
+a shared value does not mean a shared meaning.
 
-When another agent repairs an issue, it changes only what the issue names and keeps every other
-field exactly as it was.
+ISSUE CATEGORIES (exhaustive: use only these ids)
+- unsupported_claim: something no fact or number in the notes states, or the opposite of what one states.
+- wrong_simplification: a simplification that becomes false for an engineer (wrong cause, mechanism or order).
+- number_wrong_meaning: a number that matches a research value but stands for another quantity, unit, system or moment than that number's context.
+- visual_contradicts: the board shows what the narration or the notes deny (the wrong part fails, a fix drawn as a problem, two measurements drawn as a change).
+- visual_distracts: the board pulls attention away from the beat's point.
+- term_before_shown: narration names a term before the board shows what it means, or relies on a term no earlier beat introduced.
+- above_level: a word or idea the {{explanationLevel}} viewer won't know, used without a plain gloss.
+- hook_retold: a later beat retells the hook's moment instead of calling back to it in a phrase.
+- small_stat_card: a stat card for a small count that belongs in the narration.
+- missing_trade_off: a trade-off or failure mode in the notes that this video's story needs and skips.
+OWNERS (exhaustive): scriptwriter (narration, headline, tags, stat cards, source line),
+generator (the board), director (the plan: beats, devices, example numbers).
+
+DO
+- Quote your evidence exactly: the narration words, or the label text with its element id, and the
+  id of every fact or number involved. Code checks every quote; an issue it can't find is dropped.
+- Name the owner who would change the quoted text, the fields to change, and the smallest fix in
+  one sentence.
+- Mark blocking only: unsupported_claim, wrong_simplification, number_wrong_meaning,
+  visual_contradicts, hook_retold, and at beginner term_before_shown or above_level when the beat's
+  point can't be followed without that word. Everything else is advisory.
+- Report nothing for a beat that is fine.
+DO NOT
+- Flag a claim that a fact states in other words, or an example number framed as one ("say, a hundred").
+- Report layout, size, colour choice, timing or style.
+- Propose a new beat or rewrite a beat.
+- Report one problem twice; put it on the beat where it is fixed.
 
 Common mistakes to avoid
-1. Style opinions reported as blocking.
-2. Vague issues ("could be clearer") with no fix.
-3. Proposing a whole new beat instead of the smallest fix.
-4. Flagging facts that are in the notes as unsupported.
-5. Missing a number on screen that differs from the research number.
+1. Flagging a fact that is in the notes, worded differently.
+2. Missing a number whose value matches the notes but whose meaning doesn't (a node count shown as a multiple).
+3. A quote paraphrased instead of copied.
+4. Style opinions reported as blocking.
+5. Vague issues ("could be clearer") with no fix.
+6. Blaming the Scriptwriter for a board label, or the Generator for narration.
 ```
 
 **Analyst (memory rules)**
@@ -1008,7 +1031,7 @@ and key from config) with:
   `video` block: lengthMinSec, lengthMaxSec, lengthReasonAboveSec, allowParts, maxParts, explanationLevel: beginner | intermediate | expert) and to
   the Scriptwriter pace (wordsPerSec), each also overridable in RunSettingsSchema (run override ->
   app settings ->
-  defaults 45, 150, 90, true, 4, 2.7, beginner); an unknown or unfilled variable fails the build of the
+  defaults 45, 150, 90, true, 4, 2.56, beginner); an unknown or unfilled variable fails the build of the
   prompt; the 170 s hard cap is enforced by validation, not by the prompt; snapshot tests render
   the prompts with the defaults;
 - a dry-run mode that returns recorded fixtures for tests.
@@ -1096,7 +1119,7 @@ payoff and beat seconds summing to the target ±10%.
 
 ```text
 Implement the Scriptwriter. Input: story layer, research notes, style rules.
-Output per beat: narration (word budget = (target seconds − the beat's pauses) × wordsPerSec (setting, default 2.7), ±15%), headline
+Output per beat: narration (word budget = (target seconds − the beat's pauses) × wordsPerSec (setting, default 2.56, Kokoro's measured rate), ±15%), headline
 ("X = plain meaning" for concept beats), tags, stat cards (each linked to a research number id),
 optional formula card, optional command bubble.
 System prompt: the shared preamble + the Scriptwriter prompt from "Agent system prompts (v1)".
@@ -1141,24 +1164,37 @@ Implement the Curator in two parts.
 1. Deterministic checks (code): schema, registry props, layout warnings, every event anchor resolves,
    element density per beat, colour semantics (problem = red etc.), stat cards cite sources,
    planted question paid off, at least one failure-before-fix or rejected alternative,
-   variety vs usage history, and per-beat change checks: every beat introduces something visible (a
-   new element, a new pattern, a focus shift or a camera move) and has at least one motion event; two
-   consecutive beats may not use the same pattern on the same focus; at most one beat that is only a
-   headline or stat card. A beat may declare continuesPrevious: true to keep the same layout and world
-   (persistent scenes are encouraged); the change check still applies to it.
-2. LLM review (curator role): for each beat compare narration and visuals with research facts;
-   flag claims not supported, simplifications that become wrong at this level, confusing visuals for
-   the narration, missing trade-offs. Also the judgement calls the Scriptwriter's checks
-   can't make: a later beat retelling the hook instead of calling back to it, a term named before
-   the visuals show it, words above the run's explanation level, stat cards for small counts, and
-   narration well over its target. Output issues with severity and the beat id.
-Part 1 also scores each beat's narration for readability (Flesch reading ease) and warns when it
-falls below the level's threshold (beginner: 60), so the LLM review sees it.
-System prompt for part 2: the shared preamble + the Curator prompt from "Agent system prompts (v1)";
-repair calls reuse the Scriptwriter or Generator prompt plus the Curator's repair rule.
+   variety of the patterns the scenes actually use vs usage history, and per-beat change checks:
+   every beat introduces something visible (a new element, a new pattern, a focus shift or a camera
+   move) and has at least one motion event; two consecutive beats may not use the same pattern on
+   the same focus; at most one beat that is only a headline or stat card. A beat may declare
+   continuesPrevious: true to keep the same layout and world (persistent scenes are encouraged); the
+   change check still applies to it. Also: narration length measured after TTS (per beat and per
+   video), the size of on-screen text after each beat's camera, hook numbers said again in a later
+   beat, and a sourced number on screen without a source line. Every code maps to an owner and a
+   severity in one policy table.
+2. LLM review (curator role), one call per video. The model is text-only: it receives a code-written
+   description of each board and a map of the numbers in each beat. It flags claims not supported,
+   simplifications that become wrong at this level, numbers used with the wrong meaning, visuals that
+   contradict or distract, missing trade-offs, a later beat retelling the hook instead of calling
+   back to it, a term named before the visuals show it, words above the run's explanation level, and
+   stat cards for small counts. Every issue quotes its evidence and names its owner; code verifies
+   the quotes and caps severity by category and level (at beginner, clarity issues block only when
+   the beat's point depends on the word).
+Part 1 also scores each beat's narration for readability (Flesch reading ease) and passes it to the
+review as context (beginner: 60).
+System prompt for part 2: the shared preamble + the Curator prompt from "Agent system prompts (v1)".
+Repair calls reuse the Scriptwriter or Generator system prompt unchanged (so it caches); the issues
+and the rule "change only what the issue names; keep every other field exactly as it was" go in the
+user message's FEEDBACK section, and code enforces it. A changed narration is re-synthesised; its
+board's anchors are remapped, or the board is redrawn when a remap fails, along with later beats of
+that board; then the video is re-timed and reviewed again (new issues only on changed beats).
+Director-owned issues are never auto-repaired.
 Then an auto-repair loop: send blocking issues to the responsible agent (Scriptwriter or Generator)
-for that beat only; max 2 rounds; remaining issues go to the gate for you to decide.
-Acceptance: tests with seeded faulty specs that each check catches.
+for that beat only; max 2 rounds, stopping early when a round changes nothing; per beat the version
+with fewer blocking issues is kept; remaining issues go to the gate for you to decide.
+Acceptance: tests with seeded faulty specs that each check catches; both recorded topics reviewed
+and recorded; each seeded fault caught; listed correct lines not flagged.
 ```
 
 **P1C.9 Orchestrator and gates**

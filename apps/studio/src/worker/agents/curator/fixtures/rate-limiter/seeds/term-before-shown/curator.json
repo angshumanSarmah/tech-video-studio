@@ -1,0 +1,20 @@
+[
+  {
+    "content": "{\"issues\":[{\"beatId\":\"beat5\",\"category\":\"visual_contradicts\",\"severity\":\"blocking\",\"owner\":\"generator\",\"fields\":[\"board\"],\"evidence\":[{\"kind\":\"label\",\"elementId\":\"latency\",\"quote\":\"round trip per request\"},{\"kind\":\"number\",\"id\":\"num-5\"},{\"kind\":\"number\",\"id\":\"num-6\"},{\"kind\":\"narration\",\"quote\":\"Say the median round trip is zero point four milliseconds. At p ninety-nine, two point one.\"}],\"problem\":\"A single counter morphing from 0.4 to 2.1 under the label \\\"round trip per request\\\" draws the median and the p99 — two different measurements of the same distribution — as one value changing over time.\",\"fix\":\"Show two static, separately labelled values (median 0.4 ms and p99 2.1 ms) instead of one counter that transitions from 0.4 to 2.1.\"},{\"beatId\":\"beat5\",\"category\":\"above_level\",\"severity\":\"advisory\",\"owner\":\"scriptwriter\",\"fields\":[\"narration\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"At p ninety-nine, two point one.\"},{\"kind\":\"number\",\"id\":\"num-6\"}],\"problem\":\"\\\"p ninety-nine\\\" is left unglossed, so a beginner cannot tell that 2.1 ms is the slow-tail measurement rather than another typical value.\",\"fix\":\"Gloss it in plain words, e.g. \\\"the slowest one request in a hundred takes two point one milliseconds.\\\"\"}]}",
+    "servedModel": "deepseek-flash",
+    "finishReason": "stop",
+    "usage": {
+      "prompt_tokens": 14592,
+      "completion_tokens": 19344,
+      "prompt_cache_hit_tokens": 10752,
+      "prompt_cache_miss_tokens": 3840,
+      "prompt_tokens_details": {
+        "cached_tokens": 10752
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 19015
+      },
+      "total_tokens": 33936
+    }
+  }
+]

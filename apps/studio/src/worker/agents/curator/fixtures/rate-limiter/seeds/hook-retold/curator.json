@@ -1,0 +1,20 @@
+[
+  {
+    "content": "{\"issues\":[{\"beatId\":\"beat2\",\"category\":\"wrong_simplification\",\"severity\":\"blocking\",\"owner\":\"scriptwriter\",\"fields\":[\"narration\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"Each checkout request gets a key and a token bucket, a pile of passes.\"},{\"kind\":\"fact\",\"id\":\"fact-4\",\"quote\":\"The limiter key is built from the API key plus the route group, so a caller is limited per route rather than globally.\"},{\"kind\":\"label\",\"elementId\":\"perkey_tag\",\"quote\":\"per-key bucket\"}],\"problem\":\"Read literally, \\\"each checkout request gets a key and a token bucket\\\" means one full bucket per request, which would never refuse anything; the bucket belongs to the caller's key (API key plus route group) and is shared by all of that caller's requests on that route.\",\"fix\":\"Say that the request is mapped to a key that has one bucket, e.g. \\\"Each caller's key maps to one token bucket, a pile of passes.\\\"\"},{\"beatId\":\"beat5\",\"category\":\"visual_contradicts\",\"severity\":\"blocking\",\"owner\":\"generator\",\"fields\":[\"board\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"Say the median round trip is zero point four milliseconds. At p ninety-nine, two point one.\"},{\"kind\":\"label\",\"elementId\":\"latency\",\"quote\":\"round trip per request\"},{\"kind\":\"number\",\"id\":\"num-5\"},{\"kind\":\"number\",\"id\":\"num-6\"}],\"problem\":\"The latency counter animates from 0.4 to 2.1 as if the round trip climbed, but the notes give 0.4 ms as the median and 2.1 ms as p99 of the same June 2024 measurement, so the board shows a change that did not happen and pre-empts beat6's real jump from 1 ms to 80 ms.\",\"fix\":\"Draw the median and the p99 as two separate labelled values (0.4 ms median, 2.1 ms p99) instead of one counter transitioning between them.\"}]}",
+    "servedModel": "deepseek-flash",
+    "finishReason": "stop",
+    "usage": {
+      "prompt_tokens": 14596,
+      "completion_tokens": 10752,
+      "prompt_cache_hit_tokens": 12544,
+      "prompt_cache_miss_tokens": 2052,
+      "prompt_tokens_details": {
+        "cached_tokens": 12544
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 10309
+      },
+      "total_tokens": 25348
+    }
+  }
+]

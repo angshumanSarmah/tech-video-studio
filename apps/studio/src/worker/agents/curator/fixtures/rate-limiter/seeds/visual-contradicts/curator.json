@@ -1,0 +1,20 @@
+[
+  {
+    "content": "{\"issues\":[{\"beatId\":\"beat2\",\"category\":\"wrong_simplification\",\"severity\":\"blocking\",\"owner\":\"scriptwriter\",\"fields\":[\"narration\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"Each checkout request gets a key and a token bucket, a pile of passes.\"},{\"kind\":\"fact\",\"id\":\"fact-1\",\"quote\":\"a token bucket decides from state kept per key\"}],\"problem\":\"This says each request gets a key and a bucket, but the bucket is shared by every request under one key (API key plus route group), so a viewer comes away thinking allowances are per request.\",\"fix\":\"Say \\\"Each caller's key gets a token bucket\\\" so the allowance is tied to the key, not to the individual request.\"},{\"beatId\":\"beat3\",\"category\":\"visual_contradicts\",\"severity\":\"blocking\",\"owner\":\"generator\",\"fields\":[\"board\"],\"evidence\":[{\"kind\":\"label\",\"elementId\":\"store_node\",\"quote\":\"IN-MEMORY STORE\"},{\"kind\":\"narration\",\"quote\":\"So one shared store holds the bucket, one place every node reads and writes.\"},{\"kind\":\"fact\",\"id\":\"fact-7\",\"quote\":\"with a bucket per node, a client spread across all of them would get 24 times its limit\"}],\"problem\":\"The board colours the shared store card as a problem and marks it rejected as the beat ends, while the narration and the notes present the shared store as the chosen design (the rejected option is the per-node bucket), and it stays rejected through beat4.\",\"fix\":\"Keep store_node in a neutral/concept state with no reject animation and reject only gw_nodes and per_node_tag.\"},{\"beatId\":\"beat5\",\"category\":\"above_level\",\"severity\":\"blocking\",\"owner\":\"scriptwriter\",\"fields\":[\"narration\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"At p ninety-nine, two point one.\"},{\"kind\":\"number\",\"id\":\"num-6\"}],\"problem\":\"\\\"p ninety-nine\\\" is percentile shorthand with no plain gloss, so a beginner cannot tell that 2.1 ms is the slow tail of the same round trips rather than a typical value.\",\"fix\":\"Replace it with a plain gloss such as \\\"the slowest one percent of round trips took two point one milliseconds\\\".\"},{\"beatId\":\"beat5\",\"category\":\"visual_contradicts\",\"severity\":\"blocking\",\"owner\":\"generator\",\"fields\":[\"board\"],\"evidence\":[{\"kind\":\"label\",\"elementId\":\"latency\",\"quote\":\"2.1\"},{\"kind\":\"narration\",\"quote\":\"Say the median round trip is zero point four milliseconds. At p ninety-nine, two point one.\"},{\"kind\":\"number\",\"id\":\"num-5\"},{\"kind\":\"number\",\"id\":\"num-6\"}],\"problem\":\"0.4 ms and 2.1 ms are the median and p99 of the same round trips, but one counter animates upward from 0.4 to 2.1, drawing a latency increase that the notes do not state (the real jump is 1 ms to 80 ms in beat6).\",\"fix\":\"Show 0.4 ms and 2.1 ms as two separately labelled values (median, p99) instead of a single counter rising between them.\"}]}",
+    "servedModel": "deepseek-flash",
+    "finishReason": "stop",
+    "usage": {
+      "prompt_tokens": 14693,
+      "completion_tokens": 10003,
+      "prompt_cache_hit_tokens": 11264,
+      "prompt_cache_miss_tokens": 3429,
+      "prompt_tokens_details": {
+        "cached_tokens": 11264
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 9317
+      },
+      "total_tokens": 24696
+    }
+  }
+]

@@ -1,0 +1,38 @@
+[
+  {
+    "content": "{\"issues\":[{\"beatId\":\"beat2\",\"category\":\"number_wrong_meaning\",\"severity\":\"advisory\",\"owner\":\"generator\",\"fields\":[\"board\"],\"evidence\":[{\"kind\":\"label\",\"elementId\":\"bucket\",\"quote\":\"capacity\"},{\"kind\":\"number\",\"id\":\"num-1\"}],\"problem\":\"The counter labelled \\\"capacity\\\" is animated down from 100 to 99 when a token is spent, so the picture says the bucket's capacity shrank, while 99 is the remaining token count and capacity is the fixed maximum (100).\",\"fix\":\"Relabel the counter as the tokens left in the bucket (keeping 100 → 99) so the falling value reads as the count, not the capacity.\"},{\"beatId\":\"beat5\",\"category\":\"visual_contradicts\",\"severity\":\"blocking\",\"owner\":\"generator\",\"fields\":[\"board\"],\"evidence\":[{\"kind\":\"label\",\"elementId\":\"latency\",\"quote\":\"round trip per request\"},{\"kind\":\"number\",\"id\":\"num-5\"},{\"kind\":\"number\",\"id\":\"num-6\"}],\"problem\":\"The latency counter moves from 0.4 to 2.1 as if one round trip got slower, but these are two different points of the same distribution — the median and the p99 — not a change over time.\",\"fix\":\"Show median and p99 as two separate readouts on the board instead of animating a single counter between them.\"},{\"beatId\":\"beat7\",\"category\":\"number_wrong_meaning\",\"severity\":\"blocking\",\"owner\":\"generator\",\"fields\":[\"board\"],\"evidence\":[{\"kind\":\"label\",\"elementId\":\"provider-limit\",\"quote\":\"provider limit\"},{\"kind\":\"number\",\"id\":\"num-18\"},{\"kind\":\"number\",\"id\":\"num-19\"}],\"problem\":\"The counter labelled \\\"provider limit\\\" reads 40 req/s and is pinned to the payment provider, but 40 is the number of checkout instances (the multiplier); the provider's contracted rate is 300 requests per second.\",\"fix\":\"Relabel the counter as \\\"40× the contracted rate\\\" with unit \\\"×\\\" (or show the contract as 300 req/s) so 40 is not drawn as a rate.\"}]}",
+    "servedModel": "deepseek-flash",
+    "finishReason": "stop",
+    "usage": {
+      "prompt_tokens": 14727,
+      "completion_tokens": 11022,
+      "prompt_cache_hit_tokens": 13568,
+      "prompt_cache_miss_tokens": 1159,
+      "prompt_tokens_details": {
+        "cached_tokens": 13568
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 10558
+      },
+      "total_tokens": 25749
+    }
+  },
+  {
+    "content": "{\"issues\":[{\"beatId\":\"beat2\",\"category\":\"number_wrong_meaning\",\"severity\":\"advisory\",\"owner\":\"generator\",\"fields\":[\"board\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"Say the bucket holds a hundred tokens.\"},{\"kind\":\"label\",\"elementId\":\"bucket\",\"quote\":\"capacity\"},{\"kind\":\"label\",\"elementId\":\"bucket\",\"quote\":\"100\"},{\"kind\":\"number\",\"id\":\"num-1\"}],\"problem\":\"The counter labelled \\\"capacity\\\" is animated down from 100 to 99 when a token is spent, so the picture says the bucket's capacity shrank, while 99 is the remaining token count and capacity is the fixed maximum (100).\",\"fix\":\"Relabel the counter as the tokens left in the bucket (keeping 100 → 99) so the falling value reads as the count, not the capacity.\"},{\"beatId\":\"beat5\",\"category\":\"visual_contradicts\",\"severity\":\"blocking\",\"owner\":\"generator\",\"fields\":[\"board\"],\"evidence\":[{\"kind\":\"label\",\"elementId\":\"latency\",\"quote\":\"round trip per request\"},{\"kind\":\"number\",\"id\":\"num-5\"},{\"kind\":\"number\",\"id\":\"num-6\"}],\"problem\":\"The latency counter moves from 0.4 to 2.1 as if one round trip got slower, but these are two different points of the same distribution — the median and the p99 — not a change over time.\",\"fix\":\"Show median and p99 as two separate readouts on the board instead of animating a single counter between them.\"},{\"beatId\":\"beat7\",\"category\":\"number_wrong_meaning\",\"severity\":\"blocking\",\"owner\":\"generator\",\"fields\":[\"board\"],\"evidence\":[{\"kind\":\"label\",\"elementId\":\"provider-limit\",\"quote\":\"provider limit\"},{\"kind\":\"label\",\"elementId\":\"provider-limit\",\"quote\":\"40\"},{\"kind\":\"narration\",\"quote\":\"Each of the forty checkout instances enforced the limit alone.\"},{\"kind\":\"number\",\"id\":\"num-18\"}],\"problem\":\"The counter labelled \\\"provider limit\\\" reads 40 req/s and is pinned to the payment provider, but 40 is the number of checkout instances (the multiplier); the provider's contracted rate is 300 requests per second.\",\"fix\":\"Relabel the counter as \\\"40× the contracted rate\\\" with unit \\\"×\\\" (or show the contract as 300 req/s) so 40 is not drawn as a rate.\"}]}",
+    "servedModel": "deepseek-flash",
+    "finishReason": "stop",
+    "usage": {
+      "prompt_tokens": 15351,
+      "completion_tokens": 1440,
+      "prompt_cache_hit_tokens": 14720,
+      "prompt_cache_miss_tokens": 631,
+      "prompt_tokens_details": {
+        "cached_tokens": 14720
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 922
+      },
+      "total_tokens": 16791
+    }
+  }
+]

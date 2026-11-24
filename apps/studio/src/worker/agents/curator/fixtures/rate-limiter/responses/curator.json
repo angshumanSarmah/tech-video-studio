@@ -1,0 +1,20 @@
+[
+  {
+    "content": "{\"issues\":[{\"beatId\":\"beat5\",\"category\":\"visual_contradicts\",\"severity\":\"blocking\",\"owner\":\"generator\",\"fields\":[\"board\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"Say the median round trip is zero point four milliseconds.\"},{\"kind\":\"narration\",\"quote\":\"At p ninety-nine, two point one.\"},{\"kind\":\"label\",\"elementId\":\"latency\",\"quote\":\"round trip per request\"},{\"kind\":\"number\",\"id\":\"num-5\"},{\"kind\":\"number\",\"id\":\"num-6\"}],\"problem\":\"The board draws the two measurements as one counter transitioning from 0.4 to 2.1 ms (neutral to problem), so the picture says the round trip changed from 0.4 ms to 2.1 ms, while the narration gives the median and the p99 of the same measurements.\",\"fix\":\"Show two separate static values labelled median and p99 (0.4 ms and 2.1 ms) instead of a counter that counts from one to the other.\"},{\"beatId\":\"beat5\",\"category\":\"above_level\",\"severity\":\"advisory\",\"owner\":\"scriptwriter\",\"fields\":[\"narration\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"At p ninety-nine, two point one.\"}],\"problem\":\"\\\"p ninety-nine\\\" is percentile jargon given without a plain gloss, so a beginner cannot tell what the second number measures.\",\"fix\":\"Say it in plain words, e.g. the slowest one request in a hundred takes two point one milliseconds.\"}]}",
+    "servedModel": "deepseek-flash",
+    "finishReason": "stop",
+    "usage": {
+      "prompt_tokens": 14669,
+      "completion_tokens": 11884,
+      "prompt_cache_hit_tokens": 256,
+      "prompt_cache_miss_tokens": 14413,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 11561
+      },
+      "total_tokens": 26553
+    }
+  }
+]

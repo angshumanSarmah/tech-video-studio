@@ -27,6 +27,18 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **Generator — Text size after the camera.** `generatorCheck` still warns `text_too_small`
       at chain scale; `onScreenTextWarnings` would spare boards whose cameras lift each beat.
       Switch only if live runs show the Generator shrinking boards it did not need to.
+- [ ] **P1C.8 — Curator recall.** One review call per run finds most planted faults (7 of 9
+      seeds) but misses some real ones run to run: the rate limiter's beat2 "capacity" label
+      (missed in its recorded run, found in 3 of 9 seed runs on the same spec), the tokenizer's
+      "Corrowby bills", and the hook-retold and term-before-shown seeds. Before the repair loop
+      leans on it, measure recall over several runs per topic (`curator:fixture` without
+      `--record`), then decide: two samples with the issues merged (about twice the cost), the
+      Director's model for the review, or prompt changes (an explicit pass over each BOARD label
+      against NUMBERS; hook retelling without numbers; term order against enter words).
+- [ ] **P1C.8 — Severity of key-idea clarity.** The above-level seed's "an atomic script" came
+      back advisory although the issue itself says it is the beat's key idea; at beginner such an
+      issue may block (the cap allows it). Check over more runs whether the model under-rates
+      these before tightening the prompt.
 - [ ] **P1C.12 — Per-beat asset filter.** The Generator's prompt lists every approved asset in
       the cached prefix (about 105 today, 1–2k tokens). The design doc's per-beat filter (about
       60 candidates) waits until the library passes about 150 entries; it then goes in the user

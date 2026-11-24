@@ -31,6 +31,7 @@
     "scriptwriter:fixture": "tsx scripts/scriptwriter-fixture.ts",
     "generator:timing": "tsx scripts/generator-timing.ts",
     "generator:fixture": "tsx scripts/generator-fixture.ts",
+    "curator:fixture": "tsx scripts/curator-fixture.ts",
     "draft:fixture": "tsx scripts/draft-fixture.ts"
   },
   "dependencies": {

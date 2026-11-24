@@ -1,0 +1,20 @@
+[
+  {
+    "content": "{\"issues\":[{\"beatId\":\"beat1\",\"category\":\"wrong_simplification\",\"severity\":\"blocking\",\"owner\":\"scriptwriter\",\"fields\":[\"narration\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"Its rate limiter, the gate on every request, let thirty-one percent of them fail.\"},{\"kind\":\"fact\",\"id\":\"fact-18\",\"quote\":\"the payment provider received far more than its contract allowed and throttled all traffic; 31% of checkout requests failed for 47 minutes\"}],\"problem\":\"\\\"let thirty-one percent of them fail\\\" reads as if the limiter itself refused 31% of checkouts, when the notes say the limiter let too much traffic through and the payment provider's throttling (429) failed those checkouts.\",\"fix\":\"Say the limiter let too much traffic reach the payment provider, which then refused thirty-one percent of checkouts for forty-seven minutes.\"},{\"beatId\":\"beat4\",\"category\":\"above_level\",\"severity\":\"advisory\",\"owner\":\"scriptwriter\",\"fields\":[\"narration\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"But a shared bucket needs an atomic script.\"},{\"kind\":\"fact\",\"id\":\"fact-6\",\"quote\":\"Read, compute and write run as one atomic script inside the store\"}],\"problem\":\"\\\"atomic script\\\" is named with no plain gloss for a beginner, even though it is the beat's key idea (the notes' own plain meaning is a read-compute-write the store runs as one indivisible unit).\",\"fix\":\"Add a short gloss after the term, e.g. \\\"an atomic script — one read-check-write the store does as a single step\\\".\"},{\"beatId\":\"beat5\",\"category\":\"visual_contradicts\",\"severity\":\"blocking\",\"owner\":\"generator\",\"fields\":[\"board\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"Say the median round trip is zero point four milliseconds. At p ninety-nine, two point one.\"},{\"kind\":\"label\",\"elementId\":\"latency\",\"quote\":\"2.1\"},{\"kind\":\"number\",\"id\":\"num-5\"}],\"problem\":\"The board animates one counter from 0.4 to 2.1 (neutral to problem) and ends showing \\\"2.1 ms round trip per request\\\", so two simultaneous measurements of the same distribution — median and p99 — are drawn as the latency changing, and the median value disappears from the screen.\",\"fix\":\"Show two separate static values in one element, \\\"median 0.4 ms\\\" and \\\"p99 2.1 ms\\\", instead of a single counter transition between them.\"}]}",
+    "servedModel": "deepseek-flash",
+    "finishReason": "stop",
+    "usage": {
+      "prompt_tokens": 14578,
+      "completion_tokens": 9675,
+      "prompt_cache_hit_tokens": 11264,
+      "prompt_cache_miss_tokens": 3314,
+      "prompt_tokens_details": {
+        "cached_tokens": 11264
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 9128
+      },
+      "total_tokens": 24253
+    }
+  }
+]

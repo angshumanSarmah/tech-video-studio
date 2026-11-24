@@ -265,6 +265,24 @@ describe('callJson: repair', () => {
     expect(requests).toHaveLength(1);
   });
 
+  it('tells the check which attempt is the last, so it can let the answer through', async () => {
+    const seen: boolean[] = [];
+    const lenientLast = (value: unknown, attempt: { final: boolean }) => {
+      seen.push(attempt.final);
+      return noBadHeadline(value).map((i) => ({ ...i, soft: attempt.final }));
+    };
+    const { llm: c, requests } = httpClient([
+      completion('{"headline":"Bad","targetSec":60}'),
+      completion('{"headline":"Bad","targetSec":60}'),
+      completion('{"headline":"Bad","targetSec":60}'),
+    ]);
+    await expect(call(c, { check: lenientLast })).resolves.toMatchObject({
+      value: { headline: 'Bad' },
+    });
+    expect(seen).toEqual([false, false, true]);
+    expect(requests).toHaveLength(3);
+  });
+
   it('lists soft issues as advisory when another issue forces a repair', async () => {
     const both = (value: unknown) => [
       ...noBadHeadline(value),

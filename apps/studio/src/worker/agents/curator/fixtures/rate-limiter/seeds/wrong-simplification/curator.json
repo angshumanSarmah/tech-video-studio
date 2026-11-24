@@ -1,0 +1,20 @@
+[
+  {
+    "content": "{\"issues\":[{\"beatId\":\"beat2\",\"category\":\"visual_contradicts\",\"severity\":\"blocking\",\"owner\":\"generator\",\"fields\":[\"board\"],\"evidence\":[{\"kind\":\"label\",\"elementId\":\"bucket\",\"quote\":\"capacity\"},{\"kind\":\"narration\",\"quote\":\"Say the bucket holds a hundred tokens.\"},{\"kind\":\"fact\",\"id\":\"fact-1\",\"quote\":\"a token bucket decides from state kept per key: token count, last-refill timestamp, capacity and refill rate\"}],\"problem\":\"The counter labelled \\\"capacity\\\" is animated from 100 down to 99 when the request spends a token, so the picture shows capacity shrinking, while capacity is the fixed maximum and the token count is what falls.\",\"fix\":\"Label the falling counter \\\"tokens left\\\" and show capacity as a separate fixed value of 100.\"},{\"beatId\":\"beat4\",\"category\":\"unsupported_claim\",\"severity\":\"blocking\",\"owner\":\"scriptwriter\",\"fields\":[\"narration\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"So the store locks every bucket for a whole second.\"},{\"kind\":\"fact\",\"id\":\"fact-6\",\"quote\":\"Read, compute and write run as one atomic script inside the store\"}],\"problem\":\"Nothing in the notes says the store takes a one-second lock; the mechanism is an atomic read-compute-write script inside the store, and a whole-second lock also contradicts the sub-millisecond round trips the video quotes.\",\"fix\":\"Replace the sentence with: the store runs read, refill and write as one atomic step, so no other node can slip in between.\"},{\"beatId\":\"beat5\",\"category\":\"visual_contradicts\",\"severity\":\"blocking\",\"owner\":\"generator\",\"fields\":[\"board\"],\"evidence\":[{\"kind\":\"label\",\"elementId\":\"latency\",\"quote\":\"round trip per request\"},{\"kind\":\"narration\",\"quote\":\"Say the median round trip is zero point four milliseconds. At p ninety-nine, two point one.\"}],\"problem\":\"One value labelled \\\"round trip per request\\\" transitions from 0.4 to 2.1 and turns red, which reads as the round trip getting worse, but these are two different statistics of the same distribution (median and p99), not a change over time.\",\"fix\":\"Show 0.4 ms and 2.1 ms as two separate readings labelled median and p99 instead of a transition between them.\"},{\"beatId\":\"beat5\",\"category\":\"above_level\",\"severity\":\"advisory\",\"owner\":\"scriptwriter\",\"fields\":[\"narration\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"At p ninety-nine, two point one.\"}],\"problem\":\"\\\"p ninety-nine\\\" is a percentile term with no plain gloss, so a beginner cannot tell what the 2.1 ms figure describes.\",\"fix\":\"Say \\\"the slowest one in a hundred checks took two point one milliseconds\\\" instead of \\\"p ninety-nine\\\".\"}]}",
+    "servedModel": "deepseek-flash",
+    "finishReason": "stop",
+    "usage": {
+      "prompt_tokens": 14594,
+      "completion_tokens": 9481,
+      "prompt_cache_hit_tokens": 11264,
+      "prompt_cache_miss_tokens": 3330,
+      "prompt_tokens_details": {
+        "cached_tokens": 11264
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 8863
+      },
+      "total_tokens": 24075
+    }
+  }
+]

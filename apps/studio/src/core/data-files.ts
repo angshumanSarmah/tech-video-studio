@@ -76,6 +76,16 @@ export function generateOutputPath(runId: number, stepId: number): string {
   return posix.join(runDir(runId), 'generate', `output-${stepId}.json`);
 }
 
+/** What one `curate` job read (`CurateInputSchema`): the pinned spec, the plan and notes steps. */
+export function curateInputPath(runId: number, stepId: number): string {
+  return posix.join(runDir(runId), 'curate', `input-${stepId}.json`);
+}
+
+/** One `curate` job's findings (`CuratorReportSchema`): the gate-3 input. */
+export function curateReportPath(runId: number, stepId: number): string {
+  return posix.join(runDir(runId), 'curate', `report-${stepId}.json`);
+}
+
 /** What one Generator beat step read (`GeneratorBeatInputSchema`: input hash, prompt). */
 export function beatSceneInputPath(runId: number, beatId: string, stepId: number): string {
   return posix.join(runDir(runId), 'generate', beatId, `input-${stepId}.json`);

@@ -16,7 +16,13 @@ export const FIXTURE_TOPIC_IDS = ['rate-limiter', 'tokenizer'] as const;
 export type FixtureTopicId = (typeof FIXTURE_TOPIC_IDS)[number];
 
 /** The agent roles of the fixture chain, in pipeline order. */
-export const FIXTURE_ROLES = ['researcher', 'director', 'scriptwriter', 'generator'] as const;
+export const FIXTURE_ROLES = [
+  'researcher',
+  'director',
+  'scriptwriter',
+  'generator',
+  'curator',
+] as const;
 export type FixtureRole = (typeof FIXTURE_ROLES)[number] & ModelRole;
 
 export interface FixtureTopic {
