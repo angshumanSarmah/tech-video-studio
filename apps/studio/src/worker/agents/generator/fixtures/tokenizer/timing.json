@@ -1,0 +1,1105 @@
+{
+  "voice": "af_heart",
+  "speed": 1,
+  "beats": [
+    {
+      "beatId": "b1",
+      "narration": "One support reply says 'Paris'. Why do ' Paris' and 'PARIS' split it differently? A token is one piece of text, mapped to one integer.",
+      "durationSec": 8.7,
+      "words": [
+        {
+          "text": "one",
+          "startSec": 0.3,
+          "endSec": 0.525
+        },
+        {
+          "text": "support",
+          "startSec": 0.525,
+          "endSec": 0.8875
+        },
+        {
+          "text": "reply",
+          "startSec": 0.8875,
+          "endSec": 1.25
+        },
+        {
+          "text": "says",
+          "startSec": 1.25,
+          "endSec": 1.4625
+        },
+        {
+          "text": "paris",
+          "startSec": 1.5,
+          "endSec": 2.005
+        },
+        {
+          "text": "why",
+          "startSec": 2.35,
+          "endSec": 2.5375
+        },
+        {
+          "text": "do",
+          "startSec": 2.5375,
+          "endSec": 2.6375
+        },
+        {
+          "text": "paris",
+          "startSec": 2.7,
+          "endSec": 3.125
+        },
+        {
+          "text": "and",
+          "startSec": 3.175,
+          "endSec": 3.3
+        },
+        {
+          "text": "paris",
+          "startSec": 3.375,
+          "endSec": 3.775
+        },
+        {
+          "text": "split",
+          "startSec": 3.8375,
+          "endSec": 4.1125
+        },
+        {
+          "text": "it",
+          "startSec": 4.1125,
+          "endSec": 4.225
+        },
+        {
+          "text": "differently",
+          "startSec": 4.225,
+          "endSec": 4.82
+        },
+        {
+          "text": "a",
+          "startSec": 5.2625,
+          "endSec": 5.375
+        },
+        {
+          "text": "token",
+          "startSec": 5.375,
+          "endSec": 5.8
+        },
+        {
+          "text": "is",
+          "startSec": 5.8,
+          "endSec": 5.9625
+        },
+        {
+          "text": "one",
+          "startSec": 5.9625,
+          "endSec": 6.225
+        },
+        {
+          "text": "piece",
+          "startSec": 6.225,
+          "endSec": 6.4875
+        },
+        {
+          "text": "of",
+          "startSec": 6.4875,
+          "endSec": 6.575
+        },
+        {
+          "text": "text",
+          "startSec": 6.575,
+          "endSec": 7.075
+        },
+        {
+          "text": "mapped",
+          "startSec": 7.1625,
+          "endSec": 7.475
+        },
+        {
+          "text": "to",
+          "startSec": 7.475,
+          "endSec": 7.6
+        },
+        {
+          "text": "one",
+          "startSec": 7.6,
+          "endSec": 7.7875
+        },
+        {
+          "text": "integer",
+          "startSec": 7.7875,
+          "endSec": 8.255
+        }
+      ]
+    },
+    {
+      "beatId": "b2",
+      "narration": "Characters keep the vocabulary, the fixed piece list, tiny, but a paragraph becomes thousands of steps. Whole words need an entry per typo. Subword pieces sit between: common words one token, rare words several.",
+      "durationSec": 14.25,
+      "words": [
+        {
+          "text": "characters",
+          "startSec": 0.275,
+          "endSec": 0.825
+        },
+        {
+          "text": "keep",
+          "startSec": 0.825,
+          "endSec": 1.0375
+        },
+        {
+          "text": "the",
+          "startSec": 1.0375,
+          "endSec": 1.125
+        },
+        {
+          "text": "vocabulary",
+          "startSec": 1.125,
+          "endSec": 1.975
+        },
+        {
+          "text": "the",
+          "startSec": 2.095,
+          "endSec": 2.1875
+        },
+        {
+          "text": "fixed",
+          "startSec": 2.1875,
+          "endSec": 2.5
+        },
+        {
+          "text": "piece",
+          "startSec": 2.5,
+          "endSec": 2.775
+        },
+        {
+          "text": "list",
+          "startSec": 2.775,
+          "endSec": 3
+        },
+        {
+          "text": "tiny",
+          "startSec": 3.05,
+          "endSec": 3.65
+        },
+        {
+          "text": "but",
+          "startSec": 3.725,
+          "endSec": 3.8625
+        },
+        {
+          "text": "a",
+          "startSec": 3.8625,
+          "endSec": 3.925
+        },
+        {
+          "text": "paragraph",
+          "startSec": 3.925,
+          "endSec": 4.525
+        },
+        {
+          "text": "becomes",
+          "startSec": 4.525,
+          "endSec": 5.0125
+        },
+        {
+          "text": "thousands",
+          "startSec": 5.0125,
+          "endSec": 5.5125
+        },
+        {
+          "text": "of",
+          "startSec": 5.5125,
+          "endSec": 5.6
+        },
+        {
+          "text": "steps",
+          "startSec": 5.6,
+          "endSec": 6.125
+        },
+        {
+          "text": "whole",
+          "startSec": 6.6,
+          "endSec": 6.875
+        },
+        {
+          "text": "words",
+          "startSec": 6.875,
+          "endSec": 7.25
+        },
+        {
+          "text": "need",
+          "startSec": 7.25,
+          "endSec": 7.4375
+        },
+        {
+          "text": "an",
+          "startSec": 7.4375,
+          "endSec": 7.55
+        },
+        {
+          "text": "entry",
+          "startSec": 7.55,
+          "endSec": 7.9
+        },
+        {
+          "text": "per",
+          "startSec": 7.9,
+          "endSec": 8.1
+        },
+        {
+          "text": "typo",
+          "startSec": 8.1,
+          "endSec": 8.66
+        },
+        {
+          "text": "subword",
+          "startSec": 9.125,
+          "endSec": 9.55
+        },
+        {
+          "text": "pieces",
+          "startSec": 9.55,
+          "endSec": 10.0125
+        },
+        {
+          "text": "sit",
+          "startSec": 10.0125,
+          "endSec": 10.225
+        },
+        {
+          "text": "between",
+          "startSec": 10.27,
+          "endSec": 10.77
+        },
+        {
+          "text": "common",
+          "startSec": 11.0125,
+          "endSec": 11.4
+        },
+        {
+          "text": "words",
+          "startSec": 11.4,
+          "endSec": 11.7
+        },
+        {
+          "text": "one",
+          "startSec": 11.7,
+          "endSec": 11.925
+        },
+        {
+          "text": "token",
+          "startSec": 11.925,
+          "endSec": 12.475
+        },
+        {
+          "text": "rare",
+          "startSec": 12.6,
+          "endSec": 12.925
+        },
+        {
+          "text": "words",
+          "startSec": 12.925,
+          "endSec": 13.2625
+        },
+        {
+          "text": "several",
+          "startSec": 13.2625,
+          "endSec": 13.765
+        }
+      ]
+    },
+    {
+      "beatId": "b3",
+      "narration": "Learning starts from raw bytes: two hundred and fifty-six of them. Then the loop counts every neighbouring pair. It adds the most frequent one, say 't' plus 'h', as a new symbol, 'th'. Repeat.",
+      "durationSec": 13,
+      "words": [
+        {
+          "text": "learning",
+          "startSec": 0.325,
+          "endSec": 0.725
+        },
+        {
+          "text": "starts",
+          "startSec": 0.725,
+          "endSec": 1.075
+        },
+        {
+          "text": "from",
+          "startSec": 1.075,
+          "endSec": 1.275
+        },
+        {
+          "text": "raw",
+          "startSec": 1.275,
+          "endSec": 1.5
+        },
+        {
+          "text": "bytes",
+          "startSec": 1.5,
+          "endSec": 1.995
+        },
+        {
+          "text": "two",
+          "startSec": 2.2375,
+          "endSec": 2.45
+        },
+        {
+          "text": "hundred",
+          "startSec": 2.45,
+          "endSec": 2.875
+        },
+        {
+          "text": "and",
+          "startSec": 2.875,
+          "endSec": 3.0125
+        },
+        {
+          "text": "fifty-six",
+          "startSec": 3.0125,
+          "endSec": 3.6125
+        },
+        {
+          "text": "of",
+          "startSec": 3.6125,
+          "endSec": 3.7
+        },
+        {
+          "text": "them",
+          "startSec": 3.7,
+          "endSec": 4.01
+        },
+        {
+          "text": "then",
+          "startSec": 4.5125,
+          "endSec": 4.775
+        },
+        {
+          "text": "the",
+          "startSec": 4.775,
+          "endSec": 4.9125
+        },
+        {
+          "text": "loop",
+          "startSec": 4.9125,
+          "endSec": 5.175
+        },
+        {
+          "text": "counts",
+          "startSec": 5.175,
+          "endSec": 5.5125
+        },
+        {
+          "text": "every",
+          "startSec": 5.5125,
+          "endSec": 5.85
+        },
+        {
+          "text": "neighbouring",
+          "startSec": 5.85,
+          "endSec": 6.275
+        },
+        {
+          "text": "pair",
+          "startSec": 6.275,
+          "endSec": 6.68
+        },
+        {
+          "text": "it",
+          "startSec": 7.165,
+          "endSec": 7.25
+        },
+        {
+          "text": "adds",
+          "startSec": 7.25,
+          "endSec": 7.4875
+        },
+        {
+          "text": "the",
+          "startSec": 7.4875,
+          "endSec": 7.575
+        },
+        {
+          "text": "most",
+          "startSec": 7.575,
+          "endSec": 7.85
+        },
+        {
+          "text": "frequent",
+          "startSec": 7.85,
+          "endSec": 8.1875
+        },
+        {
+          "text": "one",
+          "startSec": 8.1875,
+          "endSec": 8.425
+        },
+        {
+          "text": "say",
+          "startSec": 8.5,
+          "endSec": 8.75
+        },
+        {
+          "text": "t",
+          "startSec": 8.85,
+          "endSec": 9.175
+        },
+        {
+          "text": "plus",
+          "startSec": 9.325,
+          "endSec": 9.575
+        },
+        {
+          "text": "h",
+          "startSec": 9.65,
+          "endSec": 10
+        },
+        {
+          "text": "as",
+          "startSec": 10.1625,
+          "endSec": 10.2875
+        },
+        {
+          "text": "a",
+          "startSec": 10.2875,
+          "endSec": 10.375
+        },
+        {
+          "text": "new",
+          "startSec": 10.375,
+          "endSec": 10.5625
+        },
+        {
+          "text": "symbol",
+          "startSec": 10.5625,
+          "endSec": 11.05
+        },
+        {
+          "text": "th",
+          "startSec": 11.2,
+          "endSec": 11.825
+        },
+        {
+          "text": "repeat",
+          "startSec": 12.05,
+          "endSec": 12.565
+        }
+      ]
+    },
+    {
+      "beatId": "b4",
+      "narration": "The tokenizer replays those merges in the order learned, joining every pair it can. A common word like 'the' collapses to one token; an unusual one stays in pieces.",
+      "durationSec": 11.225,
+      "words": [
+        {
+          "text": "the",
+          "startSec": 0.25,
+          "endSec": 0.325
+        },
+        {
+          "text": "tokenizer",
+          "startSec": 0.325,
+          "endSec": 1.025
+        },
+        {
+          "text": "replays",
+          "startSec": 1.025,
+          "endSec": 1.55
+        },
+        {
+          "text": "those",
+          "startSec": 1.55,
+          "endSec": 1.8
+        },
+        {
+          "text": "merges",
+          "startSec": 1.8,
+          "endSec": 2.25
+        },
+        {
+          "text": "in",
+          "startSec": 2.25,
+          "endSec": 2.3375
+        },
+        {
+          "text": "the",
+          "startSec": 2.3375,
+          "endSec": 2.45
+        },
+        {
+          "text": "order",
+          "startSec": 2.45,
+          "endSec": 2.8
+        },
+        {
+          "text": "learned",
+          "startSec": 2.8,
+          "endSec": 3.23
+        },
+        {
+          "text": "joining",
+          "startSec": 3.5125,
+          "endSec": 3.9625
+        },
+        {
+          "text": "every",
+          "startSec": 4.01,
+          "endSec": 4.3
+        },
+        {
+          "text": "pair",
+          "startSec": 4.3,
+          "endSec": 4.5375
+        },
+        {
+          "text": "it",
+          "startSec": 4.5375,
+          "endSec": 4.625
+        },
+        {
+          "text": "can",
+          "startSec": 4.625,
+          "endSec": 5.055
+        },
+        {
+          "text": "a",
+          "startSec": 5.655,
+          "endSec": 5.7375
+        },
+        {
+          "text": "common",
+          "startSec": 5.7375,
+          "endSec": 6.125
+        },
+        {
+          "text": "word",
+          "startSec": 6.125,
+          "endSec": 6.45
+        },
+        {
+          "text": "like",
+          "startSec": 6.45,
+          "endSec": 6.75
+        },
+        {
+          "text": "the",
+          "startSec": 6.8,
+          "endSec": 6.85
+        },
+        {
+          "text": "collapses",
+          "startSec": 6.9,
+          "endSec": 7.525
+        },
+        {
+          "text": "to",
+          "startSec": 7.525,
+          "endSec": 7.65
+        },
+        {
+          "text": "one",
+          "startSec": 7.65,
+          "endSec": 7.875
+        },
+        {
+          "text": "token",
+          "startSec": 7.875,
+          "endSec": 8.55
+        },
+        {
+          "text": "an",
+          "startSec": 8.65,
+          "endSec": 8.8125
+        },
+        {
+          "text": "unusual",
+          "startSec": 8.8125,
+          "endSec": 9.375
+        },
+        {
+          "text": "one",
+          "startSec": 9.375,
+          "endSec": 9.6125
+        },
+        {
+          "text": "stays",
+          "startSec": 9.6125,
+          "endSec": 10.05
+        },
+        {
+          "text": "in",
+          "startSec": 10.05,
+          "endSec": 10.175
+        },
+        {
+          "text": "pieces",
+          "startSec": 10.175,
+          "endSec": 10.78
+        }
+      ]
+    },
+    {
+      "beatId": "b5",
+      "narration": "Remember that 'Paris'? Pre-tokenization, the split into chunks before merges, runs first. A space sticks to the word after it, so ' Paris' differs from 'PARIS': one token, one token, three.",
+      "durationSec": 12.575,
+      "words": [
+        {
+          "text": "remember",
+          "startSec": 0.25,
+          "endSec": 0.575
+        },
+        {
+          "text": "that",
+          "startSec": 0.575,
+          "endSec": 0.7625
+        },
+        {
+          "text": "paris",
+          "startSec": 0.825,
+          "endSec": 1.39
+        },
+        {
+          "text": "pre-tokenization",
+          "startSec": 1.785,
+          "endSec": 2.775
+        },
+        {
+          "text": "the",
+          "startSec": 2.825,
+          "endSec": 2.9625
+        },
+        {
+          "text": "split",
+          "startSec": 2.9625,
+          "endSec": 3.2375
+        },
+        {
+          "text": "into",
+          "startSec": 3.2375,
+          "endSec": 3.4875
+        },
+        {
+          "text": "chunks",
+          "startSec": 3.4875,
+          "endSec": 3.85
+        },
+        {
+          "text": "before",
+          "startSec": 3.85,
+          "endSec": 4.175
+        },
+        {
+          "text": "merges",
+          "startSec": 4.175,
+          "endSec": 4.675
+        },
+        {
+          "text": "runs",
+          "startSec": 4.75,
+          "endSec": 5.05
+        },
+        {
+          "text": "first",
+          "startSec": 5.05,
+          "endSec": 5.525
+        },
+        {
+          "text": "a",
+          "startSec": 5.98,
+          "endSec": 6.0625
+        },
+        {
+          "text": "space",
+          "startSec": 6.0625,
+          "endSec": 6.45
+        },
+        {
+          "text": "sticks",
+          "startSec": 6.45,
+          "endSec": 6.775
+        },
+        {
+          "text": "to",
+          "startSec": 6.775,
+          "endSec": 6.8625
+        },
+        {
+          "text": "the",
+          "startSec": 6.8625,
+          "endSec": 6.95
+        },
+        {
+          "text": "word",
+          "startSec": 6.95,
+          "endSec": 7.2
+        },
+        {
+          "text": "after",
+          "startSec": 7.2,
+          "endSec": 7.55
+        },
+        {
+          "text": "it",
+          "startSec": 7.55,
+          "endSec": 7.725
+        },
+        {
+          "text": "so",
+          "startSec": 7.8,
+          "endSec": 8.2
+        },
+        {
+          "text": "paris",
+          "startSec": 8.275,
+          "endSec": 8.675
+        },
+        {
+          "text": "differs",
+          "startSec": 8.675,
+          "endSec": 9.025
+        },
+        {
+          "text": "from",
+          "startSec": 9.025,
+          "endSec": 9.2125
+        },
+        {
+          "text": "paris",
+          "startSec": 9.275,
+          "endSec": 9.8
+        },
+        {
+          "text": "one",
+          "startSec": 10.2375,
+          "endSec": 10.475
+        },
+        {
+          "text": "token",
+          "startSec": 10.475,
+          "endSec": 10.95
+        },
+        {
+          "text": "one",
+          "startSec": 11.025,
+          "endSec": 11.25
+        },
+        {
+          "text": "token",
+          "startSec": 11.25,
+          "endSec": 11.65
+        },
+        {
+          "text": "three",
+          "startSec": 11.7125,
+          "endSec": 12.11
+        }
+      ]
+    },
+    {
+      "beatId": "b6",
+      "narration": "At Corrowby, requests are billed in tokens, but budgets came from word counts. An English reply ran about one point three tokens per word. A language rare in training needed about three times as many.",
+      "durationSec": 13.35,
+      "words": [
+        {
+          "text": "at",
+          "startSec": 0.25,
+          "endSec": 0.4
+        },
+        {
+          "text": "corrowby",
+          "startSec": 0.4,
+          "endSec": 1.075
+        },
+        {
+          "text": "requests",
+          "startSec": 1.22,
+          "endSec": 1.6625
+        },
+        {
+          "text": "are",
+          "startSec": 1.6625,
+          "endSec": 1.75
+        },
+        {
+          "text": "billed",
+          "startSec": 1.75,
+          "endSec": 2.025
+        },
+        {
+          "text": "in",
+          "startSec": 2.025,
+          "endSec": 2.175
+        },
+        {
+          "text": "tokens",
+          "startSec": 2.175,
+          "endSec": 2.845
+        },
+        {
+          "text": "but",
+          "startSec": 3.16,
+          "endSec": 3.2625
+        },
+        {
+          "text": "budgets",
+          "startSec": 3.2625,
+          "endSec": 3.675
+        },
+        {
+          "text": "came",
+          "startSec": 3.675,
+          "endSec": 3.975
+        },
+        {
+          "text": "from",
+          "startSec": 3.975,
+          "endSec": 4.175
+        },
+        {
+          "text": "word",
+          "startSec": 4.175,
+          "endSec": 4.45
+        },
+        {
+          "text": "counts",
+          "startSec": 4.45,
+          "endSec": 4.98
+        },
+        {
+          "text": "an",
+          "startSec": 5.49,
+          "endSec": 5.6
+        },
+        {
+          "text": "english",
+          "startSec": 5.6,
+          "endSec": 5.975
+        },
+        {
+          "text": "reply",
+          "startSec": 5.975,
+          "endSec": 6.525
+        },
+        {
+          "text": "ran",
+          "startSec": 6.525,
+          "endSec": 6.8
+        },
+        {
+          "text": "about",
+          "startSec": 6.8,
+          "endSec": 7.1125
+        },
+        {
+          "text": "one",
+          "startSec": 7.1125,
+          "endSec": 7.35
+        },
+        {
+          "text": "point",
+          "startSec": 7.35,
+          "endSec": 7.6625
+        },
+        {
+          "text": "three",
+          "startSec": 7.6625,
+          "endSec": 7.9
+        },
+        {
+          "text": "tokens",
+          "startSec": 7.9,
+          "endSec": 8.35
+        },
+        {
+          "text": "per",
+          "startSec": 8.35,
+          "endSec": 8.55
+        },
+        {
+          "text": "word",
+          "startSec": 8.55,
+          "endSec": 8.915
+        },
+        {
+          "text": "a",
+          "startSec": 9.2875,
+          "endSec": 9.4
+        },
+        {
+          "text": "language",
+          "startSec": 9.4,
+          "endSec": 9.9375
+        },
+        {
+          "text": "rare",
+          "startSec": 9.9375,
+          "endSec": 10.25
+        },
+        {
+          "text": "in",
+          "startSec": 10.25,
+          "endSec": 10.375
+        },
+        {
+          "text": "training",
+          "startSec": 10.375,
+          "endSec": 10.9125
+        },
+        {
+          "text": "needed",
+          "startSec": 10.9125,
+          "endSec": 11.2125
+        },
+        {
+          "text": "about",
+          "startSec": 11.2125,
+          "endSec": 11.5375
+        },
+        {
+          "text": "three",
+          "startSec": 11.59,
+          "endSec": 11.7875
+        },
+        {
+          "text": "times",
+          "startSec": 11.7875,
+          "endSec": 12.2625
+        },
+        {
+          "text": "as",
+          "startSec": 12.2625,
+          "endSec": 12.45
+        },
+        {
+          "text": "many",
+          "startSec": 12.45,
+          "endSec": 12.83
+        }
+      ]
+    },
+    {
+      "beatId": "b7",
+      "narration": "Corrowby now counts with the model's own tokenizer, per language, for every message. That support reply is budgeted in tokens, not estimated from words.",
+      "durationSec": 10.575,
+      "words": [
+        {
+          "text": "corrowby",
+          "startSec": 0.275,
+          "endSec": 0.775
+        },
+        {
+          "text": "now",
+          "startSec": 0.775,
+          "endSec": 1.0875
+        },
+        {
+          "text": "counts",
+          "startSec": 1.0875,
+          "endSec": 1.4375
+        },
+        {
+          "text": "with",
+          "startSec": 1.4375,
+          "endSec": 1.5375
+        },
+        {
+          "text": "the",
+          "startSec": 1.5375,
+          "endSec": 1.625
+        },
+        {
+          "text": "model's",
+          "startSec": 1.625,
+          "endSec": 2.1
+        },
+        {
+          "text": "own",
+          "startSec": 2.1,
+          "endSec": 2.3
+        },
+        {
+          "text": "tokenizer",
+          "startSec": 2.3,
+          "endSec": 3.09
+        },
+        {
+          "text": "per",
+          "startSec": 3.325,
+          "endSec": 3.475
+        },
+        {
+          "text": "language",
+          "startSec": 3.475,
+          "endSec": 4.08
+        },
+        {
+          "text": "for",
+          "startSec": 4.225,
+          "endSec": 4.3875
+        },
+        {
+          "text": "every",
+          "startSec": 4.3875,
+          "endSec": 4.725
+        },
+        {
+          "text": "message",
+          "startSec": 4.725,
+          "endSec": 5.31
+        },
+        {
+          "text": "that",
+          "startSec": 5.8125,
+          "endSec": 6.1
+        },
+        {
+          "text": "support",
+          "startSec": 6.1,
+          "endSec": 6.5
+        },
+        {
+          "text": "reply",
+          "startSec": 6.5,
+          "endSec": 6.975
+        },
+        {
+          "text": "is",
+          "startSec": 6.975,
+          "endSec": 7.1375
+        },
+        {
+          "text": "budgeted",
+          "startSec": 7.1375,
+          "endSec": 7.575
+        },
+        {
+          "text": "in",
+          "startSec": 7.575,
+          "endSec": 7.725
+        },
+        {
+          "text": "tokens",
+          "startSec": 7.725,
+          "endSec": 8.475
+        },
+        {
+          "text": "not",
+          "startSec": 8.5875,
+          "endSec": 8.8625
+        },
+        {
+          "text": "estimated",
+          "startSec": 8.8625,
+          "endSec": 9.475
+        },
+        {
+          "text": "from",
+          "startSec": 9.475,
+          "endSec": 9.65
+        },
+        {
+          "text": "words",
+          "startSec": 9.65,
+          "endSec": 10.16
+        }
+      ]
+    }
+  ]
+}

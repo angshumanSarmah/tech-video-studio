@@ -166,7 +166,10 @@ describe('research job (rate-limiter fixture, dry run)', () => {
     expect(job.status).toBe('done');
 
     const calls = listRunLlmCalls(t.db, runId);
-    expect(calls.map((c) => c.error)).toEqual(['Invalid output: 1 issue(s)', null]);
+    expect(calls.map((c) => c.error)).toEqual([
+      expect.stringMatching(/^Invalid output: 1 issue\(s\) \[[a-z_]+\]$/),
+      null,
+    ]);
     const repair = readDataJson(t.dataDir, calls[1]!.promptPath) as {
       messages: { content: string }[];
     };

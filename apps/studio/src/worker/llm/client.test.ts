@@ -12,6 +12,7 @@ import { series } from '#core/db/schema.ts';
 import { createTestDb, type TestDb } from '#core/db/testing.ts';
 import {
   createLlmClient,
+  invalidOutputError,
   LlmOutputInvalidError,
   MAX_REPAIR_ATTEMPTS,
   type CallJsonRequest,
@@ -217,7 +218,7 @@ describe('callJson: repair', () => {
 
     const rows = listRunLlmCalls(t.db, runId);
     expect(rows.map((r) => [r.attempt, r.error])).toEqual([
-      [0, 'Invalid output: 2 issue(s)'],
+      [0, expect.stringMatching(/^Invalid output: 2 issue\(s\) \[.+\]$/)],
       [1, null],
     ]);
     expect(result.costUsd).toBeCloseTo(rows[0]!.costUsd + rows[1]!.costUsd, 12);
@@ -254,7 +255,7 @@ describe('callJson: repair', () => {
     const repair = requests[1]?.body.messages[3]?.content;
     expect(repair).toContain('- $.targetSec:');
     expect(repair).toContain('- $.headline: Not allowed');
-    expect(listRunLlmCalls(t.db, runId)[0]?.error).toBe('Invalid output: 2 issue(s)');
+    expect(listRunLlmCalls(t.db, runId)[0]?.error).toMatch(/^Invalid output: 2 issue\(s\) \[/);
   });
 
   it('accepts an answer whose only issues are soft (advisory)', async () => {
@@ -435,5 +436,18 @@ describe('callJson: dry run', () => {
       tokensOut: 5,
     });
     await expect(call(c)).rejects.toThrow(/No recorded director response left/);
+  });
+});
+
+describe('invalidOutputError', () => {
+  it('lists each code once, soft ones marked', () => {
+    expect(
+      invalidOutputError([
+        { path: '$.a', message: 'x', code: 'focus_missing' },
+        { path: '$.b', message: 'y', code: 'focus_missing' },
+        { path: '$.c', message: 'z', code: 'unknown_asset', soft: true },
+        { path: '$.d', message: 'w' },
+      ]),
+    ).toBe('Invalid output: 4 issue(s) [focus_missing, ~unknown_asset, invalid]');
   });
 });

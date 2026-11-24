@@ -1,0 +1,1392 @@
+{
+  "voice": "af_heart",
+  "speed": 1,
+  "beats": [
+    {
+      "beatId": "beat1",
+      "narration": "Thirty-one percent of Larkspur Pay checkouts failed on fourteen March. That lasted forty-seven minutes. A rate limiter decides, per request, who may go now.",
+      "durationSec": 10.725,
+      "words": [
+        {
+          "text": "thirty-one",
+          "startSec": 0.315,
+          "endSec": 0.775
+        },
+        {
+          "text": "percent",
+          "startSec": 0.775,
+          "endSec": 1.225
+        },
+        {
+          "text": "of",
+          "startSec": 1.225,
+          "endSec": 1.375
+        },
+        {
+          "text": "larkspur",
+          "startSec": 1.375,
+          "endSec": 1.85
+        },
+        {
+          "text": "pay",
+          "startSec": 1.85,
+          "endSec": 2.1375
+        },
+        {
+          "text": "checkouts",
+          "startSec": 2.1375,
+          "endSec": 2.75
+        },
+        {
+          "text": "failed",
+          "startSec": 2.75,
+          "endSec": 3.1125
+        },
+        {
+          "text": "on",
+          "startSec": 3.1125,
+          "endSec": 3.2875
+        },
+        {
+          "text": "fourteen",
+          "startSec": 3.2875,
+          "endSec": 3.825
+        },
+        {
+          "text": "march",
+          "startSec": 3.825,
+          "endSec": 4.31
+        },
+        {
+          "text": "that",
+          "startSec": 4.7125,
+          "endSec": 4.95
+        },
+        {
+          "text": "lasted",
+          "startSec": 4.95,
+          "endSec": 5.3875
+        },
+        {
+          "text": "forty-seven",
+          "startSec": 5.3875,
+          "endSec": 6.025
+        },
+        {
+          "text": "minutes",
+          "startSec": 6.025,
+          "endSec": 6.52
+        },
+        {
+          "text": "a",
+          "startSec": 6.9375,
+          "endSec": 7.0625
+        },
+        {
+          "text": "rate",
+          "startSec": 7.0625,
+          "endSec": 7.375
+        },
+        {
+          "text": "limiter",
+          "startSec": 7.375,
+          "endSec": 7.775
+        },
+        {
+          "text": "decides",
+          "startSec": 7.775,
+          "endSec": 8.475
+        },
+        {
+          "text": "per",
+          "startSec": 8.625,
+          "endSec": 8.725
+        },
+        {
+          "text": "request",
+          "startSec": 8.725,
+          "endSec": 9.35
+        },
+        {
+          "text": "who",
+          "startSec": 9.47,
+          "endSec": 9.55
+        },
+        {
+          "text": "may",
+          "startSec": 9.55,
+          "endSec": 9.725
+        },
+        {
+          "text": "go",
+          "startSec": 9.725,
+          "endSec": 9.9
+        },
+        {
+          "text": "now",
+          "startSec": 9.9,
+          "endSec": 10.24
+        }
+      ]
+    },
+    {
+      "beatId": "beat2",
+      "narration": "So each checkout request carries a key. That key owns a token bucket: a size, a refill rate. Say a hundred tokens. It refills ten a second. Each request spends one.",
+      "durationSec": 11.8,
+      "words": [
+        {
+          "text": "so",
+          "startSec": 0.3,
+          "endSec": 0.5125
+        },
+        {
+          "text": "each",
+          "startSec": 0.5125,
+          "endSec": 0.8125
+        },
+        {
+          "text": "checkout",
+          "startSec": 0.8125,
+          "endSec": 1.1875
+        },
+        {
+          "text": "request",
+          "startSec": 1.1875,
+          "endSec": 1.6
+        },
+        {
+          "text": "carries",
+          "startSec": 1.6,
+          "endSec": 1.9625
+        },
+        {
+          "text": "a",
+          "startSec": 1.9625,
+          "endSec": 2.0625
+        },
+        {
+          "text": "key",
+          "startSec": 2.0625,
+          "endSec": 2.49
+        },
+        {
+          "text": "that",
+          "startSec": 2.9375,
+          "endSec": 3.2125
+        },
+        {
+          "text": "key",
+          "startSec": 3.2125,
+          "endSec": 3.5
+        },
+        {
+          "text": "owns",
+          "startSec": 3.5,
+          "endSec": 3.7125
+        },
+        {
+          "text": "a",
+          "startSec": 3.7125,
+          "endSec": 3.775
+        },
+        {
+          "text": "token",
+          "startSec": 3.775,
+          "endSec": 4.15
+        },
+        {
+          "text": "bucket",
+          "startSec": 4.15,
+          "endSec": 4.575
+        },
+        {
+          "text": "a",
+          "startSec": 4.8375,
+          "endSec": 4.975
+        },
+        {
+          "text": "size",
+          "startSec": 4.975,
+          "endSec": 5.475
+        },
+        {
+          "text": "a",
+          "startSec": 5.55,
+          "endSec": 5.6625
+        },
+        {
+          "text": "refill",
+          "startSec": 5.6625,
+          "endSec": 6.1
+        },
+        {
+          "text": "rate",
+          "startSec": 6.1,
+          "endSec": 6.47
+        },
+        {
+          "text": "say",
+          "startSec": 6.6875,
+          "endSec": 6.925
+        },
+        {
+          "text": "a",
+          "startSec": 6.925,
+          "endSec": 7
+        },
+        {
+          "text": "hundred",
+          "startSec": 7,
+          "endSec": 7.35
+        },
+        {
+          "text": "tokens",
+          "startSec": 7.35,
+          "endSec": 8.005
+        },
+        {
+          "text": "it",
+          "startSec": 8.36,
+          "endSec": 8.45
+        },
+        {
+          "text": "refills",
+          "startSec": 8.45,
+          "endSec": 8.9625
+        },
+        {
+          "text": "ten",
+          "startSec": 8.9625,
+          "endSec": 9.1875
+        },
+        {
+          "text": "a",
+          "startSec": 9.1875,
+          "endSec": 9.275
+        },
+        {
+          "text": "second",
+          "startSec": 9.275,
+          "endSec": 9.75
+        },
+        {
+          "text": "each",
+          "startSec": 9.985,
+          "endSec": 10.1625
+        },
+        {
+          "text": "request",
+          "startSec": 10.1625,
+          "endSec": 10.575
+        },
+        {
+          "text": "spends",
+          "startSec": 10.575,
+          "endSec": 10.975
+        },
+        {
+          "text": "one",
+          "startSec": 10.975,
+          "endSec": 11.355
+        }
+      ]
+    },
+    {
+      "beatId": "beat3",
+      "narration": "Why not give each gateway node its own bucket? Say twenty-four nodes. A client spread across them gets twenty-four times its limit. One shared store holds the bucket; every node reads and writes it there.",
+      "durationSec": 12.825,
+      "words": [
+        {
+          "text": "why",
+          "startSec": 0.275,
+          "endSec": 0.4375
+        },
+        {
+          "text": "not",
+          "startSec": 0.4375,
+          "endSec": 0.625
+        },
+        {
+          "text": "give",
+          "startSec": 0.625,
+          "endSec": 0.7875
+        },
+        {
+          "text": "each",
+          "startSec": 0.7875,
+          "endSec": 1
+        },
+        {
+          "text": "gateway",
+          "startSec": 1,
+          "endSec": 1.35
+        },
+        {
+          "text": "node",
+          "startSec": 1.35,
+          "endSec": 1.5625
+        },
+        {
+          "text": "its",
+          "startSec": 1.5625,
+          "endSec": 1.7
+        },
+        {
+          "text": "own",
+          "startSec": 1.7,
+          "endSec": 1.95
+        },
+        {
+          "text": "bucket",
+          "startSec": 1.95,
+          "endSec": 2.4
+        },
+        {
+          "text": "say",
+          "startSec": 2.6875,
+          "endSec": 2.9625
+        },
+        {
+          "text": "twenty-four",
+          "startSec": 2.9625,
+          "endSec": 3.5
+        },
+        {
+          "text": "nodes",
+          "startSec": 3.5,
+          "endSec": 4.025
+        },
+        {
+          "text": "a",
+          "startSec": 4.43,
+          "endSec": 4.5125
+        },
+        {
+          "text": "client",
+          "startSec": 4.5125,
+          "endSec": 4.975
+        },
+        {
+          "text": "spread",
+          "startSec": 4.975,
+          "endSec": 5.2375
+        },
+        {
+          "text": "across",
+          "startSec": 5.2375,
+          "endSec": 5.575
+        },
+        {
+          "text": "them",
+          "startSec": 5.575,
+          "endSec": 5.8
+        },
+        {
+          "text": "gets",
+          "startSec": 5.8,
+          "endSec": 6.0625
+        },
+        {
+          "text": "twenty-four",
+          "startSec": 6.0625,
+          "endSec": 6.65
+        },
+        {
+          "text": "times",
+          "startSec": 6.65,
+          "endSec": 7.05
+        },
+        {
+          "text": "its",
+          "startSec": 7.05,
+          "endSec": 7.25
+        },
+        {
+          "text": "limit",
+          "startSec": 7.25,
+          "endSec": 7.67
+        },
+        {
+          "text": "one",
+          "startSec": 8.2,
+          "endSec": 8.575
+        },
+        {
+          "text": "shared",
+          "startSec": 8.575,
+          "endSec": 8.9
+        },
+        {
+          "text": "store",
+          "startSec": 8.9,
+          "endSec": 9.225
+        },
+        {
+          "text": "holds",
+          "startSec": 9.225,
+          "endSec": 9.55
+        },
+        {
+          "text": "the",
+          "startSec": 9.55,
+          "endSec": 9.65
+        },
+        {
+          "text": "bucket",
+          "startSec": 9.65,
+          "endSec": 10.06
+        },
+        {
+          "text": "every",
+          "startSec": 10.38,
+          "endSec": 10.675
+        },
+        {
+          "text": "node",
+          "startSec": 10.675,
+          "endSec": 11.0375
+        },
+        {
+          "text": "reads",
+          "startSec": 11.0375,
+          "endSec": 11.5375
+        },
+        {
+          "text": "and",
+          "startSec": 11.5375,
+          "endSec": 11.675
+        },
+        {
+          "text": "writes",
+          "startSec": 11.675,
+          "endSec": 11.9375
+        },
+        {
+          "text": "it",
+          "startSec": 11.9375,
+          "endSec": 12.025
+        },
+        {
+          "text": "there",
+          "startSec": 12.065,
+          "endSec": 12.355
+        }
+      ]
+    },
+    {
+      "beatId": "beat4",
+      "narration": "But the store reads the count, adds tokens, spends one, then writes it back. Every step must be indivisible. Two nodes that read the same count both see a token, and both let a request through.",
+      "durationSec": 12.7,
+      "words": [
+        {
+          "text": "but",
+          "startSec": 0.27,
+          "endSec": 0.3375
+        },
+        {
+          "text": "the",
+          "startSec": 0.3375,
+          "endSec": 0.425
+        },
+        {
+          "text": "store",
+          "startSec": 0.425,
+          "endSec": 0.75
+        },
+        {
+          "text": "reads",
+          "startSec": 0.75,
+          "endSec": 1.025
+        },
+        {
+          "text": "the",
+          "startSec": 1.025,
+          "endSec": 1.125
+        },
+        {
+          "text": "count",
+          "startSec": 1.125,
+          "endSec": 1.58
+        },
+        {
+          "text": "adds",
+          "startSec": 1.7375,
+          "endSec": 2.075
+        },
+        {
+          "text": "tokens",
+          "startSec": 2.075,
+          "endSec": 2.72
+        },
+        {
+          "text": "spends",
+          "startSec": 2.9375,
+          "endSec": 3.25
+        },
+        {
+          "text": "one",
+          "startSec": 3.25,
+          "endSec": 3.65
+        },
+        {
+          "text": "then",
+          "startSec": 3.825,
+          "endSec": 4.05
+        },
+        {
+          "text": "writes",
+          "startSec": 4.05,
+          "endSec": 4.3125
+        },
+        {
+          "text": "it",
+          "startSec": 4.3125,
+          "endSec": 4.4
+        },
+        {
+          "text": "back",
+          "startSec": 4.4,
+          "endSec": 4.845
+        },
+        {
+          "text": "every",
+          "startSec": 5.335,
+          "endSec": 5.6125
+        },
+        {
+          "text": "step",
+          "startSec": 5.6125,
+          "endSec": 5.95
+        },
+        {
+          "text": "must",
+          "startSec": 5.95,
+          "endSec": 6.2
+        },
+        {
+          "text": "be",
+          "startSec": 6.2,
+          "endSec": 6.35
+        },
+        {
+          "text": "indivisible",
+          "startSec": 6.35,
+          "endSec": 7.065
+        },
+        {
+          "text": "two",
+          "startSec": 7.54,
+          "endSec": 7.725
+        },
+        {
+          "text": "nodes",
+          "startSec": 7.725,
+          "endSec": 8.15
+        },
+        {
+          "text": "that",
+          "startSec": 8.15,
+          "endSec": 8.3625
+        },
+        {
+          "text": "read",
+          "startSec": 8.3625,
+          "endSec": 8.625
+        },
+        {
+          "text": "the",
+          "startSec": 8.625,
+          "endSec": 8.7625
+        },
+        {
+          "text": "same",
+          "startSec": 8.7625,
+          "endSec": 9.1125
+        },
+        {
+          "text": "count",
+          "startSec": 9.1125,
+          "endSec": 9.45
+        },
+        {
+          "text": "both",
+          "startSec": 9.45,
+          "endSec": 9.725
+        },
+        {
+          "text": "see",
+          "startSec": 9.725,
+          "endSec": 9.8875
+        },
+        {
+          "text": "a",
+          "startSec": 9.8875,
+          "endSec": 9.95
+        },
+        {
+          "text": "token",
+          "startSec": 9.95,
+          "endSec": 10.6
+        },
+        {
+          "text": "and",
+          "startSec": 10.7,
+          "endSec": 10.825
+        },
+        {
+          "text": "both",
+          "startSec": 10.825,
+          "endSec": 11.2
+        },
+        {
+          "text": "let",
+          "startSec": 11.2,
+          "endSec": 11.3375
+        },
+        {
+          "text": "a",
+          "startSec": 11.3375,
+          "endSec": 11.4
+        },
+        {
+          "text": "request",
+          "startSec": 11.4,
+          "endSec": 11.85
+        },
+        {
+          "text": "through",
+          "startSec": 11.85,
+          "endSec": 12.23
+        }
+      ]
+    },
+    {
+      "beatId": "beat5",
+      "narration": "What happens when the shared store gets slow? Each request pays a network trip. Say zero point four milliseconds at the median. At p ninety-nine, two point one milliseconds.",
+      "durationSec": 11.475,
+      "words": [
+        {
+          "text": "what",
+          "startSec": 0.275,
+          "endSec": 0.425
+        },
+        {
+          "text": "happens",
+          "startSec": 0.425,
+          "endSec": 0.8875
+        },
+        {
+          "text": "when",
+          "startSec": 0.8875,
+          "endSec": 1.0125
+        },
+        {
+          "text": "the",
+          "startSec": 1.0125,
+          "endSec": 1.1125
+        },
+        {
+          "text": "shared",
+          "startSec": 1.1125,
+          "endSec": 1.425
+        },
+        {
+          "text": "store",
+          "startSec": 1.425,
+          "endSec": 1.7
+        },
+        {
+          "text": "gets",
+          "startSec": 1.7,
+          "endSec": 1.9375
+        },
+        {
+          "text": "slow",
+          "startSec": 1.9375,
+          "endSec": 2.39
+        },
+        {
+          "text": "each",
+          "startSec": 2.785,
+          "endSec": 3
+        },
+        {
+          "text": "request",
+          "startSec": 3,
+          "endSec": 3.5625
+        },
+        {
+          "text": "pays",
+          "startSec": 3.5625,
+          "endSec": 3.8625
+        },
+        {
+          "text": "a",
+          "startSec": 3.8625,
+          "endSec": 3.925
+        },
+        {
+          "text": "network",
+          "startSec": 3.925,
+          "endSec": 4.325
+        },
+        {
+          "text": "trip",
+          "startSec": 4.325,
+          "endSec": 4.68
+        },
+        {
+          "text": "say",
+          "startSec": 5.0125,
+          "endSec": 5.2875
+        },
+        {
+          "text": "zero",
+          "startSec": 5.2875,
+          "endSec": 5.6875
+        },
+        {
+          "text": "point",
+          "startSec": 5.6875,
+          "endSec": 6.05
+        },
+        {
+          "text": "four",
+          "startSec": 6.05,
+          "endSec": 6.325
+        },
+        {
+          "text": "milliseconds",
+          "startSec": 6.325,
+          "endSec": 6.925
+        },
+        {
+          "text": "at",
+          "startSec": 6.925,
+          "endSec": 7.0125
+        },
+        {
+          "text": "the",
+          "startSec": 7.0125,
+          "endSec": 7.1
+        },
+        {
+          "text": "median",
+          "startSec": 7.1,
+          "endSec": 7.61
+        },
+        {
+          "text": "at",
+          "startSec": 8.135,
+          "endSec": 8.3125
+        },
+        {
+          "text": "p",
+          "startSec": 8.3125,
+          "endSec": 8.575
+        },
+        {
+          "text": "ninety-nine",
+          "startSec": 8.575,
+          "endSec": 9.35
+        },
+        {
+          "text": "two",
+          "startSec": 9.4625,
+          "endSec": 9.7625
+        },
+        {
+          "text": "point",
+          "startSec": 9.7625,
+          "endSec": 10.05
+        },
+        {
+          "text": "one",
+          "startSec": 10.05,
+          "endSec": 10.25
+        },
+        {
+          "text": "milliseconds",
+          "startSec": 10.25,
+          "endSec": 11.035
+        }
+      ]
+    },
+    {
+      "beatId": "beat6",
+      "narration": "Then a routine failover moved the limiter's store to a replica in another zone. Store calls jumped from about one millisecond to eighty. That's past the store timeout, so every check counted as a failure.",
+      "durationSec": 13,
+      "words": [
+        {
+          "text": "then",
+          "startSec": 0.275,
+          "endSec": 0.475
+        },
+        {
+          "text": "a",
+          "startSec": 0.475,
+          "endSec": 0.5875
+        },
+        {
+          "text": "routine",
+          "startSec": 0.5875,
+          "endSec": 1.1375
+        },
+        {
+          "text": "failover",
+          "startSec": 1.1375,
+          "endSec": 1.7375
+        },
+        {
+          "text": "moved",
+          "startSec": 1.7375,
+          "endSec": 2.0375
+        },
+        {
+          "text": "the",
+          "startSec": 2.0375,
+          "endSec": 2.125
+        },
+        {
+          "text": "limiter's",
+          "startSec": 2.125,
+          "endSec": 2.55
+        },
+        {
+          "text": "store",
+          "startSec": 2.55,
+          "endSec": 2.875
+        },
+        {
+          "text": "to",
+          "startSec": 2.875,
+          "endSec": 2.975
+        },
+        {
+          "text": "a",
+          "startSec": 2.975,
+          "endSec": 3.075
+        },
+        {
+          "text": "replica",
+          "startSec": 3.075,
+          "endSec": 3.6125
+        },
+        {
+          "text": "in",
+          "startSec": 3.6125,
+          "endSec": 3.75
+        },
+        {
+          "text": "another",
+          "startSec": 3.75,
+          "endSec": 4.125
+        },
+        {
+          "text": "zone",
+          "startSec": 4.125,
+          "endSec": 4.56
+        },
+        {
+          "text": "store",
+          "startSec": 5.1,
+          "endSec": 5.4125
+        },
+        {
+          "text": "calls",
+          "startSec": 5.4125,
+          "endSec": 5.92
+        },
+        {
+          "text": "jumped",
+          "startSec": 6.065,
+          "endSec": 6.4
+        },
+        {
+          "text": "from",
+          "startSec": 6.4,
+          "endSec": 6.5375
+        },
+        {
+          "text": "about",
+          "startSec": 6.5375,
+          "endSec": 6.85
+        },
+        {
+          "text": "one",
+          "startSec": 6.85,
+          "endSec": 7.125
+        },
+        {
+          "text": "millisecond",
+          "startSec": 7.125,
+          "endSec": 7.675
+        },
+        {
+          "text": "to",
+          "startSec": 7.675,
+          "endSec": 7.8
+        },
+        {
+          "text": "eighty",
+          "startSec": 7.8,
+          "endSec": 8.2
+        },
+        {
+          "text": "that's",
+          "startSec": 8.73,
+          "endSec": 9.0375
+        },
+        {
+          "text": "past",
+          "startSec": 9.0375,
+          "endSec": 9.3875
+        },
+        {
+          "text": "the",
+          "startSec": 9.3875,
+          "endSec": 9.475
+        },
+        {
+          "text": "store",
+          "startSec": 9.475,
+          "endSec": 9.75
+        },
+        {
+          "text": "timeout",
+          "startSec": 9.75,
+          "endSec": 10.25
+        },
+        {
+          "text": "so",
+          "startSec": 10.5,
+          "endSec": 10.6875
+        },
+        {
+          "text": "every",
+          "startSec": 10.6875,
+          "endSec": 11.0375
+        },
+        {
+          "text": "check",
+          "startSec": 11.0375,
+          "endSec": 11.3375
+        },
+        {
+          "text": "counted",
+          "startSec": 11.3375,
+          "endSec": 11.8
+        },
+        {
+          "text": "as",
+          "startSec": 11.8,
+          "endSec": 11.9125
+        },
+        {
+          "text": "a",
+          "startSec": 11.9125,
+          "endSec": 11.975
+        },
+        {
+          "text": "failure",
+          "startSec": 11.975,
+          "endSec": 12.53
+        }
+      ]
+    },
+    {
+      "beatId": "beat7",
+      "narration": "So the limiter was set to fail open, letting uncounted requests through. Each instance applied the limit locally. Traffic to the payment provider reached roughly forty times its contract. Thirty-one percent of checkouts failed.",
+      "durationSec": 14.35,
+      "words": [
+        {
+          "text": "so",
+          "startSec": 0.275,
+          "endSec": 0.425
+        },
+        {
+          "text": "the",
+          "startSec": 0.425,
+          "endSec": 0.55
+        },
+        {
+          "text": "limiter",
+          "startSec": 0.55,
+          "endSec": 0.95
+        },
+        {
+          "text": "was",
+          "startSec": 0.95,
+          "endSec": 1.1125
+        },
+        {
+          "text": "set",
+          "startSec": 1.1125,
+          "endSec": 1.375
+        },
+        {
+          "text": "to",
+          "startSec": 1.375,
+          "endSec": 1.5125
+        },
+        {
+          "text": "fail",
+          "startSec": 1.5125,
+          "endSec": 1.85
+        },
+        {
+          "text": "open",
+          "startSec": 1.85,
+          "endSec": 2.32
+        },
+        {
+          "text": "letting",
+          "startSec": 2.525,
+          "endSec": 2.8875
+        },
+        {
+          "text": "uncounted",
+          "startSec": 2.8875,
+          "endSec": 3.55
+        },
+        {
+          "text": "requests",
+          "startSec": 3.55,
+          "endSec": 4
+        },
+        {
+          "text": "through",
+          "startSec": 4,
+          "endSec": 4.375
+        },
+        {
+          "text": "each",
+          "startSec": 4.935,
+          "endSec": 5.2125
+        },
+        {
+          "text": "instance",
+          "startSec": 5.2125,
+          "endSec": 5.825
+        },
+        {
+          "text": "applied",
+          "startSec": 5.825,
+          "endSec": 6.1875
+        },
+        {
+          "text": "the",
+          "startSec": 6.1875,
+          "endSec": 6.275
+        },
+        {
+          "text": "limit",
+          "startSec": 6.275,
+          "endSec": 6.575
+        },
+        {
+          "text": "locally",
+          "startSec": 6.575,
+          "endSec": 7.1
+        },
+        {
+          "text": "traffic",
+          "startSec": 7.555,
+          "endSec": 7.975
+        },
+        {
+          "text": "to",
+          "startSec": 7.975,
+          "endSec": 8.0625
+        },
+        {
+          "text": "the",
+          "startSec": 8.0625,
+          "endSec": 8.15
+        },
+        {
+          "text": "payment",
+          "startSec": 8.15,
+          "endSec": 8.5
+        },
+        {
+          "text": "provider",
+          "startSec": 8.5,
+          "endSec": 9.075
+        },
+        {
+          "text": "reached",
+          "startSec": 9.075,
+          "endSec": 9.475
+        },
+        {
+          "text": "roughly",
+          "startSec": 9.475,
+          "endSec": 9.925
+        },
+        {
+          "text": "forty",
+          "startSec": 9.925,
+          "endSec": 10.275
+        },
+        {
+          "text": "times",
+          "startSec": 10.275,
+          "endSec": 10.675
+        },
+        {
+          "text": "its",
+          "startSec": 10.675,
+          "endSec": 10.875
+        },
+        {
+          "text": "contract",
+          "startSec": 10.875,
+          "endSec": 11.54
+        },
+        {
+          "text": "thirty-one",
+          "startSec": 11.99,
+          "endSec": 12.45
+        },
+        {
+          "text": "percent",
+          "startSec": 12.45,
+          "endSec": 12.8375
+        },
+        {
+          "text": "of",
+          "startSec": 12.8375,
+          "endSec": 12.925
+        },
+        {
+          "text": "checkouts",
+          "startSec": 12.925,
+          "endSec": 13.4
+        },
+        {
+          "text": "failed",
+          "startSec": 13.4,
+          "endSec": 13.915
+        }
+      ]
+    },
+    {
+      "beatId": "beat8",
+      "narration": "The provider limiter fails closed, refusing what it cannot count. Fallback limits split by instance count, so together they stay in contract. The store timeout rose to a hundred and fifty milliseconds, past a cross-zone trip. That checkout is refused, not multiplied.",
+      "durationSec": 17.625,
+      "words": [
+        {
+          "text": "the",
+          "startSec": 0.25,
+          "endSec": 0.325
+        },
+        {
+          "text": "provider",
+          "startSec": 0.325,
+          "endSec": 0.825
+        },
+        {
+          "text": "limiter",
+          "startSec": 0.825,
+          "endSec": 1.2375
+        },
+        {
+          "text": "fails",
+          "startSec": 1.2375,
+          "endSec": 1.6875
+        },
+        {
+          "text": "closed",
+          "startSec": 1.6875,
+          "endSec": 2.34
+        },
+        {
+          "text": "refusing",
+          "startSec": 2.5,
+          "endSec": 3.0625
+        },
+        {
+          "text": "what",
+          "startSec": 3.0625,
+          "endSec": 3.1875
+        },
+        {
+          "text": "it",
+          "startSec": 3.1875,
+          "endSec": 3.275
+        },
+        {
+          "text": "cannot",
+          "startSec": 3.275,
+          "endSec": 3.65
+        },
+        {
+          "text": "count",
+          "startSec": 3.65,
+          "endSec": 4.08
+        },
+        {
+          "text": "fallback",
+          "startSec": 4.595,
+          "endSec": 5.05
+        },
+        {
+          "text": "limits",
+          "startSec": 5.05,
+          "endSec": 5.3875
+        },
+        {
+          "text": "split",
+          "startSec": 5.3875,
+          "endSec": 5.75
+        },
+        {
+          "text": "by",
+          "startSec": 5.75,
+          "endSec": 5.95
+        },
+        {
+          "text": "instance",
+          "startSec": 5.95,
+          "endSec": 6.375
+        },
+        {
+          "text": "count",
+          "startSec": 6.375,
+          "endSec": 6.775
+        },
+        {
+          "text": "so",
+          "startSec": 6.925,
+          "endSec": 7.1
+        },
+        {
+          "text": "together",
+          "startSec": 7.1,
+          "endSec": 7.55
+        },
+        {
+          "text": "they",
+          "startSec": 7.55,
+          "endSec": 7.7125
+        },
+        {
+          "text": "stay",
+          "startSec": 7.7125,
+          "endSec": 8.075
+        },
+        {
+          "text": "in",
+          "startSec": 8.075,
+          "endSec": 8.225
+        },
+        {
+          "text": "contract",
+          "startSec": 8.225,
+          "endSec": 8.915
+        },
+        {
+          "text": "the",
+          "startSec": 9.45,
+          "endSec": 9.525
+        },
+        {
+          "text": "store",
+          "startSec": 9.525,
+          "endSec": 9.8
+        },
+        {
+          "text": "timeout",
+          "startSec": 9.8,
+          "endSec": 10.2625
+        },
+        {
+          "text": "rose",
+          "startSec": 10.2625,
+          "endSec": 10.6
+        },
+        {
+          "text": "to",
+          "startSec": 10.6,
+          "endSec": 10.7
+        },
+        {
+          "text": "a",
+          "startSec": 10.7,
+          "endSec": 10.8125
+        },
+        {
+          "text": "hundred",
+          "startSec": 10.8125,
+          "endSec": 11.2125
+        },
+        {
+          "text": "and",
+          "startSec": 11.2125,
+          "endSec": 11.3375
+        },
+        {
+          "text": "fifty",
+          "startSec": 11.3375,
+          "endSec": 11.65
+        },
+        {
+          "text": "milliseconds",
+          "startSec": 11.65,
+          "endSec": 12.5
+        },
+        {
+          "text": "past",
+          "startSec": 12.655,
+          "endSec": 12.9375
+        },
+        {
+          "text": "a",
+          "startSec": 12.9375,
+          "endSec": 13.0125
+        },
+        {
+          "text": "cross-zone",
+          "startSec": 13.0125,
+          "endSec": 13.625
+        },
+        {
+          "text": "trip",
+          "startSec": 13.625,
+          "endSec": 14.005
+        },
+        {
+          "text": "that",
+          "startSec": 14.4125,
+          "endSec": 14.7125
+        },
+        {
+          "text": "checkout",
+          "startSec": 14.7125,
+          "endSec": 15.2
+        },
+        {
+          "text": "is",
+          "startSec": 15.2,
+          "endSec": 15.35
+        },
+        {
+          "text": "refused",
+          "startSec": 15.35,
+          "endSec": 16.125
+        },
+        {
+          "text": "not",
+          "startSec": 16.225,
+          "endSec": 16.4375
+        },
+        {
+          "text": "multiplied",
+          "startSec": 16.4375,
+          "endSec": 17.165
+        }
+      ]
+    }
+  ]
+}

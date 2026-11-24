@@ -176,7 +176,7 @@ async function callBeat(
         check: generatorCheck(boards),
         replayKey: input.beatId,
         signal: c.signal,
-        log: c.log,
+        log: (level, message) => c.log(level, `Beat ${input.beatId}: ${message}`),
       }),
     );
     const swaps = generatorAssetSwaps(result.value, boards);

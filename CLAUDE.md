@@ -747,6 +747,16 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   - The summary log line gives boards by outcome, calls, cost and cache hits against input
     tokens. `jobs/generate.test.ts` replays hand-written boards (`rateLimiterBoards()` in
     `generator/testing.ts`) through a transport that imitates the provider's prefix cache.
+- **Fixture scripts:** `generator:timing [--topic]` synthesises the topic's recorded script with
+  Kokoro into the committed `agents/generator/fixtures/<topic>/timing.json` (`TimingFixtureSchema`;
+  `withFixtureTiming` places it like the TTS job, and refuses a script whose narration changed).
+  `generator:fixture [--topic] [--level] [--beat <id>] [--record [--max-repairs <n>]]` runs ingest
+  and the recorded Researcher, Director and Scriptwriter, saves plan + script + fixture timing
+  as spec v1, then the `generate` job live (with `--beat`, only that beat and its chain; the rest
+  replay the Generator recording) in `<DATA_DIR>/generator/fixture/<topic>/`, and prints each
+  beat's attempts with issue codes (`llm_calls.error` lists them: `invalidOutputError`), usage
+  and cache hits, the post-pass, assets and every board with its words. `--record` writes the
+  keyed recording only when the job finished within `--max-repairs` per beat.
 
 API conventions: routes under `/api`, inputs validated with the `validate()` helper against schemas
 from `packages/shared/src/api`, list responses wrapped as `{ items }`, and every error is

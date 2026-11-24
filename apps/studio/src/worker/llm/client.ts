@@ -101,6 +101,15 @@ export function formatIssues(issues: readonly OutputIssue[]): string {
     .join('\n');
 }
 
+/**
+ * The `llm_calls.error` of an attempt that failed validation: the count, then each issue code
+ * once (soft ones marked "~"), so a failed attempt's codes can be read back without its files.
+ */
+export function invalidOutputError(issues: readonly OutputIssue[]): string {
+  const codes = [...new Set(issues.map((i) => `${i.soft ? '~' : ''}${i.code ?? 'invalid'}`))];
+  return `Invalid output: ${issues.length} issue(s) [${codes.join(', ')}]`;
+}
+
 /** Issues that fail an answer: every one but the soft ones. */
 export function blockingIssues(issues: readonly OutputIssue[]): OutputIssue[] {
   return issues.filter((issue) => !issue.soft);
@@ -271,7 +280,7 @@ export function createLlmClient(deps: LlmClientDeps): LlmClient {
       costUsd: callCostUsd(response.usage, price, startedAt),
       responsePath: paths.response,
       durationMs,
-      error: outcome.ok ? null : `Invalid output: ${outcome.issues.length} issue(s)`,
+      error: outcome.ok ? null : invalidOutputError(outcome.issues),
       normalizerFixes: outcome.fixes,
     });
     return { row, outcome, content: response.content ?? '' };

@@ -180,7 +180,7 @@ describe('direct job (rate-limiter fixture, dry run)', () => {
     const calls = directorCalls(runId);
     // The exact count depends on the recorded plan; the paths below are what is repaired.
     expect(calls.map((c) => c.error)).toEqual([
-      expect.stringMatching(/^Invalid output: \d+ issue\(s\)$/),
+      expect.stringMatching(/^Invalid output: \d+ issue\(s\) \[[a-z_, ~]+\]$/),
       null,
     ]);
     const repair = promptOf(calls[1]!.promptPath).messages.at(-1)!.content;
