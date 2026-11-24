@@ -45,11 +45,31 @@ export function notScreenText<T extends z.ZodType>(schema: T): T {
   return schema.meta({ screenText: false });
 }
 
-/** A short single line of text: trimmed, non-empty, no line breaks. */
+/** U+2423 OPEN BOX: how a space at the edge of screen text is drawn, so the viewer sees it. */
+export const VISIBLE_SPACE = '\u2423';
+
+/**
+ * Screen text with its edge spaces made visible: each leading or trailing space becomes
+ * `VISIBLE_SPACE` (" Paris" -> "␣Paris"), since HTML would drop it and a tokenizer board means
+ * it. Other edge whitespace is trimmed; text that is only whitespace becomes "" (so `min(1)`
+ * rejects it).
+ */
+export function showEdgeSpaces(text: string): string {
+  const match = /^(\s*)([\s\S]*?)(\s*)$/.exec(text);
+  const [, lead = '', core = '', trail = ''] = match ?? [];
+  if (core === '') return '';
+  const spaces = (edge: string) => VISIBLE_SPACE.repeat([...edge].filter((c) => c === ' ').length);
+  return `${spaces(lead)}${core}${spaces(trail)}`;
+}
+
+/** A string drawn on screen: edge spaces made visible (`showEdgeSpaces`). */
+export function screenString() {
+  return z.string().overwrite(showEdgeSpaces);
+}
+
+/** A short single line of text: edge spaces made visible, non-empty, no line breaks. */
 export function lineText(max: number, description: string) {
-  return z
-    .string()
-    .trim()
+  return screenString()
     .min(1)
     .max(max)
     .regex(/^[^\n\r]*$/, 'One line, without line breaks.')

@@ -15,7 +15,7 @@ function codePoints(chars: string): number[] {
 }
 
 /** Symbols HUD and primitive text may use (arrows, comparisons, check marks, rupee, ellipsis). */
-export const REQUIRED_SYMBOLS = '←→↑↓·×✓✗≈≤≥₹…';
+export const REQUIRED_SYMBOLS = '←→↑↓·×✓✗≈≤≥₹…␣';
 
 /** Dashes and curly quotes, e.g. the chapter header's "— 2 · …". */
 const PUNCTUATION = '–—‘’“”';
