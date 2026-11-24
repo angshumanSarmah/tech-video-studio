@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { findWorkspaceRoot } from '#core/workspace-root.ts';
@@ -6,16 +6,15 @@ import {
   loadPromptTemplates,
   promptFileName,
   PROMPT_ROLES,
-  PROMPT_VERSIONS,
   PROMPTS_DIR,
   type PromptName,
 } from './templates.ts';
 
 /**
  * The prompt files are copies of the design doc's "Agent system prompts" section. The doc is the
- * source: change it first, then add the next version's file and bump `PROMPT_VERSIONS`. Only the
- * current version must match the doc; earlier versions stay as they were, for the calls that
- * recorded them.
+ * source: change it first, then add the next version's file, bump `PROMPT_VERSIONS` and delete
+ * the version it replaces. Only live versions are kept: every call's prompt file holds the full
+ * messages it sent, and git keeps the old files.
  */
 const root = findWorkspaceRoot(import.meta.dirname);
 const DOC = 'Tech Explainer Studio Design and Claude Code Prompts.md';
@@ -58,14 +57,11 @@ describe('agent prompt files', () => {
     },
   );
 
-  it.each(['preamble', ...PROMPT_ROLES] as PromptName[])(
-    '%s keeps every earlier version for history',
-    (name) => {
-      const versions = Array.from({ length: PROMPT_VERSIONS[name] }, (_, i) => i + 1);
-      for (const version of versions) {
-        const path = join(root, PROMPTS_DIR, promptFileName(name, version));
-        expect(() => readFileSync(path, 'utf8'), path).not.toThrow();
-      }
-    },
-  );
+  it('holds only the live version of each prompt', () => {
+    const live = (['preamble', ...PROMPT_ROLES] as PromptName[]).map((name) =>
+      promptFileName(name),
+    );
+    const onDisk = readdirSync(join(root, PROMPTS_DIR)).filter((f) => f.endsWith('.md'));
+    expect(onDisk.sort()).toEqual(live.sort());
+  });
 });

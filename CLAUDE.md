@@ -393,7 +393,9 @@ stepId?, aliases?, check?, signal?, log? })`** is the only way to call a model (
   "expected number" (never inside unions). Nothing else is changed or guessed.
 - **Prompts:** `agents/prompts/<name>.v<n>.md` are verbatim copies of the design doc's "Agent
   system prompts" section (`verbatim.test.ts` compares them; Prettier ignores them). Change the
-  doc first, add the next file, bump `PROMPT_VERSIONS`. `buildPrompt(templates, parts)` puts
+  doc first, add the next file, bump `PROMPT_VERSIONS` and delete the file it replaces: only
+  live versions are kept (a test checks it; each call's prompt file holds the full messages it
+  sent, and git keeps the old files). `buildPrompt(templates, parts)` puts
   preamble, role prompt, the role's output JSON Schema (`ROLE_OUTPUT_SCHEMAS` in
   `agents/output-schemas.ts`, rendered with `z.toJSONSchema`, input side), catalogue,
   references (Director only) and style rules in the system message and the run's input in the
