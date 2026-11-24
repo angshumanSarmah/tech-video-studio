@@ -312,20 +312,37 @@ async function regenerate(
   });
   record(boards, index, result);
   ctx.progress(40, `Beat ${beatId} drawn again`);
+  await redrawBrokenDependents(c, job, boards, index, ctx);
+  return boards;
+}
+
+/**
+ * After beat `index` got a new board (a regenerate, or a post-pass retry): each later beat of
+ * its chain is checked against it, in order, and redrawn (`revalidate`) only when it no longer
+ * passes. A redrawn beat's own later beats are checked against the redrawn board.
+ */
+async function redrawBrokenDependents(
+  c: BeatStepContext,
+  job: GenerateJob,
+  boards: Boards,
+  index: number,
+  ctx: Ctx,
+): Promise<void> {
+  const { spec } = job;
+  const beatId = spec.story.beats[index]?.id ?? String(index);
   for (const j of beatDependents(spec, index)) {
     const issues = blockingIssues(boardCheck(c, job, boards, j, false));
     if (issues.length === 0) continue;
     const later = spec.story.beats[j]?.id ?? String(j);
     ctx.log('info', `Beat ${later} no longer fits beat ${beatId}'s new board (${codes(issues)}).`);
-    const redrawn = await drawBeat(c, {
+    const result = await drawBeat(c, {
       spec,
       scenes: visibleScenes(spec, j, boards.scenes),
       beatIndex: j,
       reason: 'revalidate',
     });
-    record(boards, j, redrawn);
+    record(boards, j, result);
   }
-  return boards;
 }
 
 /** The pinned spec's boards, every beat `kept`; it must have one per beat. */
@@ -372,8 +389,9 @@ function boardCheck(
 /**
  * With every board in place: each beat drawn in this job that now fails a check (across boards,
  * or one that needed the next board, such as a draw cut short) gets one retry with its issues as
- * feedback, in beat order. A retry that still fails keeps the earlier board. Returns every
- * issue left on every board, for gate 3.
+ * feedback, in beat order; the later beats of its chain are then re-checked against the new
+ * board and redrawn only when they fail (`redrawBrokenDependents`, as for a regenerate). A retry
+ * that still fails keeps the earlier board. Returns every issue left on every board, for gate 3.
  */
 async function postPass(
   c: BeatStepContext,
@@ -382,13 +400,15 @@ async function postPass(
   ctx: Ctx,
 ): Promise<GenerateWarning[]> {
   const before = allIssues(c, job, boards);
-  let retried = false;
-  for (const index of [...boards.touched].sort((a, b) => a - b)) {
-    const issues = blockingIssues(before.get(index) ?? []);
+  let changed = false;
+  for (let index = 0; index < job.spec.story.beats.length; index += 1) {
+    if (!boards.touched.has(index)) continue;
+    const found = changed ? boardCheck(c, job, boards, index, true) : (before.get(index) ?? []);
+    const issues = blockingIssues(found);
     if (issues.length === 0) continue;
     const beatId = job.spec.story.beats[index]?.id ?? String(index);
     ctx.log('warn', `Beat ${beatId} fails across boards (${codes(issues)}): one retry.`);
-    retried = true;
+    changed = true;
     try {
       const result = await drawBeat(c, {
         spec: job.spec,
@@ -403,10 +423,12 @@ async function postPass(
     } catch (error) {
       if (!(error instanceof LlmOutputInvalidError)) throw error;
       ctx.log('warn', `Beat ${beatId}: the retry still failed; its board goes to the gate as is.`);
+      continue;
     }
+    await redrawBrokenDependents(c, job, boards, index, ctx);
   }
   ctx.progress(90, 'Checked across boards');
-  const after = retried ? allIssues(c, job, boards) : before;
+  const after = changed ? allIssues(c, job, boards) : before;
   return [...after].flatMap(([index, issues]) =>
     issues.map((issue) => warningOf(job.spec.story.beats[index]?.id ?? String(index), issue)),
   );

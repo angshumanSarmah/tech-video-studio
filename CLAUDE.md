@@ -737,7 +737,9 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   - **Post-pass:** with every board in place, each beat drawn in this job is checked again
     (`generatorSceneCheck` with `crossBoard`: also `layerWarnings`, and what needs the next
     board); one that fails gets one retry with its issues as FEEDBACK (the user message's last
-    section), in beat order; a retry that still fails keeps its board. Every issue left, soft
+    section), in beat order, and then the later beats of its chain are re-checked against the new
+    board and redrawn only when they fail (`redrawBrokenDependents`, the regenerate's path); a
+    retry that still fails keeps its board. Every issue left, soft
     ones included, goes into the job output's `warnings` for gate 3.
   - **Regenerate** (`beatId`, optional `feedback`): that beat is drawn again (always called),
     the others are `kept` from the pinned spec (which must have every board); each later beat of

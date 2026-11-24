@@ -213,10 +213,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **P1D — Registry checks at the scene gate.** The Generator runs `withRegistryChecks` and
       `specLayoutWarnings` on every answer (`generatorCheck`); scene-gate saves must run them too,
       so a spec cannot pass a gate with unknown primitives, bad props or unsupported actions.
-- [ ] **P1C.7 — post-pass retry inside a chain.** The `generate` post-pass retries a beat
-      that fails across boards but does not re-check the later beats of its chain against the
-      new board (a regenerate does); what breaks there reaches gate 3 as warnings. Revalidate
-      them the same way if recordings show it happening.
 - [ ] **Catalogue — asset sort.** `buildCatalogue`'s asset groups sort ids with `localeCompare`
       (docs only); the prompt blocks use code-unit order (`assetLines`). Align them if the docs
       order ever matters.
