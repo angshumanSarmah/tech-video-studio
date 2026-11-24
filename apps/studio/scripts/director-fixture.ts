@@ -86,7 +86,7 @@ async function main(): Promise<number> {
     console.log(
       `${topic.id} fixture: model ${config.llm.models.director}, level ${level ?? config.video.explanationLevel}, live: ${chain.live.join(', ')}`,
     );
-    const { runId } = seedFixtureRun(db, dataDir, topic, level);
+    const { runId } = seedFixtureRun(db, dataDir, topic, level, config);
     const ready = await prepareRun(db, registry, runId);
     const directed =
       ready && (await runJob(db, registry, enqueueJob(db, { type: DIRECT_JOB_TYPE, runId }).id));

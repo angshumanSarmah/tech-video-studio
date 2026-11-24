@@ -4,6 +4,7 @@ import { appendEvent } from '#core/db/repositories/events.ts';
 import { enqueueJob } from '#core/db/repositories/jobs.ts';
 import { listSeries } from '#core/db/repositories/series.ts';
 import { createTopic } from '#core/db/repositories/topics.ts';
+import { TEST_APP_SETTINGS } from '#core/db/testing.ts';
 import { startRun } from '#core/services/runs.ts';
 import { createTestServer, expectApiError, type TestServer } from '../testing.ts';
 
@@ -69,7 +70,7 @@ function openStream(query: string, lastEventId?: string): Promise<Response> {
 
 describe('GET /api/events', () => {
   it("replays a run's events from the start, then streams new ones", async () => {
-    const { run } = startRun(s.db, { topicId, seriesId });
+    const { run } = startRun(s.db, { app: TEST_APP_SETTINGS, topicId, seriesId });
     const res = await openStream(`?runId=${run.id}`);
     expect(res.headers.get('content-type')).toContain('text/event-stream');
 
@@ -85,8 +86,8 @@ describe('GET /api/events', () => {
   });
 
   it('only streams the requested run', async () => {
-    const { run: a } = startRun(s.db, { topicId, seriesId });
-    const { run: b } = startRun(s.db, { topicId, seriesId });
+    const { run: a } = startRun(s.db, { app: TEST_APP_SETTINGS, topicId, seriesId });
+    const { run: b } = startRun(s.db, { app: TEST_APP_SETTINGS, topicId, seriesId });
     appendEvent(s.db, { runId: a.id, type: 'log', payload: LOG });
     appendEvent(s.db, { runId: b.id, type: 'log', payload: LOG });
 
@@ -95,7 +96,7 @@ describe('GET /api/events', () => {
   });
 
   it('resumes after Last-Event-ID', async () => {
-    const { run } = startRun(s.db, { topicId, seriesId });
+    const { run } = startRun(s.db, { app: TEST_APP_SETTINGS, topicId, seriesId });
     const seen = appendEvent(s.db, { runId: run.id, type: 'progress', payload: { pct: 10 } });
     appendEvent(s.db, { runId: run.id, type: 'progress', payload: { pct: 20 } });
 
@@ -104,7 +105,7 @@ describe('GET /api/events', () => {
   });
 
   it('starts after the snapshot cursor, so a page load never replays history', async () => {
-    const { run } = startRun(s.db, { topicId, seriesId });
+    const { run } = startRun(s.db, { app: TEST_APP_SETTINGS, topicId, seriesId });
     appendEvent(s.db, { runId: run.id, type: 'progress', payload: { pct: 10 } });
     const detail = (await (await s.app.request(`/api/runs/${run.id}`)).json()) as {
       lastEventId: number;
@@ -117,7 +118,7 @@ describe('GET /api/events', () => {
   });
 
   it('Last-Event-ID wins over after (reconnect)', async () => {
-    const { run } = startRun(s.db, { topicId, seriesId });
+    const { run } = startRun(s.db, { app: TEST_APP_SETTINGS, topicId, seriesId });
     const first = appendEvent(s.db, { runId: run.id, type: 'progress', payload: { pct: 10 } });
     appendEvent(s.db, { runId: run.id, type: 'progress', payload: { pct: 20 } });
 
@@ -141,11 +142,11 @@ describe('GET /api/events', () => {
   });
 
   it('without runId, streams only new events across all runs (dashboard)', async () => {
-    startRun(s.db, { topicId, seriesId }); // existing event: not replayed
+    startRun(s.db, { app: TEST_APP_SETTINGS, topicId, seriesId }); // existing event: not replayed
     const res = await openStream('');
 
     const reading = readMessages(res, 1);
-    const { run } = startRun(s.db, { topicId, seriesId });
+    const { run } = startRun(s.db, { app: TEST_APP_SETTINGS, topicId, seriesId });
     const [message] = await reading;
 
     expect(message?.data).toMatchObject({ runId: run.id, type: 'run_status' });

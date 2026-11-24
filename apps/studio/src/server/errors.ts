@@ -1,4 +1,8 @@
-import type { ApiError, ApiErrorCode } from '@explainer-studio/shared';
+import {
+  RunSettingsConflictError,
+  type ApiError,
+  type ApiErrorCode,
+} from '@explainer-studio/shared';
 import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
@@ -29,6 +33,7 @@ export function validationError(c: Context, error: z.ZodError): Response {
 export function handleError(err: Error, c: Context): Response {
   if (err instanceof NotFoundError) return apiError(c, 404, 'not_found', err.message);
   if (err instanceof RunHasExportsError) return apiError(c, 409, 'conflict', err.message);
+  if (err instanceof RunSettingsConflictError) return apiError(c, 400, 'bad_request', err.message);
   if (err instanceof HTTPException && err.status < 500) {
     return apiError(c, err.status, 'bad_request', err.message);
   }

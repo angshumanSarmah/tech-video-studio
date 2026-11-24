@@ -13,13 +13,12 @@ import {
   type GenerateInput,
   type GenerateOutput,
   type GenerateWarning,
-  type LlmSettings,
   type LogLevel,
   type MissingPrimitiveRequest,
   type ResearchNotes,
   type SpecError,
   type Stage,
-  type VideoSettings,
+  type ResolvedRunSettings,
   type VideoSpec,
 } from '@explainer-studio/shared';
 import { z } from 'zod';
@@ -40,7 +39,7 @@ import {
   setRunStepInput,
   startRunStep,
 } from '#core/db/repositories/run-steps.ts';
-import { getRun } from '#core/db/repositories/runs.ts';
+import { getRun, type Run } from '#core/db/repositories/runs.ts';
 import { NotFoundError } from '#core/errors.ts';
 import { latestDirection } from '#core/services/direction.ts';
 import { researchOfStep } from '#core/services/research-notes.ts';
@@ -55,7 +54,6 @@ import {
   createWarmUp,
   visibleScenes,
 } from '../agents/generator/schedule.ts';
-import { resolvePromptVariables } from '../agents/prompt-variables.ts';
 import type { PromptTemplates } from '../agents/prompts/templates.ts';
 import { styleRulesSection } from '../agents/sections.ts';
 import {
@@ -74,11 +72,6 @@ export interface GenerateJobDeps {
   readonly dataDir: string;
   readonly llm: LlmClient;
   readonly prompts: PromptTemplates;
-  /** App defaults (`settings.video` for the prompt variables) and the model per role. */
-  readonly settings: {
-    readonly video: VideoSettings;
-    readonly llm: Pick<LlmSettings, 'models'>;
-  };
 }
 
 const PayloadSchema = z.strictObject({
@@ -144,14 +137,14 @@ async function generate(deps: GenerateJobDeps, ctx: Ctx): Promise<void> {
   }
   const step = startRunStep(deps.db, { runId, stage: GENERATE_JOB_TYPE });
   try {
-    const job = prepare(deps, runId, ctx);
+    const job = prepare(deps, run, ctx);
     setRunStepInput(
       deps.db,
       step.id,
       writeDataJson(deps.dataDir, generateInputPath(runId, step.id), job.input),
     );
     ctx.progress(5, 'Spec and notes loaded');
-    const c = beatContext(deps, ctx, runId, run.settings, job);
+    const c = beatContext(deps, ctx, run, job);
     const boards = ctx.payload.beatId
       ? await regenerate(c, job, ctx, ctx.payload.beatId)
       : await drawAll(c, job, ctx);
@@ -170,7 +163,8 @@ async function generate(deps: GenerateJobDeps, ctx: Ctx): Promise<void> {
   }
 }
 
-function prepare(deps: GenerateJobDeps, runId: number, ctx: Ctx): GenerateJob {
+function prepare(deps: GenerateJobDeps, run: Run, ctx: Ctx): GenerateJob {
+  const runId = run.id;
   const pinned = pinnedSpecVersion(deps.db, runId, ctx.payload.specVersionId);
   const spec = scriptedSpec(readDataJson(deps.dataDir, pinned.jsonPath), pinned.version);
   if (!spec.timing) ctx.log('warn', 'The spec has no timing yet: word times are estimated.');
@@ -192,7 +186,7 @@ function prepare(deps: GenerateJobDeps, runId: number, ctx: Ctx): GenerateJob {
       feedback: ctx.payload.feedback ?? null,
       directStepId: direction.step.id,
       researchStepId,
-      model: deps.settings.llm.models.generator,
+      model: run.resolvedSettings.llm.models.generator,
       styleRules: activeStyleRules(deps.db, 'generator'),
     },
   };
@@ -212,20 +206,15 @@ function libraryRegistries(deps: GenerateJobDeps, ctx: Ctx): Registries {
   return assetRegistries(deps.db, deps.dataDir, ctx.log);
 }
 
-function beatContext(
-  deps: GenerateJobDeps,
-  ctx: Ctx,
-  runId: number,
-  settings: Parameters<typeof resolvePromptVariables>[0],
-  job: GenerateJob,
-): BeatStepContext {
+function beatContext(deps: GenerateJobDeps, ctx: Ctx, run: Run, job: GenerateJob): BeatStepContext {
+  const runId = run.id;
   const styleRules = styleRulesSection(job.input.styleRules);
   return {
     db: deps.db,
     dataDir: deps.dataDir,
     llm: deps.llm,
     prompts: deps.prompts,
-    variables: resolvePromptVariables(settings, deps.settings.video),
+    variables: run.resolvedSettings.video,
     catalogue: generatorCatalogueBlock(job.registries),
     ...(styleRules ? { styleRules } : {}),
     model: job.input.model,
@@ -412,7 +401,8 @@ export function generatorStepContext(
   deps: GenerateJobDeps,
   args: {
     readonly runId: number;
-    readonly runSettings: Parameters<typeof resolvePromptVariables>[0];
+    /** The run's settings snapshot: prompt variables and the Generator's model. */
+    readonly settings: ResolvedRunSettings;
     readonly notes: ResearchNotes;
     readonly registries: Registries;
     readonly signal: AbortSignal;
@@ -425,10 +415,10 @@ export function generatorStepContext(
     dataDir: deps.dataDir,
     llm: deps.llm,
     prompts: deps.prompts,
-    variables: resolvePromptVariables(args.runSettings, deps.settings.video),
+    variables: args.settings.video,
     catalogue: generatorCatalogueBlock(args.registries),
     ...(styleRules ? { styleRules } : {}),
-    model: deps.settings.llm.models.generator,
+    model: args.settings.llm.models.generator,
     runId: args.runId,
     notes: args.notes,
     registries: args.registries,

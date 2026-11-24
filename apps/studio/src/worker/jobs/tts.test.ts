@@ -57,24 +57,21 @@ function fakeProvider() {
   return { provider, calls };
 }
 
+/** App settings the runs start from: a voice and a gap the job must take from the snapshot. */
+const APP = SettingsSchema.parse({ tts: { voice: 'bf_emma' }, timing: { beatGapSec: 0.25 } });
+
 function runWith(settings?: RunSettingsInput) {
   const topicId = createTopic(t.db, { title: 'Rate limiters' }).id;
   const seriesId = t.db.select().from(series).where(eq(series.tag, 'system-design')).get()!.id;
-  const runId = createRun(t.db, { topicId, seriesId, settings }).id;
+  const runId = createRun(t.db, { app: APP, topicId, seriesId, settings }).id;
   const jsonPath = writeDataJson(t.dataDir, specVersionPath(runId, 1), rateLimiterSpec);
   const version = createSpecVersion(t.db, { runId, version: 1, jsonPath, createdBy: 'agent' });
   return { runId, specVersionId: version.id };
 }
 
 async function narrate(runId: number, specVersionId: number, provider: TtsProvider) {
-  const app = SettingsSchema.parse({ tts: { voice: 'bf_emma' }, timing: { beatGapSec: 0.25 } });
   const registry = createJobRegistry([
-    ttsJobHandler({
-      db: t.db,
-      dataDir: t.dataDir,
-      tts: provider,
-      settings: { tts: app.tts, timing: app.timing },
-    }),
+    ttsJobHandler({ db: t.db, dataDir: t.dataDir, tts: provider }),
   ]);
   const job = enqueueJob(t.db, { type: TTS_JOB_TYPE, runId, payload: { specVersionId } });
   const controller = new AbortController();
@@ -128,7 +125,6 @@ describe('tts job', () => {
 
   it('passes the shutdown abort to the provider, so the job is requeued', async () => {
     const { runId, specVersionId } = runWith();
-    const app = SettingsSchema.parse({});
     const hanging: TtsProvider = {
       synthesize: (_text, _voice, _speed, options) =>
         new Promise((_resolve, reject) =>
@@ -139,7 +135,7 @@ describe('tts job', () => {
       close: () => Promise.resolve(),
     };
     const registry = createJobRegistry([
-      ttsJobHandler({ db: t.db, dataDir: t.dataDir, tts: hanging, settings: app }),
+      ttsJobHandler({ db: t.db, dataDir: t.dataDir, tts: hanging }),
     ]);
     const job = enqueueJob(t.db, { type: TTS_JOB_TYPE, runId, payload: { specVersionId } });
     const controller = new AbortController();

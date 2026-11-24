@@ -10,7 +10,6 @@ import {
   type BeatScene,
   type BeatScript,
   type DirectorPlan,
-  type LlmSettings,
   type LlmUsage,
   type LogLevel,
   type RenderableVideoSpec,
@@ -19,8 +18,6 @@ import {
   type ResearchInput,
   type ResearchNotes,
   type TimingSettings,
-  type TtsSettings,
-  type VideoSettings,
   type VideoSpec,
 } from '@explainer-studio/shared';
 import { z } from 'zod';
@@ -51,7 +48,7 @@ import type { BeatStepContext } from '../agents/generator/beat-step.ts';
 import { placeholderScene } from '../agents/generator/board.ts';
 import { beatAncestors, beatDependents } from '../agents/generator/schedule.ts';
 import { buildPrompt } from '../agents/prompt-builder.ts';
-import { resolvePromptVariables, type PromptVariables } from '../agents/prompt-variables.ts';
+import { type PromptVariables } from '../agents/prompt-variables.ts';
 import type { PromptTemplates } from '../agents/prompts/templates.ts';
 import { styleRulesSection } from '../agents/sections.ts';
 import type { ScriptwriterCheckDeps } from '../agents/scriptwriter/check.ts';
@@ -66,10 +63,9 @@ import {
 } from '../jobs/generate.ts';
 import { formatIssues, LlmOutputInvalidError, type LlmClient } from '../llm/client.ts';
 import type { OutputIssue } from '../llm/types.ts';
-import { resolveTimingOptions } from '../timing/assemble.ts';
 import { synthesizeScript, timedSpec } from '../timing/narrate.ts';
 import { timeNarration, type NarratedBeat } from '../timing/step.ts';
-import { resolveTtsOptions, type TtsOptions } from '../tts/options.ts';
+import { type TtsOptions } from '../tts/options.ts';
 import type { TtsProvider } from '../tts/provider.ts';
 import { inputHash, subStep, type StepScope } from './steps.ts';
 
@@ -98,12 +94,6 @@ export interface RepairDeps {
   readonly llm: LlmClient;
   readonly prompts: PromptTemplates;
   readonly tts: TtsProvider;
-  readonly settings: {
-    readonly video: VideoSettings;
-    readonly timing: TimingSettings;
-    readonly tts: TtsSettings;
-    readonly llm: Pick<LlmSettings, 'models'>;
-  };
 }
 
 export interface RepairArgs {
@@ -188,9 +178,9 @@ function prepare(deps: RepairDeps, run: Run, args: RepairArgs): RepairContext {
     plan: planOfSpec(validated.spec),
     notes: research.notes,
     research: research.input,
-    variables: resolvePromptVariables(run.settings, deps.settings.video),
-    pauses: resolveTimingOptions(run.settings, deps.settings.timing),
-    ttsOptions: resolveTtsOptions(run.settings, deps.settings.tts),
+    variables: run.resolvedSettings.video,
+    pauses: run.resolvedSettings.timing,
+    ttsOptions: run.resolvedSettings.tts,
     registries: assetRegistries(deps.db, deps.dataDir, args.log),
     topic: { title: topic.title, notes: topic.notes },
     series: { name: series.name, label: series.label, tag: series.tag },
@@ -271,7 +261,7 @@ async function revise(
     ...(styleRules ? { styleRules } : {}),
     input: reviseUserMessage(base, script, req, measured),
   });
-  const model = deps.settings.llm.models.scriptwriter;
+  const model = ctx.run.resolvedSettings.llm.models.scriptwriter;
   const hash = inputHash({ model, versions: prompt.versions, messages: prompt.messages, req });
   const step = await subStep(
     scope,
@@ -436,7 +426,7 @@ async function redrawBoards(
 ): Promise<BeatScene[]> {
   const c: BeatStepContext = generatorStepContext(deps, {
     runId: ctx.run.id,
-    runSettings: ctx.run.settings,
+    settings: ctx.run.resolvedSettings,
     notes: ctx.notes,
     registries: ctx.registries,
     signal: args.signal,
@@ -643,8 +633,8 @@ export async function restoreBeats(
     script: pick(args.current.script ?? [], args.best.script ?? []),
     scenes: pick(args.current.scenes ?? [], args.best.scenes ?? []),
   };
-  const options = resolveTtsOptions(run.settings, deps.settings.tts);
-  const pauses = resolveTimingOptions(run.settings, deps.settings.timing);
+  const options = run.resolvedSettings.tts;
+  const pauses = run.resolvedSettings.timing;
   const narrated = await synthesizeScript(deps.tts, spec.script ?? [], options, args.signal);
   const timed = timedSpec(deps.dataDir, run.id, spec, narrated, pauses);
   const saved = saveSpecVersion(deps.db, deps.dataDir, {

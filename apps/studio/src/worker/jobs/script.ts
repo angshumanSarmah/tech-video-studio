@@ -10,8 +10,6 @@ import {
   type ScriptwriterInput,
   type ScriptwriterOutput,
   type Stage,
-  type TimingSettings,
-  type VideoSettings,
 } from '@explainer-studio/shared';
 import { z } from 'zod';
 import { scriptInputPath, scriptOutputPath, writeDataJson } from '#core/data-files.ts';
@@ -31,13 +29,12 @@ import { latestDirection } from '#core/services/direction.ts';
 import { researchOfStep } from '#core/services/research-notes.ts';
 import { activeStyleRules } from '#core/services/style-rules.ts';
 import { buildPrompt } from '../agents/prompt-builder.ts';
-import { resolvePromptVariables, type PromptVariables } from '../agents/prompt-variables.ts';
+import { type PromptVariables } from '../agents/prompt-variables.ts';
 import type { PromptTemplates } from '../agents/prompts/templates.ts';
 import { scriptwriterCheck } from '../agents/scriptwriter/check.ts';
 import { scriptwriterUserMessage } from '../agents/scriptwriter/input.ts';
 import { styleRulesSection } from '../agents/sections.ts';
 import type { LlmClient } from '../llm/client.ts';
-import { resolveTimingOptions } from '../timing/assemble.ts';
 import { defineJobHandler, type JobContext, type JobHandler } from './handler.ts';
 
 export const SCRIPT_JOB_TYPE = 'script' satisfies Stage;
@@ -47,11 +44,6 @@ export interface ScriptJobDeps {
   readonly dataDir: string;
   readonly llm: LlmClient;
   readonly prompts: PromptTemplates;
-  /**
-   * App defaults; a run's `settings.video` (pace, level) and `settings.timing` (pauses)
-   * override them.
-   */
-  readonly settings: { readonly video: VideoSettings; readonly timing: TimingSettings };
 }
 
 const PayloadSchema = z.strictObject({});
@@ -128,8 +120,8 @@ function prepare(deps: ScriptJobDeps, run: Run) {
   if (!research) {
     throw new Error(`The plan's research step ${researchStepId} has no finished notes.`);
   }
-  const variables = resolvePromptVariables(run.settings, deps.settings.video);
-  const { beatGapSec, landingSec } = resolveTimingOptions(run.settings, deps.settings.timing);
+  const variables = run.resolvedSettings.video;
+  const { beatGapSec, landingSec } = run.resolvedSettings.timing;
   const pauses = { beatGapSec, landingSec };
   const input: ScriptwriterInput = {
     directStepId: direction.step.id,

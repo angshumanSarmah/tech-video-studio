@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import { serve } from '@hono/node-server';
-import { loadConfig } from '#core/config.ts';
+import { loadConfig, readSettings } from '#core/config.ts';
 import { ensureDataDirs } from '#core/data-dirs.ts';
 import { closeDatabase, dbPathFor, openDatabase } from '#core/db/client.ts';
 import { createApp } from '#server/app.ts';
@@ -17,6 +17,8 @@ const db = openDatabase(dbPathFor(config.dataDir));
 
 const app = createApp({
   db,
+  // Read on each run start, so a settings edit applies to the next run without a restart.
+  appSettings: () => readSettings(config.settingsPath),
   webDistDir: isProductionBuild ? WEB_DIST_DIR : undefined,
   enableDevRoutes: !isProductionBuild,
 });

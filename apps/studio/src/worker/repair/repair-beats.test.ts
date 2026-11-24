@@ -137,7 +137,7 @@ function repair(
 ) {
   const llm = client(fixtures, topic);
   return repairBeats(
-    { db: t.db, dataDir: t.dataDir, llm, prompts, tts: tts.provider, settings },
+    { db: t.db, dataDir: t.dataDir, llm, prompts, tts: tts.provider },
     { runId, specVersionId, requests, signal: new AbortController().signal, log: () => undefined },
   );
 }

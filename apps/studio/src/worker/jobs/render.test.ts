@@ -25,7 +25,7 @@ import { createRun, deleteRun, getRun, RunHasExportsError } from '#core/db/repos
 import { createSpecVersion } from '#core/db/repositories/spec-versions.ts';
 import { createTopic } from '#core/db/repositories/topics.ts';
 import { series } from '#core/db/schema.ts';
-import { createTestDb, type TestDb } from '#core/db/testing.ts';
+import { createTestDb, TEST_APP_SETTINGS, type TestDb } from '#core/db/testing.ts';
 import { DraftClipMetaSchema } from '../render/draft-cache.ts';
 import {
   DraftManifestSchema,
@@ -49,7 +49,7 @@ beforeEach(() => {
   vi.useFakeTimers({ now: Date.now() + 60_000 });
   const topicId = createTopic(t.db, { title: 'How a Rate Limiter Works!' }).id;
   const seriesId = t.db.select().from(series).where(eq(series.tag, 'system-design')).get()!.id;
-  runId = createRun(t.db, { topicId, seriesId }).id;
+  runId = createRun(t.db, { app: TEST_APP_SETTINGS, topicId, seriesId }).id;
 });
 
 afterEach(() => {
@@ -278,7 +278,11 @@ describe('pinned spec versions', () => {
 
   it('fails clearly when the version belongs to another run', async () => {
     const topicId = createTopic(t.db, { title: 'Other' }).id;
-    const other = createRun(t.db, { topicId, seriesId: getRun(t.db, runId)!.seriesId }).id;
+    const other = createRun(t.db, {
+      app: TEST_APP_SETTINGS,
+      topicId,
+      seriesId: getRun(t.db, runId)!.seriesId,
+    }).id;
     const foreign = saveSpec(rateLimiterSpec, 1, other);
     const { job, fake } = await runJob(RENDER_JOB_TYPES.draft, { specVersionId: foreign });
     expect(job.status).toBe('failed');

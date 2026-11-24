@@ -3,8 +3,6 @@ import {
   validateVideoSpec,
   type BeatScript,
   type Stage,
-  type TimingSettings,
-  type TtsSettings,
   type VideoSpec,
 } from '@explainer-studio/shared';
 import { z } from 'zod';
@@ -13,9 +11,7 @@ import type { Db } from '#core/db/client.ts';
 import { getRun } from '#core/db/repositories/runs.ts';
 import { NotFoundError } from '#core/errors.ts';
 import { pinnedSpecVersion, saveSpecVersion } from '#core/services/spec-versions.ts';
-import { resolveTimingOptions } from '../timing/assemble.ts';
 import { formatSpecIssues, synthesizeScript, timedSpec } from '../timing/narrate.ts';
-import { resolveTtsOptions } from '../tts/options.ts';
 import type { TtsProvider } from '../tts/provider.ts';
 import { defineJobHandler, type JobContext, type JobHandler } from './handler.ts';
 
@@ -25,8 +21,6 @@ export interface TtsJobDeps {
   readonly db: Db;
   readonly dataDir: string;
   readonly tts: TtsProvider;
-  /** App defaults (`settings.tts`, `settings.timing`); the run's settings override them. */
-  readonly settings: { readonly tts: TtsSettings; readonly timing: TimingSettings };
 }
 
 const PayloadSchema = z.strictObject({ specVersionId: z.number().int().positive() });
@@ -55,8 +49,8 @@ async function narrate(deps: TtsJobDeps, ctx: Ctx): Promise<void> {
   if (!run) throw new NotFoundError('run', runId);
   const pinned = pinnedSpecVersion(deps.db, runId, ctx.payload.specVersionId);
   const spec = scriptedSpec(readDataJson(deps.dataDir, pinned.jsonPath), pinned.version);
-  const options = resolveTtsOptions(run.settings, deps.settings.tts);
-  const pauses = resolveTimingOptions(run.settings, deps.settings.timing);
+  const options = run.resolvedSettings.tts;
+  const pauses = run.resolvedSettings.timing;
 
   const beats = await synthesizeScript(
     deps.tts,

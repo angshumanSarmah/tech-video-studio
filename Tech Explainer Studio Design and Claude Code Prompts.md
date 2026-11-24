@@ -1234,6 +1234,13 @@ render final -> export.
 API endpoints for gate decisions and beat regeneration.
 Acceptance: an end-to-end test with the LLM in dry-run mode goes from topic to draft render with
 all gates on auto, and another that pauses at gate 2 and resumes.
+Decisions from the P1C.9 plan: the next step is a pure decide(snapshot) -> action applied by
+advanceRun in the same transaction that finishes a job or records a gate decision. Stills render
+before gate 3. A multi-part video is a parent run that owns ingest, research, gate 1, direct and
+gate 2, with one child run per part from script onward (part n+1's script waits for part n's).
+Each run snapshots its resolved settings (prices included, never the API key) when it starts.
+A per-run cost cap (budget.maxRunUsd, default $0.75) pauses the run, not fails it; raising the
+cap resumes it. --auto approves gates 1-3 when nothing blocks; gate 4 needs --auto-final.
 ```
 
 **P1C.9b Dev CLI**

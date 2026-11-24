@@ -57,10 +57,7 @@ afterEach(() => {
   rmSync(scratch, { recursive: true, force: true });
 });
 
-function registry(
-  responses: readonly DryRunResponse[],
-  research: ResearchSettings = settings.research,
-): JobRegistry {
+function registry(responses: readonly DryRunResponse[]): JobRegistry {
   const llm = createLlmClient({
     db: t.db,
     dataDir: t.dataDir,
@@ -74,7 +71,6 @@ function registry(
       dataDir: t.dataDir,
       llm,
       prompts,
-      settings: { video: settings.video, research },
     }),
   ]);
 }
@@ -88,9 +84,14 @@ async function runNext(reg: JobRegistry): Promise<void> {
   });
 }
 
-/** Seeds the topic, ingests its sources, then runs the research job. */
-async function research(reg: JobRegistry, files = RATE_LIMITER_SOURCE_FILES) {
-  const { runId } = seedRunWithUploads(t.db, t.dataDir, RATE_LIMITER_TOPIC, files);
+/** Seeds the topic (its run's snapshot from `research`), ingests, then runs the research job. */
+async function research(
+  reg: JobRegistry,
+  files = RATE_LIMITER_SOURCE_FILES,
+  research: ResearchSettings = settings.research,
+) {
+  const app = { ...settings, research };
+  const { runId } = seedRunWithUploads(t.db, t.dataDir, RATE_LIMITER_TOPIC, files, { app });
   await runNext(reg);
   expect(listRunJobs(t.db, runId)[0]!.status).toBe('done');
   const job = enqueueJob(t.db, { type: RESEARCH_JOB_TYPE, runId });
@@ -222,8 +223,10 @@ describe('research job: source token budget', () => {
   it('selects chunks from an oversized source, records and logs what it left out', async () => {
     const oversized = join(scratch, 'platform-team-notes.md');
     writeFileSync(oversized, buildOversizedSource());
-    const reg = registry(recorded, { sourceTokenBudget: 4_000 });
-    const { runId, job } = await research(reg, [...RATE_LIMITER_SOURCE_FILES, oversized]);
+    const reg = registry(recorded);
+    const { runId, job } = await research(reg, [...RATE_LIMITER_SOURCE_FILES, oversized], {
+      sourceTokenBudget: 4_000,
+    });
     expect(job.status).toBe('done');
 
     const { input, step } = latestResearch(t.db, t.dataDir, runId)!;

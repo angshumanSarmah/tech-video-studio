@@ -81,6 +81,16 @@ export const ResearchSettingsSchema = z.strictObject({
 
 export type ResearchSettings = z.infer<typeof ResearchSettingsSchema>;
 
+/** A run's cost cap in US dollars: reaching it pauses the run (P1C.9). */
+export const RunCostCapSchema = z.number().positive().max(100);
+
+export const BudgetSettingsSchema = z.strictObject({
+  /** Default cost cap per run; a run's `settings.budget.maxRunUsd` overrides it. */
+  maxRunUsd: RunCostCapSchema.default(0.75),
+});
+
+export type BudgetSettings = z.infer<typeof BudgetSettingsSchema>;
+
 /**
  * Editable app settings persisted in `<dataDir>/config.json`. Every field has a default, so `{}`
  * (or a missing file) is a complete config. Unknown keys are rejected so typos fail loudly.
@@ -95,6 +105,8 @@ export const SettingsSchema = z.strictObject({
   video: VideoSettingsSchema.prefault({}),
   /** Researcher input limits. */
   research: ResearchSettingsSchema.prefault({}),
+  /** Cost caps. */
+  budget: BudgetSettingsSchema.prefault({}),
 });
 
 /** Validated settings with defaults applied. */

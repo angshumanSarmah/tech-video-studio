@@ -18,6 +18,7 @@ export * from './domain/events.ts';
 export * from './domain/job.ts';
 export * from './domain/library.ts';
 export * from './domain/llm-call.ts';
+export * from './domain/resolved-settings.ts';
 export * from './domain/run.ts';
 export * from './domain/sources.ts';
 export * from './director/index.ts';

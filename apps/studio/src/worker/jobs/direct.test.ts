@@ -18,7 +18,7 @@ import { createRun } from '#core/db/repositories/runs.ts';
 import { listSeries } from '#core/db/repositories/series.ts';
 import { createTopic } from '#core/db/repositories/topics.ts';
 import { memoryRules, usageHistory } from '#core/db/schema.ts';
-import { createTestDb, type TestDb } from '#core/db/testing.ts';
+import { createTestDb, TEST_APP_SETTINGS, type TestDb } from '#core/db/testing.ts';
 import { latestDirection } from '#core/services/direction.ts';
 import { findWorkspaceRoot } from '#core/workspace-root.ts';
 import { DIRECTOR_RESPONSES_DIR } from '../agents/director/testing.ts';
@@ -259,6 +259,7 @@ describe('direct job (rate-limiter fixture, dry run)', () => {
   it('applies the run’s length and format, and the memory context', async () => {
     const [series] = listSeries(t.db);
     const past = createRun(t.db, {
+      app: TEST_APP_SETTINGS,
       topicId: createTopic(t.db, { title: '<past-topic>' }).id,
       seriesId: series!.id,
     });

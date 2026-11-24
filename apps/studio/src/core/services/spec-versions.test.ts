@@ -4,7 +4,7 @@ import { readDataJson } from '../data-files.ts';
 import { createRun } from '../db/repositories/runs.ts';
 import { createTopic } from '../db/repositories/topics.ts';
 import { series } from '../db/schema.ts';
-import { createTestDb, type TestDb } from '../db/testing.ts';
+import { createTestDb, TEST_APP_SETTINGS, type TestDb } from '../db/testing.ts';
 import { saveSpecVersion } from './spec-versions.ts';
 
 let t: TestDb;
@@ -14,7 +14,7 @@ beforeEach(() => {
   t = createTestDb();
   const topicId = createTopic(t.db, { title: 'Topic' }).id;
   const seriesId = t.db.select().from(series).where(eq(series.tag, 'system-design')).get()!.id;
-  runId = createRun(t.db, { topicId, seriesId }).id;
+  runId = createRun(t.db, { app: TEST_APP_SETTINGS, topicId, seriesId }).id;
 });
 
 afterEach(() => t.cleanup());

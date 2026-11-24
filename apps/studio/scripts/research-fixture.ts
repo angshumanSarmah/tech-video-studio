@@ -55,7 +55,6 @@ function registryFor(config: AppConfig, db: Db, dataDir: string): JobRegistry {
       dataDir,
       llm,
       prompts: loadPromptTemplates(join(config.workspaceRoot, PROMPTS_DIR)),
-      settings: { video: config.video, research: config.research },
     }),
   ]);
 }
@@ -81,7 +80,7 @@ async function main(): Promise<number> {
   const db = openDatabase(dbPath);
   try {
     const registry = registryFor(config, db, dataDir);
-    const seeded = seedFixtureRun(db, dataDir, topic, level);
+    const seeded = seedFixtureRun(db, dataDir, topic, level, config);
     console.log(
       `${topic.id} fixture: ${seeded.sourceIds.length} sources, model ${config.llm.models.researcher}, level ${level ?? config.video.explanationLevel}`,
     );

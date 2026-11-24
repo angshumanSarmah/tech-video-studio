@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { events, series } from '../schema.ts';
-import { createTestDb, type TestDb } from '../testing.ts';
+import { createTestDb, TEST_APP_SETTINGS, type TestDb } from '../testing.ts';
 import { appendEvent, latestEventId, listEventsSince, type NewEvent } from './events.ts';
 import { enqueueJob } from './jobs.ts';
 import { createRun } from './runs.ts';
@@ -16,8 +16,8 @@ beforeEach(() => {
   t = createTestDb();
   const topicId = createTopic(t.db, { title: 'Caching' }).id;
   const seriesId = t.db.select().from(series).where(eq(series.tag, 'ai')).get()!.id;
-  runA = createRun(t.db, { topicId, seriesId }).id;
-  runB = createRun(t.db, { topicId, seriesId }).id;
+  runA = createRun(t.db, { app: TEST_APP_SETTINGS, topicId, seriesId }).id;
+  runB = createRun(t.db, { app: TEST_APP_SETTINGS, topicId, seriesId }).id;
   looseJob = enqueueJob(t.db, { type: 'noop' }).id;
 });
 

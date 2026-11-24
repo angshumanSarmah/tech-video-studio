@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { contentHash, sourceTextPath } from '../../data-files.ts';
 import { exports, jobs, series, sources, specVersions, topics, usageHistory } from '../schema.ts';
-import { createTestDb, type TestDb } from '../testing.ts';
+import { createTestDb, TEST_APP_SETTINGS, type TestDb } from '../testing.ts';
 import {
   createRun,
   deleteRun,
@@ -28,7 +28,7 @@ afterEach(() => t.cleanup());
 
 describe('runs repository', () => {
   it('inserts a run with default settings and reads it back', () => {
-    const created = createRun(t.db, { topicId, seriesId });
+    const created = createRun(t.db, { app: TEST_APP_SETTINGS, topicId, seriesId });
     const read = getRun(t.db, created.id);
 
     expect(read).toEqual(created);
@@ -46,6 +46,7 @@ describe('runs repository', () => {
 
   it('round-trips auto-approve and length override', () => {
     const { id } = createRun(t.db, {
+      app: TEST_APP_SETTINGS,
       topicId,
       seriesId,
       settings: { autoApprove: { research: true }, lengthOverrideSec: 75 },
@@ -63,12 +64,19 @@ describe('runs repository', () => {
 
   it('rejects invalid settings before writing', () => {
     expect(() =>
-      createRun(t.db, { topicId, seriesId, settings: { lengthOverrideSec: 10 } }),
+      createRun(t.db, {
+        app: TEST_APP_SETTINGS,
+        topicId,
+        seriesId,
+        settings: { lengthOverrideSec: 10 },
+      }),
     ).toThrow();
   });
 
   it('enforces foreign keys', () => {
-    expect(() => createRun(t.db, { topicId: 999, seriesId })).toThrow(/FOREIGN KEY/);
+    expect(() => createRun(t.db, { app: TEST_APP_SETTINGS, topicId: 999, seriesId })).toThrow(
+      /FOREIGN KEY/,
+    );
   });
 });
 
@@ -78,13 +86,13 @@ describe('run summaries (lastError)', () => {
   }
 
   it('is null when no job of the run failed', () => {
-    const { id } = createRun(t.db, { topicId, seriesId });
+    const { id } = createRun(t.db, { app: TEST_APP_SETTINGS, topicId, seriesId });
     addJob(id, 'done', null);
     expect(getRunSummary(t.db, id)?.lastError).toBeNull();
   });
 
   it("is the error of the run's newest failed job", () => {
-    const { id } = createRun(t.db, { topicId, seriesId });
+    const { id } = createRun(t.db, { app: TEST_APP_SETTINGS, topicId, seriesId });
     addJob(id, 'failed', 'first failure');
     addJob(id, 'failed', 'second failure');
     addJob(id, 'queued', null);
@@ -92,8 +100,8 @@ describe('run summaries (lastError)', () => {
   });
 
   it("lists each run with its own error, never another run's", () => {
-    const failed = createRun(t.db, { topicId, seriesId });
-    const clean = createRun(t.db, { topicId, seriesId });
+    const failed = createRun(t.db, { app: TEST_APP_SETTINGS, topicId, seriesId });
+    const clean = createRun(t.db, { app: TEST_APP_SETTINGS, topicId, seriesId });
     addJob(failed.id, 'failed', 'boom');
 
     expect(listRuns(t.db).map((r) => [r.id, r.lastError])).toEqual([
@@ -130,7 +138,7 @@ describe('recordRunSources', () => {
   it('pins extracted source versions and keeps them after a re-fetch', () => {
     const a = addExtractedSource('https://example.com/a', 'version one');
     t.db.insert(sources).values({ topicId, kind: 'url', url: 'https://example.com/pending' }).run();
-    const run = createRun(t.db, { topicId, seriesId });
+    const run = createRun(t.db, { app: TEST_APP_SETTINGS, topicId, seriesId });
 
     expect(recordRunSources(t.db, run.id)).toEqual([
       { sourceId: a, contentHash: contentHash('version one') },
@@ -172,7 +180,7 @@ describe('deleteRun', () => {
   }
 
   it('deletes a run that never exported and cascades its usage history', () => {
-    const run = createRun(t.db, { topicId, seriesId });
+    const run = createRun(t.db, { app: TEST_APP_SETTINGS, topicId, seriesId });
     addUsage(run.id);
 
     expect(deleteRun(t.db, run.id)).toBe(true);
@@ -181,7 +189,7 @@ describe('deleteRun', () => {
   });
 
   it('refuses to delete an exported run and keeps its usage history', () => {
-    const run = createRun(t.db, { topicId, seriesId });
+    const run = createRun(t.db, { app: TEST_APP_SETTINGS, topicId, seriesId });
     addUsage(run.id);
     addExport(run.id);
 
@@ -191,7 +199,7 @@ describe('deleteRun', () => {
   });
 
   it('is enforced by the database for direct deletes too', () => {
-    const run = createRun(t.db, { topicId, seriesId });
+    const run = createRun(t.db, { app: TEST_APP_SETTINGS, topicId, seriesId });
     addExport(run.id);
 
     expect(() => t.db.$client.prepare('delete from runs where id = ?').run(run.id)).toThrow(
@@ -206,7 +214,7 @@ describe('deleteRun', () => {
 
 describe('spec_versions source label', () => {
   function insertSpec(createdBy: 'agent' | 'external', sourceLabel: string | null): void {
-    const run = createRun(t.db, { topicId, seriesId });
+    const run = createRun(t.db, { app: TEST_APP_SETTINGS, topicId, seriesId });
     t.db
       .insert(specVersions)
       .values({ runId: run.id, version: 1, jsonPath: 'runs/1/spec.json', createdBy, sourceLabel })

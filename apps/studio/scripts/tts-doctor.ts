@@ -14,7 +14,6 @@ import { narrationWords } from '@explainer-studio/shared';
 import { loadConfig, type AppConfig } from '#core/config.ts';
 import { createKokoroTts, kokoroPaths, type KokoroPaths } from '#worker/tts/kokoro.ts';
 import { ModelsLockSchema } from '#worker/tts/model-identity.ts';
-import { resolveTtsOptions } from '#worker/tts/options.ts';
 import { wordTimingProblems } from '#worker/tts/word-checks.ts';
 
 const run = promisify(execFile);
@@ -138,7 +137,7 @@ async function checkSynthesis(config: AppConfig): Promise<SynthesisChecks> {
     dataDir,
     python: config.tts.binaryPath,
   });
-  const { voice, speed } = resolveTtsOptions(undefined, config.tts);
+  const { voice, speed } = config.tts;
   try {
     const started = performance.now();
     const info = await tts.client.info();

@@ -216,7 +216,7 @@ async function main(): Promise<number> {
   try {
     const registry = registryFor(config, db, dataDir, transportFor(config, topic, seed, replay));
     console.log(`${name}: curator ${replay ? 'replayed' : `live (${config.llm.models.curator})`}`);
-    const { runId } = seedFixtureRun(db, dataDir, topic, undefined);
+    const { runId } = seedFixtureRun(db, dataDir, topic, undefined, config);
     let ok = await runJob(db, registry, listRunJobs(db, runId)[0]!.id);
     for (const type of [RESEARCH_JOB_TYPE, DIRECT_JOB_TYPE]) {
       ok = ok && (await runJob(db, registry, enqueueJob(db, { type, runId }).id));

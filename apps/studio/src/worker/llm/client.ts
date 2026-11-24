@@ -10,6 +10,7 @@ import type { z } from 'zod';
 import { llmCallPaths, writeDataJson } from '#core/data-files.ts';
 import type { Db } from '#core/db/client.ts';
 import { insertLlmCall, type LlmCallRow } from '#core/db/repositories/llm-calls.ts';
+import { getRun } from '#core/db/repositories/runs.ts';
 import { callCostUsd } from './cost.ts';
 import { normalizeJsonText, type FieldAlias } from './normalize.ts';
 import { createSemaphore } from './semaphore.ts';
@@ -31,7 +32,8 @@ export interface LlmClientDeps {
   readonly dataDir: string;
   /**
    * Model per role, the price table and how many requests may be in flight at once
-   * (`maxConcurrent`, default 3, shared by every role). The key lives only in the transport.
+   * (`maxConcurrent`, default 3, shared by every role). The key lives only in the transport. A
+   * call made for a run takes its model and prices from the run's settings snapshot instead.
    */
   readonly llm: Pick<LlmSettings, 'models' | 'prices'> &
     Partial<Pick<LlmSettings, 'maxConcurrent'>>;
@@ -214,14 +216,25 @@ export function createLlmClient(deps: LlmClientDeps): LlmClient {
   const now = deps.now ?? (() => new Date());
   const limiter = createSemaphore(deps.llm.maxConcurrent ?? DEFAULT_MAX_CONCURRENT);
 
+  /** A run's call: the run's snapshot (fixed when it started); otherwise the client's own. */
+  function modelsAndPrices(
+    runId: number | null | undefined,
+  ): Pick<LlmSettings, 'models' | 'prices'> {
+    if (runId === undefined || runId === null) return deps.llm;
+    const run = getRun(deps.db, runId);
+    if (!run) throw new LlmConfigError(`Run ${runId} does not exist`);
+    return run.resolvedSettings.llm;
+  }
+
   async function attempt<S extends z.ZodType>(
     request: CallJsonRequest<S>,
     messages: readonly ChatMessage[],
     attemptNo: number,
   ): Promise<{ row: LlmCallRow; outcome: Outcome<z.output<S>>; content: string }> {
     const { role } = request;
-    const model = deps.llm.models[role];
-    const price = deps.llm.prices[model];
+    const { models, prices } = modelsAndPrices(request.runId);
+    const model = models[role];
+    const price = prices[model];
     if (!price) throw new LlmConfigError(`Model "${model}" has no entry in llm.prices`);
     const startedAt = now();
     const runId = request.runId ?? null;

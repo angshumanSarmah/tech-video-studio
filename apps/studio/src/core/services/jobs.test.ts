@@ -5,7 +5,7 @@ import { enqueueJob, getJob, type Job } from '../db/repositories/jobs.ts';
 import { getRun, setActiveRunStatus } from '../db/repositories/runs.ts';
 import { createTopic } from '../db/repositories/topics.ts';
 import { jobs, series } from '../db/schema.ts';
-import { createTestDb, type TestDb } from '../db/testing.ts';
+import { createTestDb, TEST_APP_SETTINGS, type TestDb } from '../db/testing.ts';
 import {
   claimJob,
   completeJob,
@@ -28,7 +28,7 @@ beforeEach(() => {
   ({
     run: { id: runId },
     job: runJob,
-  } = startRun(t.db, { topicId, seriesId }));
+  } = startRun(t.db, { app: TEST_APP_SETTINGS, topicId, seriesId }));
 });
 
 afterEach(() => t.cleanup());

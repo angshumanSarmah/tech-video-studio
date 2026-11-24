@@ -4,7 +4,7 @@ import { createRun } from '../db/repositories/runs.ts';
 import { listSeries } from '../db/repositories/series.ts';
 import { createTopic } from '../db/repositories/topics.ts';
 import { memoryRules, usageHistory } from '../db/schema.ts';
-import { createTestDb, type TestDb } from '../db/testing.ts';
+import { createTestDb, TEST_APP_SETTINGS, type TestDb } from '../db/testing.ts';
 import { directorMemory, nextSeriesNumber, RECENT_VIDEOS } from './director-memory.ts';
 
 let t: TestDb;
@@ -20,7 +20,11 @@ const seriesIds = () => listSeries(t.db).map((s) => s.id);
 /** A run of a new topic in the first series, exported when `exported`. */
 function video(title: string, options: { exported?: boolean; seriesId?: number } = {}) {
   const topic = createTopic(t.db, { title, notes: `<${title} notes>` });
-  const run = createRun(t.db, { topicId: topic.id, seriesId: options.seriesId ?? seriesIds()[0]! });
+  const run = createRun(t.db, {
+    app: TEST_APP_SETTINGS,
+    topicId: topic.id,
+    seriesId: options.seriesId ?? seriesIds()[0]!,
+  });
   if (options.exported ?? true) {
     recordExport(t.db, {
       runId: run.id,

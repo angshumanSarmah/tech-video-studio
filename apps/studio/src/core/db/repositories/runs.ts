@@ -1,6 +1,10 @@
 import {
+  resolveRunSettings,
+  ResolvedRunSettingsSchema,
   RunSettingsSchema,
+  type ResolvedRunSettings,
   type RunSettings,
+  type RunSettingsSource,
   type RunSettingsInput,
   type RunStatus,
 } from '@explainer-studio/shared';
@@ -10,24 +14,48 @@ import { exports, jobs, runSources, runs, sources } from '../schema.ts';
 
 type RunRow = typeof runs.$inferSelect;
 
-export type Run = Omit<RunRow, 'settings'> & { readonly settings: RunSettings };
+export type Run = Omit<RunRow, 'settings' | 'resolvedSettings'> & {
+  readonly settings: RunSettings;
+  readonly resolvedSettings: ResolvedRunSettings;
+};
 
 export interface NewRun {
   readonly topicId: number;
   readonly seriesId: number;
   readonly settings?: RunSettingsInput;
+  /** The app settings as they are now: the run's snapshot resolves from them, once. */
+  readonly app: RunSettingsSource;
+  /** A part of a multi-part video (P1C.9). */
+  readonly part?: { readonly parentRunId: number; readonly index: number; readonly count: number };
 }
 
 /** Settings JSON can be hand-edited on disk, so it is validated on read as well as write. */
 function toRun(row: RunRow): Run {
-  return { ...row, settings: RunSettingsSchema.parse(row.settings) };
+  return {
+    ...row,
+    settings: RunSettingsSchema.parse(row.settings),
+    resolvedSettings: ResolvedRunSettingsSchema.parse(row.resolvedSettings),
+  };
 }
 
+/** Inserts a run with its settings snapshot (`RunSettingsConflictError` when they conflict). */
 export function createRun(db: Executor, input: NewRun): Run {
   const settings = RunSettingsSchema.parse(input.settings ?? {});
   const row = db
     .insert(runs)
-    .values({ topicId: input.topicId, seriesId: input.seriesId, settings })
+    .values({
+      topicId: input.topicId,
+      seriesId: input.seriesId,
+      settings,
+      resolvedSettings: resolveRunSettings(settings, input.app),
+      ...(input.part
+        ? {
+            parentRunId: input.part.parentRunId,
+            partIndex: input.part.index,
+            partCount: input.part.count,
+          }
+        : {}),
+    })
     .returning()
     .get();
   return toRun(row);

@@ -120,26 +120,18 @@ async function main(): Promise<number> {
       llm: config.llm,
       transport: transportFor(config, topic),
     });
-    const settings = {
-      video: config.video,
-      research: config.research,
-      timing: config.timing,
-      tts: config.tts,
-      llm: config.llm,
-    };
     const deps = {
       db,
       dataDir,
       llm,
       prompts: loadPromptTemplates(join(config.workspaceRoot, PROMPTS_DIR)),
-      settings,
     };
     const reg = createJobRegistry([
       ingestJobHandler(deps),
       researchJobHandler(deps),
       directJobHandler(deps),
     ]);
-    const { runId } = seedFixtureRun(db, dataDir, topic, undefined);
+    const { runId } = seedFixtureRun(db, dataDir, topic, undefined, config);
     let ok = await runJob(db, reg, listRunJobs(db, runId)[0]!.id, 'repair-fixture');
     for (const type of [RESEARCH_JOB_TYPE, DIRECT_JOB_TYPE]) {
       ok = ok && (await runJob(db, reg, enqueueJob(db, { type, runId }).id, 'repair-fixture'));

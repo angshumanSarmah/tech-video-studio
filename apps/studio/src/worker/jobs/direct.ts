@@ -10,7 +10,6 @@ import {
   type ResearchNotes,
   type ResearchSource,
   type Stage,
-  type VideoSettings,
 } from '@explainer-studio/shared';
 import { z } from 'zod';
 import { directInputPath, directPlanPath, writeDataJson } from '#core/data-files.ts';
@@ -32,7 +31,7 @@ import { directorCheck } from '../agents/director/check.ts';
 import { directorUserMessage } from '../agents/director/input.ts';
 import { styleRulesSection } from '../agents/sections.ts';
 import { buildPrompt } from '../agents/prompt-builder.ts';
-import { resolvePromptVariables, type PromptVariables } from '../agents/prompt-variables.ts';
+import { type PromptVariables } from '../agents/prompt-variables.ts';
 import type { PromptTemplates } from '../agents/prompts/templates.ts';
 import type { LlmClient } from '../llm/client.ts';
 import { defineJobHandler, type JobContext, type JobHandler } from './handler.ts';
@@ -44,8 +43,6 @@ export interface DirectJobDeps {
   readonly dataDir: string;
   readonly llm: LlmClient;
   readonly prompts: PromptTemplates;
-  /** App defaults; a run's `settings.video` overrides the prompt variables. */
-  readonly settings: { readonly video: VideoSettings };
   /**
    * Reference breakdowns for this run (prompt section 4, structure only). Retrieval is P1C.11;
    * until then no section is sent.
@@ -123,7 +120,7 @@ function prepare(deps: DirectJobDeps, run: Run): { input: DirectorInput; context
   if (!series) throw new NotFoundError('series', run.seriesId);
   const research = latestResearch(deps.db, deps.dataDir, run.id);
   if (!research) throw new Error('The run has no finished research: run the Researcher first.');
-  const variables = resolvePromptVariables(run.settings, deps.settings.video);
+  const variables = run.resolvedSettings.video;
   const input: DirectorInput = {
     topic: { title: topic.title, notes: topic.notes },
     series: {

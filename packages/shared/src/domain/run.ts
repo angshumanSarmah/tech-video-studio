@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { PauseSecSchema, TtsSpeedSchema } from '../config/settings.ts';
+import { PauseSecSchema, RunCostCapSchema, TtsSpeedSchema } from '../config/settings.ts';
 import { VideoLengthSecSchema, VideoSettingsOverrideSchema } from '../config/video.ts';
 import { VideoFormatSchema } from '../spec/meta.ts';
 
@@ -29,6 +29,8 @@ export const RUN_STATUSES = [
   'queued',
   'running',
   'awaiting_review',
+  /** Stopped by its cost cap (`budget.maxRunUsd`); raising the cap resumes it. */
+  'paused',
   'done',
   'failed',
   'cancelled',
@@ -89,6 +91,8 @@ export const RunSettingsSchema = z.strictObject({
     .optional(),
   /** Per-run length, parts and pace overrides (`VideoSettingsSchema`); omitted fields use the app's. */
   video: VideoSettingsOverrideSchema.optional(),
+  /** Per-run cost cap; omitted uses the app's `budget.maxRunUsd`. */
+  budget: z.strictObject({ maxRunUsd: RunCostCapSchema.optional() }).optional(),
 });
 export type RunSettings = z.infer<typeof RunSettingsSchema>;
 export type RunSettingsInput = z.input<typeof RunSettingsSchema>;

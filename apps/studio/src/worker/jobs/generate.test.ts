@@ -58,7 +58,6 @@ import {
 } from '../llm/dry-run.ts';
 import type { LlmTransport, TokenUsage } from '../llm/types.ts';
 import { runNextJob } from '../runner.ts';
-import { resolveTimingOptions } from '../timing/assemble.ts';
 import { DIRECT_JOB_TYPE, directJobHandler } from './direct.ts';
 import { GENERATE_JOB_TYPE, generateJobHandler } from './generate.ts';
 import { ingestJobHandler } from './ingest.ts';
@@ -577,7 +576,7 @@ describe('generate job (both fixture topics, recorded Generator answers)', () =>
       await runNext(reg);
     }
     const scripted = validateVideoSpec(fixtureScriptedSpec(topic)).spec!;
-    const pauses = resolveTimingOptions(undefined, settings.timing);
+    const pauses = settings.timing;
     const spec = withFixtureTiming(scripted, loadTimingFixture(topic), pauses);
     const saved = saveSpecVersion(t.db, t.dataDir, { runId, spec, createdBy: 'agent' });
     return { runId, specVersionId: saved.version.id };

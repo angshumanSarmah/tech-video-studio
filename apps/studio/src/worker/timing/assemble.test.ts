@@ -1,6 +1,5 @@
-import { RunSettingsSchema, SettingsSchema } from '@explainer-studio/shared';
 import { describe, expect, it } from 'vitest';
-import { assembleTiming, resolveTimingOptions, type BeatAudio } from './assemble.ts';
+import { assembleTiming, type BeatAudio } from './assemble.ts';
 
 const none = { beatGapSec: 0, landingSec: 0, endTailSec: 0 };
 const beat = (beatId: string, durationSec: number): BeatAudio => ({
@@ -55,23 +54,5 @@ describe('assembleTiming', () => {
       new Map([['c', 0.8]]),
     );
     expect(timing.endSec).toBe(5 + 0.8 + 1 + 0.5);
-  });
-});
-
-describe('resolveTimingOptions', () => {
-  const app = SettingsSchema.parse({ timing: { beatGapSec: 0.2 } }).timing;
-
-  it('uses the app settings, overridden field by field by the run', () => {
-    expect(resolveTimingOptions(undefined, app)).toEqual({
-      beatGapSec: 0.2,
-      landingSec: 0,
-      endTailSec: 0.5,
-    });
-    const run = RunSettingsSchema.parse({ timing: { landingSec: 0.6 } });
-    expect(resolveTimingOptions(run, app)).toEqual({
-      beatGapSec: 0.2,
-      landingSec: 0.6,
-      endTailSec: 0.5,
-    });
   });
 });

@@ -17,7 +17,7 @@ import { getRun, listRunSources } from '#core/db/repositories/runs.ts';
 import { createSource, getSource } from '#core/db/repositories/sources.ts';
 import { createTopic } from '#core/db/repositories/topics.ts';
 import { series } from '#core/db/schema.ts';
-import { createTestDb, type TestDb } from '#core/db/testing.ts';
+import { createTestDb, TEST_APP_SETTINGS, type TestDb } from '#core/db/testing.ts';
 import { startRun } from '#core/services/runs.ts';
 import { buildPdf } from '../ingest/fixtures/pdf-builder.ts';
 import { body, fakeWeb, status, type FakeWeb } from '../ingest/testing.ts';
@@ -59,7 +59,7 @@ function startRunWith(inputs: readonly SourceInput[]) {
   const topicId = createTopic(t.db, { title: 'Write-ahead logs' }).id;
   const sourceIds = inputs.map((input) => addSource(topicId, input));
   const seriesId = t.db.select().from(series).where(eq(series.tag, 'system-design')).get()!.id;
-  const { run, job } = startRun(t.db, { topicId, seriesId });
+  const { run, job } = startRun(t.db, { app: TEST_APP_SETTINGS, topicId, seriesId });
   return { topicId, runId: run.id, jobId: job.id, sourceIds };
 }
 
@@ -149,7 +149,7 @@ describe('ingest job', () => {
     await runIngest(web());
 
     const seriesId = getRun(t.db, first.runId)!.seriesId;
-    const second = startRun(t.db, { topicId: first.topicId, seriesId });
+    const second = startRun(t.db, { app: TEST_APP_SETTINGS, topicId: first.topicId, seriesId });
     const fake = web();
     await runIngest(fake);
 

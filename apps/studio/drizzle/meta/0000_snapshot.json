@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "9fbbc2c5-0e27-4694-a6b7-a3c22731ff2e",
+  "id": "9f8f292c-e796-4ef1-abbc-2177741784a0",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "assets": {
@@ -366,6 +366,20 @@
           "autoincrement": false,
           "default": "'pending'"
         },
+        "spec_version_id": {
+          "name": "spec_version_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "subject_step_id": {
+          "name": "subject_step_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "decided_by": {
           "name": "decided_by",
           "type": "text",
@@ -412,11 +426,34 @@
           "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
+        },
+        "gates_spec_version_id_spec_versions_id_fk": {
+          "name": "gates_spec_version_id_spec_versions_id_fk",
+          "tableFrom": "gates",
+          "tableTo": "spec_versions",
+          "columnsFrom": ["spec_version_id"],
+          "columnsTo": ["id"],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "gates_subject_step_id_run_steps_id_fk": {
+          "name": "gates_subject_step_id_run_steps_id_fk",
+          "tableFrom": "gates",
+          "tableTo": "run_steps",
+          "columnsFrom": ["subject_step_id"],
+          "columnsTo": ["id"],
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "gates_subject_ck": {
+          "name": "gates_subject_ck",
+          "value": "\"gates\".\"spec_version_id\" is null or \"gates\".\"subject_step_id\" is null"
+        }
+      }
     },
     "jobs": {
       "name": "jobs",
@@ -577,6 +614,29 @@
           "notNull": true,
           "autoincrement": false
         },
+        "preamble_version": {
+          "name": "preamble_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "attempt": {
+          "name": "attempt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "normalizer_fixes": {
+          "name": "normalizer_fixes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'[]'"
+        },
         "model": {
           "name": "model",
           "type": "text",
@@ -609,6 +669,14 @@
         },
         "tokens_out": {
           "name": "tokens_out",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "tokens_reasoning": {
+          "name": "tokens_reasoning",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
@@ -1010,6 +1078,13 @@
           "notNull": true,
           "autoincrement": false
         },
+        "beat_id": {
+          "name": "beat_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "status": {
           "name": "status",
           "type": "text",
@@ -1130,6 +1205,34 @@
           "notNull": true,
           "autoincrement": false
         },
+        "resolved_settings": {
+          "name": "resolved_settings",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "parent_run_id": {
+          "name": "parent_run_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "part_index": {
+          "name": "part_index",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "part_count": {
+          "name": "part_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "integer",
@@ -1157,6 +1260,11 @@
           "name": "runs_status_idx",
           "columns": ["status"],
           "isUnique": false
+        },
+        "runs_parent_part_uq": {
+          "name": "runs_parent_part_uq",
+          "columns": ["parent_run_id", "part_index"],
+          "isUnique": true
         }
       },
       "foreignKeys": {
@@ -1177,11 +1285,25 @@
           "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
+        },
+        "runs_parent_run_id_runs_id_fk": {
+          "name": "runs_parent_run_id_runs_id_fk",
+          "tableFrom": "runs",
+          "tableTo": "runs",
+          "columnsFrom": ["parent_run_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "runs_part_ck": {
+          "name": "runs_part_ck",
+          "value": "(\"runs\".\"parent_run_id\" is null and \"runs\".\"part_index\" is null and \"runs\".\"part_count\" is null) or (\"runs\".\"parent_run_id\" is not null and \"runs\".\"part_count\" >= 2 and \"runs\".\"part_index\" between 1 and \"runs\".\"part_count\")"
+        }
+      }
     },
     "series": {
       "name": "series",
@@ -1324,8 +1446,22 @@
           "notNull": false,
           "autoincrement": false
         },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "error": {
           "name": "error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "error_code": {
+          "name": "error_code",
           "type": "text",
           "primaryKey": false,
           "notNull": false,

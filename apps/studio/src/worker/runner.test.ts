@@ -6,7 +6,7 @@ import { enqueueJob, getJob } from '#core/db/repositories/jobs.ts';
 import { getRun } from '#core/db/repositories/runs.ts';
 import { createTopic } from '#core/db/repositories/topics.ts';
 import { series } from '#core/db/schema.ts';
-import { createTestDb, type TestDb } from '#core/db/testing.ts';
+import { createTestDb, TEST_APP_SETTINGS, type TestDb } from '#core/db/testing.ts';
 import { claimJob, recoverStaleJobs } from '#core/services/jobs.ts';
 import { startRun } from '#core/services/runs.ts';
 import { defineJobHandler, type JobHandler } from './jobs/handler.ts';
@@ -44,7 +44,7 @@ const jobEvents = (jobId: number) =>
 function startRunWithJob() {
   const topicId = createTopic(t.db, { title: 'Consistent hashing' }).id;
   const seriesId = t.db.select().from(series).where(eq(series.tag, 'ai')).get()!.id;
-  return startRun(t.db, { topicId, seriesId });
+  return startRun(t.db, { app: TEST_APP_SETTINGS, topicId, seriesId });
 }
 
 const failing = (opts: Partial<JobHandler>) =>

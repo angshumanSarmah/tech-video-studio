@@ -1,5 +1,6 @@
 import {
   CreateRunRequestSchema,
+  type RunSettingsSource,
   IdParamSchema,
   type RunDetailDto,
   type RunDto,
@@ -15,7 +16,7 @@ import { validate } from '../validate.ts';
 
 const RunParamsSchema = z.object({ id: IdParamSchema });
 
-export function createRunsRoute(db: Db) {
+export function createRunsRoute(db: Db, appSettings: () => RunSettingsSource) {
   return new Hono()
     .get('/', (c) => c.json<RunListResponse>({ items: listRuns(db).map(toRunDto) }))
     .get('/:id', validate('param', RunParamsSchema), (c) => {
@@ -23,7 +24,7 @@ export function createRunsRoute(db: Db) {
       return c.json<RunDetailDto>(toRunDetailDto(getRunDetail(db, id)));
     })
     .post('/', validate('json', CreateRunRequestSchema), (c) => {
-      const { run } = startRun(db, c.req.valid('json'));
+      const { run } = startRun(db, { ...c.req.valid('json'), app: appSettings() });
       return c.json<RunDto>(toRunDto({ ...run, lastError: null }), 201);
     });
 }

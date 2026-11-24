@@ -6,6 +6,7 @@ import {
   type Env,
   type LlmSettings,
   type RenderSettings,
+  type BudgetSettings,
   type ResearchSettings,
   type Settings,
   type SettingsInput,
@@ -40,6 +41,8 @@ export interface AppConfig {
   readonly video: VideoSettings;
   /** Researcher input limits (source token budget). */
   readonly research: ResearchSettings;
+  /** Cost caps; a run's `settings.budget` overrides them. */
+  readonly budget: BudgetSettings;
 }
 
 type RawEnv = Record<string, string | undefined>;
@@ -96,6 +99,7 @@ export function resolveConfig(env: Env, settings: Settings, workspaceRoot: strin
     render: settings.render,
     video: settings.video,
     research: settings.research,
+    budget: settings.budget,
   };
 }
 

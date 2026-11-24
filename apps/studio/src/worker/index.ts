@@ -35,15 +35,8 @@ const llm = createLlmClient({
   transport: createLlmTransport(config.llm),
 });
 const prompts = loadPromptTemplates(join(config.workspaceRoot, PROMPTS_DIR));
-const settings = {
-  tts: config.tts,
-  timing: config.timing,
-  video: config.video,
-  research: config.research,
-  llm: config.llm,
-};
 const registry = createJobRegistry(
-  createJobHandlers({ db, dataDir: config.dataDir, tools, tts, settings, llm, prompts }),
+  createJobHandlers({ db, dataDir: config.dataDir, tools, tts, llm, prompts }),
 );
 const workerId = `${hostname()}:${process.pid}`;
 const shutdownController = new AbortController();

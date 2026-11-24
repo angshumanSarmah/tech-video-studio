@@ -1,1 +1,0 @@
-ALTER TABLE `run_steps` ADD `beat_id` text;

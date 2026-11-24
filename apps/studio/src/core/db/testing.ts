@@ -1,11 +1,15 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { SettingsSchema, type Settings } from '@explainer-studio/shared';
 import { findWorkspaceRoot } from '../workspace-root.ts';
 import { closeDatabase, migrationsDirFor, openDatabase, type Db } from './client.ts';
 import { prepareDatabase } from './prepare.ts';
 
 /** Test-only helpers. Not imported by any entrypoint. */
+
+/** App settings at their defaults: what a test run's settings snapshot resolves from. */
+export const TEST_APP_SETTINGS: Settings = SettingsSchema.parse({});
 
 export const TEST_MIGRATIONS_DIR = migrationsDirFor(findWorkspaceRoot(import.meta.dirname));
 

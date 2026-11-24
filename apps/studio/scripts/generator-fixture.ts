@@ -54,7 +54,6 @@ import {
   loadDryRunFixtures,
   type LlmTransport,
 } from '#worker/llm/index.ts';
-import { resolveTimingOptions } from '#worker/timing/assemble.ts';
 import { and, asc, eq, isNotNull } from 'drizzle-orm';
 import {
   chainTransport,
@@ -160,7 +159,7 @@ function saveScriptedSpec(
     }),
   );
   if (!assembled.spec) throw new Error('The plan and script do not assemble into a spec.');
-  const pauses = resolveTimingOptions(undefined, config.timing);
+  const pauses = config.timing;
   const spec = withFixtureTiming(assembled.spec, loadTimingFixture(topic.id), pauses);
   return { spec, saved: saveSpecVersion(db, dataDir, { runId, spec, createdBy: 'agent' }) };
 }
@@ -372,7 +371,7 @@ async function main(): Promise<number> {
     console.log(
       `${topic.id} fixture: model ${config.llm.models.generator}, level ${level ?? config.video.explanationLevel}, live: ${chain.live.join(', ')}${beat ? ` (Generator: ${beat} and its chain)` : ''}`,
     );
-    const { runId } = seedFixtureRun(db, dataDir, topic, level);
+    const { runId } = seedFixtureRun(db, dataDir, topic, level, config);
     if (!(await prepareRun(db, registry, runId))) {
       printLog(db, runId);
       return 1;

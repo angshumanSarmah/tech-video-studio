@@ -5,13 +5,12 @@ import { describe, expect, it } from 'vitest';
 import { findWorkspaceRoot } from '#core/workspace-root.ts';
 import { FIXTURE_TOPIC_IDS, type FixtureTopicId } from '../fixture-topics.ts';
 import { buildPrompt } from '../prompt-builder.ts';
-import { resolvePromptVariables } from '../prompt-variables.ts';
 import { loadPromptTemplates, PROMPTS_DIR } from '../prompts/templates.ts';
 import { generatorUserMessage } from './input.ts';
 import { fixtureScriptedSpec, recordedNotes } from './testing.ts';
 
 const templates = loadPromptTemplates(join(findWorkspaceRoot(import.meta.dirname), PROMPTS_DIR));
-const variables = resolvePromptVariables(undefined, SettingsSchema.parse({}).video);
+const variables = SettingsSchema.parse({}).video;
 const catalogue = generatorCatalogueBlock();
 
 /** The fixture topic's spec, validated (defaults filled), as the job reads it. */

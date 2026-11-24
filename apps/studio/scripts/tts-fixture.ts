@@ -30,10 +30,8 @@ import { runFfmpeg } from '#worker/render/ffmpeg.ts';
 import { writeSubtitles } from '#worker/render/srt.ts';
 import type { RenderTarget } from '#worker/render/target.ts';
 import { createRemotionEngine } from '#worker/render/remotion-engine.ts';
-import { resolveTimingOptions } from '#worker/timing/assemble.ts';
 import { timeNarration, type NarratedBeat } from '#worker/timing/step.ts';
 import { createKokoroTts } from '#worker/tts/kokoro.ts';
-import { resolveTtsOptions } from '#worker/tts/options.ts';
 import type { TtsProvider } from '#worker/tts/provider.ts';
 import { wordTimingProblems } from '#worker/tts/word-checks.ts';
 
@@ -156,8 +154,8 @@ async function renderVoiceSamples(provider: TtsProvider, outDir: string, speed: 
 async function main(): Promise<number> {
   const config = loadConfig();
   const render = !process.argv.includes('--no-render');
-  const { voice, speed } = resolveTtsOptions(undefined, config.tts);
-  const pauses = resolveTimingOptions(undefined, config.timing);
+  const { voice, speed } = config.tts;
+  const pauses = config.timing;
   const tts = createKokoroTts({
     workspaceRoot: config.workspaceRoot,
     dataDir: config.dataDir,

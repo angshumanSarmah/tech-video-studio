@@ -1,4 +1,4 @@
-import type { RunSettingsInput, Stage } from '@explainer-studio/shared';
+import type { RunSettingsInput, RunSettingsSource, Stage } from '@explainer-studio/shared';
 import type { Db, Executor } from '../db/client.ts';
 import { enqueueJob, type Job } from '../db/repositories/jobs.ts';
 import { appendEvent, latestEventId } from '../db/repositories/events.ts';
@@ -14,6 +14,8 @@ export interface StartRunInput {
   readonly topicId: number;
   readonly seriesId: number;
   readonly settings?: RunSettingsInput | undefined;
+  /** The app settings as they are now: the run's settings snapshot resolves from them. */
+  readonly app: RunSettingsSource;
 }
 
 export interface StartedRun {

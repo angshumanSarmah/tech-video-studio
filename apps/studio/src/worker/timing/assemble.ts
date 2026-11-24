@@ -1,12 +1,4 @@
-import type { BeatTiming, RunSettings, TimedWord, TimingSettings } from '@explainer-studio/shared';
-
-/** Pauses for a run: each of its `settings.timing` overrides, else the app's `settings.timing`. */
-export function resolveTimingOptions(
-  run: RunSettings | undefined,
-  app: TimingSettings,
-): TimingSettings {
-  return { ...app, ...run?.timing };
-}
+import type { BeatTiming, TimedWord, TimingSettings } from '@explainer-studio/shared';
 
 /** One beat's synthesised narration: its WAV length and words in seconds from the WAV's start. */
 export interface BeatAudio {

@@ -15,15 +15,12 @@ import {
   type CurateRound,
   type CuratorIssue,
   type CuratorReport,
-  type LlmSettings,
   type RepairOutput,
   type RepairRequest,
-  type TtsSettings,
   type LlmUsage,
   type RenderableVideoSpec,
   type ResearchNotes,
   type Stage,
-  type TimingSettings,
   type VideoSettings,
 } from '@explainer-studio/shared';
 import { z } from 'zod';
@@ -62,12 +59,11 @@ import {
   repairRequests,
 } from '../agents/curator/loop.ts';
 import { reviewSpec, type ReviewResult } from '../agents/curator/review.ts';
-import { resolvePromptVariables, type PromptVariables } from '../agents/prompt-variables.ts';
+import { type PromptVariables } from '../agents/prompt-variables.ts';
 import type { PromptTemplates } from '../agents/prompts/templates.ts';
 import { LlmOutputInvalidError, type LlmClient } from '../llm/client.ts';
 import { repairBeats, restoreBeats } from '../repair/repair-beats.ts';
 import type { TtsProvider } from '../tts/provider.ts';
-import { resolveTimingOptions } from '../timing/assemble.ts';
 import { defineJobHandler, type JobContext, type JobHandler } from './handler.ts';
 
 export const CURATE_JOB_TYPE = 'curate' satisfies Stage;
@@ -79,12 +75,6 @@ export interface CurateJobDeps {
   readonly prompts: PromptTemplates;
   /** Repairs narrate changed beats (unchanged ones are cache hits). */
   readonly tts: TtsProvider;
-  readonly settings: {
-    readonly video: VideoSettings;
-    readonly timing: TimingSettings;
-    readonly tts: TtsSettings;
-    readonly llm: Pick<LlmSettings, 'models'>;
-  };
 }
 
 /** Repair rounds a curate job runs at most. */
@@ -372,7 +362,7 @@ function prepare(deps: CurateJobDeps, run: Run, ctx: Ctx): CurateJob {
   if (!research) {
     throw new Error(`The plan's research step ${researchStepId} has no finished notes.`);
   }
-  const variables = resolvePromptVariables(run.settings, deps.settings.video);
+  const variables = run.resolvedSettings.video;
   return {
     spec,
     valid: validated.ok,
@@ -382,7 +372,7 @@ function prepare(deps: CurateJobDeps, run: Run, ctx: Ctx): CurateJob {
       version: pinned.version,
       directStepId: direction.step.id,
       researchStepId,
-      model: deps.settings.llm.models.curator,
+      model: run.resolvedSettings.llm.models.curator,
       explanationLevel: variables.explanationLevel,
     },
     checks: checkContext(deps, run, research.notes, research.input.sources, variables, ctx),
@@ -401,7 +391,7 @@ function checkContext(
   if (!topic) throw new NotFoundError('topic', run.topicId);
   const series = getSeries(deps.db, run.seriesId);
   if (!series) throw new NotFoundError('series', run.seriesId);
-  const { beatGapSec, landingSec } = resolveTimingOptions(run.settings, deps.settings.timing);
+  const { beatGapSec, landingSec } = run.resolvedSettings.timing;
   const { recent } = directorMemory(deps.db, run.id);
   return {
     theme: getTheme(),

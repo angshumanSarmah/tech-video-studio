@@ -11,6 +11,7 @@ import {
   ExplanationLevelSchema,
   type DirectorPlan,
   type ExplanationLevel,
+  type RunSettingsSource,
   type ModelRole,
   type ResearchNotes,
 } from '@explainer-studio/shared';
@@ -211,9 +212,11 @@ export function seedFixtureRun(
   dataDir: string,
   topic: FixtureTopic,
   level: ExplanationLevel | undefined,
+  app: RunSettingsSource,
 ) {
   return seedRunWithUploads(db, dataDir, topic.topic, topic.sourceFiles, {
     seriesTag: topic.seriesTag,
+    app,
     settings: fixtureRunSettings(level ? { video: { explanationLevel: level } } : {}),
   });
 }

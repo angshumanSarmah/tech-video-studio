@@ -55,11 +55,16 @@ CREATE TABLE `gates` (
 	`run_id` integer NOT NULL,
 	`gate` text NOT NULL,
 	`status` text DEFAULT 'pending' NOT NULL,
+	`spec_version_id` integer,
+	`subject_step_id` integer,
 	`decided_by` text,
 	`notes` text,
 	`decided_at` integer,
 	`created_at` integer DEFAULT (cast(unixepoch('subsec') * 1000 as integer)) NOT NULL,
-	FOREIGN KEY (`run_id`) REFERENCES `runs`(`id`) ON UPDATE no action ON DELETE cascade
+	FOREIGN KEY (`run_id`) REFERENCES `runs`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`spec_version_id`) REFERENCES `spec_versions`(`id`) ON UPDATE no action ON DELETE set null,
+	FOREIGN KEY (`subject_step_id`) REFERENCES `run_steps`(`id`) ON UPDATE no action ON DELETE set null,
+	CONSTRAINT "gates_subject_ck" CHECK("gates"."spec_version_id" is null or "gates"."subject_step_id" is null)
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `gates_run_gate_uq` ON `gates` (`run_id`,`gate`);--> statement-breakpoint
@@ -87,11 +92,15 @@ CREATE TABLE `llm_calls` (
 	`step_id` integer,
 	`role` text NOT NULL,
 	`prompt_version` text NOT NULL,
+	`preamble_version` text,
+	`attempt` integer DEFAULT 0 NOT NULL,
+	`normalizer_fixes` text DEFAULT '[]' NOT NULL,
 	`model` text NOT NULL,
 	`served_model` text,
 	`tokens_in_cached` integer DEFAULT 0 NOT NULL,
 	`tokens_in_uncached` integer DEFAULT 0 NOT NULL,
 	`tokens_out` integer DEFAULT 0 NOT NULL,
+	`tokens_reasoning` integer DEFAULT 0 NOT NULL,
 	`cost_usd` real DEFAULT 0 NOT NULL,
 	`prompt_path` text NOT NULL,
 	`response_path` text,
@@ -153,6 +162,7 @@ CREATE TABLE `run_steps` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`run_id` integer NOT NULL,
 	`stage` text NOT NULL,
+	`beat_id` text,
 	`status` text DEFAULT 'pending' NOT NULL,
 	`input_path` text,
 	`output_path` text,
@@ -171,14 +181,21 @@ CREATE TABLE `runs` (
 	`status` text DEFAULT 'queued' NOT NULL,
 	`current_stage` text,
 	`settings` text NOT NULL,
+	`resolved_settings` text NOT NULL,
+	`parent_run_id` integer,
+	`part_index` integer,
+	`part_count` integer,
 	`created_at` integer DEFAULT (cast(unixepoch('subsec') * 1000 as integer)) NOT NULL,
 	`updated_at` integer DEFAULT (cast(unixepoch('subsec') * 1000 as integer)) NOT NULL,
 	FOREIGN KEY (`topic_id`) REFERENCES `topics`(`id`) ON UPDATE no action ON DELETE restrict,
-	FOREIGN KEY (`series_id`) REFERENCES `series`(`id`) ON UPDATE no action ON DELETE restrict
+	FOREIGN KEY (`series_id`) REFERENCES `series`(`id`) ON UPDATE no action ON DELETE restrict,
+	FOREIGN KEY (`parent_run_id`) REFERENCES `runs`(`id`) ON UPDATE no action ON DELETE cascade,
+	CONSTRAINT "runs_part_ck" CHECK(("runs"."parent_run_id" is null and "runs"."part_index" is null and "runs"."part_count" is null) or ("runs"."parent_run_id" is not null and "runs"."part_count" >= 2 and "runs"."part_index" between 1 and "runs"."part_count"))
 );
 --> statement-breakpoint
 CREATE INDEX `runs_topic_idx` ON `runs` (`topic_id`);--> statement-breakpoint
 CREATE INDEX `runs_status_idx` ON `runs` (`status`);--> statement-breakpoint
+CREATE UNIQUE INDEX `runs_parent_part_uq` ON `runs` (`parent_run_id`,`part_index`);--> statement-breakpoint
 CREATE TABLE `series` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`channel_id` integer NOT NULL,
@@ -201,7 +218,9 @@ CREATE TABLE `sources` (
 	`status` text DEFAULT 'pending' NOT NULL,
 	`text_path` text,
 	`content_hash` text,
+	`title` text,
 	`error` text,
+	`error_code` text,
 	`extracted_at` integer,
 	`created_at` integer DEFAULT (cast(unixepoch('subsec') * 1000 as integer)) NOT NULL,
 	FOREIGN KEY (`topic_id`) REFERENCES `topics`(`id`) ON UPDATE no action ON DELETE cascade,

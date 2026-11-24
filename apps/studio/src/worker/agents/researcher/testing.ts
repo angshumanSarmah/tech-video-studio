@@ -1,10 +1,11 @@
 import { createHash } from 'node:crypto';
 import { copyFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { basename, dirname } from 'node:path';
-import type { RunSettingsInput } from '@explainer-studio/shared';
+import type { RunSettingsInput, RunSettingsSource } from '@explainer-studio/shared';
 import { eq } from 'drizzle-orm';
 import { resolveDataPath, sourceUploadPath } from '#core/data-files.ts';
 import type { Db } from '#core/db/client.ts';
+import { TEST_APP_SETTINGS } from '#core/db/testing.ts';
 import { createSource } from '#core/db/repositories/sources.ts';
 import { createTopic } from '#core/db/repositories/topics.ts';
 import { series } from '#core/db/schema.ts';
@@ -41,14 +42,24 @@ export function seedRunWithUploads(
   dataDir: string,
   topic: { readonly title: string; readonly notes?: string },
   files: readonly string[],
-  options: { readonly seriesTag?: string; readonly settings?: RunSettingsInput } = {},
+  options: {
+    readonly seriesTag?: string;
+    readonly settings?: RunSettingsInput;
+    /** The app settings the run's snapshot resolves from (scripts pass their config). */
+    readonly app?: RunSettingsSource;
+  } = {},
 ): SeededRun {
   const seriesTag = options.seriesTag ?? 'system-design';
   const topicId = createTopic(db, topic).id;
   const sourceIds = files.map((file) => uploadSource(db, dataDir, topicId, file));
   const seriesRow = db.select().from(series).where(eq(series.tag, seriesTag)).get();
   if (!seriesRow) throw new Error(`No series with tag ${seriesTag}`);
-  const { run } = startRun(db, { topicId, seriesId: seriesRow.id, settings: options.settings });
+  const { run } = startRun(db, {
+    topicId,
+    seriesId: seriesRow.id,
+    settings: options.settings,
+    app: options.app ?? TEST_APP_SETTINGS,
+  });
   return { topicId, runId: run.id, sourceIds };
 }
 

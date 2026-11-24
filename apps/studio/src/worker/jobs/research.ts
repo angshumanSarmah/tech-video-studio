@@ -4,9 +4,7 @@ import {
   researchNotesProblems,
   type ResearchInput,
   type ResearchNotes,
-  type ResearchSettings,
   type Stage,
-  type VideoSettings,
 } from '@explainer-studio/shared';
 import { z } from 'zod';
 import { researchInputPath, researchNotesPath, writeDataJson } from '#core/data-files.ts';
@@ -23,7 +21,6 @@ import { getSeries } from '#core/db/repositories/series.ts';
 import { getTopic } from '#core/db/repositories/topics.ts';
 import { NotFoundError } from '#core/errors.ts';
 import { buildPrompt } from '../agents/prompt-builder.ts';
-import { resolvePromptVariables } from '../agents/prompt-variables.ts';
 import type { PromptTemplates } from '../agents/prompts/templates.ts';
 import {
   buildResearchInput,
@@ -42,8 +39,6 @@ export interface ResearchJobDeps {
   readonly dataDir: string;
   readonly llm: LlmClient;
   readonly prompts: PromptTemplates;
-  /** App defaults; a run's `settings.video` overrides the prompt variables. */
-  readonly settings: { readonly video: VideoSettings; readonly research: ResearchSettings };
 }
 
 const PayloadSchema = z.strictObject({});
@@ -112,7 +107,7 @@ function prepareInput(deps: ResearchJobDeps, run: Run): ResearchInput {
     topic: { title: topic.title, notes: topic.notes },
     series: { name: series.name, label: series.label },
     sources,
-    budgetTokens: deps.settings.research.sourceTokenBudget,
+    budgetTokens: run.resolvedSettings.research.sourceTokenBudget,
   });
 }
 
@@ -125,7 +120,7 @@ async function writeNotes(
 ): Promise<ResearchNotes> {
   const prompt = buildPrompt(deps.prompts, {
     role: 'researcher',
-    variables: resolvePromptVariables(run.settings, deps.settings.video),
+    variables: run.resolvedSettings.video,
     input: researcherUserMessage(input),
   });
   const chunks = citableChunks(input);

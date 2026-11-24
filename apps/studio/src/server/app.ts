@@ -1,3 +1,4 @@
+import type { RunSettingsSource } from '@explainer-studio/shared';
 import { Hono } from 'hono';
 import type { Db } from '#core/db/client.ts';
 import { apiError, handleError } from './errors.ts';
@@ -15,6 +16,8 @@ import { mountSpa } from './static.ts';
 
 export interface AppDeps {
   readonly db: Db;
+  /** The app settings as they are now, read when a run starts (its snapshot resolves from them). */
+  readonly appSettings: () => RunSettingsSource;
   readonly uptimeSeconds?: () => number;
   /** Built SPA to serve; omitted in dev, where Vite serves it. */
   readonly webDistDir?: string | undefined;
@@ -28,7 +31,7 @@ function createApi(deps: AppDeps) {
     .route('/health', createHealthRoute(deps.uptimeSeconds ?? (() => process.uptime())))
     .route('/series', createSeriesRoute(deps.db))
     .route('/topics', createTopicsRoute(deps.db))
-    .route('/runs', createRunsRoute(deps.db))
+    .route('/runs', createRunsRoute(deps.db, deps.appSettings))
     .route('/events', createEventsRoute(deps.db, deps.events ?? DEFAULT_EVENT_STREAM_OPTIONS));
   if (deps.enableDevRoutes) api.route('/dev', createDevRoute(deps.db));
   return api;

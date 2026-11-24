@@ -10,6 +10,7 @@ const STATUS_CLASSES: Record<Status, string> = {
   queued: 'text-ink-muted border-line',
   running: 'text-concept border-concept/40',
   awaiting_review: 'text-focus border-focus/40',
+  paused: 'text-focus border-focus/40',
   done: 'text-ok border-ok/40',
   failed: 'text-problem border-problem/40',
   cancelled: 'text-ink-faint border-line',

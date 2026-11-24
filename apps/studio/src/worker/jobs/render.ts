@@ -14,6 +14,8 @@ import {
 import type { Db } from '#core/db/client.ts';
 import { recordExport } from '#core/db/repositories/exports.ts';
 import type { Job } from '#core/db/repositories/jobs.ts';
+import { getRun } from '#core/db/repositories/runs.ts';
+import { NotFoundError } from '#core/errors.ts';
 import {
   renderBeatDraft,
   renderDraft,
@@ -69,12 +71,12 @@ function beatDraftJob(deps: RenderJobDeps) {
     description: "Renders one beat's draft clip with its narration slice (cached by inputs).",
     payloadSchema: BeatDraftPayloadSchema,
     async run(ctx) {
-      const { runId, input } = load(deps, ctx);
+      const { runId, input, tools } = load(deps, ctx);
       const { beatId } = ctx.payload;
       const result = await renderBeatDraft(
         input.target,
         beatId,
-        deps.tools,
+        tools,
         toRun(ctx),
         draftPaths(deps, runId),
       );
@@ -90,13 +92,8 @@ function draftJob(deps: RenderJobDeps) {
     description: 'Renders changed beat clips, joins all clips and muxes the narration.',
     payloadSchema: RunPayloadSchema,
     async run(ctx) {
-      const { runId, input } = load(deps, ctx);
-      const result = await renderDraft(
-        input.target,
-        deps.tools,
-        toRun(ctx),
-        draftPaths(deps, runId),
-      );
+      const { runId, input, tools } = load(deps, ctx);
+      const result = await renderDraft(input.target, tools, toRun(ctx), draftPaths(deps, runId));
       recordMissingAssets(deps.dataDir, runId, input.missing);
       logResult(ctx, input, result);
       ctx.log('info', `Draft written to ${runDraftPath(runId)}.`);
@@ -111,7 +108,7 @@ function finalJob(deps: RenderJobDeps) {
       'Renders the whole video at the final preset, muxes the narration, writes the SRT and records the export.',
     payloadSchema: RunPayloadSchema,
     async run(ctx) {
-      const { runId, input } = load(deps, ctx);
+      const { runId, input, tools } = load(deps, ctx);
       const blockers = finalRenderBlockers(input);
       if (blockers.length > 0) {
         throw new Error(`Final render refused:\n${blockers.map((b) => `  ${b}`).join('\n')}`);
@@ -122,7 +119,7 @@ function finalJob(deps: RenderJobDeps) {
         subtitles: exportSubtitlesPath(runId, slug),
       };
       const abs = (path: string) => resolveDataPath(deps.dataDir, path);
-      const result = await renderFinal(input.target, deps.tools, toRun(ctx), {
+      const result = await renderFinal(input.target, tools, toRun(ctx), {
         video: abs(rel.video),
         subtitles: abs(rel.subtitles),
       });
@@ -150,13 +147,13 @@ function stillsJob(deps: RenderJobDeps) {
     // Previews only: a failure must not fail the run.
     failsRun: false,
     async run(ctx) {
-      const { runId, input } = load(deps, ctx);
+      const { runId, input, tools } = load(deps, ctx);
       const abs = (rel: string) => resolveDataPath(deps.dataDir, rel);
       const paths = {
         still: (beatId: string) => abs(beatStillPath(runId, beatId)),
         manifest: abs(stillsManifestPath(runId)),
       };
-      const frames = await renderStills(input.target, deps.tools, toRun(ctx), paths);
+      const frames = await renderStills(input.target, tools, toRun(ctx), paths);
       ctx.log(
         'info',
         `Stills for spec v${input.specVersion}: ${Object.keys(frames).length} beats.`,
@@ -171,7 +168,15 @@ function load(deps: RenderJobDeps, ctx: JobContext<{ specVersionId: number }>) {
   for (const problem of input.problems) {
     ctx.log('warn', `Asset ${problem.id} failed to load: ${problem.message}`);
   }
-  return { runId, input };
+  return { runId, input, tools: runTools(deps, runId) };
+}
+
+/** The process's render tools with the run's presets (its snapshot), so a run renders as it began. */
+function runTools(deps: RenderJobDeps, runId: number): RenderTools {
+  const run = getRun(deps.db, runId);
+  if (!run) throw new NotFoundError('run', runId);
+  const settings = { ...deps.tools.settings, presets: run.resolvedSettings.render.presets };
+  return { ...deps.tools, settings };
 }
 
 function requireRunId(job: Job): number {

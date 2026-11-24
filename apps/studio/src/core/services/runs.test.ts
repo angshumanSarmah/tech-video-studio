@@ -5,7 +5,7 @@ import { appendEvent, listEventsSince } from '../db/repositories/events.ts';
 import { listRuns } from '../db/repositories/runs.ts';
 import { createTopic } from '../db/repositories/topics.ts';
 import { series } from '../db/schema.ts';
-import { createTestDb, type TestDb } from '../db/testing.ts';
+import { createTestDb, TEST_APP_SETTINGS, type TestDb } from '../db/testing.ts';
 import { NotFoundError } from '../errors.ts';
 import { FIRST_RUN_JOB_TYPE, getRunDetail, startRun } from './runs.ts';
 
@@ -23,7 +23,12 @@ afterEach(() => t.cleanup());
 
 describe('startRun', () => {
   it('creates the run, its first job and a run_status event', () => {
-    const { run, job } = startRun(t.db, { topicId, seriesId, settings: { lengthOverrideSec: 60 } });
+    const { run, job } = startRun(t.db, {
+      app: TEST_APP_SETTINGS,
+      topicId,
+      seriesId,
+      settings: { lengthOverrideSec: 60 },
+    });
 
     expect(run).toMatchObject({ topicId, seriesId, status: 'queued' });
     expect(run.settings.lengthOverrideSec).toBe(60);
@@ -38,7 +43,9 @@ describe('startRun', () => {
     ['Topic', () => ({ topicId: 999, seriesId })],
     ['Series', () => ({ topicId, seriesId: 999 })],
   ])('throws NotFoundError for an unknown %s and writes nothing', (entity, input) => {
-    expect(() => startRun(t.db, input())).toThrow(new NotFoundError(entity, 999));
+    expect(() => startRun(t.db, { ...input(), app: TEST_APP_SETTINGS })).toThrow(
+      new NotFoundError(entity, 999),
+    );
     expect(listRuns(t.db)).toEqual([]);
   });
 
@@ -47,20 +54,22 @@ describe('startRun', () => {
       "create trigger jobs_fail before insert on jobs begin select raise(abort, 'enqueue failed'); end",
     );
 
-    expect(() => startRun(t.db, { topicId, seriesId })).toThrow(/enqueue failed/);
+    expect(() => startRun(t.db, { app: TEST_APP_SETTINGS, topicId, seriesId })).toThrow(
+      /enqueue failed/,
+    );
     expect(listRuns(t.db)).toEqual([]);
   });
 });
 
 describe('getRunDetail', () => {
   it("returns the run with its newest event id, ignoring other runs' events", () => {
-    const { run } = startRun(t.db, { topicId, seriesId });
+    const { run } = startRun(t.db, { app: TEST_APP_SETTINGS, topicId, seriesId });
     const last = appendEvent(t.db, {
       runId: run.id,
       type: 'progress',
       payload: { pct: 10 },
     });
-    startRun(t.db, { topicId, seriesId }); // newer event on another run
+    startRun(t.db, { app: TEST_APP_SETTINGS, topicId, seriesId }); // newer event on another run
 
     expect(getRunDetail(t.db, run.id)).toEqual({
       run: { ...run, lastError: null },

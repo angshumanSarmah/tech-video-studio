@@ -23,6 +23,7 @@ import {
   assembleScriptedSpec,
   validateVideoSpec,
   type CuratorReport,
+  type RunSettingsSource,
 } from '@explainer-studio/shared';
 import { loadConfig, type AppConfig } from '#core/config.ts';
 import {
@@ -207,20 +208,12 @@ async function main(): Promise<number> {
     llm: config.llm,
     transport: transportFor(config, topic, live),
   });
-  const settings = {
-    tts: config.tts,
-    timing: config.timing,
-    video: config.video,
-    research: config.research,
-    llm: config.llm,
-  };
   const registry = createJobRegistry(
     createJobHandlers({
       db,
       dataDir,
       tools: { engine, ffmpeg: runFfmpeg, settings: config.render },
       tts: tts.provider,
-      settings,
       llm,
       prompts: loadPromptTemplates(join(config.workspaceRoot, PROMPTS_DIR)),
     }),
@@ -233,7 +226,6 @@ async function main(): Promise<number> {
           db,
           dataDir,
           tts: tts.provider,
-          settings,
           llm: createLlmClient({
             db,
             dataDir,
@@ -250,10 +242,18 @@ async function main(): Promise<number> {
         `curate ${liveCurate ? 'live with repairs' : 'replayed, review only'}`,
     );
     const stages: Stage[] = [];
-    const runId = await runStages(db, dataDir, registry, topic, stages, {
-      registry: curateRegistry,
-      repair: liveCurate,
-    });
+    const runId = await runStages(
+      db,
+      dataDir,
+      registry,
+      topic,
+      stages,
+      {
+        registry: curateRegistry,
+        repair: liveCurate,
+      },
+      config,
+    );
     for (const s of stages) console.log(`  ${s.name.padEnd(14)} ${s.sec.toFixed(1)} s`);
     if (runId === undefined) return 1;
     await report(db, dataDir, runId, shown);
@@ -272,8 +272,9 @@ async function runStages(
   topic: FixtureTopic,
   stages: Stage[],
   curation: { readonly registry: JobRegistry; readonly repair: boolean },
+  app: RunSettingsSource,
 ): Promise<number | undefined> {
-  const { runId } = seedFixtureRun(db, dataDir, topic, undefined);
+  const { runId } = seedFixtureRun(db, dataDir, topic, undefined, app);
   const timed = async (name: string, step: () => Promise<boolean>) => {
     const started = performance.now();
     const ok = await step();

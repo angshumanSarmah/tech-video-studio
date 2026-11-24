@@ -16,14 +16,13 @@ import {
   type TimingFixture,
 } from '#worker/agents/generator/timing-fixture.ts';
 import { createKokoroTts } from '#worker/tts/kokoro.ts';
-import { resolveTtsOptions } from '#worker/tts/options.ts';
 import { wordTimingProblems } from '#worker/tts/word-checks.ts';
 import { topicArg } from './agent-fixture.ts';
 
 async function main(): Promise<number> {
   const config = loadConfig();
   const topic = topicArg(process.argv);
-  const { voice, speed } = resolveTtsOptions(undefined, config.tts);
+  const { voice, speed } = config.tts;
   const spec = validateVideoSpec(fixtureScriptedSpec(topic.id)).spec;
   if (!spec?.script) throw new Error(`The ${topic.id} plan and script do not assemble.`);
   const tts = createKokoroTts({

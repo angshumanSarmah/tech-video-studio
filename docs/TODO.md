@@ -172,6 +172,9 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       then the worker only moves a run to `failed` when one of its jobs fails (unless the handler
       sets `failsRun: false`); `queued → running`, gate pauses and `done` belong to the
       orchestrator, as does resuming a run from its last finished `run_steps` row.
+- [ ] **P1C.9 — Paused and cancelled.** The run status `paused` and the job status `cancelled`
+      exist since step 1; nothing sets them until the cost cap (step 7) and cancel (step 6).
+      `budget.maxRunUsd` is already in every run's snapshot.
 - [ ] **P1C.9 — Pipeline order with re-timing.** The orchestrator runs
       `tts -> generator -> re-time (landing holds) -> curator -> render`. The first `tts` job
       times the script alone (no scenes, so no landing holds); after the Generator, queue `tts`
@@ -208,8 +211,9 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       queues `render_beat_draft`, `render_draft`, `render_final` or `render_stills` yet (the
       orchestrator and the gate UI will). Every render payload requires `specVersionId` (a
       `spec_versions` row id of the job's run) and renders exactly that version.
-  - Gate approvals must store the spec version they approved: add `spec_version_id` (FK to
-    `spec_versions`) to `gates`, set in the same transaction as the decision.
+  - Gate approvals must store the spec version they approved: `gates.spec_version_id` (and
+    `subject_step_id` for the research and beat-sheet gates) exist since P1C.9 step 1; set them
+    in the same transaction as the decision (step 4).
   - The orchestrator queues renders with that id: drafts after the scenes gate with the version
     approved there, `render_final` with the version approved at the draft gate (never "the
     latest"), so an edit saved while a job waits cannot reach the export unreviewed.

@@ -4,7 +4,6 @@ import { describe, expect, it } from 'vitest';
 import { findWorkspaceRoot } from '#core/workspace-root.ts';
 import type { BuiltPrompt } from '#worker/llm/types.ts';
 import { buildPrompt, fillTemplate, PromptBuildError, type PromptParts } from './prompt-builder.ts';
-import { resolvePromptVariables } from './prompt-variables.ts';
 import {
   loadPromptTemplates,
   PROMPT_ROLES,
@@ -13,7 +12,7 @@ import {
 } from './prompts/templates.ts';
 
 const templates = loadPromptTemplates(join(findWorkspaceRoot(import.meta.dirname), PROMPTS_DIR));
-const variables = resolvePromptVariables(undefined, SettingsSchema.parse({}).video);
+const variables = SettingsSchema.parse({}).video;
 
 /** Fixture sections, written as placeholders like the catalogue's own examples. */
 const FIXTURE = {

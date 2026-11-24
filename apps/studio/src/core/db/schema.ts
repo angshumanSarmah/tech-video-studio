@@ -27,9 +27,11 @@ import {
   USAGE_KINDS,
   type EventBody,
   type NormalizerFix,
+  type ResolvedRunSettings,
   type RunSettings,
 } from '@explainer-studio/shared';
 import { sql } from 'drizzle-orm';
+import type { AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
 import {
   check,
   index,
@@ -154,11 +156,34 @@ export const runs = sqliteTable(
       .references(() => series.id, { onDelete: 'restrict' }),
     status: text('status', { enum: RUN_STATUSES }).notNull().default('queued'),
     currentStage: text('current_stage', { enum: STAGES }),
+    /** The run's own overrides, as given when it started. */
     settings: text('settings', { mode: 'json' }).$type<RunSettings>().notNull(),
+    /**
+     * Every setting the run's jobs read, resolved once when it started (overrides, app settings,
+     * defaults): `ResolvedRunSettingsSchema`.
+     */
+    resolvedSettings: text('resolved_settings', { mode: 'json' })
+      .$type<ResolvedRunSettings>()
+      .notNull(),
+    /** A part of a multi-part video: the run that owns its research and plan (P1C.9). */
+    parentRunId: integer('parent_run_id').references((): AnySQLiteColumn => runs.id, {
+      onDelete: 'cascade',
+    }),
+    /** This part's number, from 1, and how many parts the video has; set iff `parent_run_id`. */
+    partIndex: integer('part_index'),
+    partCount: integer('part_count'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [index('runs_topic_idx').on(t.topicId), index('runs_status_idx').on(t.status)],
+  (t) => [
+    index('runs_topic_idx').on(t.topicId),
+    index('runs_status_idx').on(t.status),
+    uniqueIndex('runs_parent_part_uq').on(t.parentRunId, t.partIndex),
+    check(
+      'runs_part_ck',
+      sql`(${t.parentRunId} is null and ${t.partIndex} is null and ${t.partCount} is null) or (${t.parentRunId} is not null and ${t.partCount} >= 2 and ${t.partIndex} between 1 and ${t.partCount})`,
+    ),
+  ],
 );
 
 /** The exact source versions a run used. Rows outlive later re-fetches of the source. */
@@ -208,12 +233,23 @@ export const gates = sqliteTable(
       .references(() => runs.id, { onDelete: 'cascade' }),
     gate: text('gate', { enum: GATE_IDS }).notNull(),
     status: text('status', { enum: GATE_STATUSES }).notNull().default('pending'),
+    /** What the scenes and draft gates review: the spec version they show and approve. */
+    specVersionId: integer('spec_version_id').references(() => specVersions.id, {
+      onDelete: 'set null',
+    }),
+    /** What the research and beat-sheet gates review: the step whose notes or plan they show. */
+    subjectStepId: integer('subject_step_id').references(() => runSteps.id, {
+      onDelete: 'set null',
+    }),
     decidedBy: text('decided_by', { enum: DECIDED_BY }),
     notes: text('notes'),
     decidedAt: timestamp('decided_at'),
     createdAt: createdAt(),
   },
-  (t) => [uniqueIndex('gates_run_gate_uq').on(t.runId, t.gate)],
+  (t) => [
+    uniqueIndex('gates_run_gate_uq').on(t.runId, t.gate),
+    check('gates_subject_ck', sql`${t.specVersionId} is null or ${t.subjectStepId} is null`),
+  ],
 );
 
 export const specVersions = sqliteTable(

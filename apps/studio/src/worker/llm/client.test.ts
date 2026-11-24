@@ -9,7 +9,7 @@ import { listRunLlmCalls, runCostUsd } from '#core/db/repositories/llm-calls.ts'
 import { createRun } from '#core/db/repositories/runs.ts';
 import { createTopic } from '#core/db/repositories/topics.ts';
 import { series } from '#core/db/schema.ts';
-import { createTestDb, type TestDb } from '#core/db/testing.ts';
+import { createTestDb, TEST_APP_SETTINGS, type TestDb } from '#core/db/testing.ts';
 import {
   createLlmClient,
   invalidOutputError,
@@ -50,7 +50,7 @@ beforeEach(() => {
   t = createTestDb();
   const topicId = createTopic(t.db, { title: 'Rate limiters' }).id;
   const seriesId = t.db.select().from(series).where(eq(series.tag, 'system-design')).get()!.id;
-  runId = createRun(t.db, { topicId, seriesId }).id;
+  runId = createRun(t.db, { app: TEST_APP_SETTINGS, topicId, seriesId }).id;
   logs = [];
 });
 

@@ -177,7 +177,12 @@ narrative devices: `DEVICE_IDS`, `DeviceId`), `layout-modes` (ids, zones, `maxUn
   worker start. Neither process migrates itself, so they never race on the shared file.
 - **Until the first real video exists**, migrations may be regenerated from scratch (delete
   `apps/studio/drizzle/` and regenerate) instead of stacking new ones; wipe local `data/` when you
-  do. **After that, migrations are append-only:** never edit or delete an applied migration.
+  do. P1C.9 step 1 was the last such regeneration: **after the first real run, migrations are
+  append-only:** never edit or delete an applied migration.
+- **`runs`** hold the run's own overrides (`settings`, `RunSettingsSchema`) and its **settings
+  snapshot** (`resolved_settings`, below), and, for a part of a multi-part video, `parent_run_id`,
+  `part_index` and `part_count` (all three or none; a CHECK holds it). `gates` carry what they
+  review: `spec_version_id` (scenes, draft) or `subject_step_id` (research, beat sheet).
 - Large JSON and text live in files under the data dir (`runs/<run_id>/`,
   `topics/<topic_id>/sources/<source_id>/<content_hash>.txt`). The DB stores paths relative to the
   data dir; use the helpers in `#core/data-files.ts`.
@@ -215,6 +220,18 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   heartbeat or lease; add one before running a second worker.
 - **Handlers get dependencies** through `createJobHandlers({ db, dataDir, tools })`
   (`jobs/registry.ts`); `JobContext` carries only the job, payload, progress, log and signal.
+- **Settings snapshot** (`ResolvedRunSettingsSchema`, shared `domain/resolved-settings.ts`):
+  `startRun` resolves the run's overrides over the app settings over the defaults once
+  (`resolveRunSettings`, pure; a conflict is `RunSettingsConflictError`, a 400) into
+  `runs.resolved_settings`: video (the prompt variables), timing, tts voice and speed, research
+  budget, the model per role and the price table, render presets and the cost cap
+  (`budget.maxRunUsd`, default $0.75). **Every job reads `run.resolvedSettings`; handler deps
+  carry no settings.** The LLM client takes a run's model and prices from it; render jobs its
+  presets. The server reads `settings.json` on each run start (`appSettings` in `AppDeps`), so
+  an edit applies to the next run and never to a running one. Machine settings stay with the
+  process: API key and base URL, timeouts, `maxConcurrent`, render concurrency, the Python path.
+  Scripts start their runs from their config (`seedFixtureRun(..., config)`).
+  `settings-snapshot.test.ts` is the acceptance test.
 
 ### Source ingestion (`src/worker/ingest`, job in `jobs/ingest.ts`)
 
@@ -301,8 +318,8 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
 - **`TtsProvider.synthesize(text, voice, speed, { signal })`** returns `{ wavPath, words,
 durationSec, cached }`, one call per beat. `words` has one entry per `narrationWords(text)` word
   (that normalized text), in seconds from the start of `wavPath` (24 kHz mono 16-bit PCM, owned
-  by the cache: copy it, never edit it). Voice and speed come from `resolveTtsOptions(run
-settings, settings.tts)`: speed is the run's `tts.speed`, else `settings.tts.speed` (1.0).
+  by the cache: copy it, never edit it). Voice and speed come from the run's snapshot
+  (`resolvedSettings.tts`): speed is the run's `tts.speed`, else `settings.tts.speed` (1.0).
 - **Kokoro-82M runs in Python** (`tts-python/kokoro_server.py`), started lazily by the worker and
   reused: JSON lines over stdin/stdout (`ready`/`fatal` handshake, then `synthesize`). The real
   stdout is reserved for the protocol. Env pinned by `uv.lock` (Python 3.12 in `.uv-python/`),
@@ -333,7 +350,7 @@ settings, settings.tts)`: speed is the run's `tts.speed`, else `settings.tts.spe
   (`saveSpecVersion`, skipped when identical, so reruns are safe) with the track at
   `runs/<id>/audio/narration-<hash>.wav`. Pauses come from one block, `settings.timing`
   (`beatGapSec` 0, `landingSec` 0, `endTailSec` 0.5), overridden per run by `settings.timing`
-  on the run (`resolveTimingOptions`); nothing is hard-coded. A beat's scene ends at
+  on the run (both resolved into `resolvedSettings.timing`); nothing is hard-coded. A beat's scene ends at
   `max(narration end, settled + landingSec)` (landing only when > 0; `settled` is
   `beatSettledOffsets`: its own last non-exit event played out, draws included, default theme),
   the next beat starts `beatGapSec` later, and the track ends `endTailSec` after the last scene.
@@ -355,7 +372,8 @@ settings, settings.tts)`: speed is the run's `tts.speed`, else `settings.tts.spe
 
 - **`createLlmClient({ db, dataDir, llm, transport }).callJson({ role, prompt, schema, runId?,
 stepId?, aliases?, check?, signal?, log? })`** is the only way to call a model (rule 6). The
-  model comes from `settings.llm.models[role]`. Each attempt: normalize the answer, validate it
+  model and its price come from the run's snapshot (`resolvedSettings.llm`), or from the client's
+  own `llm` for a call outside a run. Each attempt: normalize the answer, validate it
   with `schema` and run `check` (e.g. registry checks) on it, both together: `check` also runs on
   JSON that fails the schema, so it takes `unknown` and must accept any shape (a throw there is
   ignored). On failure all the errors go back in one assistant + user turn, at most
@@ -404,7 +422,7 @@ stepId?, aliases?, check?, signal?, log? })`** is the only way to call a model (
   user message, so the static prefix caches. A new agent registers its output schema there and
   passes the same schema to `callJson` (the Curator does not: its two passes put their shapes in
   the user message, `outputSchemaSection`, so both share one system prompt). `{{name}}`
-  takes values from `resolvePromptVariables(run settings, settings.video)` (run override →
+  takes values from the run's `resolvedSettings.video` (run override →
   app settings → defaults 45, 150, 90, true, 4, 2.56, `beginner`; `explanationLevel` is
   beginner | intermediate | expert and fills the preamble's audience line); an unknown, unfilled or malformed
   placeholder throws `PromptBuildError`. `__snapshots__/<role>.prompt.txt` holds each assembled
@@ -558,8 +576,8 @@ seriesNumber })` makes the spec; with parts its `targetLengthSec` is the parts' 
 
 - **`script` job** (payload `{}`): reads the run's latest plan (`latestDirection`; none fails the
   job) and the notes of the research step that plan was made from (`researchOfStep(input.
-researchStepId)`, not the newest research), the run's level and pace (`resolvePromptVariables`)
-  and pauses (`resolveTimingOptions`), and style rules (`activeStyleRules(db, 'scriptwriter')`,
+researchStepId)`, not the newest research), the run's level and pace (`resolvedSettings.video`)
+  and pauses (`resolvedSettings.timing`), and style rules (`activeStyleRules(db, 'scriptwriter')`,
   `#core/services/style-rules.ts`, shared with the Director), then calls `callJson` with
   `ScriptwriterOutputSchema` and `check: scriptwriterCheck(...)`. No catalogue section. The user
   message (`scriptwriterUserMessage`) resolves everything per beat: word budget, new terms with

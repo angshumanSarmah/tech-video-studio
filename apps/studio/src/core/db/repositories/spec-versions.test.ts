@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { channels, series, topics } from '../schema.ts';
-import { createTestDb, type TestDb } from '../testing.ts';
+import { createTestDb, TEST_APP_SETTINGS, type TestDb } from '../testing.ts';
 import { getRunRenderContext } from './run-render.ts';
 import { createRun } from './runs.ts';
 import { createSpecVersion, getLatestSpecVersion } from './spec-versions.ts';
@@ -13,7 +13,7 @@ beforeEach(() => {
   t = createTestDb();
   const topicId = t.db.insert(topics).values({ title: 'Rate limiters' }).returning().get().id;
   const seriesId = t.db.select().from(series).where(eq(series.tag, 'system-design')).get()!.id;
-  runId = createRun(t.db, { topicId, seriesId }).id;
+  runId = createRun(t.db, { app: TEST_APP_SETTINGS, topicId, seriesId }).id;
 });
 
 afterEach(() => t.cleanup());

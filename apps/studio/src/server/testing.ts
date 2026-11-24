@@ -1,4 +1,4 @@
-import type { ApiError } from '@explainer-studio/shared';
+import { SettingsSchema, type ApiError } from '@explainer-studio/shared';
 import { expect } from 'vitest';
 import { createTestDb, type TestDb } from '#core/db/testing.ts';
 import { createApp, type App, type AppDeps } from './app.ts';
@@ -9,9 +9,14 @@ export interface TestServer extends TestDb {
   readonly app: App;
 }
 
-export function createTestServer(deps: Omit<AppDeps, 'db'> = {}): TestServer {
+export function createTestServer(deps: Partial<Omit<AppDeps, 'db'>> = {}): TestServer {
   const testDb = createTestDb();
-  const app = createApp({ events: { pollMs: 5, heartbeatMs: 1_000 }, ...deps, db: testDb.db });
+  const app = createApp({
+    events: { pollMs: 5, heartbeatMs: 1_000 },
+    appSettings: () => SettingsSchema.parse({}),
+    ...deps,
+    db: testDb.db,
+  });
   return { ...testDb, app };
 }
 
