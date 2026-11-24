@@ -683,9 +683,8 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   `screen_number_not_in_notes` (each counted number, and each `displayNumber` value, is a value
   the board's beats so far cite or say; `sec` values compare with research times converted by
   code, so 600 matches "10 minutes"; identifiers such as p99 and HTTP 429 and counts 0-3 are
-  free; skipped without notes), `label_term_too_early` (a glossary term a later beat introduces)
-  and `example_label_unmarked` (in an `exampleNumbers` beat a label with a number starts with
-  "e.g.").
+  free; skipped without notes) and `label_term_too_early` (a glossary term a later beat
+  introduces). Example numbers need no marking: code draws the EXAMPLE stamp (see Renderer).
 - **Across boards** (`catalog/layer-checks.ts`, `layerWarnings`; the Generator's post-pass and
   the Curator): `pattern_repeated_on_focus` (consecutive beats focus a new instance of the same
   pattern) and `static_beats` (more than `MAX_STATIC_BEATS` (1) new board with nothing but stat
@@ -1041,6 +1040,12 @@ channelHandle })` measures the same strings (`subjectText`, `chapterHeaderText`,
     `inset_panel`'s `children`) are nested under it by `beatWorld` and drawn inside it, never
     focus-dimmed with the board. A child's presence is multiplied by its container's (`containedState`), so it
     enters and exits with it; it keeps its own events.
+  - **EXAMPLE stamp** (`scene/example-stamp.ts`, `ExampleStamp.tsx`): on a beat whose plan
+    marks `exampleNumbers`, code draws a small "EXAMPLE" stamp (title-block themes: a ruled box in
+    muted ink; bar themes: a soft pill), fading in with the footnote. It sits right-aligned in a
+    band the layout reserves at the top of the board frame for every chain with such a beat
+    (`ChainLayout.stamp`), left of any avoid zone in the band, so it never covers the board;
+    labels need no "e.g." of their own.
   - **Source footnote:** a beat's `script[].source` is drawn as "Source: …" in the footnote
     style at the board frame's bottom-left (`source-footnote.ts`), fading in 0.3 s after the beat
     starts. The layout reserves its line for the whole chain when any beat in it has a source

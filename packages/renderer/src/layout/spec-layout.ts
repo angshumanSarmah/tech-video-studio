@@ -11,6 +11,7 @@ import {
 import { DEFAULT_REGISTRIES, type Registries } from '../catalog/registries.ts';
 import { beatHasHeadline } from '../hud/hud-state.ts';
 import { beatWorld } from '../scene/beat-world.ts';
+import { chainHasExampleStamp, exampleStampBand } from '../scene/example-stamp.ts';
 import { footnoteLine } from '../scene/source-footnote.ts';
 import type { Rect, Theme } from '../theme/index.ts';
 import { CAMERA_EASE_SEC, ZOOM_PUSH_SEC } from '../events/presets.ts';
@@ -39,6 +40,11 @@ export type ChainLayout = {
   board: BoardLayout;
   /** The beat source line's rect, reserved for the whole chain when any beat has a source. */
   footnote: Rect | null;
+  /**
+   * The EXAMPLE stamp's rect, in a band reserved at the top of the board frame when any beat of
+   * the chain has example numbers (drawn only on those beats).
+   */
+  stamp: Rect | null;
   /** The chain's camera keys in time order (read with `cameraAt`). */
   cameras: readonly CameraKey[];
 };
@@ -121,7 +127,7 @@ function chainLayout(spec: RenderableVideoSpec, chain: Chain, ctx: Ctx): Board {
   const items = beatWorld(spec, timing, lastBeat, LAYOUT_FPS, registries, undefined, 'chain');
   const mode = first ? beatLayoutMode(first, registries.patterns) : '';
   const focus = [...new Set(chain.scenes.flatMap((s) => s.focus))];
-  const { frame, footnote } = chainFrame(spec, beatIds, theme, areas);
+  const { frame, footnote, stamp } = chainFrame(spec, beatIds, theme, areas);
   const board = layout({ items, mode, focus }, theme, frame);
   const ignored = chain.scenes
     .slice(1)
@@ -132,26 +138,34 @@ function chainLayout(spec: RenderableVideoSpec, chain: Chain, ctx: Ctx): Board {
     beatIds,
     board: { ...board, warnings: [...board.warnings, ...ignored] },
     footnote,
+    stamp,
   };
 }
 
 /**
  * The chain's board frame: the format's board (smaller when any beat of the chain shows a
- * headline), less the footnote line when any beat has a source.
+ * headline), less the footnote line when any beat has a source, and less the EXAMPLE stamp's
+ * band at the top when any beat has example numbers.
  */
 function chainFrame(
   spec: RenderableVideoSpec,
   beatIds: readonly string[],
   theme: Theme,
   areas: FormatAreas,
-): { frame: LayoutFrame; footnote: Rect | null } {
+): { frame: LayoutFrame; footnote: Rect | null; stamp: Rect | null } {
   const headline = beatIds.some((id) => beatHasHeadline(spec, id));
-  const rect = headline ? areas.boardWithHeadline : areas.board;
+  let rect = headline ? areas.boardWithHeadline : areas.board;
   const sourced = spec.script.some((s) => beatIds.includes(s.beatId) && s.source !== undefined);
-  if (!sourced) return { frame: { rect, avoidZones: areas.avoidZones }, footnote: null };
-  const footnote = footnoteLine(theme, rect, areas.avoidZones);
-  const board = { ...rect, height: rect.height - footnote.height - theme.space.sm };
-  return { frame: { rect: board, avoidZones: areas.avoidZones }, footnote };
+  const footnote = sourced ? footnoteLine(theme, rect, areas.avoidZones) : null;
+  if (footnote) rect = { ...rect, height: rect.height - footnote.height - theme.space.sm };
+  let stamp: Rect | null = null;
+  if (chainHasExampleStamp(spec, beatIds)) {
+    const placed = exampleStampBand(theme, rect, areas.avoidZones);
+    const drop = placed.band.height + theme.space.sm;
+    rect = { ...rect, y: rect.y + drop, height: rect.height - drop };
+    stamp = placed.stamp;
+  }
+  return { frame: { rect, avoidZones: areas.avoidZones }, footnote, stamp };
 }
 
 /**

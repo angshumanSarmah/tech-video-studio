@@ -198,24 +198,6 @@ describe('label_term_too_early', () => {
   });
 });
 
-describe('example_label_unmarked', () => {
-  const example = (subtitle: string) =>
-    golden((s) => {
-      at(s.story.beats, 0).exampleNumbers = true;
-      props(s, 0, 1).subtitle = subtitle;
-    });
-
-  it('accepts an example number in a label that starts with "e.g."', () => {
-    expect(codes(example('e.g. 24 nodes'), false)).toEqual([]);
-  });
-
-  it('flags one without it', () => {
-    expect(codes(example('24 nodes'), false)).toEqual([
-      '$.scenes[0].elements[1].props.subtitle example_label_unmarked',
-    ]);
-  });
-});
-
 describe('layerWarnings', () => {
   it('flags the same pattern as the focus of two consecutive beats', () => {
     const spec = golden((s) => {

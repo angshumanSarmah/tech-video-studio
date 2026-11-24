@@ -15,6 +15,8 @@ import { textCss, type Rect, type Theme } from '../theme/index.ts';
 import type { WorldItem } from './beat-world.ts';
 import { renderedWorld } from './rendered-world.ts';
 import { overlayLevel, splitLayers } from './scene-layers.ts';
+import { ExampleStamp } from './ExampleStamp.tsx';
+import { beatShowsExampleStamp } from './example-stamp.ts';
 import { footnoteOpacity, footnoteText } from './source-footnote.ts';
 import { WorldItemView } from './WorldItemView.tsx';
 
@@ -48,7 +50,7 @@ export function BeatScene({ theme, spec, timing, beatId, beatFrom, transitions =
     [spec, timing, beatId, fps, theme],
   );
   if (!beat) return null;
-  const { board, footnote } = beat.chain;
+  const { board, footnote, stamp } = beat.chain;
   const overlays = overlayLevel(
     layers.overlays.map((item) => elementState(item.events, frame, fps).presence),
   );
@@ -58,7 +60,7 @@ export function BeatScene({ theme, spec, timing, beatId, beatFrom, transitions =
   return (
     <TransitionFrame
       theme={theme}
-      clip={union([clip, ...(footnote ? [footnote] : [])]) ?? clip}
+      clip={union([clip, ...(footnote ? [footnote] : []), ...(stamp ? [stamp] : [])]) ?? clip}
       view={activeView(transitions, frame)}
     >
       <Board
@@ -82,6 +84,13 @@ export function BeatScene({ theme, spec, timing, beatId, beatFrom, transitions =
           fps={fps}
         />
       ))}
+      {stamp && beatShowsExampleStamp(spec, beatId) ? (
+        <ExampleStamp
+          theme={theme}
+          rect={stamp}
+          opacity={footnoteOpacity(frame / fps, beatStartSec)}
+        />
+      ) : null}
       {footnote && footnoteLine ? (
         <SourceFootnote
           theme={theme}

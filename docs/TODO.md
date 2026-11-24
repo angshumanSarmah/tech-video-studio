@@ -24,9 +24,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       `script[].source`; use `newTerms` (gloss each the first time) and `runningExample`; write
       the recap on `recap_opening` beats and the next part's question on `cliffhanger_ending`
       beats.
-- [ ] **P1C.6 — Example numbers in script tags.** `example_label_unmarked` checks only the
-      Generator's labels (script items are placed as written). In an `exampleNumbers` beat the
-      Scriptwriter should start a tag with a number with "e.g." too; add it to its checks.
 - [ ] **P1C.5 — CTA room hint.** `story.ending.cta` has no length hint in its schema description;
       `hudTextWarnings` reports an over-long CTA with its room. Add a hint (like
       `CHAPTER_TITLE_MAX_CHARS`) if the Director keeps writing CTAs past three lines.

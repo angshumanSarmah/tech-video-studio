@@ -36,7 +36,8 @@
         "id": "bucket",
         "chapterId": "bucket",
         "intent": "Requests spend tokens; an empty bucket answers 429 until the refill",
-        "targetSec": 15
+        "targetSec": 15,
+        "exampleNumbers": true
       },
       {
         "id": "store",

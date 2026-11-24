@@ -11,7 +11,6 @@ import {
   type ResearchNotes,
   type SceneElement,
   type SpecError,
-  type StoryBeat,
 } from '@explainer-studio/shared';
 import { sceneChain } from '../scene/beat-world.ts';
 import { DEFAULT_REGISTRIES, type Registries } from './registries.ts';
@@ -24,8 +23,8 @@ import { paramLeaves, propLeaves, type Leaf } from './schema-leaves.ts';
  * written by the Generator and checked here: every number is a research value of this beat or of
  * an earlier beat on the same board (`screen_number_not_in_notes`; seconds compared with research
  * times converted by code), no label names a term a later beat introduces
- * (`label_term_too_early`), and in an `exampleNumbers` beat a label with a number starts with
- * "e.g." (`example_label_unmarked`). Pure.
+ * (`label_term_too_early`). An `exampleNumbers` beat needs no marking in its labels: code draws
+ * an EXAMPLE stamp on it (`scene/example-stamp.ts`). Pure.
  */
 
 type Path = (string | number)[];
@@ -45,9 +44,6 @@ export const SCRIPT_PRIMITIVES = {
 } as const;
 
 type ScriptPrimitive = keyof typeof SCRIPT_PRIMITIVES;
-
-/** The prefix that marks an example number in a label. */
-export const EXAMPLE_LABEL_PREFIX = 'e.g.';
 
 /** Everyday counts a board may show without a research number (a tally of 3, a count from 0). */
 const EVERYDAY_VALUES: ReadonlySet<string> = new Set(['0', '1', '2', '3']);
@@ -85,7 +81,6 @@ export function screenTextWarnings(
       ...scriptTextChecks(spec.script[i], scene, i),
       ...(notes ? numberChecks(spec, notes, i, written) : []),
       ...termChecks(spec, i, written),
-      ...exampleChecks(spec.story.beats[i], written),
     ];
   });
 }
@@ -376,23 +371,6 @@ function termChecks(
         'label_term_too_early',
         `"${leaf.value}" names "${early.term}", which beat ${early.beatId} introduces later. ` +
           'Use a plain word for it here.',
-      ),
-    ];
-  });
-}
-
-/** In an `exampleNumbers` beat, a label with a number reads as an example: "e.g. ...". */
-function exampleChecks(beat: StoryBeat | undefined, leaves: readonly WrittenLeaf[]): SpecError[] {
-  if (!beat?.exampleNumbers) return [];
-  return leaves.flatMap((leaf) => {
-    if (leaf.kind !== 'text' || countedKeys(leaf.value).length === 0) return [];
-    if (leaf.value.trim().toLowerCase().startsWith(EXAMPLE_LABEL_PREFIX)) return [];
-    return [
-      warning(
-        leaf.path,
-        'example_label_unmarked',
-        `This beat's numbers are an example: start the label with "${EXAMPLE_LABEL_PREFIX}" ` +
-          `("${EXAMPLE_LABEL_PREFIX} ${leaf.value.trim()}"), so it is not read as a fact.`,
       ),
     ];
   });
