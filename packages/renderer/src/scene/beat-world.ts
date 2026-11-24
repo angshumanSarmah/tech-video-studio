@@ -1,3 +1,5 @@
+import { paramLeaves, propLeaves } from '../catalog/schema-leaves.ts';
+import { scriptEdgeTexts, withScriptEdgeSpaces } from './edge-spaces.ts';
 import type {
   BeatScene,
   BeatTiming,
@@ -82,6 +84,8 @@ type Context = {
   footnote: string | undefined;
   fps: number;
   registries: Registries;
+  /** The beat's script texts with an edge space (`scriptEdgeTexts`), kept as ␣ on screen. */
+  edgeTexts: ReadonlySet<string>;
 };
 
 /**
@@ -121,11 +125,12 @@ export function beatWorld(
       footnote: footnotes === 'beat' ? sources.at(-1) : sharedSource(sources.slice(k)),
       fps,
       registries,
+      edgeTexts: scriptEdgeTexts(spec.script.find((b) => b.beatId === scene.beatId)),
     };
     const sinceSec = ctx.beat?.startSec ?? 0;
     beats.push({ focus: scene.focus, startSec: sinceSec });
     for (const element of scene.elements) {
-      const draft = elementDraft(element, [element.id], registries, ctx.footnote);
+      const draft = elementDraft(element, [element.id], registries, ctx.footnote, ctx.edgeTexts);
       drafts.set(element.id, { draft, sinceSec });
     }
     for (const pattern of scene.patterns) {
@@ -333,6 +338,8 @@ function containedIds(item: WorldItem): string[] {
     .map((ref) => ref.id);
 }
 
+const NO_EDGE_TEXTS: ReadonlySet<string> = new Set();
+
 /** The beat's scene, preceded by the scenes it continues (oldest first). */
 export function sceneChain(scenes: readonly BeatScene[], beatId: string): BeatScene[] {
   const index = scenes.findIndex((s) => s.beatId === beatId);
@@ -347,6 +354,7 @@ function elementDraft(
   targetIds: string[],
   registries: Registries,
   footnote?: string,
+  edgeTexts: ReadonlySet<string> = NO_EDGE_TEXTS,
 ): Draft {
   const definition = registries.primitives.get(element.primitive);
   if (!definition) {
@@ -357,7 +365,12 @@ function elementDraft(
       detail: `${element.primitive} · ${element.id}`,
     };
   }
-  const props = definition.propsSchema.safeParse(element.props);
+  const raw = withScriptEdgeSpaces(
+    element.props,
+    edgeTexts.size > 0 ? propLeaves(definition, element.props) : [],
+    edgeTexts,
+  );
+  const props = definition.propsSchema.safeParse(raw);
   if (!props.success) {
     return {
       kind: 'error',
@@ -390,7 +403,11 @@ function patternDrafts(
   ctx: Context,
 ): { drafts: Draft[]; events: AnchoredEvent[] } {
   const definition = ctx.registries.patterns.get(pattern.pattern);
-  const params = definition?.paramsSchema.safeParse(pattern.params);
+  const raw =
+    definition && ctx.edgeTexts.size > 0
+      ? withScriptEdgeSpaces(pattern.params, paramLeaves(definition, pattern.params), ctx.edgeTexts)
+      : pattern.params;
+  const params = definition?.paramsSchema.safeParse(raw);
   if (!definition || !params?.success) {
     const title = definition ? 'Invalid params' : 'Unknown pattern';
     return {

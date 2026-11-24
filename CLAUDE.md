@@ -1132,9 +1132,11 @@ message }` for the Curator): `too_many_elements` (mode `maxUnits`), `text_too_sm
   action it supports (a test enforces it; `exit`, `recover` and `release` once per board), and a sheet in `docs/primitives/`
   (`still:primitives <id>`; sheets shrink their panels to fit up to 10 events).
 - **Shared pieces:** `common-props.ts` (semantic, asset id, one-line text, part list and element
-  ref schemas; screen text (`lineText`, `screenString`) shows each leading or trailing space as
-  "␣" (`showEdgeSpaces`, U+2423, a required glyph) instead of dropping it, so " Paris" and
-  "Paris" stay distinct), `surface.ts` (card surface), `badge.tsx` (corner badge; `SMALL_BADGE` on small
+  ref schemas; screen text (`lineText`, `screenString`) is trimmed, except that `beatWorld`
+  first shows a leading or trailing space as "␣" (`showEdgeSpaces`, U+2423, a required glyph)
+  when the beat's script has that exact text with the space, in a tag or a narration quote
+  (`scene/edge-spaces.ts`: `scriptEdgeTexts`, `withScriptEdgeSpaces`), so the tokenizer's
+  " Paris" stays distinct from "Paris" while an accidental "Shared store " is trimmed), `surface.ts` (card surface), `badge.tsx` (corner badge; `SMALL_BADGE` on small
   cards), `motion.ts` (reject shake), `typing.ts` (typing rates), `geometry.ts` (polylines,
   arrowheads, `smoothstep`, `catmullRom`), `overlay.ts` (`riseView`, `zoomView`, `growView`
   entrances), `reveal.ts` (lines that draw on `enter` instead of fading in) and

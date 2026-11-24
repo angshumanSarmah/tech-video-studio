@@ -49,10 +49,10 @@ export function notScreenText<T extends z.ZodType>(schema: T): T {
 export const VISIBLE_SPACE = '\u2423';
 
 /**
- * Screen text with its edge spaces made visible: each leading or trailing space becomes
- * `VISIBLE_SPACE` (" Paris" -> "␣Paris"), since HTML would drop it and a tokenizer board means
- * it. Other edge whitespace is trimmed; text that is only whitespace becomes "" (so `min(1)`
- * rejects it).
+ * Text with its edge spaces made visible: each leading or trailing space becomes `VISIBLE_SPACE`
+ * (" Paris" -> "␣Paris"); other edge whitespace is trimmed, and text that is only whitespace
+ * becomes "". Applied only where the beat's script has the same text with that space
+ * (`scene/edge-spaces.ts`); screen text is otherwise trimmed.
  */
 export function showEdgeSpaces(text: string): string {
   const match = /^(\s*)([\s\S]*?)(\s*)$/.exec(text);
@@ -62,12 +62,12 @@ export function showEdgeSpaces(text: string): string {
   return `${spaces(lead)}${core}${spaces(trail)}`;
 }
 
-/** A string drawn on screen: edge spaces made visible (`showEdgeSpaces`). */
+/** A string drawn on screen: trimmed (edge spaces the script means come in as ␣ beforehand). */
 export function screenString() {
-  return z.string().overwrite(showEdgeSpaces);
+  return z.string().trim();
 }
 
-/** A short single line of text: edge spaces made visible, non-empty, no line breaks. */
+/** A short single line of text: trimmed, non-empty, no line breaks. */
 export function lineText(max: number, description: string) {
   return screenString()
     .min(1)
