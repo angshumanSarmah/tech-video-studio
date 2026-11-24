@@ -112,7 +112,30 @@ describe('generatorCheck: seeded faults, with paths into the answer', () => {
     const scenes = [undefined, undefined, sceneFor(2, storeBoard())];
     const found = issues(3, crowdedCountBoard(), scenes);
     expect(paths(found)).toEqual(['$.scenes[2] text_too_small']);
-    expect(found[0]?.message).toMatch(/^Caused in an earlier beat of this board by this answer: /);
+  });
+
+  it('a board made too small by a continuing beat says what that beat can change', () => {
+    const scenes = [undefined, undefined, sceneFor(2, storeBoard())];
+    const [found] = issues(3, crowdedCountBoard(), scenes);
+    expect(found?.message).toMatch(/^Your additions shrink this board below readable: The board/);
+    expect(found?.message).toMatch(/fits at \d+% \(labels [\d.]+px; readable needs 75%\)/);
+    expect(found?.message).toContain('exiting an element frees no room');
+    expect(found?.message).toContain('Never drop or reword a script item.');
+    expect(found?.message).not.toContain('Use fewer or smaller elements');
+  });
+
+  it('keeps the plain "caused in an earlier beat" message for other issues', () => {
+    const board = countBoard();
+    board.elements.push(
+      { id: 'link', primitive: 'connector', props: { from: 'own', to: 'shared' } },
+      { id: 'note', primitive: 'tag', props: { text: 'Note', pin: { to: 'link', side: 'top' } } },
+    );
+    board.events.push({ at: word(30), action: 'enter', targets: ['link', 'note'] });
+    const scenes = [undefined, undefined, sceneFor(2, storeBoard())];
+    const found = issues(3, board, scenes).filter((i) => i.code === 'pin_unresolved');
+    expect(found[0]?.message).toMatch(
+      /^Caused in an earlier beat of this board by this answer: "note" is pinned to a side/,
+    );
   });
 
   it('an inherited element declared again (chain duplicate_id)', () => {

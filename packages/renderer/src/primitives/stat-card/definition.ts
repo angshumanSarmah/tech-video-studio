@@ -3,7 +3,8 @@ import { cardOutline } from '../surface.ts';
 import { z } from 'zod';
 import type { Theme } from '../../theme/index.ts';
 import { lineText, semanticProp } from '../common-props.ts';
-import { approxTextWidth, lineHeightPx } from '../measure.ts';
+import { textWidth } from '../../fonts/measure-text.ts';
+import { lineHeightPx } from '../measure.ts';
 import { definePrimitive, type SizeHints } from '../types.ts';
 
 export const StatCardPropsSchema = z.strictObject({
@@ -16,14 +17,17 @@ export type StatCardProps = z.output<typeof StatCardPropsSchema>;
 
 export const SOURCE_PREFIX = 'Source: ';
 
+/**
+ * Sized from the real glyph advances (`textWidth`), not the average advance: the figure is drawn
+ * at the metric size, where the average overstates mixed text by a third or more ("about 1.3":
+ * 597 px estimated, 411 px drawn), which made the card far wider than what it shows.
+ */
 export function statCardSizeHints(props: StatCardProps, theme: Theme): SizeHints {
   const { space, stroke } = theme;
-  const source = props.source
-    ? [approxTextWidth(theme, 'footnote', SOURCE_PREFIX + props.source)]
-    : [];
+  const source = props.source ? [textWidth(theme, 'footnote', SOURCE_PREFIX + props.source)] : [];
   const text = Math.max(
-    approxTextWidth(theme, 'metric', props.value),
-    approxTextWidth(theme, 'label', props.label),
+    textWidth(theme, 'metric', props.value),
+    textWidth(theme, 'label', props.label),
     ...source,
   );
   const width = text + 2 * (space.lg + stroke.regular);

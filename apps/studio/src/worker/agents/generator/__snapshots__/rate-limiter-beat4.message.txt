@@ -151,6 +151,7 @@ The narration lasts 13.85 s.
 - agree (tag) "All nodes agree": present; actions: enter, exit, highlight, dim, pulse, reject, recover
 focus: shared
 units on screen: 2 of at most 8
+space left: the board is drawn at 81% of full size and text stays readable down to 75%, so room is little: add few, small elements. Everything here keeps its place and size; each element you add shrinks the whole board, and exiting one frees no room.
 
 ## PREVIOUS BEAT
 {

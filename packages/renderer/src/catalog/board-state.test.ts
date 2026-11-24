@@ -43,6 +43,13 @@ describe('boardState', () => {
     expect(boardState(goldenRateLimiterSpec, 'fleet-fix').focus).toEqual(['shared', 'total']);
   });
 
+  it("gives the chain's board scale so far and the readable floor", () => {
+    const state = boardState(goldenRateLimiterSpec, 'fleet');
+    expect(state.scale).toBeGreaterThan(0);
+    expect(state.scale).toBeLessThanOrEqual(1);
+    expect(state.readableScale).toBe(0.75);
+  });
+
   it('counts the units on screen', () => {
     expect(boardState(goldenRateLimiterSpec, 'hook').units).toBe(2);
     expect(boardState(goldenRateLimiterSpec, 'fleet-fix').units).toBe(4);

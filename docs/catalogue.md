@@ -901,7 +901,7 @@ A card with one big figure, a label under it, and a small source footnote. The f
 | `source` | string | yes | Where the figure comes from, shown as a footnote. Required. (min length 1, max length 60) |
 | `semantic` | `neutral` \| `focus` \| `ok` \| `problem` \| `concept` | no | Colour of the value: neutral, focus, ok, problem or concept. (default `"focus"`) |
 
-**Size hint** (example, drafting-paper): 815 × 245 px (min 815 × 245).
+**Size hint** (example, drafting-paper): 661.096 × 245 px (min 661.096 × 245).
 
 **Example:**
 

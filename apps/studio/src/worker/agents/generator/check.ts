@@ -128,6 +128,27 @@ function sceneIndexOf(path: string): number | undefined {
   return match ? Number(match[1]) : undefined;
 }
 
+/** The advice a layout warning gives (`text_too_small`), which a continuing beat cannot follow. */
+const FEWER_ELEMENTS = 'Use fewer or smaller elements.';
+
+/**
+ * An issue this answer causes in an earlier beat of its board. A board that gets too small to
+ * read says what this beat can change: only what it adds, since everything already on screen
+ * keeps its place and size (one layout per board) and an exit frees no room.
+ */
+function earlierBeatMessage(issue: SpecError): string {
+  const prefix = 'Caused in an earlier beat of this board by this answer: ';
+  if (issue.code !== 'text_too_small') return `${prefix}${issue.message}`;
+  const measured = issue.message.replace(FEWER_ELEMENTS, '').replace(/\s+\(/, ' (').trim();
+  return (
+    `Your additions shrink this board below readable: ${measured}. Everything already ON ` +
+    'SCREEN keeps its place and size, and exiting an element frees no room, so change only what ' +
+    'this beat adds: add the script items and only what the narration shows happening, pin each ' +
+    'script tag to an element already on screen instead of placing it on its own, and keep text ' +
+    'you write short. Never drop or reword a script item.'
+  );
+}
+
 const issueKey = (issue: SpecError) => `${issue.path} ${issue.code}`;
 
 /**
@@ -140,9 +161,7 @@ function toOutputIssue(issue: SpecError, own: string): OutputIssue {
   return {
     path: mine ? `$${issue.path.slice(own.length)}` : issue.path,
     code: issue.code,
-    message: mine
-      ? issue.message
-      : `Caused in an earlier beat of this board by this answer: ${issue.message}`,
+    message: mine ? issue.message : earlierBeatMessage(issue),
     ...(issue.code === 'unknown_asset' ? { soft: true } : {}),
   };
 }

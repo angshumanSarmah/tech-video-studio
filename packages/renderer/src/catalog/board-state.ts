@@ -8,6 +8,8 @@ import {
 } from '@explainer-studio/shared';
 import { analyse } from '../layout/analyse.ts';
 import { beatLayoutMode, LAYOUT_MODES } from '../layout/modes.ts';
+import { minReadableScale } from '../layout/readable.ts';
+import { specLayout } from '../layout/spec-layout.ts';
 import { INNER_TARGET_ACTIONS } from '../patterns/types.ts';
 import { elementState, type PartState } from '../primitives/element-state.ts';
 import { beatWorld, sceneChain, type WorldItem } from '../scene/beat-world.ts';
@@ -69,6 +71,13 @@ export type BoardState = {
   /** Ids the board focuses at that moment. */
   focus: string[];
   entries: BoardEntry[];
+  /**
+   * The board scale its chain is laid out at so far (1 = preferred size), and the lowest scale
+   * at which its labels stay readable (`text_too_small` below it): the room a continuing beat
+   * has for new elements, since every element of a chain keeps its place.
+   */
+  scale: number;
+  readableScale: number;
 };
 
 const FPS = 30;
@@ -108,6 +117,8 @@ export function boardState(
     units: mode ? unitsOnScreen(world, sec, mode, focus, theme) : 0,
     focus,
     entries,
+    scale: specLayout(spec, theme, registries).beats.get(beatId)?.chain.board.scale ?? 1,
+    readableScale: minReadableScale(theme),
   };
 }
 

@@ -234,6 +234,7 @@ function continuing(
     ...state.entries.map(entryLine),
     `focus: ${state.focus.length > 0 ? state.focus.join(', ') : 'none'}`,
     `units on screen: ${state.units}${capacity}`,
+    scaleLine(state.scale, state.readableScale),
   ];
   return [
     section(
@@ -242,6 +243,28 @@ function continuing(
     ),
     section('PREVIOUS BEAT', json({ id: previous.id, narration })),
   ];
+}
+
+/**
+ * The board's scale headroom: every element of a board keeps its place, so each one this beat
+ * adds shrinks the whole board, and exiting one frees no room.
+ */
+export function scaleLine(scale: number, readable: number): string {
+  const pct = (v: number) => Math.round(v * 100);
+  const room = pct(scale) - pct(readable);
+  const verdict =
+    room <= 0
+      ? 'none: add nothing beyond the script items'
+      : room < 5
+        ? 'almost none: add only the script items, each pinned to an element already here'
+        : room < 15
+          ? 'little: add few, small elements'
+          : 'some';
+  return (
+    `space left: the board is drawn at ${pct(scale)}% of full size and text stays readable down to ` +
+    `${pct(readable)}%, so room is ${verdict}. Everything here keeps its place and size; each ` +
+    'element you add shrinks the whole board, and exiting one frees no room.'
+  );
 }
 
 function entryLine(entry: BoardEntry): string {

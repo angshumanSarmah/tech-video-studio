@@ -9,7 +9,7 @@ import {
 import { describe, expect, it } from 'vitest';
 import type { FixtureTopicId } from '../fixture-topics.ts';
 import { generatorCheck } from './check.ts';
-import { generatorUserMessage } from './input.ts';
+import { generatorUserMessage, scaleLine } from './input.ts';
 import {
   fixtureScriptedSpec,
   recordedNotes,
@@ -67,6 +67,16 @@ describe('the boards these messages build on are clean', () => {
   });
 });
 
+describe('scaleLine', () => {
+  it('names the room left above the readable scale, in four steps', () => {
+    expect(scaleLine(0.74, 0.75)).toContain('room is none:');
+    expect(scaleLine(0.78, 0.75)).toContain('room is almost none:');
+    expect(scaleLine(0.85, 0.75)).toContain('room is little:');
+    expect(scaleLine(1, 0.75)).toContain('room is some.');
+    expect(scaleLine(1, 0.75)).toContain('exiting one frees no room');
+  });
+});
+
 describe('generatorUserMessage', () => {
   it('numbers every narration word as an anchor counts it, with its start in seconds', () => {
     const text = message('rate-limiter', 0);
@@ -94,6 +104,9 @@ describe('generatorUserMessage', () => {
     expect(onScreen).toContain('- one (tag) "One bucket": present;');
     expect(onScreen).toContain('focus: shared');
     expect(onScreen).toMatch(/units on screen: \d+ of at most \d+/);
+    expect(onScreen).toMatch(
+      /space left: the board is drawn at \d+% of full size and text stays readable down to 75%/,
+    );
     expect(sectionOf(text, 'PREVIOUS BEAT')).toContain('Why not give each gateway node');
     const board = JSON.parse(sectionOf(text, 'BOARD') ?? '{}') as { layoutMode: { id: string } };
     expect(board.layoutMode.id).toBe('versus_split');
