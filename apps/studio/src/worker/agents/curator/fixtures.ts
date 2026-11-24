@@ -60,7 +60,8 @@ export const TOPIC_EXPECTATIONS: Readonly<Record<FixtureTopicId, TopicExpectatio
         why: 'beat2\'s counter is labelled "capacity" but goes 100 -> 99: the capacity stays 100, 99 is the tokens left',
         match: {
           beatId: 'beat2',
-          categories: ['number_wrong_meaning', 'visual_contradicts'],
+          // The claims pass files "capacity: 99" as unsupported (no fact says capacity is 99).
+          categories: ['number_wrong_meaning', 'visual_contradicts', 'unsupported_claim'],
           evidence: { elementId: 'bucket' },
         },
       },
@@ -336,9 +337,11 @@ export const CURATOR_SEEDS: readonly CuratorSeed[] = [
     id: 'term-before-shown',
     topic: 'rate-limiter',
     category: 'term_before_shown',
-    what: 'beat3 names the shared store first; the board shows it only on its last word',
+    what: 'beat3 names the shared store first; the board shows it only on its last word (no headline defines it)',
     apply: (spec) => {
       editNarration(spec, 'beat3', 'So why not', 'A shared store fixes this. So why not');
+      // The concept headline would show the term from the start; this one no longer defines it.
+      scriptOf(spec, 'beat3').headline = { text: 'One bucket for every node', semantic: 'concept' };
       const scene = sceneOf(spec, 'beat3');
       const last = narrationWords(scriptOf(spec, 'beat3').narration).length - 1;
       for (const event of scene.events) {

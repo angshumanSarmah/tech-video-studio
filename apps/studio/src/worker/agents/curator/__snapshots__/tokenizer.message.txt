@@ -440,7 +440,7 @@ added in this beat:
 - token-def · callout · title "TOKEN" · text "A chunk that becomes one number" · semantic concept · enter on 15 "token"
 focus: tag-plain from the start → tag-plain on 8 "Plain" → tag-spaced on 10 "spaced" → tag-shouted on 12 "shouted" → token-def on 15 "token"
 code findings:
-- term_shown_late (blocking, generator): "token" is spoken on word 6 ("token"), but "token-def", which shows it, enters only on word 15 ("token"). Bring it in on the word that names the term, so the viewer sees what the word means as they hear it.
+none
 
 ## BEAT b2 (2 of 7) · chapter "Rejected designs" · device versus_split
 intent: Reject whole-word and single-character schemes, then introduce subword pieces that give frequent words one token and rare words smaller pieces.
@@ -463,7 +463,7 @@ added in this beat:
 - subword-tag · tag · text "subword pieces" · semantic focus · enter on 30 "subword"
 focus: subword-tag on 32 "sit"
 code findings:
-- term_shown_late (blocking, generator): "vocabulary" is spoken on word 9 ("vocabulary"), but "chars-cost", which shows it, enters only on word 15 ("tiny,"). Bring it in on the word that names the term, so the viewer sees what the word means as they hear it.
+none
 
 ## BEAT b3 (3 of 7) · chapter "Learning merges" · device semantic_zoom
 intent: Show the raw-byte starting point of 256 symbols and one merge, "t"+"h" to "th", so the vocabulary grows by one learned pair.
@@ -536,7 +536,6 @@ added in this beat:
 focus: plain from the start → spaced on 15 "sticks" → caps on 21 "break" → plain on 26 "Paris" → caps on 31 "PARIS"
 code findings:
 - focus_colour_off_focus (advisory, generator): "t-caps" is drawn in the focus colour but is never the focus in this beat (its focus is plain, spaced, caps), so it competes with what the viewer should watch. Give it another semantic (concept, neutral), or move the focus to it with a `focus` event on the word that names it.
-- term_shown_late (blocking, scriptwriter): "pre-tokenization" is introduced here (word 4 ("pre-tokenization")), but nothing on the board names it. Give the beat a tag with the term, so the board shows what the narration names.
 
 ## BEAT b6 (6 of 7) · chapter "Where counts bite" · device what_breaks
 intent: Show Corrowby's exact-tokenizer switch: English replies average 1.3 tokens per word, a rarer language needs about 3 times as many, and word-count estimates fail.
@@ -586,7 +585,12 @@ code findings:
 none
 
 ## PASS claims
-List every narration sentence of every beat, in order and copied exactly (source "narration"), and every board element a beat adds that NUMBERS shows with a research number (source "label", its elementId, one of its texts or values). Give each a verdict: supported, with the fact and number ids that state it (check who does what to whom); no_claim, when it states no fact or number (a question, a link); or issue, with the issue under issues quoting it. Report only unsupported_claim and number_wrong_meaning here. Code checks that every sentence and every such element is listed.
+List every narration sentence of every beat, in order and copied exactly (source "narration"), and every value under DRAWN VALUES, one entry each (source "value", its elementId, the value as drawn, and the label it is read with: "capacity: 99" is checked as a capacity). Give each a verdict: supported, with the fact and number ids that state it and, in restates, who does what in the claim next to who does what in the fact ("Corrowby bills" against "Corrowby is billed": a reversal is an issue); no_claim, when it states no fact or number (a question, a link); or issue, with the issue under issues quoting it. Report only unsupported_claim and number_wrong_meaning here. Code checks that every sentence and every drawn value is listed.
+
+## DRAWN VALUES (one entry each in claims, source "value")
+- b3 byte-vocab value "256" · read with: unit "values", label "starting vocabulary"
+- b6 stat-1-3 value "1.3" · read with: value "about 1.3", label "tokens per word", source "Field notes: counting tokens"
+- b6 rare-card subtitle "3" · read with: title "SAME REPLY", subtitle "about 3× the tokens"
 
 ## OUTPUT SHAPE (JSON Schema: return one JSON object that matches it)
 {
@@ -607,11 +611,12 @@ List every narration sentence of every beat, in order and copied exactly (source
             "type": "string",
             "enum": [
               "narration",
-              "label"
-            ]
+              "value"
+            ],
+            "description": "narration: one sentence; value: one value drawn on the board."
           },
           "elementId": {
-            "description": "For a label: the board element (its id in BOARD).",
+            "description": "For a value: the board element that draws it (its id in BOARD).",
             "type": "string",
             "minLength": 1
           },
@@ -619,7 +624,13 @@ List every narration sentence of every beat, in order and copied exactly (source
             "type": "string",
             "minLength": 1,
             "maxLength": 200,
-            "description": "The whole sentence, or the label text or value, copied exactly."
+            "description": "The whole sentence, or the value exactly as drawn (\"99\")."
+          },
+          "label": {
+            "description": "For a value: the label it is read with, copied from the element (\"capacity\").",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
           },
           "verdict": {
             "type": "string",
@@ -639,6 +650,29 @@ List every narration sentence of every beat, in order and copied exactly (source
               "maxLength": 40
             },
             "description": "The \"fact-<n>\" and \"num-<n>\" ids that state it; empty unless supported."
+          },
+          "restates": {
+            "description": "For a supported claim: its subject and verb next to the fact's.",
+            "type": "object",
+            "properties": {
+              "claim": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "Who does what in the claim (\"Corrowby bills\")."
+              },
+              "fact": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "Who does what in the supporting fact (\"Corrowby is billed\")."
+              }
+            },
+            "required": [
+              "claim",
+              "fact"
+            ],
+            "additionalProperties": false
           }
         },
         "required": [
@@ -650,7 +684,7 @@ List every narration sentence of every beat, in order and copied exactly (source
         ],
         "additionalProperties": false
       },
-      "description": "Every narration sentence of every beat, and every board label that shows a number, in order."
+      "description": "Every narration sentence of every beat, and every value drawn on a board (one entry each), in order."
     },
     "issues": {
       "maxItems": 40,

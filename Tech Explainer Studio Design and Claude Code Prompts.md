@@ -950,8 +950,10 @@ NUMBERS lists every number said or shown in a beat with the research numbers tha
 a shared value does not mean a shared meaning.
 
 The review runs in two passes; the user message says which one this is.
-- PASS claims: go through every narration sentence and every board label that states a fact or a
-  number, in order, and give each the fact or number ids that support it. A sentence no fact
+- PASS claims: go through every narration sentence and every board value that states a fact or a
+  number, in order: one entry per drawn value with its label (a counter's start and end are two
+  entries, "capacity: 99" is checked as capacity). For each, restate the supporting fact's
+  subject and verb next to the claim's, and give the fact or number ids. A sentence no fact
   supports, or one that reverses its fact (who does what to whom), is an unsupported_claim; a
   number whose value matches but whose meaning doesn't is number_wrong_meaning. Code checks that
   every sentence is listed.
@@ -967,7 +969,8 @@ ISSUE CATEGORIES (exhaustive: use only these ids)
 - above_level: a word or idea the {{explanationLevel}} viewer won't know, used without a plain gloss.
 - hook_retold: a later beat retells the hook's moment instead of calling back to it in a phrase.
 - small_stat_card: a stat card for a small count that belongs in the narration.
-- missing_trade_off: a trade-off or failure mode in the notes that this video's story needs and skips.
+- missing_trade_off: a trade-off or failure mode in the notes that this video's story needs and
+  skips (owner: director).
 OWNERS (exhaustive): scriptwriter (narration, headline, tags, stat cards, source line),
 generator (the board), director (the plan: beats, devices, example numbers).
 
@@ -1181,7 +1184,8 @@ Implement the Curator in two parts.
    continuesPrevious: true to keep the same layout and world (persistent scenes are encouraged); the
    change check still applies to it. Also: narration length measured after TTS (per beat and per
    video), the size of on-screen text after each beat's camera, hook numbers said again in a later
-   beat, a new term spoken before the element that shows it enters, and a sourced number on screen without a source line. Every code maps to an owner and a
+   beat, a new term spoken before the element that shows it enters
+   (a concept headline "X = plain meaning" counts as showing it), and a sourced number on screen without a source line. Every code maps to an owner and a
    severity in one policy table.
 2. LLM review (curator role), two calls per video: a claim audit that must list every narration
    sentence and every factual board label with its supporting ids (code checks coverage), then a

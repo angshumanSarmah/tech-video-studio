@@ -107,7 +107,7 @@ describe('curatorUserMessage', () => {
 describe('reviewBeatTexts', () => {
   it('lets a quote of anything the message shows verify', () => {
     const spec = fixtureGeneratedSpec('rate-limiter');
-    const beats = reviewBeatTexts(spec, recordedNotes('rate-limiter'));
+    const beats = reviewBeatTexts(spec);
     const review = {
       issues: [
         {
@@ -147,15 +147,28 @@ describe('reviewBeatTexts', () => {
   });
 });
 
-describe('reviewBeatTexts: the numeric labels PASS claims must list', () => {
-  it('lists each element a beat adds that shows a research number', () => {
-    const beats = reviewBeatTexts(
-      fixtureGeneratedSpec('rate-limiter'),
-      recordedNotes('rate-limiter'),
+describe('reviewBeatTexts: the drawn values PASS claims must list', () => {
+  it("lists each value a beat adds, a counter's start and end apart", () => {
+    const beats = reviewBeatTexts(fixtureGeneratedSpec('rate-limiter'));
+    const values = Object.fromEntries(
+      beats.map((b) => [
+        b.beatId,
+        (b.drawnValues ?? []).map((v) => `${v.elementId} ${v.key} ${v.value}`),
+      ]),
     );
-    const labels = Object.fromEntries(beats.map((b) => [b.beatId, b.numberLabels]));
-    expect(labels.beat2).toEqual(['bucket', 'refill']);
-    expect(labels.beat5).toEqual(['latency']);
-    expect(labels.beat7).toEqual([]);
+    expect(values.beat2).toEqual(['bucket from 100', 'bucket to 99', 'refill value 10']);
+    expect(values.beat3).toEqual(['gw_nodes title 24', 'limit_24 value 24']);
+    expect(values.beat4).toEqual(['node_a subtitle 24', 'node_b subtitle 24']);
+    expect(values.beat5).toEqual(['latency from 0.4', 'latency to 2.1']);
+    // Instance numbers count too ("CHECKOUT 1"); the review marks them no_claim.
+    expect(values.beat7).toEqual(['inst_a title 1', 'inst_b title 2']);
+    // Source lines (and their dates) are attribution, not values.
+    expect(values.beat1).toEqual(['fail-stat value 31']);
+  });
+
+  it('lists them in PASS claims with what each is read with, and not in PASS story', () => {
+    const claims = message('rate-limiter');
+    expect(claims).toContain('- beat2 bucket to "99" · read with: unit "tokens", label "capacity"');
+    expect(message('rate-limiter', undefined, 'story')).not.toContain('## DRAWN VALUES');
   });
 });

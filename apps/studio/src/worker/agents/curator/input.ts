@@ -26,6 +26,7 @@ import {
   type PreviousIssue,
   type RenderableVideoSpec,
   type ResearchNotes,
+  type DrawnValue,
   type ReviewBeatTexts,
   type StoryBeat,
 } from '@explainer-studio/shared';
@@ -82,18 +83,16 @@ export function curatorUserMessage(input: CuratorMessageInput): string {
       beatSection(input, beat, i, boards.get(beat.id), findings.get(beat.id) ?? [], changed),
     ),
     ...(input.round ? roundSections(input.round) : []),
-    ...passSections(input.pass),
+    ...passSections(input.pass, spec, boards),
   ].join('\n\n');
 }
 
 /** Each beat's texts as the message shows them: what an evidence quote must come from. */
 export function reviewBeatTexts(
   spec: RenderableVideoSpec,
-  notes: ResearchNotes,
   options: { registries?: Registries; theme?: Theme } = {},
 ): ReviewBeatTexts[] {
   const boards = describeBoards({ spec, ...options });
-  const research = numberIndex(notes).idsByKey;
   return spec.story.beats.map((beat) => {
     const script = scriptOf(spec, beat.id);
     const board = boards.get(beat.id);
@@ -105,21 +104,46 @@ export function reviewBeatTexts(
       stat_card: (script?.statCards ?? []).flatMap((c) => [c.value, c.label]),
       source: script?.source ? [script.source] : [],
       labels: Object.fromEntries(board ? labelEntries(board) : []),
-      numberLabels: numberLabels(board, research),
+      drawnValues: drawnValues(board),
     };
   });
 }
 
-/** Elements the beat adds whose texts or values state a research number (PASS claims lists each). */
-function numberLabels(
-  board: BoardDescription | undefined,
-  research: ReadonlyMap<string, readonly string[]>,
-): string[] {
-  const shown = boardNumbers(board).filter((s) =>
-    s.keys.some((k) => !EVERYDAY_KEYS.has(k) && research.has(k)),
-  );
-  return [...new Set(shown.flatMap((s) => (s.id ? [s.id] : [])))];
+/**
+ * Every numeric value the elements a beat adds draw: each drawn number (a counter's start and
+ * end are two) and each number inside a text ("one of 24 nodes", "about 3× the tokens"). Zero
+ * (a counter's start) and source lines (attribution, with their dates) are left out. PASS claims
+ * gives each its own entry.
+ */
+export function drawnValues(board: BoardDescription | undefined): DrawnValue[] {
+  const seen = new Set<string>();
+  return (board?.items ?? [])
+    .filter((item) => item.added)
+    .flatMap((item) =>
+      [
+        ...item.numbers.map((n) => ({
+          key: n.key,
+          value: String(n.value),
+          valueKey: numberKey(n.value),
+        })),
+        ...item.texts
+          .filter((t) => !isSourceLine(t.key))
+          .flatMap((t) =>
+            numberMentions(t.value)
+              .filter((m) => !m.everyday)
+              .map((m) => ({ key: t.key, value: m.text, valueKey: numberKey(m.value) })),
+          ),
+      ].flatMap((v) => {
+        const id = `${item.id} ${v.key} ${v.valueKey}`;
+        if (v.valueKey === '0' || seen.has(id)) return [];
+        seen.add(id);
+        return [{ elementId: item.id, ...v }];
+      }),
+    );
 }
+
+/** A prop that holds a source line (`source`, `fields[0].source`). */
+const isSourceLine = (key: string) => key === 'source' || key.endsWith('.source');
 
 // --- Shared pieces -------------------------------------------------------------------------------
 
@@ -517,17 +541,20 @@ function evidenceText(e: Evidence): string {
 const PASS_TASKS: Readonly<Record<ReviewPass, string>> = {
   claims:
     'List every narration sentence of every beat, in order and copied exactly (source ' +
-    '"narration"), and every board element a beat adds that NUMBERS shows with a research ' +
-    'number (source "label", its elementId, one of its texts or values). Give each a verdict: ' +
-    'supported, with the fact and number ids that state it (check who does what to whom); ' +
-    'no_claim, when it states no fact or number (a question, a link); or issue, with the issue ' +
-    'under issues quoting it. Report only unsupported_claim and number_wrong_meaning here. Code ' +
-    'checks that every sentence and every such element is listed.',
+    '"narration"), and every value under DRAWN VALUES, one entry each (source "value", its ' +
+    'elementId, the value as drawn, and the label it is read with: "capacity: 99" is checked ' +
+    'as a capacity). Give each a verdict: supported, with the fact and number ids that state ' +
+    'it and, in restates, who does what in the claim next to who does what in the fact ' +
+    '("Corrowby bills" against "Corrowby is billed": a reversal is an issue); no_claim, when ' +
+    'it states no fact or number (a question, a link); or issue, with the issue under issues ' +
+    'quoting it. Report only unsupported_claim and number_wrong_meaning here. Code checks that ' +
+    'every sentence and every drawn value is listed.',
   story:
     'Report every other category across the whole video: wrong_simplification, ' +
     'visual_contradicts, visual_distracts, term_before_shown, above_level, hook_retold, ' +
-    'small_stat_card and missing_trade_off. Do not report unsupported_claim or ' +
-    'number_wrong_meaning: the claims pass covers them.',
+    'small_stat_card and missing_trade_off (owner director, fields plan: a missing trade-off ' +
+    'needs a beat the plan gives it). Do not report unsupported_claim or number_wrong_meaning: ' +
+    'the claims pass covers them.',
 };
 
 const PASS_SCHEMAS: Readonly<Record<ReviewPass, z.ZodType>> = {
@@ -535,7 +562,39 @@ const PASS_SCHEMAS: Readonly<Record<ReviewPass, z.ZodType>> = {
   story: StoryPassSchema,
 };
 
-/** The pass's task and its output shape: the only part that differs between the two calls. */
-function passSections(pass: ReviewPass): string[] {
-  return [section(`PASS ${pass}`, PASS_TASKS[pass]), outputSchemaSection(PASS_SCHEMAS[pass])];
+/**
+ * The pass's task (with, for PASS claims, the drawn values to audit) and its output shape: the
+ * only part that differs between the two calls.
+ */
+function passSections(
+  pass: ReviewPass,
+  spec: RenderableVideoSpec,
+  boards: ReadonlyMap<string, BoardDescription>,
+): string[] {
+  const values = pass === 'claims' ? [drawnValuesSection(spec, boards)] : [];
+  return [
+    section(`PASS ${pass}`, PASS_TASKS[pass]),
+    ...values,
+    outputSchemaSection(PASS_SCHEMAS[pass]),
+  ];
+}
+
+/** Each drawn value, with the texts of the element that draws it (what it is read with). */
+function drawnValuesSection(
+  spec: RenderableVideoSpec,
+  boards: ReadonlyMap<string, BoardDescription>,
+): string {
+  const lines = spec.story.beats.flatMap((beat) => {
+    const board = boards.get(beat.id);
+    const items = new Map((board?.items ?? []).map((i) => [i.id, i]));
+    return drawnValues(board).map((v) => {
+      const texts = items.get(v.elementId)?.texts ?? [];
+      const readWith = texts.map((t) => `${t.key} ${quoted(t.value)}`).join(', ') || 'no text';
+      return `- ${beat.id} ${v.elementId} ${v.key} ${quoted(v.value)} · read with: ${readWith}`;
+    });
+  });
+  return section(
+    'DRAWN VALUES (one entry each in claims, source "value")',
+    lines.length > 0 ? lines.join('\n') : 'none',
+  );
 }

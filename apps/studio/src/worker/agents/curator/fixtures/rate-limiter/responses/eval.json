@@ -1,6 +1,6 @@
 {
-  "found": ["median-p99-as-change"],
-  "missed": ["capacity-label"],
-  "mayFound": ["percentiles-above-level"],
+  "found": ["capacity-label", "median-p99-as-change"],
+  "missed": [],
+  "mayFound": ["bucket-per-request", "percentiles-above-level"],
   "flagged": []
 }

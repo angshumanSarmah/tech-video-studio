@@ -1,3 +1,4 @@
+import { numberKey, numberMentions } from '../script/number-mentions.ts';
 import { narrationSentences } from '../spec/narration.ts';
 import { isRecord, problem, text, type Json } from './review-helpers.ts';
 import {
@@ -13,9 +14,11 @@ import { PASS_CATEGORIES, REVIEW_CATEGORIES, type ReviewPass } from './review.ts
  * Checks on one review pass's answer (P1C.8: the two-pass review). Both passes: every issue is
  * verified (`curatorIssueProblems`) and must be of the pass's categories (`PASS_CATEGORIES`).
  * PASS claims also: every narration sentence of every beat is listed (`claim_missing`, the
- * coverage a repair turn restores), and every element a beat adds that shows a research number
- * (`label_claim_missing`); each listed claim is in its beat as written; `supported` gives the
- * ids that state it, and they exist; `issue` has an issue on its beat that quotes it. Takes any
+ * coverage a repair turn restores), and every value an element a beat adds draws, one entry each
+ * with its label (`value_claim_missing`: a counter's start and end are two); each listed claim
+ * is in its beat as written, a value's label among its element's texts; `supported` gives the
+ * ids that state it, they exist, and it restates the claim's and the fact's subject and verb
+ * (`claim_restatement_missing`); `issue` has an issue on its beat that quotes it. Takes any
  * JSON value, like every `callJson` check. Pure.
  */
 export function reviewPassProblems(
@@ -60,7 +63,7 @@ function claimsProblems(
 const listed = (claims: readonly Json[], beatId: string, source: string) =>
   claims.filter((c) => c.beatId === beatId && c.source === source);
 
-/** Each sentence and each numeric label of the beat, listed. */
+/** Each sentence and each drawn value of the beat, listed. */
 function coverageProblems(beat: ReviewBeatTexts, claims: readonly Json[]): ReviewProblem[] {
   const said = listed(claims, beat.beatId, 'narration').flatMap((c) => text(c.text) ?? []);
   const sentences = narrationSentences(beat.narration).flatMap((sentence) =>
@@ -76,21 +79,27 @@ function coverageProblems(beat: ReviewBeatTexts, claims: readonly Json[]): Revie
           ),
         ],
   );
-  const labelled = new Set(listed(claims, beat.beatId, 'label').map((c) => c.elementId));
-  const labels = (beat.numberLabels ?? []).flatMap((id) =>
-    labelled.has(id)
+  const entries = listed(claims, beat.beatId, 'value');
+  const values = (beat.drawnValues ?? []).flatMap((drawn) =>
+    entries.some((c) => c.elementId === drawn.elementId && statesValue(c, drawn.valueKey))
       ? []
       : [
           problem(
             ['claims'],
-            'label_claim_missing',
-            `${beat.beatId}'s board element "${id}" shows a research number but is not listed. ` +
-              'List it (source label, its elementId, one of its texts or values) with the ids ' +
-              'whose meaning it shows, or an issue.',
+            'value_claim_missing',
+            `${beat.beatId}'s element "${drawn.elementId}" draws ${drawn.value} (${drawn.key}) ` +
+              'but it is not listed. Give it its own entry (source value, its elementId, the ' +
+              'value as drawn, the label it is read with) with the ids whose meaning it shows, ' +
+              'or an issue.',
           ),
         ],
   );
-  return [...sentences, ...labels];
+  return [...sentences, ...values];
+}
+
+/** Whether a value entry's text states the value. */
+function statesValue(claim: Json, valueKey: string): boolean {
+  return numberMentions(text(claim.text) ?? '').some((m) => numberKey(m.value) === valueKey);
 }
 
 function claimProblems(
@@ -122,7 +131,7 @@ function claimTextProblems(
   beat: ReviewBeatTexts,
   claimText: string,
 ): ReviewProblem[] {
-  if (claim.source === 'label') {
+  if (claim.source === 'value') {
     const id = text(claim.elementId) ?? '';
     const texts = beat.labels[id];
     if (!texts) {
@@ -134,15 +143,20 @@ function claimTextProblems(
         ),
       ];
     }
-    return quoteFound(claimText, texts)
-      ? []
-      : [
-          notFound(
-            j,
-            claimText,
-            `${id}'s texts and values (${texts.map((t) => `"${t}"`).join(', ')})`,
-          ),
-        ];
+    const where = `${id}'s texts and values (${texts.map((t) => `"${t}"`).join(', ')})`;
+    const label = text(claim.label);
+    return [
+      ...(quoteFound(claimText, texts) ? [] : [notFound(j, claimText, where)]),
+      ...(label === undefined || quoteFound(label, texts)
+        ? []
+        : [
+            problem(
+              ['claims', j, 'label'],
+              'quote_not_found',
+              `"${label}" is not among ${where}. Copy the label the value is read with.`,
+            ),
+          ]),
+    ];
   }
   return quoteFound(claimText, [beat.narration])
     ? []
@@ -165,6 +179,16 @@ function verdictProblems(
 ): ReviewProblem[] {
   const ids = Array.isArray(claim.ids) ? claim.ids.flatMap((id) => text(id) ?? []) : [];
   if (claim.verdict === 'supported') {
+    if (!restates(claim)) {
+      return [
+        problem(
+          ['claims', j, 'restates'],
+          'claim_restatement_missing',
+          'A supported claim restates who does what in it and in its fact (restates.claim, ' +
+            'restates.fact), so a reversed claim ("bills" against "is billed") shows.',
+        ),
+      ];
+    }
     if (ids.length === 0) {
       return [
         problem(
@@ -204,11 +228,16 @@ function verdictProblems(
       ];
 }
 
+function restates(claim: Json): boolean {
+  const r = claim.restates;
+  return isRecord(r) && text(r.claim) !== undefined && text(r.fact) !== undefined;
+}
+
 /** An issue on the claim's beat whose evidence quotes the claim (or names its element). */
 function quotesClaim(issue: Json, claim: Json, claimText: string): boolean {
   if (issue.beatId !== claim.beatId || !Array.isArray(issue.evidence)) return false;
   return issue.evidence.filter(isRecord).some((e) => {
-    if (claim.source === 'label' && e.kind === 'label' && e.elementId === claim.elementId) {
+    if (claim.source === 'value' && e.kind === 'label' && e.elementId === claim.elementId) {
       return true;
     }
     const quote = text(e.quote);

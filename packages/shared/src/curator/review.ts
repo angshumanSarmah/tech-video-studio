@@ -141,16 +141,23 @@ export const PASS_CATEGORIES: Readonly<Record<ReviewPass, readonly ReviewCategor
   story: REVIEW_CATEGORIES.filter((c) => c !== 'unsupported_claim' && c !== 'number_wrong_meaning'),
 };
 
+const SubjectVerbSchema = z.string().trim().min(1).max(160);
+
 export const ClaimSchema = z.strictObject({
   beatId: z.string().trim().min(1),
-  source: z.enum(['narration', 'label']),
+  source: z
+    .enum(['narration', 'value'])
+    .describe('narration: one sentence; value: one value drawn on the board.'),
   elementId: z
     .string()
     .trim()
     .min(1)
     .optional()
-    .describe('For a label: the board element (its id in BOARD).'),
-  text: QuoteSchema.describe('The whole sentence, or the label text or value, copied exactly.'),
+    .describe('For a value: the board element that draws it (its id in BOARD).'),
+  text: QuoteSchema.describe('The whole sentence, or the value exactly as drawn ("99").'),
+  label: QuoteSchema.optional().describe(
+    'For a value: the label it is read with, copied from the element ("capacity").',
+  ),
   verdict: z
     .enum(['supported', 'no_claim', 'issue'])
     .describe(
@@ -160,6 +167,15 @@ export const ClaimSchema = z.strictObject({
     .array(ResearchIdSchema)
     .max(8)
     .describe('The "fact-<n>" and "num-<n>" ids that state it; empty unless supported.'),
+  restates: z
+    .strictObject({
+      claim: SubjectVerbSchema.describe('Who does what in the claim ("Corrowby bills").'),
+      fact: SubjectVerbSchema.describe(
+        'Who does what in the supporting fact ("Corrowby is billed").',
+      ),
+    })
+    .optional()
+    .describe("For a supported claim: its subject and verb next to the fact's."),
 });
 export type Claim = z.infer<typeof ClaimSchema>;
 
@@ -168,7 +184,7 @@ export const ClaimsPassSchema = z.strictObject({
     .array(ClaimSchema)
     .max(200)
     .describe(
-      'Every narration sentence of every beat, and every board label that shows a number, in order.',
+      'Every narration sentence of every beat, and every value drawn on a board (one entry each), in order.',
     ),
   issues: z
     .array(CuratorIssueSchema)

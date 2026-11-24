@@ -75,7 +75,7 @@ export interface ReviewResult extends SettledReview {
 const COVERAGE_CODES: readonly string[] = ['claim_missing', 'label_claim_missing'];
 
 export async function reviewSpec(deps: ReviewDeps, request: ReviewRequest): Promise<ReviewResult> {
-  const beats = reviewBeatTexts(request.spec, request.notes, { registries: deps.registries });
+  const beats = reviewBeatTexts(request.spec, { registries: deps.registries });
   const claimsContext: ReviewCheckContext = { beats, notes: request.notes };
   const storyContext: ReviewCheckContext = {
     ...claimsContext,

@@ -38,8 +38,19 @@ export type ReviewBeatTexts = {
   source: readonly string[];
   /** Each element on the beat's board (`<instance>/<id>` too) → its texts and values. */
   labels: Readonly<Record<string, readonly string[]>>;
-  /** Elements this beat adds that show a research number: PASS claims must list each. */
-  numberLabels?: readonly string[];
+  /** Each numeric value an element this beat adds draws: PASS claims lists each one. */
+  drawnValues?: readonly DrawnValue[];
+};
+
+/** One value drawn on a board: an element's number, or a number in one of its texts. */
+export type DrawnValue = {
+  elementId: string;
+  /** The prop it is drawn from (`from`, `value`, `subtitle`). */
+  key: string;
+  /** As drawn ("99", "24"). */
+  value: string;
+  /** `numberKey` of the value, to match an entry's text. */
+  valueKey: string;
 };
 
 export type ReviewCheckContext = {
@@ -62,8 +73,9 @@ export const REVIEW_PROBLEM_CODES = [
   'unknown_previous_issue',
   'category_not_in_pass',
   'claim_missing',
-  'label_claim_missing',
+  'value_claim_missing',
   'claim_ids_missing',
+  'claim_restatement_missing',
   'claim_issue_missing',
 ] as const;
 export type ReviewProblemCode = (typeof REVIEW_PROBLEM_CODES)[number];

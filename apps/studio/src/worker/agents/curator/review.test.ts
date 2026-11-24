@@ -6,7 +6,7 @@ import { passCheck, settleReview } from './review.ts';
 
 const spec = fixtureGeneratedSpec('rate-limiter');
 const notes = recordedNotes('rate-limiter');
-const check = { beats: reviewBeatTexts(spec, notes), notes };
+const check = { beats: reviewBeatTexts(spec), notes };
 
 function issue(change: Partial<CuratorIssue> = {}): CuratorIssue {
   return {

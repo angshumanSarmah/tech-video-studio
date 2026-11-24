@@ -27,18 +27,13 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **Generator — Text size after the camera.** `generatorCheck` still warns `text_too_small`
       at chain scale; `onScreenTextWarnings` would spare boards whose cameras lift each beat.
       Switch only if live runs show the Generator shrinking boards it did not need to.
-- [ ] **P1C.8 — Curator recall.** Two passes (curator@v2) did not move the two misses: over 4
-      runs per topic the rate limiter's beat2 "capacity" label (100 -> 99) was found 0 times and
-      the tokenizer's "Corrowby bills every request in tokens" 0 times; the beat5 latency and b7
-      "now fits" were found every time; nothing was wrongly flagged; coverage was complete with no
-      repair. Why, from the claim audits: (1) the audit lists the bucket counter by one value
-      ("100", supported by num-1), so the 99 under "capacity" is never checked: require one label
-      claim per drawn value (`numberLabels` per value, not per element); (2) it accepts fact-21
-      ("billed by the token") for "Corrowby bills": ask each supported claim to restate the
-      fact's subject and verb (who does what), so a reversal shows. Then measure again.
-- [ ] **P1C.8 — Owner of missing trade-offs.** In most runs the story pass first gives
-      `missing_trade_off` to the Scriptwriter, then the narration field, costing two repair
-      calls. State in the PASS story task (code) that it is the Director's, fields `plan`.
+- [ ] **P1C.8 — Curator recall.** curator@v3 (one claims entry per drawn value, with a
+      subject-and-verb restatement) found the rate limiter's beat2 "capacity" label in every run
+      (3 unrecorded and the recorded one; the claims pass files it as unsupported_claim) and the
+      tokenizer's "Corrowby bills" in 2 of 3 unrecorded runs but not the recorded one (v2: 0 of 4
+      each), the other must-finds every time, and flagged no correct line. "Corrowby bills" is
+      still hit or miss: decide between a second claims sample merged with the first (about
+      +$0.02 a video) and accepting one sample. The hook-retold seed has never been caught.
 - [ ] **P1C.8 — Severity of key-idea clarity.** The above-level seed's "an atomic script" came
       back advisory although the issue itself says it is the beat's key idea; at beginner such an
       issue may block (the cap allows it). Check over more runs whether the model under-rates

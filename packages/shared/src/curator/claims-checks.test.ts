@@ -47,8 +47,16 @@ const BEATS: ReviewBeatTexts[] = [
     tag: [],
     stat_card: [],
     source: [],
-    labels: { limit: ['times its limit', '24'], store: ['SHARED STORE'] },
-    numberLabels: ['limit'],
+    labels: {
+      limit: ['times its limit', '24'],
+      bucket: ['capacity', '100', '99'],
+      store: ['SHARED STORE'],
+    },
+    drawnValues: [
+      { elementId: 'limit', key: 'value', value: '24', valueKey: '24' },
+      { elementId: 'bucket', key: 'from', value: '100', valueKey: '100' },
+      { elementId: 'bucket', key: 'to', value: '99', valueKey: '99' },
+    ],
   },
 ];
 
@@ -61,14 +69,20 @@ function claim(change: Partial<Claim> = {}): Claim {
     text: 'A client gets twenty-four times its limit.',
     verdict: 'supported',
     ids: ['fact-1'],
+    restates: { claim: 'a client gets', fact: 'a bucket per node gives' },
     ...change,
   };
 }
 
+const value = (elementId: string, text: string, label: string, ids: string[]): Claim =>
+  claim({ source: 'value', elementId, text, label, ids });
+
 const allClaims = (): Claim[] => [
   claim({ text: 'So why not one bucket per node?', verdict: 'no_claim', ids: [] }),
   claim(),
-  claim({ source: 'label', elementId: 'limit', text: '24', ids: ['num-1'] }),
+  value('limit', '24', 'times its limit', ['num-1']),
+  value('bucket', '100', 'capacity', ['num-1']),
+  value('bucket', '99', 'capacity', ['num-1']),
 ];
 
 const issue: CuratorIssue = {
@@ -90,11 +104,37 @@ describe('reviewPassProblems: PASS claims', () => {
     expect(codes('claims', { claims: allClaims(), issues: [] })).toEqual([]);
   });
 
-  it('asks for every sentence and every numeric label (the coverage repair)', () => {
+  it('asks for every sentence and every drawn value (the coverage repair)', () => {
     const [, said] = allClaims();
     const problems = reviewPassProblems('claims', { claims: [said], issues: [] }, ctx);
-    expect(problems.map((p) => p.code)).toEqual(['claim_missing', 'label_claim_missing']);
+    expect(problems.map((p) => p.code)).toEqual([
+      'claim_missing',
+      'value_claim_missing',
+      'value_claim_missing',
+      'value_claim_missing',
+    ]);
     expect(problems[0]?.message).toContain('"So why not one bucket per node?" is not listed');
+  });
+
+  it("lists a counter's start and end as two entries, each read with its label", () => {
+    const claims = allClaims().filter((c) => c.text !== '99');
+    expect(reviewPassProblems('claims', { claims, issues: [] }, ctx).map((p) => p.message)).toEqual(
+      [expect.stringContaining('"bucket" draws 99 (to) but it is not listed')],
+    );
+    const misread = [...allClaims().slice(0, 4), value('bucket', '99', 'tokens left', ['num-1'])];
+    expect(codes('claims', { claims: misread, issues: [] })).toEqual([
+      '$.claims[4].label quote_not_found',
+    ]);
+  });
+
+  it("needs a supported claim to restate its subject and verb next to the fact's", () => {
+    const claims = allClaims();
+    const bare = { ...claims[1]! };
+    delete bare.restates;
+    claims[1] = bare;
+    expect(codes('claims', { claims, issues: [] })).toEqual([
+      '$.claims[1].restates claim_restatement_missing',
+    ]);
   });
 
   it('checks each claim: its text, its ids, and an issue for an issue verdict', () => {

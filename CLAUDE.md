@@ -831,7 +831,8 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
     board element whose text names it enters (Generator, at the element; entering on the term's
     own words is in time; an element left by an earlier beat or there from the start is shown; a
     pinned one comes with its host), or with nothing on the board naming it (Scriptwriter, at
-    `tags`). The headline does not count. Blocking at beginner, advisory otherwise
+    `tags`). A concept headline "X = plain meaning" naming the term before its "=" shows it from
+    its anchor (by default just after the beat starts). Blocking at beginner, advisory otherwise
     (`LEVEL_CODE_POLICY`, `codeSeverity`).
   - **Text size after the camera** (`layout/on-screen-text.ts`, option B): on a chain the layout
     finds `text_too_small`, each beat is measured at board scale × the smallest zoom it holds
@@ -862,17 +863,21 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   its state as the beat ends; the focus over the beat. `reviewBeatTexts` gives the quote checks
   the same texts (narration, headline, tags, stat card values and labels, source line, each
   element's texts and values), so anything the message shows can be quoted.
-- **Two passes** (curator@v2): the same system prompt and the same user message up to its last
+- **Two passes** (curator@v3): the same system prompt and the same user message up to its last
   sections, `PASS <pass>` and its output shape, so the second call reuses the cached prefix.
   PASS claims (`ClaimsPassSchema`: `claims` and `issues` of `PASS_CATEGORIES.claims`,
   `unsupported_claim` and `number_wrong_meaning`) lists every narration sentence of every beat and
-  every element a beat adds that shows a research number (`ReviewBeatTexts.numberLabels`), each
-  `supported` with the ids that state it, `no_claim`, or `issue` with an issue quoting it;
+  every value a beat's new elements draw, one entry each with the label it is read with
+  (`drawnValues`: a counter's start and end are two; zero and source lines left out; the
+  message lists them under DRAWN VALUES), each `supported` with the ids that state it and
+  `restates` (the claim's subject and verb next to the fact's, so a reversal shows), `no_claim`,
+  or `issue` with an issue quoting it;
   PASS story (`StoryPassSchema`: `issues` of the other categories, `previous` in a second round).
   `reviewPassProblems` (shared `curator/claims-checks.ts`) is each pass's check:
   `curatorIssueProblems`, `category_not_in_pass`, and for claims `claim_missing` /
-  `label_claim_missing` (coverage: a repair turn), `quote_not_found` on a claim,
-  `claim_ids_missing`, `unknown_research_id` and `claim_issue_missing`.
+  `value_claim_missing` (coverage: a repair turn), `quote_not_found` on a claim or its label,
+  `claim_restatement_missing`, `claim_ids_missing`, `unknown_research_id` and
+  `claim_issue_missing`. The story task names the Director as `missing_trade_off`'s owner.
 - **The review's output** (shared `curator/review.ts`): each pass's issues and, in a second
   round, `previous` statuses. Each issue: beat,
   category (`REVIEW_CATEGORIES`), severity, owner, `fields` (`FIX_FIELDS`, each owned by one agent:

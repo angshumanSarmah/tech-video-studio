@@ -552,7 +552,7 @@ added in this beat:
 - spend_tag · tag · text "spend one token" · semantic focus · pin.to bucket (bottom) · enter on 27 "request"
 focus: bucket from the start
 code findings:
-- term_shown_late (blocking, scriptwriter): "Token bucket" is introduced here (word 8 ("token")), but nothing on the board names it. Give the beat a tag with the term, so the board shows what the narration names.
+none
 
 ## BEAT beat3 (3 of 8) · chapter "Why not keep a bucket on each gateway node?" · device versus_split
 intent: Compare keeping a bucket on each of 24 gateway nodes against one shared bucket: a client spread across nodes gets 24 times its limit.
@@ -709,7 +709,23 @@ code findings:
 none
 
 ## PASS claims
-List every narration sentence of every beat, in order and copied exactly (source "narration"), and every board element a beat adds that NUMBERS shows with a research number (source "label", its elementId, one of its texts or values). Give each a verdict: supported, with the fact and number ids that state it (check who does what to whom); no_claim, when it states no fact or number (a question, a link); or issue, with the issue under issues quoting it. Report only unsupported_claim and number_wrong_meaning here. Code checks that every sentence and every such element is listed.
+List every narration sentence of every beat, in order and copied exactly (source "narration"), and every value under DRAWN VALUES, one entry each (source "value", its elementId, the value as drawn, and the label it is read with: "capacity: 99" is checked as a capacity). Give each a verdict: supported, with the fact and number ids that state it and, in restates, who does what in the claim next to who does what in the fact ("Corrowby bills" against "Corrowby is billed": a reversal is an issue); no_claim, when it states no fact or number (a question, a link); or issue, with the issue under issues quoting it. Report only unsupported_claim and number_wrong_meaning here. Code checks that every sentence and every drawn value is listed.
+
+## DRAWN VALUES (one entry each in claims, source "value")
+- beat1 fail-stat value "31" · read with: value "31%", label "Checkouts that failed", source "Post-incident report: checkout errors on 14 March 2025"
+- beat2 bucket from "100" · read with: unit "tokens", label "capacity"
+- beat2 bucket to "99" · read with: unit "tokens", label "capacity"
+- beat2 refill value "10" · read with: unit "tokens/s", label "refill rate"
+- beat3 gw_nodes title "24" · read with: title "24 NODES"
+- beat3 limit_24 value "24" · read with: unit "×", label "times its limit"
+- beat4 node_a subtitle "24" · read with: title "GATEWAY A", subtitle "one of 24 nodes"
+- beat4 node_b subtitle "24" · read with: title "GATEWAY B", subtitle "one of 24 nodes"
+- beat5 latency from "0.4" · read with: unit "ms", label "round trip per request"
+- beat5 latency to "2.1" · read with: unit "ms", label "round trip per request"
+- beat6 latency_card value "80" · read with: value "80 ms", label "Store call after failover", source "Post-incident report: checkout errors on 14 March 2025"
+- beat7 inst_a title "1" · read with: title "CHECKOUT 1"
+- beat7 inst_b title "2" · read with: title "CHECKOUT 2"
+- beat8 store-timeout value "150" · read with: value "150 ms", label "Store timeout after fix", source "Larkspur Pay platform team incident report, 14 Mar 2025"
 
 ## OUTPUT SHAPE (JSON Schema: return one JSON object that matches it)
 {
@@ -730,11 +746,12 @@ List every narration sentence of every beat, in order and copied exactly (source
             "type": "string",
             "enum": [
               "narration",
-              "label"
-            ]
+              "value"
+            ],
+            "description": "narration: one sentence; value: one value drawn on the board."
           },
           "elementId": {
-            "description": "For a label: the board element (its id in BOARD).",
+            "description": "For a value: the board element that draws it (its id in BOARD).",
             "type": "string",
             "minLength": 1
           },
@@ -742,7 +759,13 @@ List every narration sentence of every beat, in order and copied exactly (source
             "type": "string",
             "minLength": 1,
             "maxLength": 200,
-            "description": "The whole sentence, or the label text or value, copied exactly."
+            "description": "The whole sentence, or the value exactly as drawn (\"99\")."
+          },
+          "label": {
+            "description": "For a value: the label it is read with, copied from the element (\"capacity\").",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
           },
           "verdict": {
             "type": "string",
@@ -762,6 +785,29 @@ List every narration sentence of every beat, in order and copied exactly (source
               "maxLength": 40
             },
             "description": "The \"fact-<n>\" and \"num-<n>\" ids that state it; empty unless supported."
+          },
+          "restates": {
+            "description": "For a supported claim: its subject and verb next to the fact's.",
+            "type": "object",
+            "properties": {
+              "claim": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "Who does what in the claim (\"Corrowby bills\")."
+              },
+              "fact": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "Who does what in the supporting fact (\"Corrowby is billed\")."
+              }
+            },
+            "required": [
+              "claim",
+              "fact"
+            ],
+            "additionalProperties": false
           }
         },
         "required": [
@@ -773,7 +819,7 @@ List every narration sentence of every beat, in order and copied exactly (source
         ],
         "additionalProperties": false
       },
-      "description": "Every narration sentence of every beat, and every board label that shows a number, in order."
+      "description": "Every narration sentence of every beat, and every value drawn on a board (one entry each), in order."
     },
     "issues": {
       "maxItems": 40,
