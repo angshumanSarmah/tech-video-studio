@@ -34,6 +34,8 @@ export interface GeneratorMessageInput extends GeneratorBoards {
   readonly notes: ResearchNotes;
   readonly registries?: Registries;
   readonly theme?: Theme;
+  /** Why this board is drawn again (a gate's note, or the post-pass issues); last section. */
+  readonly feedback?: string;
 }
 
 export function generatorUserMessage(input: GeneratorMessageInput): string {
@@ -59,6 +61,9 @@ export function generatorUserMessage(input: GeneratorMessageInput): string {
     section('BOARD', json(boardInput(spec, input, options.registries))),
     ...(beat.continuesPrevious && previous ? continuing(spec, previous, options) : []),
     ...(beat.device === 'semantic_zoom' && previous ? [zoomSection(spec, previous, options)] : []),
+    ...(input.feedback?.trim()
+      ? [section('FEEDBACK (draw this board again and fix this)', input.feedback.trim())]
+      : []),
   ];
   return sections.join('\n\n');
 }

@@ -2,6 +2,7 @@ import {
   beatCheckWarnings,
   boardAssetSwaps,
   DEFAULT_REGISTRIES,
+  layerWarnings,
   screenTextWarnings,
   specLayoutWarnings,
   withAssetSwaps,
@@ -42,6 +43,11 @@ export interface GeneratorCheckDeps extends GeneratorBoards {
   readonly notes?: ResearchNotes;
   readonly registries?: Registries;
   readonly theme?: Theme;
+  /**
+   * Also the checks across boards (`layerWarnings`: a pattern repeated on the focus, static
+   * beats), for the post-pass, where every board exists.
+   */
+  readonly crossBoard?: boolean;
 }
 
 export function generatorCheck(deps: GeneratorCheckDeps): (value: unknown) => OutputIssue[] {
@@ -51,6 +57,15 @@ export function generatorCheck(deps: GeneratorCheckDeps): (value: unknown) => Ou
     const board = withAssetSwaps(parsed.data, generatorAssetSwaps(parsed.data, deps));
     return beatIssues(deps, generatorScene(board, storyBeat(deps)));
   };
+}
+
+/**
+ * The same checks on a board that already exists (the pinned spec's, or one drawn earlier in the
+ * job), taken as it is: a regenerate re-checks the later beats of a board, the post-pass every
+ * board with all the others in place.
+ */
+export function generatorSceneCheck(deps: GeneratorCheckDeps, scene: BeatScene): OutputIssue[] {
+  return beatIssues(deps, scene);
 }
 
 /** The near-identical asset ids the step swaps in an answer (before checks; logged). */
@@ -98,6 +113,7 @@ function specIssues(deps: GeneratorCheckDeps, scene: BeatScene): SpecError[] {
       registries,
       ...(deps.notes ? { notes: deps.notes } : {}),
     }),
+    ...(deps.crossBoard ? layerWarnings(result.spec) : []),
   ];
 }
 

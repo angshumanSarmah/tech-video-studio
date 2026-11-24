@@ -145,6 +145,22 @@ describe('generatorUserMessage', () => {
     expect(board.logoSlots).toEqual([{ id: 'logo_acme', label: 'Acme' }]);
   });
 
+  it('ends with the feedback when a board is drawn again, and has none otherwise', () => {
+    const text = generatorUserMessage({
+      spec: rateLimiter,
+      scenes: [],
+      beatIndex: 0,
+      notes: recordedNotes('rate-limiter'),
+      feedback: '  Move the stat card in later.  ',
+    });
+    expect(
+      text.endsWith(
+        '## FEEDBACK (draw this board again and fix this)\nMove the stat card in later.',
+      ),
+    ).toBe(true);
+    expect(message('rate-limiter', 0)).not.toContain('## FEEDBACK');
+  });
+
   it('is the same for the same input (no clock, no randomness)', () => {
     expect(message('rate-limiter', 3, [undefined, undefined, storeScene])).toBe(
       message('rate-limiter', 3, [undefined, undefined, storeScene]),

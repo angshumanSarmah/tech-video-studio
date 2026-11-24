@@ -40,6 +40,7 @@ const settings = {
   timing: config.timing,
   video: config.video,
   research: config.research,
+  llm: config.llm,
 };
 const registry = createJobRegistry(
   createJobHandlers({ db, dataDir: config.dataDir, tools, tts, settings, llm, prompts }),

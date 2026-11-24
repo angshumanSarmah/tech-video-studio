@@ -66,6 +66,26 @@ export function scriptOutputPath(runId: number, stepId: number): string {
   return posix.join(runDir(runId), 'script', `script-${stepId}.json`);
 }
 
+/** What one `generate` job read (`GenerateInputSchema`): the pinned spec, the beat to redo. */
+export function generateInputPath(runId: number, stepId: number): string {
+  return posix.join(runDir(runId), 'generate', `input-${stepId}.json`);
+}
+
+/** One `generate` job's result (`GenerateOutputSchema`): beats, saved version, warnings left. */
+export function generateOutputPath(runId: number, stepId: number): string {
+  return posix.join(runDir(runId), 'generate', `output-${stepId}.json`);
+}
+
+/** What one Generator beat step read (`GeneratorBeatInputSchema`: input hash, prompt). */
+export function beatSceneInputPath(runId: number, beatId: string, stepId: number): string {
+  return posix.join(runDir(runId), 'generate', beatId, `input-${stepId}.json`);
+}
+
+/** One Generator beat step's board (`GeneratorBeatOutputSchema`: scene, asset swaps). */
+export function beatSceneOutputPath(runId: number, beatId: string, stepId: number): string {
+  return posix.join(runDir(runId), 'generate', beatId, `scene-${stepId}.json`);
+}
+
 /** Per-beat draft clips and their cache sidecars. */
 export function runBeatsDir(runId: number): string {
   return posix.join(runDir(runId), 'beats');

@@ -185,6 +185,8 @@ export const runSteps = sqliteTable(
       .notNull()
       .references(() => runs.id, { onDelete: 'cascade' }),
     stage: text('stage', { enum: STAGES }).notNull(),
+    /** The story beat a per-beat step is for (the Generator's); null for a whole-stage step. */
+    beatId: text('beat_id'),
     status: text('status', { enum: STEP_STATUSES }).notNull().default('pending'),
     inputPath: text('input_path'),
     outputPath: text('output_path'),

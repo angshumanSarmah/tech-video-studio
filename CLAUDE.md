@@ -710,6 +710,39 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   (`spliceBoards`, `placeholderScene`, `boardStart`) is shared with the check. Snapshots in
   `generator/__snapshots__/` (rate limiter beat4, continuing; tokenizer b3, semantic zoom) show
   what the model reads: review their diff.
+- **`generate` job** (`jobs/generate.ts`, payload `{ specVersionId, beatId?, feedback? }`):
+  draws every board of the pinned spec version (it must have a script; timing is used when
+  present) from the notes of the plan's research step, with registries whose assets are the DB's
+  approved rows (`loadAssetLibrary` → `buildAssetRegistry`; the prompt lists and the checks use
+  the same ones), and saves the spec with its scene layer (and the beats'
+  `missingPrimitiveRequests` in `story`) as the run's next version; `recordMissingAssets` writes
+  `missing-assets.json`.
+  - **Order** (`generator/schedule.ts`, pure): a beat waits for the previous one when it
+    continues that board or is a `semantic_zoom` beat (`beatDependency`); other chains run in
+    parallel under the client's `llm.maxConcurrent`. The first call runs alone
+    (`createWarmUp`), so the rest hit the cached prefix. A beat sees only its ancestors' boards
+    (`visibleScenes`), so its input never depends on which parallel chain finished first. A
+    failed beat fails the job after the others settle.
+  - **Steps:** one whole-stage `run_steps` row per job (`beat_id` null; `generate/input-<step>.json`,
+    `GenerateInputSchema`, and `output-<step>.json`, `GenerateOutputSchema`: beats by outcome
+    `generated` / `reused` / `kept`, `retried`, the saved version, warnings, the job's usage) and
+    one per beat attempt (`beat_id`; `generate/<beat>/input-<step>.json` with `reason` and
+    `inputHash`, `scene-<step>.json` with the scene, asset swaps and requests;
+    `generator/beat-step.ts`, `drawBeat`). **Resume:** a finished beat step with the same
+    `inputHash` (model, prompt versions and messages, check kind, a regenerate's job id) is
+    reused without a call. `latestDoneStep` ignores beat rows; `doneBeatSteps` lists them.
+    `latestGeneration` (`#core/services/generation.ts`) is gate 3's read.
+  - **Post-pass:** with every board in place, each beat drawn in this job is checked again
+    (`generatorSceneCheck` with `crossBoard`: also `layerWarnings`, and what needs the next
+    board); one that fails gets one retry with its issues as FEEDBACK (the user message's last
+    section), in beat order; a retry that still fails keeps its board. Every issue left, soft
+    ones included, goes into the job output's `warnings` for gate 3.
+  - **Regenerate** (`beatId`, optional `feedback`): that beat is drawn again (always called),
+    the others are `kept` from the pinned spec (which must have every board); each later beat of
+    its chain is re-checked against the new board and redrawn (`revalidate`) only when it fails.
+  - The summary log line gives boards by outcome, calls, cost and cache hits against input
+    tokens. `jobs/generate.test.ts` replays hand-written boards (`rateLimiterBoards()` in
+    `generator/testing.ts`) through a transport that imitates the provider's prefix cache.
 
 API conventions: routes under `/api`, inputs validated with the `validate()` helper against schemas
 from `packages/shared/src/api`, list responses wrapped as `{ items }`, and every error is

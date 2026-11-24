@@ -1,5 +1,5 @@
 import type { Stage } from '@explainer-studio/shared';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, isNull } from 'drizzle-orm';
 import type { Executor } from '../client.ts';
 import { runSteps } from '../schema.ts';
 
@@ -11,13 +11,20 @@ export type RunStep = typeof runSteps.$inferSelect;
  */
 export function startRunStep(
   db: Executor,
-  input: { readonly runId: number; readonly stage: Stage; readonly now?: Date },
+  input: {
+    readonly runId: number;
+    readonly stage: Stage;
+    /** For a per-beat step (the Generator's). */
+    readonly beatId?: string;
+    readonly now?: Date;
+  },
 ): RunStep {
   return db
     .insert(runSteps)
     .values({
       runId: input.runId,
       stage: input.stage,
+      beatId: input.beatId ?? null,
       status: 'running',
       startedAt: input.now ?? new Date(),
     })
@@ -65,15 +72,44 @@ export function failInterruptedSteps(
     .run().changes;
 }
 
-/** The newest finished attempt at a stage, or undefined. */
+/** The newest finished whole-stage attempt (no beat) at a stage, or undefined. */
 export function latestDoneStep(db: Executor, runId: number, stage: Stage): RunStep | undefined {
   return db
     .select()
     .from(runSteps)
-    .where(and(eq(runSteps.runId, runId), eq(runSteps.stage, stage), eq(runSteps.status, 'done')))
+    .where(
+      and(
+        eq(runSteps.runId, runId),
+        eq(runSteps.stage, stage),
+        eq(runSteps.status, 'done'),
+        isNull(runSteps.beatId),
+      ),
+    )
     .orderBy(desc(runSteps.id))
     .limit(1)
     .get();
+}
+
+/** A beat's finished attempts at a stage, newest first. */
+export function doneBeatSteps(
+  db: Executor,
+  runId: number,
+  stage: Stage,
+  beatId: string,
+): RunStep[] {
+  return db
+    .select()
+    .from(runSteps)
+    .where(
+      and(
+        eq(runSteps.runId, runId),
+        eq(runSteps.stage, stage),
+        eq(runSteps.status, 'done'),
+        eq(runSteps.beatId, beatId),
+      ),
+    )
+    .orderBy(desc(runSteps.id))
+    .all();
 }
 
 export function getRunStep(db: Executor, id: number): RunStep | undefined {
