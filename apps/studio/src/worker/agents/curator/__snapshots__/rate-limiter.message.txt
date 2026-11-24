@@ -552,7 +552,7 @@ added in this beat:
 - spend_tag · tag · text "spend one token" · semantic focus · pin.to bucket (bottom) · enter on 27 "request"
 focus: bucket from the start
 code findings:
-none
+- term_shown_late (blocking, scriptwriter): "Token bucket" is introduced here (word 8 ("token")), but nothing on the board names it. Give the beat a tag with the term, so the board shows what the narration names.
 
 ## BEAT beat3 (3 of 8) · chapter "Why not keep a bucket on each gateway node?" · device versus_split
 intent: Compare keeping a bucket on each of 24 gateway nodes against one shared bucket: a client spread across nodes gets 24 times its limit.
@@ -707,3 +707,367 @@ added in this beat:
 focus: limiter from the start → store-timeout on 29 "milliseconds,"
 code findings:
 none
+
+## PASS claims
+List every narration sentence of every beat, in order and copied exactly (source "narration"), and every board element a beat adds that NUMBERS shows with a research number (source "label", its elementId, one of its texts or values). Give each a verdict: supported, with the fact and number ids that state it (check who does what to whom); no_claim, when it states no fact or number (a question, a link); or issue, with the issue under issues quoting it. Report only unsupported_claim and number_wrong_meaning here. Code checks that every sentence and every such element is listed.
+
+## OUTPUT SHAPE (JSON Schema: return one JSON object that matches it)
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "claims": {
+      "maxItems": 200,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "beatId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "narration",
+              "label"
+            ]
+          },
+          "elementId": {
+            "description": "For a label: the board element (its id in BOARD).",
+            "type": "string",
+            "minLength": 1
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "The whole sentence, or the label text or value, copied exactly."
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "supported",
+              "no_claim",
+              "issue"
+            ],
+            "description": "supported: the ids state it; no_claim: it states no fact or number (a question, a link); issue: reported under issues."
+          },
+          "ids": {
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            },
+            "description": "The \"fact-<n>\" and \"num-<n>\" ids that state it; empty unless supported."
+          }
+        },
+        "required": [
+          "beatId",
+          "source",
+          "text",
+          "verdict",
+          "ids"
+        ],
+        "additionalProperties": false
+      },
+      "description": "Every narration sentence of every beat, and every board label that shows a number, in order."
+    },
+    "issues": {
+      "maxItems": 40,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "beatId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The beat where the problem is (and is fixed)."
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "unsupported_claim",
+              "wrong_simplification",
+              "number_wrong_meaning",
+              "visual_contradicts",
+              "visual_distracts",
+              "term_before_shown",
+              "above_level",
+              "hook_retold",
+              "small_stat_card",
+              "missing_trade_off"
+            ]
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "blocking",
+              "advisory"
+            ]
+          },
+          "owner": {
+            "type": "string",
+            "enum": [
+              "scriptwriter",
+              "generator",
+              "director",
+              "researcher"
+            ],
+            "description": "The agent that would change the quoted text or board."
+          },
+          "fields": {
+            "minItems": 1,
+            "maxItems": 3,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "narration",
+                "headline",
+                "tags",
+                "stat_cards",
+                "source",
+                "board",
+                "plan"
+              ]
+            },
+            "description": "What the fix may change; all of them the owner's."
+          },
+          "evidence": {
+            "minItems": 1,
+            "maxItems": 6,
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "narration"
+                    },
+                    "quote": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "description": "Copied exactly from the input, not paraphrased. Use \"...\" to leave words out."
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "quote"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "headline"
+                    },
+                    "quote": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "description": "Copied exactly from the input, not paraphrased. Use \"...\" to leave words out."
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "quote"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "tag"
+                    },
+                    "quote": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "description": "Copied exactly from the input, not paraphrased. Use \"...\" to leave words out."
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "quote"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "stat_card"
+                    },
+                    "quote": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "description": "Copied exactly from the input, not paraphrased. Use \"...\" to leave words out."
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "quote"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "source"
+                    },
+                    "quote": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "description": "Copied exactly from the input, not paraphrased. Use \"...\" to leave words out."
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "quote"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "label"
+                    },
+                    "elementId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "The board element (its id in BOARD)."
+                    },
+                    "quote": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "description": "One of that element's texts or values, copied exactly."
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "elementId",
+                    "quote"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "fact"
+                    },
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 40,
+                      "description": "A \"fact-<n>\" id from the notes."
+                    },
+                    "quote": {
+                      "description": "Words of that fact, when only part of it matters.",
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "id"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "number"
+                    },
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 40,
+                      "description": "A \"num-<n>\" id from the notes."
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "id"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "note"
+                    },
+                    "quote": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "description": "Words of a trade-off, failure mode, misconception or open question in the notes."
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "quote"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "problem": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300,
+            "description": "What is wrong, in one sentence."
+          },
+          "fix": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300,
+            "description": "The smallest change that fixes it."
+          }
+        },
+        "required": [
+          "beatId",
+          "category",
+          "severity",
+          "owner",
+          "fields",
+          "evidence",
+          "problem",
+          "fix"
+        ],
+        "additionalProperties": false
+      },
+      "description": "Only unsupported_claim and number_wrong_meaning."
+    }
+  },
+  "required": [
+    "claims",
+    "issues"
+  ],
+  "additionalProperties": false
+}

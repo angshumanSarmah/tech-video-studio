@@ -949,6 +949,14 @@ and on which word, and where the focus is. Judge the picture only from that desc
 NUMBERS lists every number said or shown in a beat with the research numbers that share its value;
 a shared value does not mean a shared meaning.
 
+The review runs in two passes; the user message says which one this is.
+- PASS claims: go through every narration sentence and every board label that states a fact or a
+  number, in order, and give each the fact or number ids that support it. A sentence no fact
+  supports, or one that reverses its fact (who does what to whom), is an unsupported_claim; a
+  number whose value matches but whose meaning doesn't is number_wrong_meaning. Code checks that
+  every sentence is listed.
+- PASS story: every other category, across the whole video.
+
 ISSUE CATEGORIES (exhaustive: use only these ids)
 - unsupported_claim: something no fact or number in the notes states, or the opposite of what one states.
 - wrong_simplification: a simplification that becomes false for an engineer (wrong cause, mechanism or order).
@@ -985,6 +993,8 @@ Common mistakes to avoid
 4. Style opinions reported as blocking.
 5. Vague issues ("could be clearer") with no fix.
 6. Blaming the Scriptwriter for a board label, or the Generator for narration.
+7. Reading past a reversed claim: check who does what to whom ("the client retries" is not "the
+   server retries").
 ```
 
 **Analyst (memory rules)**
@@ -1171,9 +1181,11 @@ Implement the Curator in two parts.
    continuesPrevious: true to keep the same layout and world (persistent scenes are encouraged); the
    change check still applies to it. Also: narration length measured after TTS (per beat and per
    video), the size of on-screen text after each beat's camera, hook numbers said again in a later
-   beat, and a sourced number on screen without a source line. Every code maps to an owner and a
+   beat, a new term spoken before the element that shows it enters, and a sourced number on screen without a source line. Every code maps to an owner and a
    severity in one policy table.
-2. LLM review (curator role), one call per video. The model is text-only: it receives a code-written
+2. LLM review (curator role), two calls per video: a claim audit that must list every narration
+   sentence and every factual board label with its supporting ids (code checks coverage), then a
+   story review for the other categories. The model is text-only: it receives a code-written
    description of each board and a map of the numbers in each beat. It flags claims not supported,
    simplifications that become wrong at this level, numbers used with the wrong meaning, visuals that
    contradict or distract, missing trade-offs, a later beat retelling the hook instead of calling

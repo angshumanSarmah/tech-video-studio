@@ -402,7 +402,8 @@ stepId?, aliases?, check?, signal?, log? })`** is the only way to call a model (
   `agents/output-schemas.ts`, rendered with `z.toJSONSchema`, input side), catalogue,
   references (Director only) and style rules in the system message and the run's input in the
   user message, so the static prefix caches. A new agent registers its output schema there and
-  passes the same schema to `callJson`. `{{name}}`
+  passes the same schema to `callJson` (the Curator does not: its two passes put their shapes in
+  the user message, `outputSchemaSection`, so both share one system prompt). `{{name}}`
   takes values from `resolvePromptVariables(run settings, settings.video)` (run override →
   app settings → defaults 45, 150, 90, true, 4, 2.56, `beginner`; `explanationLevel` is
   beginner | intermediate | expert and fills the preamble's audience line); an unknown, unfilled or malformed
@@ -826,6 +827,12 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
     values an earlier beat of the board cited or said.
   - **`pattern_recently_used`**: past `MAX_RECENT_PATTERN_REUSE` (1), a pattern drawn in this
     video that a recent video used.
+  - **`term_shown_late`** (`catalog/term-checks.ts`): a beat's `newTerms` term spoken before the
+    board element whose text names it enters (Generator, at the element; entering on the term's
+    own words is in time; an element left by an earlier beat or there from the start is shown; a
+    pinned one comes with its host), or with nothing on the board naming it (Scriptwriter, at
+    `tags`). The headline does not count. Blocking at beginner, advisory otherwise
+    (`LEVEL_CODE_POLICY`, `codeSeverity`).
   - **Text size after the camera** (`layout/on-screen-text.ts`, option B): on a chain the layout
     finds `text_too_small`, each beat is measured at board scale × the smallest zoom it holds
     (start framing and `focus` reframings; semantic-zoom pushes left out). The camera only
@@ -855,8 +862,19 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   its state as the beat ends; the focus over the beat. `reviewBeatTexts` gives the quote checks
   the same texts (narration, headline, tags, stat card values and labels, source line, each
   element's texts and values), so anything the message shows can be quoted.
-- **The review's output** (shared `curator/review.ts`): `CuratorReviewSchema` (`issues`, and
-  `previous` statuses in a second round), registered in `ROLE_OUTPUT_SCHEMAS`. Each issue: beat,
+- **Two passes** (curator@v2): the same system prompt and the same user message up to its last
+  sections, `PASS <pass>` and its output shape, so the second call reuses the cached prefix.
+  PASS claims (`ClaimsPassSchema`: `claims` and `issues` of `PASS_CATEGORIES.claims`,
+  `unsupported_claim` and `number_wrong_meaning`) lists every narration sentence of every beat and
+  every element a beat adds that shows a research number (`ReviewBeatTexts.numberLabels`), each
+  `supported` with the ids that state it, `no_claim`, or `issue` with an issue quoting it;
+  PASS story (`StoryPassSchema`: `issues` of the other categories, `previous` in a second round).
+  `reviewPassProblems` (shared `curator/claims-checks.ts`) is each pass's check:
+  `curatorIssueProblems`, `category_not_in_pass`, and for claims `claim_missing` /
+  `label_claim_missing` (coverage: a repair turn), `quote_not_found` on a claim,
+  `claim_ids_missing`, `unknown_research_id` and `claim_issue_missing`.
+- **The review's output** (shared `curator/review.ts`): each pass's issues and, in a second
+  round, `previous` statuses. Each issue: beat,
   category (`REVIEW_CATEGORIES`), severity, owner, `fields` (`FIX_FIELDS`, each owned by one agent:
   `FIELD_OWNERS`), evidence (narration, headline, tag, stat card or source quotes; a label quote
   with its `elementId`; a fact or number id; a note quote), problem and fix. `CATEGORY_RULES` give
@@ -873,22 +891,25 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
 - **`curate` job** (`jobs/curate.ts`, payload `{ specVersionId }`: the re-timed spec after the
   Generator): the code checks on the pinned version (context from the run: the plan's research
   step's notes and sources, series and handle, resolved video settings and pauses,
-  `directorMemory` usage, the DB's approved assets), then one review call
-  (`agents/curator/review.ts`, `reviewSpec`; `CuratorReviewSchema`, check `reviewCheck`), then
-  `settleReview`: unverified issues are dropped (`why: unverified`, with the reasons), so are
-  issues that repeat a code finding on the same beat (`repeats_code_finding`: `hook_retold` over
-  `hook_number_repeated`), and severities are capped. A spec that fails validation gets its
+  `directorMemory` usage, the DB's approved assets), then the two review passes
+  (`agents/curator/review.ts`, `reviewSpec`; check `passCheck`, soft on the last attempt), then
+  `settleReview` per pass: unverified issues are dropped (`why: unverified`, with the reasons),
+  so are issues that repeat a code finding on the same beat (`repeats_code_finding`:
+  `hook_retold` over `hook_number_repeated`, `term_before_shown` over `term_shown_late`), and
+  severities are capped. A spec that fails validation gets its
   errors and no review. One `run_steps` row per job (stage `curate`):
   `curate/input-<step>.json` (`CurateInputSchema`) and `curate/report-<step>.json`
-  (`CuratorReportSchema`: code issues, the review's issues, dropped, capped, usage, `blocking`).
+  (`CuratorReportSchema`: code issues, the review's issues, dropped, capped, the claim audit,
+  coverage (repair turns, what stayed out), calls per pass, usage, `blocking`).
   `latestCuration` (`#core/services/curation.ts`) is gate 3's read.
 - **Fixture eval** (`agents/curator/fixtures.ts`): per topic `TOPIC_EXPECTATIONS` (must-find,
   may-find, must-not-flag with optional `allowedOwners`), matched by beat, category and evidence
   (an element id or a quote); `CURATOR_SEEDS`, one planted fault per review category
   (`visual_distracts` aside), each a pure edit of the recorded spec (narration edits keep the
   board's word anchors on their words and drop the timing layer). The studio script
-  `curator:fixture [--topic] [--seeded <id>] [--replay] [--record]` runs the review (live, or
-  `--replay`) in `<DATA_DIR>/curator/fixture/<topic>[-<seed>]/` and prints the attempts, code findings, every issue with its evidence and fix, what was dropped,
+  `curator:fixture [--topic] [--seeded <id>] [--replay] [--record] [--timeout <sec>]` runs the
+  review (live, or `--replay`; `--timeout` raises `llm.requestTimeoutSec` for that run: the
+  passes' reasoning can pass 300 s when the provider is slow) in `<DATA_DIR>/curator/fixture/<topic>[-<seed>]/` and prints the attempts, code findings, every issue with its evidence and fix, what was dropped,
   usage and the eval; `--record` writes `curator.json` and `eval.json` to
   `agents/curator/fixtures/<topic>/responses/` (a seed: `.../<topic>/seeds/<id>/`).
   `jobs/curate.test.ts` replays every recording and expects its recorded eval.

@@ -1,7 +1,6 @@
 import type { ResearchNotes } from '../research/notes.ts';
 import { numberIndex } from '../script/note-values.ts';
 import { numberKey, numberMentions } from '../script/number-mentions.ts';
-import { toJsonPath } from '../spec/validate.ts';
 import {
   CATEGORY_RULES,
   FIELD_OWNERS,
@@ -12,6 +11,7 @@ import {
   type ReviewCategory,
 } from './review.ts';
 import { CURATOR_OWNERS, type CuratorOwner } from './issue.ts';
+import { isRecord, problem, text, type Json, type Path } from './review-helpers.ts';
 
 /**
  * Keeping the review honest (P1C.8): every issue's evidence must be in the input it quotes, so a
@@ -38,6 +38,8 @@ export type ReviewBeatTexts = {
   source: readonly string[];
   /** Each element on the beat's board (`<instance>/<id>` too) → its texts and values. */
   labels: Readonly<Record<string, readonly string[]>>;
+  /** Elements this beat adds that show a research number: PASS claims must list each. */
+  numberLabels?: readonly string[];
 };
 
 export type ReviewCheckContext = {
@@ -58,23 +60,15 @@ export const REVIEW_PROBLEM_CODES = [
   'field_not_owned',
   'previous_status_missing',
   'unknown_previous_issue',
+  'category_not_in_pass',
+  'claim_missing',
+  'label_claim_missing',
+  'claim_ids_missing',
+  'claim_issue_missing',
 ] as const;
 export type ReviewProblemCode = (typeof REVIEW_PROBLEM_CODES)[number];
 
 export type ReviewProblem = { path: string; code: ReviewProblemCode; message: string };
-
-type Path = (string | number)[];
-type Json = Record<string, unknown>;
-
-const isRecord = (value: unknown): value is Json =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-const text = (value: unknown): string | undefined =>
-  typeof value === 'string' && value.trim().length > 0 ? value : undefined;
-const problem = (path: Path, code: ReviewProblemCode, message: string): ReviewProblem => ({
-  path: toJsonPath(path),
-  code,
-  message,
-});
 
 export function curatorIssueProblems(value: unknown, ctx: ReviewCheckContext): ReviewProblem[] {
   if (!isRecord(value)) return [];

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { ExplanationLevelSchema } from '../config/video.ts';
 import { CuratorOwnerSchema, IssueSeveritySchema } from './issue.ts';
-import { CuratorIssueSchema, PreviousStatusSchema } from './review.ts';
+import { ClaimSchema, CuratorIssueSchema, PreviousStatusSchema } from './review.ts';
 
 /**
  * The `curate` job's step files (P1C.8): what it read (`curate/input-<step>.json`) and what it
@@ -63,6 +63,18 @@ export const CuratorReportSchema = z.strictObject({
       /** Issues whose severity code lowered. */
       capped: z.number().int().min(0),
       previous: z.array(PreviousStatusSchema).optional(),
+      /** PASS claims' audit: every narration sentence and numeric label, with its support. */
+      claims: z.array(ClaimSchema),
+      /** Repair turns for left-out sentences or labels, and what was still out at the end. */
+      coverage: z.strictObject({
+        repairs: z.number().int().min(0),
+        missing: z.array(z.string()),
+      }),
+      /** Calls per pass (attempts included). */
+      calls: z.strictObject({
+        claims: z.number().int().min(0),
+        story: z.number().int().min(0),
+      }),
       usage: LlmUsageSchema,
     })
     .nullable(),

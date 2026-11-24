@@ -41,20 +41,28 @@ const checks = (topic: FixtureTopicId, spec: RenderableVideoSpec = fixtureGenera
   curatorCodeChecks(spec, context(topic));
 
 describe('curatorCodeChecks on the recorded topics', () => {
-  it('rate limiter: beat1 and beat7 run well over their planned seconds, nothing else', () => {
+  it("rate limiter: beat1 and beat7 run long; nothing on beat2's board names its new term", () => {
     const issues = checks('rate-limiter');
     expect(summary(issues)).toEqual([
+      // "Token bucket" is named only by the headline: the board shows a "capacity" counter and a
+      // "per-key bucket" tag.
+      'blocking scriptwriter $.script[1].tags term_shown_late',
       'blocking scriptwriter $.script[0].narration beat_over_target',
       'blocking scriptwriter $.script[6].narration beat_over_target',
     ]);
-    expect(issues[0]?.message).toContain('runs 10.8 s against its planned 8 s (135%');
-    expect(issues[1]?.message).toContain('runs 15.2 s against its planned 12 s (127%');
+    expect(issues[1]?.message).toContain('runs 10.8 s against its planned 8 s (135%');
+    expect(issues[2]?.message).toContain('runs 15.2 s against its planned 12 s (127%');
   });
 
-  it('tokenizer: two focus-coloured elements off the focus, and the video runs long', () => {
+  it('tokenizer: focus colours off the focus, three terms said before shown, a long video', () => {
     expect(summary(checks('tokenizer'))).toEqual([
       'advisory generator $.scenes[4].elements[4] focus_colour_off_focus',
       'advisory generator $.scenes[5].elements[4] focus_colour_off_focus',
+      // b1 says "token" in its question before the TOKEN callout; b2 says "vocabulary" before its
+      // callout; nothing on b5's board names "pre-tokenization".
+      'blocking generator $.scenes[0].elements[3] term_shown_late',
+      'blocking generator $.scenes[1].elements[1] term_shown_late',
+      'blocking scriptwriter $.script[4].tags term_shown_late',
       'advisory scriptwriter $.script video_over_target',
     ]);
   });
@@ -118,5 +126,43 @@ describe('curatorCodeChecks on seeded rate limiter faults', () => {
     expect(summary(checks('rate-limiter', spec))).toEqual([
       'blocking generator $.scenes[0].events[0].at anchor_out_of_range',
     ]);
+  });
+});
+
+describe('term_shown_late on the rate limiter\'s beat3 ("Shared store")', () => {
+  const late = (issues: readonly CodeIssue[]) =>
+    summary(issues.filter((i) => i.code === 'term_shown_late' && i.path.includes('[2]')));
+
+  it('passes as recorded: the "shared store" tag enters on the term\'s own words', () => {
+    expect(late(checks('rate-limiter'))).toEqual([]);
+  });
+
+  it('flags the tag when it enters after the narration names the term (Generator)', () => {
+    const spec = structuredClone(fixtureGeneratedSpec('rate-limiter'));
+    const beat3 = spec.scenes[2]!;
+    const enter = beat3.events.find(
+      (e) => e.action === 'enter' && e.targets.includes('shared_tag'),
+    );
+    enter!.at = { type: 'word', index: 34 };
+    const issues = checks('rate-limiter', spec);
+    expect(late(issues)).toEqual(['blocking generator $.scenes[2].elements[4] term_shown_late']);
+    expect(
+      issues.find((i) => i.code === 'term_shown_late' && i.path.includes('scenes'))?.message,
+    ).toContain('enters only on word 34');
+  });
+
+  it('flags a beat whose board never names the term (Scriptwriter); advisory past beginner', () => {
+    const spec = structuredClone(fixtureGeneratedSpec('rate-limiter'));
+    const beat3 = spec.scenes[2]!;
+    beat3.elements = beat3.elements.filter((e) => e.id !== 'shared_tag');
+    beat3.events = beat3.events.filter((e) => !e.targets.includes('shared_tag'));
+    expect(late(checks('rate-limiter', spec))).toEqual([
+      'blocking scriptwriter $.script[2].tags term_shown_late',
+    ]);
+    const intermediate = curatorCodeChecks(spec, {
+      ...context('rate-limiter'),
+      video: { ...context('rate-limiter').video, explanationLevel: 'intermediate' },
+    });
+    expect(late(intermediate)).toEqual(['advisory scriptwriter $.script[2].tags term_shown_late']);
   });
 });

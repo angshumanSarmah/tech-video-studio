@@ -12,7 +12,8 @@ import {
   CURATOR_SEEDS,
   evalPath,
   evaluateTopic,
-  seedCaught,
+  seedCatcher,
+  seededSpec,
   TOPIC_EXPECTATIONS,
   type CuratorSeed,
 } from '../agents/curator/fixtures.ts';
@@ -119,8 +120,10 @@ describe('curate job: the recorded reviews', () => {
     'seed %s replays to the recorded verdict',
     async (_, seed) => {
       const { curation } = await curateFixture(seed.topic, seed);
-      const issues = curation.report.review!.issues;
-      expect({ seed: seed.id, caught: seedCaught(issues, seed) }).toEqual(
+      const { review, codeIssues } = curation.report;
+      const spec = seededSpec(fixtureGeneratedSpec(seed.topic), seed);
+      const by = seedCatcher(review!.issues, codeIssues, spec, seed);
+      expect({ seed: seed.id, caught: by !== null, by }).toEqual(
         recordedEval(curatorResponsesDir(seed.topic, seed)),
       );
     },
@@ -145,20 +148,34 @@ describe('curate job', () => {
     usage: null,
   });
 
-  it('drops an issue still unverified after the repairs, and finishes', async () => {
+  it('drops issues still unverified after the repairs, records coverage left out, and finishes', async () => {
     const chain = recordedChain('rate-limiter', curatorResponsesDir('rate-limiter'));
-    const reg = registry({ ...chain, curator: [1, 2, 3].map(() => answer([unverified])) });
+    const audit: DryRunResponse = {
+      ...answer([]),
+      content: JSON.stringify({ claims: [], issues: [] }),
+    };
+    const curator = [
+      audit,
+      audit,
+      audit,
+      answer([unverified]),
+      answer([unverified]),
+      answer([unverified]),
+    ];
+    const reg = registry({ ...chain, curator });
     const runId = await plannedRun('rate-limiter', reg);
     queueFixtureCurate(t.db, t.dataDir, runId, 'rate-limiter');
     await runNext(reg);
-    const { report } = latestCuration(t.db, t.dataDir, runId)!;
-    expect(report.review?.issues).toEqual([]);
-    expect(report.review?.dropped.map((d) => [d.why, d.reasons.map((r) => r.code)])).toEqual([
+    const review = latestCuration(t.db, t.dataDir, runId)!.report.review!;
+    expect(review.issues).toEqual([]);
+    expect(review.dropped.map((d) => [d.why, d.reasons.map((r) => r.code)])).toEqual([
       ['unverified', ['quote_not_found']],
     ]);
-    expect(report.review?.usage.calls).toBe(3);
-    // The code checks still block: two beats run far over their plan.
-    expect(report.blocking).toBe(true);
+    expect(review.calls).toEqual({ claims: 3, story: 3 });
+    // Two repair turns asked for the left-out sentences; the last answer still left them out.
+    expect(review.coverage.repairs).toBe(2);
+    expect(review.coverage.missing.length).toBeGreaterThan(0);
+    expect(review.coverage.missing[0]).toContain("beat1's sentence");
   });
 
   it('reports an invalid spec with its errors and no review', async () => {

@@ -13,6 +13,7 @@ import {
   type CodeIssue,
   type CuratorOwner,
   type DirectorProblemCode,
+  type ExplanationLevel,
   type IncidentSource,
   type IssueSeverity,
   type RenderableVideoSpec,
@@ -34,6 +35,7 @@ import { layerWarnings } from './layer-checks.ts';
 import { DEFAULT_REGISTRIES, type Registries } from './registries.ts';
 import { screenTextWarnings, sourceMissingOnScreenWarnings } from './screen-checks.ts';
 import { withRegistryChecks } from './validate.ts';
+import { TERM_SHOWN_LATE, termShownLateWarnings } from './term-checks.ts';
 import { patternVarietyWarnings } from './variety-checks.ts';
 
 /**
@@ -163,6 +165,7 @@ const OTHER_WARNING_CODES: readonly string[] = [
   'pattern_recently_used',
   'video_over_target',
   'readability_low',
+  TERM_SHOWN_LATE,
   ...SCRIPT_PROBLEM_CODES,
   ...DIRECTOR_PROBLEM_CODES.filter((code) => !PLAN_ONLY_CODES.includes(code)),
 ];
@@ -176,6 +179,18 @@ export const CURATOR_CODE_POLICY: Readonly<Record<string, IssueSeverity>> = Obje
   ),
   ...BLOCKING_WARNING_CODES.map((code): [string, IssueSeverity] => [code, 'blocking']),
 ]);
+
+/** Codes whose severity depends on the run's level (they report clarity, which blocks at beginner). */
+export const LEVEL_CODE_POLICY: Readonly<
+  Record<string, Readonly<Record<ExplanationLevel, IssueSeverity>>>
+> = {
+  [TERM_SHOWN_LATE]: { beginner: 'blocking', intermediate: 'advisory', expert: 'advisory' },
+};
+
+/** A warning code's severity at a level. */
+export function codeSeverity(code: string, level: ExplanationLevel): IssueSeverity {
+  return LEVEL_CODE_POLICY[code]?.[level] ?? CURATOR_CODE_POLICY[code] ?? 'advisory';
+}
 
 /** Who changes what a path points at: boards are the Generator's, script and timing the Scriptwriter's, the rest the plan's. */
 export function ownerOfPath(path: string): CuratorOwner {
@@ -191,15 +206,19 @@ export function curatorCodeChecks(
   const registries = ctx.registries ?? DEFAULT_REGISTRIES;
   const result = withRegistryChecks(validateRenderableVideoSpec(spec), spec, registries);
   const errors = result.errors.map((e) => issue(e, 'blocking'));
-  if (!result.ok) return dedupe([...errors, ...warningIssues(result.warnings)]);
+  const level = ctx.video.explanationLevel;
+  if (!result.ok) return dedupe([...errors, ...warningIssues(result.warnings, level)]);
   const valid = result.spec;
   return dedupe(
-    warningIssues([
-      ...result.warnings,
-      ...renderedWarnings(valid, ctx, registries),
-      ...boardWarnings(valid, ctx, registries),
-      ...storyWarnings(valid, ctx),
-    ]),
+    warningIssues(
+      [
+        ...result.warnings,
+        ...renderedWarnings(valid, ctx, registries),
+        ...boardWarnings(valid, ctx, registries),
+        ...storyWarnings(valid, ctx),
+      ],
+      level,
+    ),
   );
 }
 
@@ -234,6 +253,7 @@ function boardWarnings(
     ...colourWarnings(spec, registries),
     ...sourceMissingOnScreenWarnings(spec, ctx.notes, registries),
     ...patternVarietyWarnings(spec, ctx.recent.patterns),
+    ...termShownLateWarnings(spec, registries),
   ];
 }
 
@@ -276,8 +296,8 @@ function storyWarnings(spec: RenderableVideoSpec, ctx: CuratorCheckContext): Spe
   ];
 }
 
-function warningIssues(warnings: readonly SpecError[]): CodeIssue[] {
-  return warnings.map((w) => issue(w, CURATOR_CODE_POLICY[w.code] ?? 'advisory'));
+function warningIssues(warnings: readonly SpecError[], level: ExplanationLevel): CodeIssue[] {
+  return warnings.map((w) => issue(w, codeSeverity(w.code, level)));
 }
 
 function issue(error: SpecError, severity: IssueSeverity): CodeIssue {

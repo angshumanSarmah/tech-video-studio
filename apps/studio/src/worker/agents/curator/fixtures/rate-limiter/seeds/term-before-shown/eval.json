@@ -1,4 +1,5 @@
 {
   "seed": "term-before-shown",
-  "caught": false
+  "caught": true,
+  "by": "code"
 }

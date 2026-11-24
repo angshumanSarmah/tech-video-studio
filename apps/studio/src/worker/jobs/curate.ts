@@ -241,7 +241,10 @@ function buildReport(
           dropped: review.dropped,
           capped: review.capped,
           ...(review.previous ? { previous: review.previous } : {}),
-          usage: usageOf(db, runId, review.callIds),
+          claims: review.claims,
+          coverage: review.coverage,
+          calls: { claims: review.calls.claims.length, story: review.calls.story.length },
+          usage: usageOf(db, runId, [...review.calls.claims, ...review.calls.story]),
         }
       : null,
     blocking,
@@ -269,10 +272,12 @@ export function summarize(report: CuratorReport): string {
     list.filter((i) => i.severity === 'blocking').length;
   const code = `${report.codeIssues.length} code finding(s) (${blocking(report.codeIssues)} blocking)`;
   if (!report.review) return `Curator on v${report.version}: ${code}; not reviewed (invalid spec).`;
-  const { issues, dropped, capped, usage } = report.review;
+  const { issues, dropped, capped, usage, claims, coverage } = report.review;
   return (
     `Curator on v${report.version}: ${code}; review ${issues.length} issue(s) ` +
     `(${blocking(issues)} blocking), ${dropped.length} dropped, ${capped} capped; ` +
+    `${claims.length} claims audited (${coverage.repairs} coverage repair(s), ` +
+    `${coverage.missing.length} left out); ` +
     `${usage.calls} call(s), $${usage.costUsd.toFixed(4)}. ` +
     (report.blocking ? 'Blocking issues: gate 3 waits.' : 'Nothing blocking.')
   );

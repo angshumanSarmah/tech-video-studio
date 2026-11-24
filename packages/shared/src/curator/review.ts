@@ -126,6 +126,60 @@ export type CuratorReview = z.infer<typeof CuratorReviewSchema>;
 /** An issue from an earlier round, as the next round's input lists it. */
 export type PreviousIssue = { id: string; issue: CuratorIssue };
 
+// --- The two passes ------------------------------------------------------------------------------
+
+/**
+ * The review runs in two calls with the same system prompt; the user message names the pass and
+ * gives its output shape. PASS claims audits every narration sentence and every board label that
+ * shows a number, each with the ids that support it or an issue; PASS story reports the rest.
+ */
+export const REVIEW_PASSES = ['claims', 'story'] as const;
+export type ReviewPass = (typeof REVIEW_PASSES)[number];
+
+export const PASS_CATEGORIES: Readonly<Record<ReviewPass, readonly ReviewCategory[]>> = {
+  claims: ['unsupported_claim', 'number_wrong_meaning'],
+  story: REVIEW_CATEGORIES.filter((c) => c !== 'unsupported_claim' && c !== 'number_wrong_meaning'),
+};
+
+export const ClaimSchema = z.strictObject({
+  beatId: z.string().trim().min(1),
+  source: z.enum(['narration', 'label']),
+  elementId: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .describe('For a label: the board element (its id in BOARD).'),
+  text: QuoteSchema.describe('The whole sentence, or the label text or value, copied exactly.'),
+  verdict: z
+    .enum(['supported', 'no_claim', 'issue'])
+    .describe(
+      'supported: the ids state it; no_claim: it states no fact or number (a question, a link); issue: reported under issues.',
+    ),
+  ids: z
+    .array(ResearchIdSchema)
+    .max(8)
+    .describe('The "fact-<n>" and "num-<n>" ids that state it; empty unless supported.'),
+});
+export type Claim = z.infer<typeof ClaimSchema>;
+
+export const ClaimsPassSchema = z.strictObject({
+  claims: z
+    .array(ClaimSchema)
+    .max(200)
+    .describe(
+      'Every narration sentence of every beat, and every board label that shows a number, in order.',
+    ),
+  issues: z
+    .array(CuratorIssueSchema)
+    .max(40)
+    .describe('Only unsupported_claim and number_wrong_meaning.'),
+});
+export type ClaimsPass = z.infer<typeof ClaimsPassSchema>;
+
+/** PASS story's answer: the other categories, and a second round's statuses. */
+export const StoryPassSchema = CuratorReviewSchema;
+
 // --- Code's rules per category -------------------------------------------------------------------
 
 type SeverityCap = Readonly<Record<ExplanationLevel, z.infer<typeof IssueSeveritySchema>>>;

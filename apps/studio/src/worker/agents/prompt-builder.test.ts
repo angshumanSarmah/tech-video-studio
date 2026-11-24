@@ -75,8 +75,9 @@ describe('buildPrompt', () => {
     // A role without a registered schema (its step comes later) gets no output section.
     const analyst = buildPrompt(templates, parts('analyst')).messages[0]!.content;
     expect(analyst).not.toContain('## OUTPUT SHAPE');
+    // The Curator gives each pass's output shape in its user message instead (two passes).
     const curator = buildPrompt(templates, parts('curator')).messages[0]!.content;
-    expect(curator).toContain('"number_wrong_meaning"');
+    expect(curator).not.toContain('## OUTPUT SHAPE');
   });
 
   it('keeps the system message identical across runs with different input (cache prefix)', () => {

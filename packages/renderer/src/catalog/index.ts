@@ -44,3 +44,4 @@ export * from './colour-checks.ts';
 export * from './variety-checks.ts';
 export * from './curator-checks.ts';
 export * from './board-description.ts';
+export * from './term-checks.ts';

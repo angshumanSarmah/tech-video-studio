@@ -189,6 +189,8 @@ export interface CuratorSeed {
   readonly what: string;
   readonly apply: (spec: RenderableVideoSpec) => void;
   readonly expect: IssueMatch;
+  /** A code finding that also catches it (on the seed's beat). */
+  readonly codeCatch?: string;
 }
 
 type Scene = RenderableVideoSpec['scenes'][number];
@@ -345,6 +347,7 @@ export const CURATOR_SEEDS: readonly CuratorSeed[] = [
       }
     },
     expect: { beatId: 'beat3', categories: ['term_before_shown'] },
+    codeCatch: 'term_shown_late',
   },
   {
     id: 'above-level',
@@ -462,7 +465,20 @@ export function evaluateTopic(
   };
 }
 
-/** Whether a seed's review caught it. */
-export function seedCaught(issues: readonly CuratorIssue[], seed: CuratorSeed): boolean {
-  return issues.some((i) => matches(i, seed.expect));
+/** Who caught a seed: the review, else a code check (`codeCatch` on the seed's beat), else nobody. */
+export function seedCatcher(
+  issues: readonly CuratorIssue[],
+  codeIssues: readonly { path: string; code: string }[],
+  spec: RenderableVideoSpec,
+  seed: CuratorSeed,
+): 'review' | 'code' | null {
+  if (issues.some((i) => matches(i, seed.expect))) return 'review';
+  const beat = seed.expect.beatId;
+  const index = spec.scenes.findIndex((s) => s.beatId === beat);
+  const k = spec.script.findIndex((s) => s.beatId === beat);
+  const onBeat = (path: string) =>
+    path.startsWith(`$.scenes[${index}]`) || path.startsWith(`$.script[${k}]`);
+  return seed.codeCatch && codeIssues.some((c) => c.code === seed.codeCatch && onBeat(c.path))
+    ? 'code'
+    : null;
 }

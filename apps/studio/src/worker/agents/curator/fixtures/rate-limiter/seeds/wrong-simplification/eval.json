@@ -1,4 +1,5 @@
 {
   "seed": "wrong-simplification",
-  "caught": true
+  "caught": true,
+  "by": "review"
 }

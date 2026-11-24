@@ -1,6 +1,6 @@
 /**
  * `pnpm --filter @explainer-studio/studio curator:fixture [--topic <topic>] [--seeded <id>]
- * [--replay] [--record]`: runs the Curator (code checks, then the review) on a fixture topic's
+ * [--replay] [--record] [--timeout <sec>]`: runs the Curator (code checks, then the review) on a fixture topic's
  * finished spec: the recorded plan, script and boards with the committed timing, or that spec
  * with one seeded fault (`--seeded <id>`, which picks its topic; ids in
  * `agents/curator/fixtures.ts`). The Researcher and Director replay their recordings (the run
@@ -27,7 +27,8 @@ import {
   curatorSeed,
   evalPath,
   evaluateTopic,
-  seedCaught,
+  seedCatcher,
+  seededSpec,
   TOPIC_EXPECTATIONS,
   type CuratorSeed,
 } from '#worker/agents/curator/fixtures.ts';
@@ -37,6 +38,7 @@ import {
   recordedChain,
 } from '#worker/agents/curator/testing.ts';
 import { fixtureTopic, type FixtureTopic } from '#worker/agents/fixture-topics.ts';
+import { fixtureGeneratedSpec } from '#worker/agents/generator/testing.ts';
 import { loadPromptTemplates, PROMPTS_DIR } from '#worker/agents/prompts/templates.ts';
 import { curateJobHandler } from '#worker/jobs/curate.ts';
 import { DIRECT_JOB_TYPE, directJobHandler } from '#worker/jobs/direct.ts';
@@ -140,6 +142,14 @@ function printReport(report: CuratorReport): void {
     console.log(`      dropped: ${d.why}`);
     for (const r of d.reasons) console.log(`        ${r.path} ${r.code}: ${r.message}`);
   }
+  console.log(
+    `\n  claims audited: ${review.claims.length}; coverage repairs ${review.coverage.repairs}; ` +
+      `calls claims ${review.calls.claims}, story ${review.calls.story}`,
+  );
+  for (const m of review.coverage.missing) console.log(`    still missing: ${m}`);
+  const verdicts = new Map<string, number>();
+  for (const c of review.claims) verdicts.set(c.verdict, (verdicts.get(c.verdict) ?? 0) + 1);
+  console.log(`  verdicts: ${[...verdicts].map(([v, n]) => `${v} ${n}`).join(', ')}`);
   const u = review.usage;
   console.log(
     `\n  usage: ${u.calls} call(s), $${u.costUsd.toFixed(4)}; input ${u.inCached} cached + ` +
@@ -152,10 +162,11 @@ function printReport(report: CuratorReport): void {
 function evaluate(topic: FixtureTopic, seed: CuratorSeed | undefined, report: CuratorReport) {
   const issues = report.review?.issues ?? [];
   if (seed) {
-    const caught = seedCaught(issues, seed);
-    console.log(`\n  seed ${seed.id} (${seed.category}): ${caught ? 'CAUGHT' : 'MISSED'}`);
+    const spec = seededSpec(fixtureGeneratedSpec(seed.topic), seed);
+    const by = seedCatcher(issues, report.codeIssues, spec, seed);
+    console.log(`\n  seed ${seed.id} (${seed.category}): ${by ? `CAUGHT by ${by}` : 'MISSED'}`);
     console.log(`    ${seed.what}`);
-    return { seed: seed.id, caught };
+    return { seed: seed.id, caught: by !== null, by };
   }
   const result = evaluateTopic(issues, TOPIC_EXPECTATIONS[topic.id]);
   console.log(`\n  must-find found: ${result.found.join(', ') || 'none'}`);
@@ -172,8 +183,24 @@ function record(db: Db, dataDir: string, runId: number, dir: string, result: unk
   console.log(`  recorded ${n} response(s) and the eval -> ${dir}`);
 }
 
+/**
+ * `--timeout <sec>`: a longer per-request limit for this run only (the review's reasoning can
+ * run past the default `llm.requestTimeoutSec` when the provider is slow).
+ */
+function withTimeout(config: AppConfig, argv: readonly string[]): AppConfig {
+  const i = argv.indexOf('--timeout');
+  if (i < 0) return config;
+  const sec = Number(argv[i + 1]);
+  if (!Number.isInteger(sec) || sec < 10 || sec > 1800) {
+    throw new Error(
+      `--timeout needs whole seconds from 10 to 1800; got ${argv[i + 1] ?? '(none)'}`,
+    );
+  }
+  return { ...config, llm: { ...config.llm, requestTimeoutSec: sec } };
+}
+
 async function main(): Promise<number> {
-  const config = loadConfig();
+  const config = withTimeout(loadConfig(), process.argv);
   const seed = seedArg(process.argv);
   const topic = seed ? fixtureTopic(seed.topic) : topicArg(process.argv);
   const replay = process.argv.includes('--replay');

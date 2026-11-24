@@ -1,20 +1,56 @@
 [
   {
-    "content": "{\"issues\":[{\"beatId\":\"b7\",\"category\":\"unsupported_claim\",\"severity\":\"blocking\",\"owner\":\"scriptwriter\",\"fields\":[\"narration\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"That reply with Paris now fits.\"},{\"kind\":\"fact\",\"id\":\"fact-26\",\"quote\":\"After the change, Corrowby counts tokens with the exact tokenizer of the model it calls, writes prompt and reply budgets in tokens, and produces per-language cost reports.\"}],\"problem\":\"The closing line claims the Paris reply now fits, an outcome for that specific reply that no fact or number in the notes states; the notes only say Corrowby switched to the model's exact tokenizer and to token budgets.\",\"fix\":\"End on what fact-26 supports (exact tokenizer counts, budgets written in tokens, per-language cost reports) and drop the assertion that this particular reply now fits.\"}]}",
+    "content": "{\"claims\":[{\"beatId\":\"b1\",\"source\":\"narration\",\"text\":\"Why does one word get three token counts?\",\"verdict\":\"no_claim\",\"ids\":[]},{\"beatId\":\"b1\",\"source\":\"narration\",\"text\":\"Plain Paris, spaced Paris, shouted Paris.\",\"verdict\":\"supported\",\"ids\":[\"fact-20\"]},{\"beatId\":\"b1\",\"source\":\"narration\",\"text\":\"A token is a chunk that becomes one number.\",\"verdict\":\"supported\",\"ids\":[\"fact-1\"]},{\"beatId\":\"b2\",\"source\":\"narration\",\"text\":\"A tokenizer turns text into tokens.\",\"verdict\":\"supported\",\"ids\":[\"fact-1\"]},{\"beatId\":\"b2\",\"source\":\"narration\",\"text\":\"Characters keep the vocabulary — the fixed list of pieces — tiny, but paragraphs become thousands of steps.\",\"verdict\":\"supported\",\"ids\":[\"fact-4\",\"fact-3\"]},{\"beatId\":\"b2\",\"source\":\"narration\",\"text\":\"Whole words leave new names no entry, so subword pieces sit between.\",\"verdict\":\"supported\",\"ids\":[\"fact-5\",\"fact-6\"]},{\"beatId\":\"b3\",\"source\":\"narration\",\"text\":\"Learning starts from raw bytes: two hundred fifty-six values, so any text can be written.\",\"verdict\":\"supported\",\"ids\":[\"fact-7\",\"num-2\"]},{\"beatId\":\"b3\",\"source\":\"narration\",\"text\":\"Then count neighbouring pairs, join the most frequent — 't' plus 'h' becomes 'th' — and repeat.\",\"verdict\":\"supported\",\"ids\":[\"fact-8\"]},{\"beatId\":\"b3\",\"source\":\"label\",\"elementId\":\"byte-vocab\",\"text\":\"256\",\"verdict\":\"supported\",\"ids\":[\"num-2\",\"fact-7\"]},{\"beatId\":\"b4\",\"source\":\"narration\",\"text\":\"Early merges join common pairs; late merges build whole words.\",\"verdict\":\"supported\",\"ids\":[\"fact-9\"]},{\"beatId\":\"b4\",\"source\":\"narration\",\"text\":\"Encoding replays them in that order: 'the' becomes one token, an unusual word stays in pieces.\",\"verdict\":\"supported\",\"ids\":[\"fact-10\"]},{\"beatId\":\"b5\",\"source\":\"narration\",\"text\":\"To encode new text, pre-tokenization cuts it into chunks that merges never cross.\",\"verdict\":\"supported\",\"ids\":[\"fact-15\"]},{\"beatId\":\"b5\",\"source\":\"narration\",\"text\":\"A space sticks to the next word; capitals break the pattern.\",\"verdict\":\"supported\",\"ids\":[\"fact-15\",\"fact-20\"]},{\"beatId\":\"b5\",\"source\":\"narration\",\"text\":\"So plain Paris is one token, and PARIS needs three.\",\"verdict\":\"supported\",\"ids\":[\"fact-20\",\"num-7\"]},{\"beatId\":\"b6\",\"source\":\"narration\",\"text\":\"Corrowby bills every request in tokens, yet the team budgeted from word counts.\",\"verdict\":\"supported\",\"ids\":[\"fact-21\"]},{\"beatId\":\"b6\",\"source\":\"narration\",\"text\":\"English replies ran about one point three tokens per word.\",\"verdict\":\"supported\",\"ids\":[\"fact-22\",\"num-4\"]},{\"beatId\":\"b6\",\"source\":\"narration\",\"text\":\"A language rare in training needed about three times as many.\",\"verdict\":\"supported\",\"ids\":[\"fact-23\",\"num-5\"]},{\"beatId\":\"b6\",\"source\":\"label\",\"elementId\":\"stat-1-3\",\"text\":\"about 1.3\",\"verdict\":\"supported\",\"ids\":[\"num-4\",\"fact-22\"]},{\"beatId\":\"b6\",\"source\":\"label\",\"elementId\":\"rare-card\",\"text\":\"about 3× the tokens\",\"verdict\":\"supported\",\"ids\":[\"num-5\",\"fact-23\"]},{\"beatId\":\"b7\",\"source\":\"narration\",\"text\":\"So Corrowby counts tokens with the exact tokenizer of the model it calls, and writes budgets in tokens per language.\",\"verdict\":\"supported\",\"ids\":[\"fact-26\"]},{\"beatId\":\"b7\",\"source\":\"narration\",\"text\":\"That reply with Paris now fits.\",\"verdict\":\"issue\",\"ids\":[]}],\"issues\":[{\"beatId\":\"b7\",\"category\":\"unsupported_claim\",\"severity\":\"blocking\",\"owner\":\"scriptwriter\",\"fields\":[\"narration\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"That reply with Paris now fits.\"},{\"kind\":\"fact\",\"id\":\"fact-26\",\"quote\":\"writes prompt and reply budgets in tokens, and produces per-language cost reports.\"}],\"problem\":\"No note states that the example Paris reply fits after the switch; the notes only say counting became exact and budgets are written in tokens.\",\"fix\":\"Replace the result with the stated change, e.g. 'That reply with Paris is now budgeted in the model's own tokens.'\"}]}",
     "servedModel": "deepseek-flash",
     "finishReason": "stop",
     "usage": {
-      "prompt_tokens": 12284,
-      "completion_tokens": 21268,
-      "prompt_cache_hit_tokens": 2944,
-      "prompt_cache_miss_tokens": 9340,
+      "prompt_tokens": 13021,
+      "completion_tokens": 13800,
+      "prompt_cache_hit_tokens": 12800,
+      "prompt_cache_miss_tokens": 221,
       "prompt_tokens_details": {
-        "cached_tokens": 2944
+        "cached_tokens": 12800
       },
       "completion_tokens_details": {
-        "reasoning_tokens": 21077
+        "reasoning_tokens": 12748
       },
-      "total_tokens": 33552
+      "total_tokens": 26821
+    }
+  },
+  {
+    "content": "{\"issues\":[{\"beatId\":\"b4\",\"category\":\"term_before_shown\",\"severity\":\"advisory\",\"owner\":\"scriptwriter\",\"fields\":[\"narration\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"Encoding replays them in that order\"},{\"kind\":\"label\",\"elementId\":\"encoded\",\"quote\":\"ENCODED\"},{\"kind\":\"note\",\"quote\":\"on the way out the same tokenizer turns them back into text\"}],\"problem\":\"\\\"Encoding\\\" is used here for the first time as if it were already known, and the board only shows the word \\\"ENCODED\\\" three words later, so the beginner has no plain gloss for the step that turns text into ids.\",\"fix\":\"Gloss it inline in the narration, e.g. \\\"Encoding — turning text into tokens — replays them in that order\\\".\",\"evidence_note\":\"x\"},{\"beatId\":\"b5\",\"category\":\"wrong_simplification\",\"severity\":\"blocking\",\"owner\":\"scriptwriter\",\"fields\":[\"narration\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"A space sticks to the next word; capitals break the pattern.\"},{\"kind\":\"fact\",\"id\":\"fact-15\",\"quote\":\"letters stay together, punctuation is split off, and a space is kept at the start of the word that follows it\"},{\"kind\":\"fact\",\"id\":\"fact-20\",\"quote\":\"Capital letters, leading spaces and rare spellings change how a word splits\"}],\"problem\":\"Placing \\\"capitals break the pattern\\\" inside the pre-tokenization sentence teaches that capital letters create a chunk border, but pre-tokenization keeps letters together; capitals only split because no merge learned those uppercase pieces, so the cause is stated wrongly.\",\"fix\":\"Drop capitals from the pre-tokenization sentence and state that uppercase pieces were never merged, e.g. \\\"a space is kept with the next word; uppercase pieces were never merged\\\", keeping \\\"PARIS needs three\\\".\",\"evidence_note\":\"x\"},{\"beatId\":\"b7\",\"category\":\"missing_trade_off\",\"severity\":\"advisory\",\"owner\":\"scriptwriter\",\"fields\":[\"narration\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"So Corrowby counts tokens with the exact tokenizer of the model it calls\"},{\"kind\":\"note\",\"quote\":\"You must ship and run the exact tokenizer and build per-language reporting\"}],\"problem\":\"The closing recommendation to count with the model's own tokenizer gives no cost, so an engineer leaves without knowing that exact counting means shipping and running that tokenizer and building per-language reporting.\",\"fix\":\"Add one short clause naming the cost, e.g. \\\"at the price of shipping the tokenizer and per-language reports\\\".\",\"evidence_note\":\"x\"}]}",
+    "servedModel": "deepseek-flash",
+    "finishReason": "stop",
+    "usage": {
+      "prompt_tokens": 12702,
+      "completion_tokens": 9519,
+      "prompt_cache_hit_tokens": 12544,
+      "prompt_cache_miss_tokens": 158,
+      "prompt_tokens_details": {
+        "cached_tokens": 12544
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 8947
+      },
+      "total_tokens": 22221
+    }
+  },
+  {
+    "content": "{\"issues\":[{\"beatId\":\"b4\",\"category\":\"term_before_shown\",\"severity\":\"advisory\",\"owner\":\"scriptwriter\",\"fields\":[\"narration\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"Encoding replays them in that order\"},{\"kind\":\"label\",\"elementId\":\"encoded\",\"quote\":\"ENCODED\"},{\"kind\":\"note\",\"quote\":\"on the way out the same tokenizer turns them back into text\"}],\"problem\":\"\\\"Encoding\\\" is used here for the first time as if it were already known, and the board only shows the word \\\"ENCODED\\\" three words later, so the beginner has no plain gloss for the step that turns text into ids.\",\"fix\":\"Gloss it inline in the narration, e.g. \\\"Encoding — turning text into tokens — replays them in that order\\\".\"},{\"beatId\":\"b5\",\"category\":\"wrong_simplification\",\"severity\":\"blocking\",\"owner\":\"scriptwriter\",\"fields\":[\"narration\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"A space sticks to the next word; capitals break the pattern.\"},{\"kind\":\"fact\",\"id\":\"fact-15\",\"quote\":\"letters stay together, punctuation is split off, and a space is kept at the start of the word that follows it\"},{\"kind\":\"fact\",\"id\":\"fact-20\",\"quote\":\"Capital letters, leading spaces and rare spellings change how a word splits\"}],\"problem\":\"Placing \\\"capitals break the pattern\\\" inside the pre-tokenization sentence teaches that capital letters create a chunk border, but pre-tokenization keeps letters together; capitals only split because no merge learned those uppercase pieces, so the cause is stated wrongly.\",\"fix\":\"Drop capitals from the pre-tokenization sentence and state that uppercase pieces were never merged, e.g. \\\"a space is kept with the next word; uppercase pieces were never merged\\\", keeping \\\"PARIS needs three\\\".\"},{\"beatId\":\"b7\",\"category\":\"missing_trade_off\",\"severity\":\"advisory\",\"owner\":\"director\",\"fields\":[\"plan\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"So Corrowby counts tokens with the exact tokenizer of the model it calls\"},{\"kind\":\"note\",\"quote\":\"You must ship and run the exact tokenizer and build per-language reporting\"}],\"problem\":\"The closing recommendation to count with the model's own tokenizer gives no cost, so an engineer leaves without knowing that exact counting means shipping and running that tokenizer and building per-language reporting.\",\"fix\":\"Plan the ending so it names that cost in one short clause, e.g. \\\"at the price of shipping the tokenizer and per-language reports\\\".\"}]}",
+    "servedModel": "deepseek-flash",
+    "finishReason": "stop",
+    "usage": {
+      "prompt_tokens": 13398,
+      "completion_tokens": 905,
+      "prompt_cache_hit_tokens": 12672,
+      "prompt_cache_miss_tokens": 726,
+      "prompt_tokens_details": {
+        "cached_tokens": 12672
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 350
+      },
+      "total_tokens": 14303
     }
   }
 ]

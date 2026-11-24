@@ -1,19 +1,23 @@
 import type { Registries } from '@explainer-studio/renderer/catalog';
 import {
   capSeverity,
-  curatorIssueProblems,
-  CuratorReviewSchema,
+  ClaimsPassSchema,
+  reviewPassProblems,
+  StoryPassSchema,
+  type Claim,
   type CodeIssue,
   type CuratorIssue,
   type CuratorReview,
   type DroppedIssue,
   type ExplanationLevel,
+  type LogLevel,
   type RenderableVideoSpec,
   type ResearchNotes,
   type ReviewCategory,
   type ReviewCheckContext,
-  type LogLevel,
+  type ReviewPass,
 } from '@explainer-studio/shared';
+import type { z } from 'zod';
 import type { CheckAttempt, LlmClient } from '../../llm/client.ts';
 import type { OutputIssue } from '../../llm/types.ts';
 import { buildPrompt } from '../prompt-builder.ts';
@@ -22,11 +26,15 @@ import type { PromptTemplates } from '../prompts/templates.ts';
 import { beatOfPath, curatorUserMessage, reviewBeatTexts, type CuratorRound } from './input.ts';
 
 /**
- * The Curator's review call (P1C.8 part 2): one call per video. The answer is verified by
- * `curatorIssueProblems` as the call's `check`, so evidence that is not in the input is sent
- * back for repair; on the last attempt those problems are soft, the answer comes back, and
- * `settleReview` drops what still does not verify. It also drops an issue that repeats a code
- * finding on the same beat, and caps each severity by category and level (`capSeverity`).
+ * The Curator's review (P1C.8 part 2): two calls per video with the same system prompt and the
+ * same user message up to its last section, which names the pass and its output shape (so the
+ * second call reuses the cached prefix). PASS claims audits every narration sentence and every
+ * numeric board label; PASS story reports the other categories. Each answer is checked by
+ * `reviewPassProblems` as the call's `check`: evidence not in the input, an issue of the other
+ * pass, or (claims) a sentence left out is sent back for repair; on the last attempt those
+ * problems are soft, the answer comes back, and `settleReview` drops the issues that still do not
+ * verify. It also drops an issue that repeats a code finding on the same beat, and caps each
+ * severity by category and level (`capSeverity`).
  */
 
 export interface ReviewDeps {
@@ -56,15 +64,63 @@ export interface SettledReview {
 }
 
 export interface ReviewResult extends SettledReview {
-  readonly callIds: readonly number[];
+  /** PASS claims' audit, as answered. */
+  readonly claims: Claim[];
+  /** Repair turns the claims pass needed for left-out sentences or labels, and what stayed out. */
+  readonly coverage: { readonly repairs: number; readonly missing: string[] };
+  readonly calls: Readonly<Record<ReviewPass, readonly number[]>>;
 }
 
+/** Problems that mean the claims pass left a sentence or a numeric label out. */
+const COVERAGE_CODES: readonly string[] = ['claim_missing', 'label_claim_missing'];
+
 export async function reviewSpec(deps: ReviewDeps, request: ReviewRequest): Promise<ReviewResult> {
-  const checkContext: ReviewCheckContext = {
-    beats: reviewBeatTexts(request.spec, { registries: deps.registries }),
-    notes: request.notes,
+  const beats = reviewBeatTexts(request.spec, request.notes, { registries: deps.registries });
+  const claimsContext: ReviewCheckContext = { beats, notes: request.notes };
+  const storyContext: ReviewCheckContext = {
+    ...claimsContext,
     ...(request.round ? { previousIds: request.round.previous.map((p) => p.id) } : {}),
   };
+  let coverageRepairs = 0;
+  const claims = await runPass(deps, request, 'claims', ClaimsPassSchema, claimsContext, () => {
+    coverageRepairs += 1;
+  });
+  const story = await runPass(deps, request, 'story', StoryPassSchema, storyContext);
+  const settle = (
+    pass: ReviewPass,
+    review: { issues: CuratorIssue[] },
+    check: ReviewCheckContext,
+  ) =>
+    settleReview(pass, review, {
+      check,
+      level: request.level,
+      spec: request.spec,
+      codeIssues: request.codeIssues,
+    });
+  const fromClaims = settle('claims', claims.value, claimsContext);
+  const fromStory = settle('story', story.value, storyContext);
+  const missing = reviewPassProblems('claims', claims.value, claimsContext)
+    .filter((p) => COVERAGE_CODES.includes(p.code))
+    .map((p) => p.message);
+  return {
+    issues: [...fromClaims.issues, ...fromStory.issues],
+    dropped: [...fromClaims.dropped, ...fromStory.dropped],
+    capped: fromClaims.capped + fromStory.capped,
+    ...(story.value.previous ? { previous: story.value.previous } : {}),
+    claims: claims.value.claims,
+    coverage: { repairs: coverageRepairs, missing },
+    calls: { claims: claims.callIds, story: story.callIds },
+  };
+}
+
+async function runPass<S extends z.ZodType>(
+  deps: ReviewDeps,
+  request: ReviewRequest,
+  pass: ReviewPass,
+  schema: S,
+  check: ReviewCheckContext,
+  onCoverageRepair?: () => void,
+) {
   const prompt = buildPrompt(deps.prompts, {
     role: 'curator',
     variables: deps.variables,
@@ -74,44 +130,49 @@ export async function reviewSpec(deps: ReviewDeps, request: ReviewRequest): Prom
       level: request.level,
       codeIssues: request.codeIssues,
       registries: deps.registries,
+      pass,
       ...(request.round ? { round: request.round } : {}),
     }),
   });
-  const result = await deps.llm.callJson({
+  return deps.llm.callJson({
     role: 'curator',
     prompt,
-    schema: CuratorReviewSchema,
+    schema,
     runId: deps.runId,
     stepId: deps.stepId,
-    check: reviewCheck(checkContext),
+    check: passCheck(pass, check, onCoverageRepair),
     ...(deps.signal ? { signal: deps.signal } : {}),
     ...(deps.log ? { log: deps.log } : {}),
   });
-  const settled = settleReview(result.value, {
-    check: checkContext,
-    level: request.level,
-    spec: request.spec,
-    codeIssues: request.codeIssues,
-  });
-  return { ...settled, callIds: result.callIds };
 }
 
-/** Verification as the call's check: repaired while repairs are left, soft on the last attempt. */
-export function reviewCheck(
+/**
+ * A pass's verification as the call's check: repaired while repairs are left, soft on the last
+ * attempt. `onCoverageRepair` hears each repair turn a left-out sentence or label causes.
+ */
+export function passCheck(
+  pass: ReviewPass,
   ctx: ReviewCheckContext,
+  onCoverageRepair?: () => void,
 ): (value: unknown, attempt: CheckAttempt) => OutputIssue[] {
-  return (value, attempt) =>
-    curatorIssueProblems(value, ctx).map((p) => ({
+  return (value, attempt) => {
+    const problems = reviewPassProblems(pass, value, ctx);
+    if (!attempt.final && problems.some((p) => COVERAGE_CODES.includes(p.code))) {
+      onCoverageRepair?.();
+    }
+    return problems.map((p) => ({
       path: p.path,
       code: p.code,
       message: p.message,
       ...(attempt.final ? { soft: true } : {}),
     }));
+  };
 }
 
 /** Code findings a review category would only repeat, on the same beat. */
 const REPEATS_CODE: Partial<Record<ReviewCategory, readonly string[]>> = {
   hook_retold: ['hook_number_repeated'],
+  term_before_shown: ['term_shown_late'],
 };
 
 export interface SettleContext {
@@ -121,9 +182,13 @@ export interface SettleContext {
   readonly codeIssues: readonly CodeIssue[];
 }
 
-/** The verified issues, severities capped; what was dropped and why. Pure. */
-export function settleReview(review: CuratorReview, ctx: SettleContext): SettledReview {
-  const problems = curatorIssueProblems(review, ctx.check);
+/** A pass's verified issues, severities capped; what was dropped and why. Pure. */
+export function settleReview(
+  pass: ReviewPass,
+  review: { issues: readonly CuratorIssue[] },
+  ctx: SettleContext,
+): SettledReview {
+  const problems = reviewPassProblems(pass, { issues: review.issues }, ctx.check);
   const issues: CuratorIssue[] = [];
   const dropped: DroppedIssue[] = [];
   let capped = 0;
@@ -145,12 +210,7 @@ export function settleReview(review: CuratorReview, ctx: SettleContext): Settled
     if (kept.severity !== issue.severity) capped += 1;
     issues.push(kept);
   });
-  return {
-    issues,
-    dropped,
-    capped,
-    ...(review.previous ? { previous: review.previous } : {}),
-  };
+  return { issues, dropped, capped };
 }
 
 function repeatedCodeFinding(issue: CuratorIssue, ctx: SettleContext) {

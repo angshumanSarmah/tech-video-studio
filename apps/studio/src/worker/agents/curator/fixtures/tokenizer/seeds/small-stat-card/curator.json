@@ -1,38 +1,74 @@
 [
   {
-    "content": "{\"issues\":[{\"beatId\":\"b5\",\"category\":\"wrong_simplification\",\"severity\":\"blocking\",\"owner\":\"scriptwriter\",\"fields\":[\"narration\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"A space sticks to the next word; capitals break the pattern.\"},{\"kind\":\"label\",\"elementId\":\"t-caps\",\"quote\":\"capitals split\"},{\"kind\":\"fact\",\"id\":\"fact-15\",\"quote\":\"letters stay together, punctuation is split off, and a space is kept at the start of the word that follows it\"},{\"kind\":\"fact\",\"id\":\"fact-20\",\"quote\":\"Capital letters, leading spaces and rare spellings change how a word splits\"},{\"kind\":\"note\",\"quote\":\"A word's token count depends on how common its pieces were in the training text, so counts vary by word, case and language.\"}],\"problem\":\"Said inside the pre-tokenization rule list, \\\"capitals break the pattern\\\" reads as a chunking rule, but the notes' pre-tokenization rules cover only letters, punctuation, spaces and digits; capitals change the split because uppercase pieces were rare in training, not because pre-tokenization cuts them.\",\"fix\":\"Replace it with a case note tied to the merges, e.g. \\\"capitals were rare in training, so fewer learned merges join them\\\", instead of listing capitals as a pre-tokenization wall.\"},{\"beatId\":\"b5\",\"category\":\"small_stat_card\",\"severity\":\"advisory\",\"owner\":\"scriptwriter\",\"fields\":[\"stat_cards\"],\"evidence\":[{\"kind\":\"stat_card\",\"quote\":\"3\"},{\"kind\":\"narration\",\"quote\":\"and PARIS needs three\"}],\"problem\":\"The card \\\"3 / tokens for PARIS\\\" repeats a count of three that the narration already says and that the three TOKEN slots in \\\"ALL CAPS\\\" already draw.\",\"fix\":\"Drop the stat card and let the three-slot grid carry the count.\"},{\"beatId\":\"b7\",\"category\":\"missing_trade_off\",\"severity\":\"advisory\",\"owner\":\"scriptwriter\",\"fields\":[\"narration\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"So Corrowby counts tokens with the exact tokenizer of the model it calls\"},{\"kind\":\"note\",\"quote\":\"You must ship and run the exact tokenizer and build per-language reporting; the team still argues over whether to use per-language tables or count every message.\"}],\"problem\":\"The ending presents counting with the model's own tokenizer as a free fix, while the cost the notes attach to it — shipping and running that exact tokenizer and building per-language reporting — never appears.\",\"fix\":\"Add one short clause to the closing line noting that this means shipping and running the model's exact tokenizer, keeping the time by trimming words elsewhere in the same line.\"}]}",
+    "content": "{\"claims\":[{\"beatId\":\"b1\",\"source\":\"narration\",\"text\":\"Why does one word get three token counts?\",\"verdict\":\"no_claim\",\"ids\":[]},{\"beatId\":\"b1\",\"source\":\"narration\",\"text\":\"Plain Paris, spaced Paris, shouted Paris.\",\"verdict\":\"no_claim\",\"ids\":[]},{\"beatId\":\"b1\",\"source\":\"narration\",\"text\":\"A token is a chunk that becomes one number.\",\"verdict\":\"supported\",\"ids\":[\"fact-1\"]},{\"beatId\":\"b2\",\"source\":\"narration\",\"text\":\"A tokenizer turns text into tokens.\",\"verdict\":\"supported\",\"ids\":[\"fact-1\"]},{\"beatId\":\"b2\",\"source\":\"narration\",\"text\":\"Characters keep the vocabulary — the fixed list of pieces — tiny, but paragraphs become thousands of steps.\",\"verdict\":\"supported\",\"ids\":[\"fact-4\"]},{\"beatId\":\"b2\",\"source\":\"narration\",\"text\":\"Whole words leave new names no entry, so subword pieces sit between.\",\"verdict\":\"supported\",\"ids\":[\"fact-5\",\"fact-6\"]},{\"beatId\":\"b3\",\"source\":\"narration\",\"text\":\"Learning starts from raw bytes: two hundred fifty-six values, so any text can be written.\",\"verdict\":\"supported\",\"ids\":[\"fact-7\",\"num-2\"]},{\"beatId\":\"b3\",\"source\":\"narration\",\"text\":\"Then count neighbouring pairs, join the most frequent — 't' plus 'h' becomes 'th' — and repeat.\",\"verdict\":\"supported\",\"ids\":[\"fact-8\"]},{\"beatId\":\"b3\",\"source\":\"label\",\"elementId\":\"byte-vocab\",\"text\":\"256\",\"verdict\":\"supported\",\"ids\":[\"num-2\"]},{\"beatId\":\"b4\",\"source\":\"narration\",\"text\":\"Early merges join common pairs; late merges build whole words.\",\"verdict\":\"supported\",\"ids\":[\"fact-9\"]},{\"beatId\":\"b4\",\"source\":\"narration\",\"text\":\"Encoding replays them in that order: 'the' becomes one token, an unusual word stays in pieces.\",\"verdict\":\"supported\",\"ids\":[\"fact-10\"]},{\"beatId\":\"b5\",\"source\":\"narration\",\"text\":\"To encode new text, pre-tokenization cuts it into chunks that merges never cross.\",\"verdict\":\"supported\",\"ids\":[\"fact-15\"]},{\"beatId\":\"b5\",\"source\":\"narration\",\"text\":\"A space sticks to the next word; capitals break the pattern.\",\"verdict\":\"supported\",\"ids\":[\"fact-15\",\"fact-20\"]},{\"beatId\":\"b5\",\"source\":\"narration\",\"text\":\"So plain Paris is one token, and PARIS needs three.\",\"verdict\":\"supported\",\"ids\":[\"fact-20\",\"num-7\"]},{\"beatId\":\"b5\",\"source\":\"label\",\"elementId\":\"caps-count\",\"text\":\"3\",\"verdict\":\"supported\",\"ids\":[\"num-7\"]},{\"beatId\":\"b6\",\"source\":\"narration\",\"text\":\"Corrowby bills every request in tokens, yet the team budgeted from word counts.\",\"verdict\":\"supported\",\"ids\":[\"fact-21\"]},{\"beatId\":\"b6\",\"source\":\"narration\",\"text\":\"English replies ran about one point three tokens per word.\",\"verdict\":\"supported\",\"ids\":[\"fact-22\",\"num-4\"]},{\"beatId\":\"b6\",\"source\":\"narration\",\"text\":\"A language rare in training needed about three times as many.\",\"verdict\":\"supported\",\"ids\":[\"fact-23\",\"num-5\"]},{\"beatId\":\"b6\",\"source\":\"label\",\"elementId\":\"stat-1-3\",\"text\":\"about 1.3\",\"verdict\":\"supported\",\"ids\":[\"num-4\"]},{\"beatId\":\"b6\",\"source\":\"label\",\"elementId\":\"rare-card\",\"text\":\"about 3× the tokens\",\"verdict\":\"supported\",\"ids\":[\"num-5\"]},{\"beatId\":\"b7\",\"source\":\"narration\",\"text\":\"So Corrowby counts tokens with the exact tokenizer of the model it calls, and writes budgets in tokens per language.\",\"verdict\":\"supported\",\"ids\":[\"fact-26\"]},{\"beatId\":\"b7\",\"source\":\"narration\",\"text\":\"That reply with Paris now fits.\",\"verdict\":\"issue\",\"ids\":[]}],\"issues\":[{\"beatId\":\"b7\",\"category\":\"unsupported_claim\",\"severity\":\"blocking\",\"owner\":\"scriptwriter\",\"fields\":[\"narration\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"That reply with Paris now fits.\"},{\"kind\":\"fact\",\"id\":\"fact-26\",\"quote\":\"After the change, Corrowby counts tokens with the exact tokenizer of the model it calls, writes prompt and reply budgets in tokens, and produces per-language cost reports.\"}],\"problem\":\"The notes never state that this particular reply now fits; they only say exact token counting makes budgets match billing and limits.\",\"fix\":\"Replace the sentence with a supported outcome, such as that counting exactly matches what the model is billed and limited by.\"}]}",
     "servedModel": "deepseek-flash",
     "finishReason": "stop",
     "usage": {
-      "prompt_tokens": 12491,
-      "completion_tokens": 13487,
-      "prompt_cache_hit_tokens": 10496,
-      "prompt_cache_miss_tokens": 1995,
+      "prompt_tokens": 13228,
+      "completion_tokens": 14754,
+      "prompt_cache_hit_tokens": 8832,
+      "prompt_cache_miss_tokens": 4396,
       "prompt_tokens_details": {
-        "cached_tokens": 10496
+        "cached_tokens": 8832
       },
       "completion_tokens_details": {
-        "reasoning_tokens": 12899
+        "reasoning_tokens": 13676
       },
-      "total_tokens": 25978
+      "total_tokens": 27982
     }
   },
   {
-    "content": "{\"issues\":[{\"beatId\":\"b5\",\"category\":\"wrong_simplification\",\"severity\":\"blocking\",\"owner\":\"scriptwriter\",\"fields\":[\"narration\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"A space sticks to the next word; capitals break the pattern.\"},{\"kind\":\"label\",\"elementId\":\"t-caps\",\"quote\":\"capitals split\"},{\"kind\":\"fact\",\"id\":\"fact-15\",\"quote\":\"letters stay together, punctuation is split off, and a space is kept at the start of the word that follows it\"},{\"kind\":\"fact\",\"id\":\"fact-20\",\"quote\":\"Capital letters, leading spaces and rare spellings change how a word splits\"},{\"kind\":\"note\",\"quote\":\"A word's token count depends on how common its pieces were in the training text, so counts vary by word, case and language.\"}],\"problem\":\"In the pre-tokenization rule list, \\\"capitals break the pattern\\\" reads as a chunking rule, but the notes' chunk rules cover only letters, punctuation, spaces and digits; capitals change the split because uppercase pieces were rare in training.\",\"fix\":\"Replace it with a case note tied to the merges, e.g. \\\"capitals were rare in training, so fewer learned merges join them\\\", instead of listing capitals as a pre-tokenization wall.\"},{\"beatId\":\"b5\",\"category\":\"small_stat_card\",\"severity\":\"advisory\",\"owner\":\"scriptwriter\",\"fields\":[\"stat_cards\"],\"evidence\":[{\"kind\":\"stat_card\",\"quote\":\"3\"},{\"kind\":\"narration\",\"quote\":\"and PARIS needs three\"}],\"problem\":\"The card \\\"3 / tokens for PARIS\\\" repeats a count of three that the narration already says and that the three TOKEN slots in \\\"ALL CAPS\\\" already draw.\",\"fix\":\"Drop the stat card and let the three-slot grid carry the count.\"},{\"beatId\":\"b7\",\"category\":\"missing_trade_off\",\"severity\":\"advisory\",\"owner\":\"director\",\"fields\":[\"plan\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"So Corrowby counts tokens with the exact tokenizer of the model it calls\"},{\"kind\":\"note\",\"quote\":\"You must ship and run the exact tokenizer and build per-language reporting; the team still argues over whether to use per-language tables or count every message.\"}],\"problem\":\"The ending presents counting with the model's own tokenizer as a free fix, while the cost the notes attach to it — shipping and running that exact tokenizer and building per-language reporting — never appears.\",\"fix\":\"Plan b7 to include that cost in its closing line, e.g. note that this means shipping and running the model's exact tokenizer, and trims elsewhere in the beat to keep its length.\"}]}",
+    "content": "{\"issues\":[{\"beatId\":\"b5\",\"category\":\"small_stat_card\",\"severity\":\"advisory\",\"owner\":\"scriptwriter\",\"fields\":[\"stat_cards\"],\"evidence\":[{\"kind\":\"stat_card\",\"quote\":\"3\"},{\"kind\":\"narration\",\"quote\":\"So plain Paris is one token, and PARIS needs three.\"}],\"problem\":\"The stat card exists only to show the count \\\"3\\\", a small number the narration already says out loud in the same sentence.\",\"fix\":\"Drop the \\\"3 tokens for PARIS\\\" stat card and let the three-slot caps grid plus the spoken \\\"three\\\" carry the payoff.\"},{\"beatId\":\"b7\",\"category\":\"missing_trade_off\",\"severity\":\"advisory\",\"owner\":\"scriptwriter\",\"fields\":[\"narration\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"writes budgets in tokens per language\"},{\"kind\":\"note\",\"quote\":\"You must ship and run the exact tokenizer and build per-language reporting; the team still argues over whether to use per-language tables or count every message.\"}],\"problem\":\"The resolution presents exact token counting as a pure win, while the notes say it costs shipping and running the model's tokenizer plus per-language reporting, and the team still disagrees on per-language tables versus counting every message.\",\"fix\":\"Add one short clause in the closing line naming the cost, e.g. that this means running the model's own tokenizer and reporting per language.\"}]}",
     "servedModel": "deepseek-flash",
     "finishReason": "stop",
     "usage": {
-      "prompt_tokens": 13174,
-      "completion_tokens": 885,
-      "prompt_cache_hit_tokens": 12416,
-      "prompt_cache_miss_tokens": 758,
+      "prompt_tokens": 12909,
+      "completion_tokens": 5334,
+      "prompt_cache_hit_tokens": 10752,
+      "prompt_cache_miss_tokens": 2157,
       "prompt_tokens_details": {
-        "cached_tokens": 12416
+        "cached_tokens": 10752
       },
       "completion_tokens_details": {
-        "reasoning_tokens": 305
+        "reasoning_tokens": 5030
       },
-      "total_tokens": 14059
+      "total_tokens": 18243
+    }
+  },
+  {
+    "content": "{\"issues\":[{\"beatId\":\"b5\",\"category\":\"small_stat_card\",\"severity\":\"advisory\",\"owner\":\"scriptwriter\",\"fields\":[\"stat_cards\"],\"evidence\":[{\"kind\":\"stat_card\",\"quote\":\"3\"},{\"kind\":\"narration\",\"quote\":\"So plain Paris is one token, and PARIS needs three.\"}],\"problem\":\"The stat card exists only to show the count \\\"3\\\", a small number the narration already says out loud in the same sentence.\",\"fix\":\"Drop the \\\"3 tokens for PARIS\\\" stat card and let the three-slot caps grid plus the spoken \\\"three\\\" carry the payoff.\"},{\"beatId\":\"b7\",\"category\":\"missing_trade_off\",\"severity\":\"advisory\",\"owner\":\"director\",\"fields\":[\"narration\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"writes budgets in tokens per language\"},{\"kind\":\"note\",\"quote\":\"You must ship and run the exact tokenizer and build per-language reporting; the team still argues over whether to use per-language tables or count every message.\"}],\"problem\":\"The resolution presents exact token counting as a pure win, while the notes say it costs shipping and running the model's tokenizer plus per-language reporting, and the team still disagrees on per-language tables versus counting every message.\",\"fix\":\"Add one short clause in the closing line naming the cost, e.g. that this means running the model's own tokenizer and reporting per language.\"}]}",
+    "servedModel": "deepseek-flash",
+    "finishReason": "stop",
+    "usage": {
+      "prompt_tokens": 13289,
+      "completion_tokens": 553,
+      "prompt_cache_hit_tokens": 12800,
+      "prompt_cache_miss_tokens": 489,
+      "prompt_tokens_details": {
+        "cached_tokens": 12800
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 249
+      },
+      "total_tokens": 13842
+    }
+  },
+  {
+    "content": "{\"issues\":[{\"beatId\":\"b5\",\"category\":\"small_stat_card\",\"severity\":\"advisory\",\"owner\":\"scriptwriter\",\"fields\":[\"stat_cards\"],\"evidence\":[{\"kind\":\"stat_card\",\"quote\":\"3\"},{\"kind\":\"narration\",\"quote\":\"So plain Paris is one token, and PARIS needs three.\"}],\"problem\":\"The stat card exists only to show the count \\\"3\\\", a small number the narration already says out loud in the same sentence.\",\"fix\":\"Drop the \\\"3 tokens for PARIS\\\" stat card and let the three-slot caps grid plus the spoken \\\"three\\\" carry the payoff.\"},{\"beatId\":\"b7\",\"category\":\"missing_trade_off\",\"severity\":\"advisory\",\"owner\":\"director\",\"fields\":[\"plan\"],\"evidence\":[{\"kind\":\"narration\",\"quote\":\"writes budgets in tokens per language\"},{\"kind\":\"note\",\"quote\":\"You must ship and run the exact tokenizer and build per-language reporting; the team still argues over whether to use per-language tables or count every message.\"}],\"problem\":\"The resolution presents exact token counting as a pure win, while the notes say it costs shipping and running the model's tokenizer plus per-language reporting, and the team still disagrees on per-language tables versus counting every message.\",\"fix\":\"Add one short clause in the closing line naming the cost, e.g. that this means running the model's own tokenizer and reporting per language.\"}]}",
+    "servedModel": "deepseek-flash",
+    "finishReason": "stop",
+    "usage": {
+      "prompt_tokens": 13661,
+      "completion_tokens": 354,
+      "prompt_cache_hit_tokens": 13184,
+      "prompt_cache_miss_tokens": 477,
+      "prompt_tokens_details": {
+        "cached_tokens": 13184
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 51
+      },
+      "total_tokens": 14015
     }
   }
 ]

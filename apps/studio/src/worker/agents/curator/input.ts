@@ -9,6 +9,9 @@ import {
 } from '@explainer-studio/renderer/catalog';
 import { getTheme, type Theme } from '@explainer-studio/renderer/theme';
 import {
+  ClaimsPassSchema,
+  StoryPassSchema,
+  type ReviewPass,
   dateOnlyKeys,
   foldTerm,
   measuredBeatLengths,
@@ -26,6 +29,8 @@ import {
   type ReviewBeatTexts,
   type StoryBeat,
 } from '@explainer-studio/shared';
+import type { z } from 'zod';
+import { outputSchemaSection } from '../prompt-builder.ts';
 import { notesWithoutChunks } from '../sections.ts';
 
 /**
@@ -54,6 +59,8 @@ export interface CuratorMessageInput {
   /** `curatorCodeChecks` on the same spec. */
   readonly codeIssues: readonly CodeIssue[];
   readonly round?: CuratorRound;
+  /** Which pass this call is (`REVIEW_PASSES`): its task and output shape close the message. */
+  readonly pass: ReviewPass;
   readonly registries?: Registries;
   readonly theme?: Theme;
 }
@@ -75,15 +82,18 @@ export function curatorUserMessage(input: CuratorMessageInput): string {
       beatSection(input, beat, i, boards.get(beat.id), findings.get(beat.id) ?? [], changed),
     ),
     ...(input.round ? roundSections(input.round) : []),
+    ...passSections(input.pass),
   ].join('\n\n');
 }
 
 /** Each beat's texts as the message shows them: what an evidence quote must come from. */
 export function reviewBeatTexts(
   spec: RenderableVideoSpec,
+  notes: ResearchNotes,
   options: { registries?: Registries; theme?: Theme } = {},
 ): ReviewBeatTexts[] {
   const boards = describeBoards({ spec, ...options });
+  const research = numberIndex(notes).idsByKey;
   return spec.story.beats.map((beat) => {
     const script = scriptOf(spec, beat.id);
     const board = boards.get(beat.id);
@@ -95,8 +105,20 @@ export function reviewBeatTexts(
       stat_card: (script?.statCards ?? []).flatMap((c) => [c.value, c.label]),
       source: script?.source ? [script.source] : [],
       labels: Object.fromEntries(board ? labelEntries(board) : []),
+      numberLabels: numberLabels(board, research),
     };
   });
+}
+
+/** Elements the beat adds whose texts or values state a research number (PASS claims lists each). */
+function numberLabels(
+  board: BoardDescription | undefined,
+  research: ReadonlyMap<string, readonly string[]>,
+): string[] {
+  const shown = boardNumbers(board).filter((s) =>
+    s.keys.some((k) => !EVERYDAY_KEYS.has(k) && research.has(k)),
+  );
+  return [...new Set(shown.flatMap((s) => (s.id ? [s.id] : [])))];
 }
 
 // --- Shared pieces -------------------------------------------------------------------------------
@@ -316,7 +338,7 @@ function numberText(n: ResearchNotes['numbers'][number]): string {
  * A text that states numbers: narration mentions as spoken, screen texts whole ("one of 24
  * nodes"), drawn numbers as values; `keys` are the values it states.
  */
-type Shown = { where: string; text: string; keys: string[] };
+type Shown = { where: string; text: string; keys: string[]; id?: string };
 
 /** Every number the beat says or shows, with the research numbers that state its value. */
 function numberLines(
@@ -372,11 +394,13 @@ function boardNumbers(board: BoardDescription | undefined): Shown[] {
         where: `board ${item.id} ${n.key}`,
         text: String(n.value),
         keys: [numberKey(n.value)],
+        id: item.id,
       })),
       ...item.texts.map((t) => ({
         where: `board ${item.id} ${t.key}`,
         text: t.value,
         keys: keysOf(t.value),
+        id: item.id,
       })),
     ]);
 }
@@ -486,4 +510,32 @@ function evidenceText(e: Evidence): string {
     default:
       return `${e.kind.replace('_', ' ')} ${quoted(e.quote)}`;
   }
+}
+
+// --- The pass ---------------------------------------------------------------------------------------
+
+const PASS_TASKS: Readonly<Record<ReviewPass, string>> = {
+  claims:
+    'List every narration sentence of every beat, in order and copied exactly (source ' +
+    '"narration"), and every board element a beat adds that NUMBERS shows with a research ' +
+    'number (source "label", its elementId, one of its texts or values). Give each a verdict: ' +
+    'supported, with the fact and number ids that state it (check who does what to whom); ' +
+    'no_claim, when it states no fact or number (a question, a link); or issue, with the issue ' +
+    'under issues quoting it. Report only unsupported_claim and number_wrong_meaning here. Code ' +
+    'checks that every sentence and every such element is listed.',
+  story:
+    'Report every other category across the whole video: wrong_simplification, ' +
+    'visual_contradicts, visual_distracts, term_before_shown, above_level, hook_retold, ' +
+    'small_stat_card and missing_trade_off. Do not report unsupported_claim or ' +
+    'number_wrong_meaning: the claims pass covers them.',
+};
+
+const PASS_SCHEMAS: Readonly<Record<ReviewPass, z.ZodType>> = {
+  claims: ClaimsPassSchema,
+  story: StoryPassSchema,
+};
+
+/** The pass's task and its output shape: the only part that differs between the two calls. */
+function passSections(pass: ReviewPass): string[] {
+  return [section(`PASS ${pass}`, PASS_TASKS[pass]), outputSchemaSection(PASS_SCHEMAS[pass])];
 }

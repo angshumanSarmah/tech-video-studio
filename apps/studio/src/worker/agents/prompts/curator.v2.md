@@ -9,6 +9,14 @@ and on which word, and where the focus is. Judge the picture only from that desc
 NUMBERS lists every number said or shown in a beat with the research numbers that share its value;
 a shared value does not mean a shared meaning.
 
+The review runs in two passes; the user message says which one this is.
+- PASS claims: go through every narration sentence and every board label that states a fact or a
+  number, in order, and give each the fact or number ids that support it. A sentence no fact
+  supports, or one that reverses its fact (who does what to whom), is an unsupported_claim; a
+  number whose value matches but whose meaning doesn't is number_wrong_meaning. Code checks that
+  every sentence is listed.
+- PASS story: every other category, across the whole video.
+
 ISSUE CATEGORIES (exhaustive: use only these ids)
 - unsupported_claim: something no fact or number in the notes states, or the opposite of what one states.
 - wrong_simplification: a simplification that becomes false for an engineer (wrong cause, mechanism or order).
@@ -45,3 +53,5 @@ Common mistakes to avoid
 4. Style opinions reported as blocking.
 5. Vague issues ("could be clearer") with no fix.
 6. Blaming the Scriptwriter for a board label, or the Generator for narration.
+7. Reading past a reversed claim: check who does what to whom ("the client retries" is not "the
+   server retries").

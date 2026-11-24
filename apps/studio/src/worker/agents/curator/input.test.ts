@@ -4,6 +4,7 @@ import {
   curatorIssueProblems,
   DEFAULT_VIDEO_SETTINGS,
   type CuratorIssue,
+  type ReviewPass,
 } from '@explainer-studio/shared';
 import { describe, expect, it } from 'vitest';
 import { FIXTURE_WORDS_PER_SEC, fixtureTopic, type FixtureTopicId } from '../fixture-topics.ts';
@@ -15,7 +16,9 @@ const SERIES = {
   tokenizer: { name: 'AI', label: 'AI' },
 } as const;
 
-function message(topic: FixtureTopicId, round?: Parameters<typeof curatorUserMessage>[0]['round']) {
+type Round = Parameters<typeof curatorUserMessage>[0]['round'];
+
+function message(topic: FixtureTopicId, round?: Round, pass: ReviewPass = 'claims') {
   const spec = fixtureGeneratedSpec(topic);
   const notes = recordedNotes(topic);
   const video = { ...DEFAULT_VIDEO_SETTINGS, wordsPerSec: FIXTURE_WORDS_PER_SEC };
@@ -34,13 +37,25 @@ function message(topic: FixtureTopicId, round?: Parameters<typeof curatorUserMes
     notes,
     level: video.explanationLevel,
     codeIssues,
+    pass,
     ...(round ? { round } : {}),
   });
 }
 
 describe('curatorUserMessage', () => {
-  it.each(['rate-limiter', 'tokenizer'] as const)('%s: what the review reads', async (topic) => {
+  it.each(['rate-limiter', 'tokenizer'] as const)('%s: what PASS claims reads', async (topic) => {
     await expect(message(topic)).toMatchFileSnapshot(`./__snapshots__/${topic}.message.txt`);
+  });
+
+  it('gives both passes the same message up to the pass, so the second call hits the cache', () => {
+    const claims = message('rate-limiter');
+    const story = message('rate-limiter', undefined, 'story');
+    const at = claims.indexOf('## PASS claims');
+    expect(at).toBeGreaterThan(0);
+    expect(story.slice(0, at)).toBe(claims.slice(0, at));
+    expect(story.slice(at)).toContain('## PASS story');
+    expect(story).toContain('"previous"');
+    expect(claims).toContain('"verdict"');
   });
 
   it('describes a board in words a quote can be checked against', () => {
@@ -85,14 +100,14 @@ describe('curatorUserMessage', () => {
       '- issue-1 · beat5 · number_wrong_meaning · blocking · generator: <example-problem> ' +
         'Evidence: label latency "round trip per request"; number num-6. Fix asked: <example-fix>',
     );
-    expect(text.trimEnd().endsWith('beat5')).toBe(true);
+    expect(text.indexOf('## CHANGED BEATS')).toBeLessThan(text.indexOf('## PASS claims'));
   });
 });
 
 describe('reviewBeatTexts', () => {
   it('lets a quote of anything the message shows verify', () => {
     const spec = fixtureGeneratedSpec('rate-limiter');
-    const beats = reviewBeatTexts(spec);
+    const beats = reviewBeatTexts(spec, recordedNotes('rate-limiter'));
     const review = {
       issues: [
         {
@@ -129,5 +144,18 @@ describe('reviewBeatTexts', () => {
     expect(curatorIssueProblems(review, { beats, notes: recordedNotes('rate-limiter') })).toEqual(
       [],
     );
+  });
+});
+
+describe('reviewBeatTexts: the numeric labels PASS claims must list', () => {
+  it('lists each element a beat adds that shows a research number', () => {
+    const beats = reviewBeatTexts(
+      fixtureGeneratedSpec('rate-limiter'),
+      recordedNotes('rate-limiter'),
+    );
+    const labels = Object.fromEntries(beats.map((b) => [b.beatId, b.numberLabels]));
+    expect(labels.beat2).toEqual(['bucket', 'refill']);
+    expect(labels.beat5).toEqual(['latency']);
+    expect(labels.beat7).toEqual([]);
   });
 });
