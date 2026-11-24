@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { generatorAssetSwaps, generatorCheck, type GeneratorCheckDeps } from './check.ts';
 import {
   countBoard,
+  fixtureGeneratedSpec,
   fixtureScriptedSpec,
   hookBoard,
   recordedNotes,
@@ -97,6 +98,20 @@ describe('generatorCheck: seeded faults, with paths into the answer', () => {
 
   it('no focus (beat check)', () => {
     expect(paths(issues(0, { ...hookBoard(), focus: [] }))).toContain('$.focus focus_missing');
+  });
+
+  it('on a timed spec (a regenerate or a repair), despite its stale event-time cache', () => {
+    // The timed spec's `timing.events` belong to the boards it was timed with; a new board
+    // makes them stale, which must not stop the checks.
+    const recorded = fixtureGeneratedSpec('rate-limiter');
+    const cache = recorded.scenes[0]!.events.map((_, eventIndex) => ({
+      beatId: 'beat1',
+      eventIndex: eventIndex + 20,
+      atSec: 1,
+    }));
+    const timed = { ...recorded, timing: { ...recorded.timing!, events: cache } };
+    const check = generatorCheck({ spec: timed, scenes: [...timed.scenes], beatIndex: 0, notes });
+    expect(paths(check({ ...hookBoard(), focus: [] }))).toContain('$.focus focus_missing');
   });
 
   it('an issue this beat causes in an earlier beat of its board, reported as such', () => {

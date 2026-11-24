@@ -707,6 +707,9 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   only while the beat on screen has that footnote); layout sizes with `chain` (only when every
   beat from the one that adds it to the end of its board has it), so a card is never drawn
   larger than its box.
+- **Spliced specs drop `timing.events`** (`spliceBoards`): the cache belongs to the boards the
+  spec was timed with, and a stale one fails validation (`unknown_reference` under `$.timing`),
+  which stopped every board check of a regenerate or repair on a timed spec before it ran.
 - **The user message** (`generator/input.ts`, `generatorUserMessage`): sections VIDEO (title,
   running example, planted question), BEAT, SCRIPT, NARRATION WORDS (one line per
   `narrationWords` word: index, word as written, seconds from the beat's start; the beat's
@@ -960,9 +963,11 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   changed narration's board remapped (`remapAnchors`, shared `spec/remap-anchors.ts`: LCS over
   `narrationWords`, word and `word_text` anchors moved, beat edges kept; a lost anchored word
   means the board is drawn again); (4) boards on an interim spec (remapped boards, placeholders
-  where anchors were lost, timed without their holds): a lost anchor, a Generator request (its
-  issues are the feedback) or a remapped board that fails its checks is redrawn through the
-  regenerate path (`redrawBeat`, exported from `jobs/generate.ts` with `redrawDependents`,
+  where anchors were lost, timed without their holds): a lost anchor or a Generator request (its
+  issues are the feedback) is redrawn through the regenerate path; a remapped board (or one whose
+  script changed around it) that gains an issue it did not have before, advisory included, is
+  redrawn once with those issues as feedback, and kept as it was if the Generator cannot clear
+  them (the Curator's code checks then badge them for gate 3); both through the regenerate path (`redrawBeat`, exported from `jobs/generate.ts` with `redrawDependents`,
   `beatBoardIssues`, `generatorStepContext`, `assetRegistries`), then the later beats of its
   board (and a following semantic zoom) that no longer pass; (5) re-timed with the final boards
   and saved as one version. Beats not named keep their script and board byte for byte.

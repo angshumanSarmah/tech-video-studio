@@ -18,7 +18,12 @@ export interface GeneratorBoards {
   readonly scenes: readonly (BeatScene | undefined)[];
 }
 
-/** The spec with `scene` at beat `index` (when given), generated scenes and placeholders. */
+/**
+ * The spec with `scene` at beat `index` (when given), generated scenes and placeholders. The
+ * timing keeps its words but drops `timing.events`, the cache of the boards it was timed with:
+ * spliced boards make it stale, and a stale cache fails validation (`unknown_reference` under
+ * `$.timing`), which would stop every board check before it ran.
+ */
 export function spliceBoards(
   boards: GeneratorBoards,
   index?: number,
@@ -29,7 +34,8 @@ export function spliceBoards(
   const scenes = spec.story.beats.map((beat, k) =>
     k === index && scene ? scene : (boards.scenes[k] ?? placeholderScene(beat)),
   );
-  return { ...spec, script: spec.script, scenes };
+  const timing = spec.timing ? { timing: { ...spec.timing, events: [] } } : {};
+  return { ...spec, script: spec.script, scenes, ...timing };
 }
 
 /** An empty board for a beat not generated yet. */

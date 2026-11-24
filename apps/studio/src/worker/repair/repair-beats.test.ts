@@ -1,5 +1,9 @@
 import { join } from 'node:path';
+import { beatCheckWarnings } from '@explainer-studio/renderer/catalog';
 import {
+  GeneratorOutputSchema,
+  remapAnchors,
+  sentenceStartIndexes,
   SettingsSchema,
   type GeneratorOutput,
   type RenderableVideoSpec,
@@ -13,7 +17,12 @@ import { getSpecVersion } from '#core/db/repositories/spec-versions.ts';
 import { createTestDb, type TestDb } from '#core/db/testing.ts';
 import { saveSpecVersion } from '#core/services/spec-versions.ts';
 import { findWorkspaceRoot } from '#core/workspace-root.ts';
-import { fixtureResponsesDir, fixtureRunSettings, fixtureTopic } from '../agents/fixture-topics.ts';
+import {
+  fixtureResponsesDir,
+  fixtureRunSettings,
+  fixtureTopic,
+  type FixtureTopicId,
+} from '../agents/fixture-topics.ts';
 import {
   fixtureGeneratedSpec,
   recordedBoards,
@@ -38,8 +47,10 @@ import { fixtureTts, type FixtureTts } from './testing.ts';
 
 const prompts = loadPromptTemplates(join(findWorkspaceRoot(import.meta.dirname), PROMPTS_DIR));
 const settings = SettingsSchema.parse({});
-const researcher = recordedInOrder(fixtureResponsesDir('researcher', 'rate-limiter'), 'researcher');
-const director = recordedInOrder(fixtureResponsesDir('director', 'rate-limiter'), 'director');
+const chain = (topic: FixtureTopicId) => ({
+  researcher: recordedInOrder(fixtureResponsesDir('researcher', topic), 'researcher'),
+  director: recordedInOrder(fixtureResponsesDir('director', topic), 'director'),
+});
 
 let t: TestDb;
 let tts: FixtureTts;
@@ -58,27 +69,30 @@ const answer = (value: unknown): DryRunResponse => ({
   usage: null,
 });
 
-function client(fixtures: DryRunFixtures) {
+function client(fixtures: DryRunFixtures, topic: FixtureTopicId = 'rate-limiter') {
   return createLlmClient({
     db: t.db,
     dataDir: t.dataDir,
     llm: settings.llm,
-    transport: dryRunTransport({ researcher, director, ...fixtures }),
+    transport: dryRunTransport({ ...chain(topic), ...fixtures }),
   });
 }
 
-/** The rate limiter's run with research and plan replayed, and its finished spec as v1. */
-async function fixtureRun(): Promise<{ runId: number; specVersionId: number }> {
-  const llm = client({});
+/** A fixture topic's run with research and plan replayed, and its finished spec as v1. */
+async function fixtureRun(
+  topic: FixtureTopicId = 'rate-limiter',
+  edit: (spec: RenderableVideoSpec) => void = () => undefined,
+): Promise<{ runId: number; specVersionId: number }> {
+  const llm = client({}, topic);
   const deps = { db: t.db, dataDir: t.dataDir, llm, prompts, settings };
   const reg = createJobRegistry([
     ingestJobHandler(deps),
     researchJobHandler(deps),
     directJobHandler(deps),
   ]);
-  const { topic, sourceFiles, seriesTag } = fixtureTopic('rate-limiter');
-  const { runId } = seedRunWithUploads(t.db, t.dataDir, topic, sourceFiles, {
-    seriesTag,
+  const fixture = fixtureTopic(topic);
+  const { runId } = seedRunWithUploads(t.db, t.dataDir, fixture.topic, fixture.sourceFiles, {
+    seriesTag: fixture.seriesTag,
     settings: fixtureRunSettings(),
   });
   const next = () =>
@@ -89,14 +103,20 @@ async function fixtureRun(): Promise<{ runId: number; specVersionId: number }> {
     await next();
   }
   expect(listRunJobs(t.db, runId).every((j) => j.status === 'done')).toBe(true);
-  const spec = fixtureGeneratedSpec('rate-limiter');
+  const spec = structuredClone(fixtureGeneratedSpec(topic));
+  edit(spec);
   const saved = saveSpecVersion(t.db, t.dataDir, { runId, spec, createdBy: 'agent' });
   return { runId, specVersionId: saved.version.id };
 }
 
 /** The Scriptwriter's recorded beat with a new narration, as a one-beat answer. */
-function revisedBeat(beatId: string, from: string, to: string): DryRunResponse {
-  const beat = recordedScript('rate-limiter').script.find((b) => b.beatId === beatId)!;
+function revisedBeat(
+  beatId: string,
+  from: string,
+  to: string,
+  topic: FixtureTopicId = 'rate-limiter',
+): DryRunResponse {
+  const beat = recordedScript(topic).script.find((b) => b.beatId === beatId)!;
   expect(beat.narration).toContain(from);
   return answer({ script: [{ ...beat, narration: beat.narration.replace(from, to) }] });
 }
@@ -113,9 +133,11 @@ function repair(
   runId: number,
   specVersionId: number,
   requests: RepairRequest[],
+  topic: FixtureTopicId = 'rate-limiter',
 ) {
+  const llm = client(fixtures, topic);
   return repairBeats(
-    { db: t.db, dataDir: t.dataDir, llm: client(fixtures), prompts, tts: tts.provider, settings },
+    { db: t.db, dataDir: t.dataDir, llm, prompts, tts: tts.provider, settings },
     { runId, specVersionId, requests, signal: new AbortController().signal, log: () => undefined },
   );
 }
@@ -216,7 +238,106 @@ describe('repairBeats', () => {
     expect(again.created).toBe(false);
     expect(again.version).toBe(resumed.version);
   });
+
+  describe('a remapped board that gains a warning', () => {
+    beforeEach(() => {
+      tts = fixtureTts('tokenizer', join(t.dataDir, 'fake-tts'));
+    });
+
+    it('is drawn again once, with the warning as feedback', async () => {
+      const { runId, specVersionId } = await fixtureRun('tokenizer');
+      const result = await repair(
+        {
+          scriptwriter: [revisedBeat('b7', ...B7_REWRITE, 'tokenizer')],
+          generator: { b7: [answer(remappedB7({ clearCard: true }))] },
+        },
+        runId,
+        specVersionId,
+        [narrationRequest('b7')],
+        'tokenizer',
+      );
+      expect(result.beats).toEqual([
+        expect.objectContaining({ beatId: 'b7', script: 'revised', board: 'redrawn' }),
+      ]);
+      const calls = listRunLlmCalls(t.db, runId).filter((c) => c.role === 'generator');
+      expect(calls).toHaveLength(1);
+      expect(JSON.stringify(readDataJson(t.dataDir, calls[0]!.promptPath))).toContain(
+        '$.events[1].at: This change happens during the final beat',
+      );
+      expect(beatCheckWarnings(savedSpec(result.specVersionId))).toEqual([]);
+    });
+
+    it('keeps the remapped board when the redraw cannot clear it: the warning goes to the gate', async () => {
+      const { runId, specVersionId } = await fixtureRun('tokenizer');
+      const unfixed = answer(remappedB7({ clearCard: false }));
+      const result = await repair(
+        {
+          scriptwriter: [revisedBeat('b7', ...B7_REWRITE, 'tokenizer')],
+          generator: { b7: [unfixed, unfixed, unfixed] },
+        },
+        runId,
+        specVersionId,
+        [narrationRequest('b7')],
+        'tokenizer',
+      );
+      expect(result.beats).toEqual([
+        expect.objectContaining({ beatId: 'b7', script: 'revised', board: 'remapped' }),
+      ]);
+      expect(roleCalls(runId, 'generator')).toBe(3);
+      expect(beatCheckWarnings(savedSpec(result.specVersionId)).map((w) => w.code)).toEqual([
+        'events_under_ending_card',
+      ]);
+    });
+
+    it('is not drawn again for a warning it already had', async () => {
+      const { runId, specVersionId } = await fixtureRun('tokenizer', (spec) => {
+        // An event on "Paris", in the last sentence: the warning is there before the repair.
+        spec.scenes[6]!.events[1]!.at = { type: 'word', index: 23 };
+      });
+      expect(beatCheckWarnings(savedSpec(specVersionId)).map((w) => w.code)).toEqual([
+        'events_under_ending_card',
+      ]);
+      const result = await repair(
+        { scriptwriter: [revisedBeat('b7', 'So Corrowby counts', 'Corrowby counts', 'tokenizer')] },
+        runId,
+        specVersionId,
+        [narrationRequest('b7')],
+        'tokenizer',
+      );
+      expect(result.beats).toEqual([
+        expect.objectContaining({ beatId: 'b7', script: 'revised', board: 'remapped' }),
+      ]);
+      expect(roleCalls(runId, 'generator')).toBe(0);
+    });
+  });
 });
+
+/** The live tokenizer run's b7 fix: board events move into the sentence the ending card covers. */
+const B7_REWRITE = [
+  ', and writes budgets in tokens per language. That reply with Paris now fits.',
+  '. Prompt and reply budgets are written in tokens, with cost reports per language.',
+] as const;
+
+/**
+ * The recorded b7 board with its anchors moved onto the rewritten narration (what the repair's
+ * remap makes), and with `clearCard` its events in the last sentence moved to the word before it
+ * (a good redraw).
+ */
+function remappedB7({ clearCard }: { clearCard: boolean }): GeneratorOutput {
+  const board = recordedBoards('tokenizer').b7!;
+  const spec = fixtureGeneratedSpec('tokenizer');
+  const before = spec.script[6]!.narration;
+  const after = before.replace(...B7_REWRITE);
+  const remap = remapAnchors(spec.scenes[6]!, before, after);
+  if (!remap.ok) throw new Error('b7 lost an anchor');
+  const lastSentence = sentenceStartIndexes(after).at(-1) ?? 0;
+  const events = remap.scene.events.map((e) =>
+    clearCard && e.at.type === 'word' && e.at.index >= lastSentence
+      ? { ...e, at: { ...e.at, index: lastSentence - 1 } }
+      : e,
+  );
+  return GeneratorOutputSchema.parse({ ...board, events, patterns: remap.scene.patterns });
+}
 
 /** The recorded board with word anchors from `from` on moved by `by` (a narration grew). */
 function shiftedBoard(board: GeneratorOutput, from: number, by: number): GeneratorOutput {

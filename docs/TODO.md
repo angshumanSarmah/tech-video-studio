@@ -34,11 +34,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       each), the other must-finds every time, and flagged no correct line. "Corrowby bills" is
       still hit or miss: decide between a second claims sample merged with the first (about
       +$0.02 a video) and accepting one sample. The hook-retold seed has never been caught.
-- [ ] **P1C.8 — Advisory issues a repair adds.** Keep-best and the round's blocking set count
-      only blocking issues, so a repair that adds advisory ones is kept. In the live tokenizer
-      run, b7's narration fix (remapped) moved board events into the last sentence:
-      `events_under_ending_card` reached gate 3. Decide whether a remapped board that gains a
-      Generator warning should be redrawn in the same repair, or whether the gate badge is enough.
 - [ ] **P1C.8 — Severity of key-idea clarity.** The above-level seed's "an atomic script" came
       back advisory although the issue itself says it is the beat's key idea; at beginner such an
       issue may block (the cap allows it). Check over more runs whether the model under-rates

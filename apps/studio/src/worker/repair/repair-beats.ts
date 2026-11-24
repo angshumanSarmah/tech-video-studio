@@ -64,7 +64,8 @@ import {
   redrawBeat,
   redrawDependents,
 } from '../jobs/generate.ts';
-import { formatIssues, type LlmClient } from '../llm/client.ts';
+import { formatIssues, LlmOutputInvalidError, type LlmClient } from '../llm/client.ts';
+import type { OutputIssue } from '../llm/types.ts';
 import { resolveTimingOptions } from '../timing/assemble.ts';
 import { synthesizeScript, timedSpec } from '../timing/narrate.ts';
 import { timeNarration, type NarratedBeat } from '../timing/step.ts';
@@ -467,22 +468,19 @@ async function redrawBoards(
         : []),
       ...generator.flatMap((r) => r.issues.map((i) => `- [${i.code}] ${i.message}`)),
     ];
-    const issues = feedback.length > 0 ? [] : beatBoardIssues(c, spec, scenes, i);
-    if (feedback.length === 0 && issues.length === 0) {
-      if (remap?.ok) {
-        mark([i], 'remapped');
-        const after = await redrawDependents(c, { spec, scenes, index: i });
-        scenes = after.scenes;
-        mark(after.drawn, 'redrawn');
-      }
+    if (feedback.length === 0) {
+      const gained = gainedIssues(c, ctx, { spec, scenes, index: i });
+      const after = await keptOrRedrawn(c, { spec, scenes, index: i, gained, salt, log: args.log });
+      scenes = after.scenes;
+      if (remap?.ok && !after.drawn.includes(i)) mark([i], 'remapped');
+      mark(after.drawn, 'redrawn');
       continue;
     }
-    const note = issues.length > 0 ? [`The board no longer passes:\n${formatIssues(issues)}`] : [];
     const after = await redrawBeat(c, {
       spec,
       scenes,
       index: i,
-      feedback: [...feedback, ...note].join('\n'),
+      feedback: feedback.join('\n'),
       salt,
     });
     scenes = after.scenes;
@@ -498,6 +496,53 @@ async function redrawBoards(
 }
 
 const base = (beatId: string): Outcome => ({ beatId, script: 'kept', board: 'kept' });
+
+const issueKey = (issue: OutputIssue) => `${issue.code ?? ''}|${issue.path}`;
+
+/**
+ * The issues a beat's board has on the repaired narration that it did not have before the
+ * repair (advisory ones included): what the new words broke, not what was already accepted.
+ */
+function gainedIssues(
+  c: BeatStepContext,
+  ctx: RepairContext,
+  now: { readonly spec: VideoSpec; readonly scenes: readonly BeatScene[]; readonly index: number },
+): OutputIssue[] {
+  const had = new Set(beatBoardIssues(c, ctx.spec, ctx.spec.scenes, now.index).map(issueKey));
+  return beatBoardIssues(c, now.spec, now.scenes, now.index).filter((i) => !had.has(issueKey(i)));
+}
+
+/**
+ * A board that kept its drawing (anchors remapped, or a script change around it): when it gained
+ * issues it is drawn once more with them as feedback; if the Generator cannot clear them, the
+ * board stays as it was and the issues go to the gate (the Curator's code checks find them
+ * again). Then the later beats of its board that no longer pass are redrawn.
+ */
+async function keptOrRedrawn(
+  c: BeatStepContext,
+  req: {
+    readonly spec: VideoSpec;
+    readonly scenes: readonly BeatScene[];
+    readonly index: number;
+    readonly gained: readonly OutputIssue[];
+    readonly salt: string;
+    readonly log: RepairArgs['log'];
+  },
+): Promise<{ scenes: BeatScene[]; drawn: number[] }> {
+  const { spec, scenes, index } = req;
+  if (req.gained.length > 0) {
+    try {
+      const feedback = `The narration changed and the board no longer passes:\n${formatIssues(req.gained)}`;
+      return await redrawBeat(c, { spec, scenes, index, feedback, salt: req.salt });
+    } catch (error) {
+      if (!(error instanceof LlmOutputInvalidError)) throw error;
+      const beatId = spec.story.beats[index]?.id ?? String(index);
+      const codes = [...new Set(req.gained.map((i) => i.code ?? i.path))].join(', ');
+      req.log('warn', `Beat ${beatId}: the redraw did not clear ${codes}; the board is kept.`);
+    }
+  }
+  return redrawDependents(c, { spec, scenes, index });
+}
 
 // --- 5. Result ----------------------------------------------------------------------------------
 
