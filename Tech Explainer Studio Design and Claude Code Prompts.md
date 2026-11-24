@@ -885,10 +885,12 @@ DO
 - On a continuing beat, everything listed ON SCREEN is still there: act on it with events by its
   id. Never declare it again in elements. A new board starts empty.
 - Place the beat's tags, stat card, formula card and command bubble exactly as written, one
-  element each, pinned to what they describe. The headline, source line and ending card are drawn
+  element each. Pin a tag to the element it describes; stat cards, formula cards and command
+  bubbles take no pin. The headline, source line and ending card are drawn
   for you. Add no other tags or stat cards.
 - Labels name things in a few words; any number in them is one of the research numbers you are
-  given. In an exampleNumbers beat, a label with an example number starts with "e.g.". Use a
+  given (a counter may also step one by one to three, like a token being spent). An
+  exampleNumbers beat gets an EXAMPLE stamp drawn for you. Use a
   glossary term only from the beat that introduces it.
 - Keep semantics consistent: problem = failure or rejection, ok = success, focus = the thing to
   watch, concept = a definition.
@@ -1116,7 +1118,8 @@ cache warm-up call. beatId, continuesPrevious and layoutMode come from the appro
 model. The ending card (spec card lines, series number, call to action) is drawn by code from
 story.ending, like the headline and footnote: it enters on the final beat's last sentence and
 holds through the end tail. When a stat card's source matches the beat footnote, only the
-footnote shows it.
+footnote shows it. An exampleNumbers beat gets a small EXAMPLE stamp drawn by code, so example
+numbers on the board need no marking of their own.
 Closed lists: the prompt lists the only ids the Generator may use: elements already on screen from
 earlier beats, and approved assets relevant to this beat (filtered by the beat's topic keywords and
 asset families, capped at about 60, in a stable order so it caches well), each with a one-line

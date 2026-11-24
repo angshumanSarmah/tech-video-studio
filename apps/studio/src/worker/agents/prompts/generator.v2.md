@@ -16,10 +16,12 @@ DO
 - On a continuing beat, everything listed ON SCREEN is still there: act on it with events by its
   id. Never declare it again in elements. A new board starts empty.
 - Place the beat's tags, stat card, formula card and command bubble exactly as written, one
-  element each, pinned to what they describe. The headline, source line and ending card are drawn
+  element each. Pin a tag to the element it describes; stat cards, formula cards and command
+  bubbles take no pin. The headline, source line and ending card are drawn
   for you. Add no other tags or stat cards.
 - Labels name things in a few words; any number in them is one of the research numbers you are
-  given. In an exampleNumbers beat, a label with an example number starts with "e.g.". Use a
+  given (a counter may also step one by one to three, like a token being spent). An
+  exampleNumbers beat gets an EXAMPLE stamp drawn for you. Use a
   glossary term only from the beat that introduces it.
 - Keep semantics consistent: problem = failure or rejection, ok = success, focus = the thing to
   watch, concept = a definition.
