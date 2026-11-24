@@ -27,6 +27,12 @@ import { saveSpecVersion } from '#core/services/spec-versions.ts';
 import { findWorkspaceRoot } from '#core/workspace-root.ts';
 import { DIRECTOR_RESPONSES_DIR } from '../agents/director/testing.ts';
 import {
+  FIXTURE_TOPIC_IDS,
+  fixtureResponsesDir,
+  fixtureTopic,
+  type FixtureTopicId,
+} from '../agents/fixture-topics.ts';
+import {
   failoverBoard,
   fixtureScriptedSpec,
   hookBoard,
@@ -35,6 +41,7 @@ import {
   countBoard,
   type FixtureBoard,
 } from '../agents/generator/testing.ts';
+import { loadTimingFixture, withFixtureTiming } from '../agents/generator/timing-fixture.ts';
 import { loadPromptTemplates, PROMPTS_DIR } from '../agents/prompts/templates.ts';
 import {
   RATE_LIMITER_RESPONSES_DIR,
@@ -43,9 +50,15 @@ import {
   seedRunWithUploads,
 } from '../agents/researcher/testing.ts';
 import { createLlmClient } from '../llm/client.ts';
-import { dryRunTransport, recordedInOrder, type DryRunResponse } from '../llm/dry-run.ts';
+import {
+  dryRunTransport,
+  loadDryRunFixtures,
+  recordedInOrder,
+  type DryRunResponse,
+} from '../llm/dry-run.ts';
 import type { LlmTransport, TokenUsage } from '../llm/types.ts';
 import { runNextJob } from '../runner.ts';
+import { resolveTimingOptions } from '../timing/assemble.ts';
 import { DIRECT_JOB_TYPE, directJobHandler } from './direct.ts';
 import { GENERATE_JOB_TYPE, generateJobHandler } from './generate.ts';
 import { ingestJobHandler } from './ingest.ts';
@@ -519,5 +532,74 @@ describe('generate job (rate-limiter fixture, hand-written boards, dry run)', ()
     expect(warnings).toEqual([
       expect.objectContaining({ beatId: 'beat2', code: 'unknown_asset', soft: true }),
     ]);
+  });
+});
+
+/**
+ * P1C.7's acceptance: each fixture topic's recorded chain replayed (Researcher, Director, then
+ * the Generator per beat, repairs included), on spec v1 timed with the committed fixture as the
+ * recording was made, gives a clean video: no call beyond the recording, no post-pass retry,
+ * nothing left for gate 3.
+ */
+describe('generate job (both fixture topics, recorded Generator answers)', () => {
+  function recordedRegistry(topic: FixtureTopicId): {
+    reg: JobRegistry;
+    recordedCalls: number;
+  } {
+    const generator = loadDryRunFixtures(fixtureResponsesDir('generator', topic)).generator!;
+    const llm = createLlmClient({
+      db: t.db,
+      dataDir: t.dataDir,
+      llm: settings.llm,
+      transport: dryRunTransport({
+        researcher: recordedInOrder(fixtureResponsesDir('researcher', topic), 'researcher'),
+        director: recordedInOrder(fixtureResponsesDir('director', topic), 'director'),
+        generator,
+      }),
+      now: () => NOW,
+    });
+    const deps = { db: t.db, dataDir: t.dataDir, llm, prompts, settings };
+    const reg = createJobRegistry([
+      ingestJobHandler(deps),
+      researchJobHandler(deps),
+      directJobHandler(deps),
+      generateJobHandler(deps),
+    ]);
+    return { reg, recordedCalls: Object.values(generator).flat().length };
+  }
+
+  async function timedRun(topic: FixtureTopicId, reg: JobRegistry) {
+    const { topic: details, sourceFiles, seriesTag } = fixtureTopic(topic);
+    const { runId } = seedRunWithUploads(t.db, t.dataDir, details, sourceFiles, { seriesTag });
+    await runNext(reg);
+    for (const type of [RESEARCH_JOB_TYPE, DIRECT_JOB_TYPE]) {
+      enqueueJob(t.db, { type, runId });
+      await runNext(reg);
+    }
+    const scripted = validateVideoSpec(fixtureScriptedSpec(topic)).spec!;
+    const pauses = resolveTimingOptions(undefined, settings.timing);
+    const spec = withFixtureTiming(scripted, loadTimingFixture(topic), pauses);
+    const saved = saveSpecVersion(t.db, t.dataDir, { runId, spec, createdBy: 'agent' });
+    return { runId, specVersionId: saved.version.id };
+  }
+
+  it.each(FIXTURE_TOPIC_IDS)('%s replays clean', async (topic) => {
+    const { reg, recordedCalls } = recordedRegistry(topic);
+    const { runId, specVersionId } = await timedRun(topic, reg);
+    const job = await generate(reg, runId, { specVersionId });
+    expect(job.status, job.error ?? '').toBe('done');
+
+    const generation = latestGeneration(t.db, t.dataDir, runId)!;
+    expect(generation.output.warnings).toEqual([]);
+    expect(generation.output.beats.map((b) => [b.beatId, b.outcome, b.retried])).toEqual(
+      latestSpec(runId).story.beats.map((b) => [b.id, 'generated', false]),
+    );
+    expect(generatorCalls(runId)).toHaveLength(recordedCalls);
+
+    const spec = latestSpec(runId);
+    const checked = withRegistryChecks(validateRenderableVideoSpec(spec), spec, DEFAULT_REGISTRIES);
+    expect(checked.errors).toEqual([]);
+    expect(specLayoutWarnings(checked.spec!, getTheme())).toEqual([]);
+    expect(readMissingAssets(t.dataDir, runId)).toEqual([]);
   });
 });

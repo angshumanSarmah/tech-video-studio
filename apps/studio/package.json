@@ -30,7 +30,8 @@
     "director:fixture": "tsx scripts/director-fixture.ts",
     "scriptwriter:fixture": "tsx scripts/scriptwriter-fixture.ts",
     "generator:timing": "tsx scripts/generator-timing.ts",
-    "generator:fixture": "tsx scripts/generator-fixture.ts"
+    "generator:fixture": "tsx scripts/generator-fixture.ts",
+    "draft:fixture": "tsx scripts/draft-fixture.ts"
   },
   "dependencies": {
     "@explainer-studio/renderer": "workspace:*",

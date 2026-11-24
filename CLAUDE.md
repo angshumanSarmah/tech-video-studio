@@ -766,6 +766,15 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   beat's attempts with issue codes (`llm_calls.error` lists them: `invalidOutputError`), usage
   and cache hits, the post-pass, assets and every board with its words. `--record` writes the
   keyed recording only when the job finished within `--max-repairs` per beat.
+  `jobs/generate.test.ts` replays both topics' recordings (P1C.7's acceptance: every recorded
+  call used, no retry, nothing for gate 3).
+- **`draft:fixture [--topic] [--live]`** (needs `pnpm tts:setup`): the whole pipeline to a
+  draft through the real job handlers, in `<DATA_DIR>/draft/fixture/<topic>/` (rebuilt each
+  run; the Kokoro cache stays in the main data dir): the recorded chain, spec v1, `tts`,
+  `generate` (replayed; `--live` calls the model), `tts` again (landing holds),
+  `render_draft` and `render_stills`. Prints each stage's time, the Curator's checks on the
+  final version and the run's warning logs, and writes `contact-sheet.png` (one still per beat,
+  `scripts/contact-sheet.ts`).
 
 API conventions: routes under `/api`, inputs validated with the `validate()` helper against schemas
 from `packages/shared/src/api`, list responses wrapped as `{ items }`, and every error is

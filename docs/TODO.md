@@ -4,6 +4,14 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 
 ## Open
 
+- [ ] **HUD — Story clock with a count.** The tokenizer plan's `heroMetric.storyClock` runs from
+      256 to 32000 (byte values to vocabulary entries), and the HUD draws clock values as a time, so
+      the draft shows 47:14 … 8:26:59. Either the schema and the Director's prompt limit the story
+      clock to durations, or the clock formats a count when its labels are not times.
+- [ ] **Timing — Narrated length over plan.** With Kokoro at speed 1.0 the drafts run 84.2 s
+      (tokenizer, planned 75 s, +12%) and 99.5 s (rate limiter, planned 90 s, +11%, past the top of
+      the configured range). The Scriptwriter's word budget (2.7 words/s) reads faster than Kokoro
+      speaks: calibrate `wordsPerSec` from the timing fixtures, or check length after TTS.
 - [ ] **P1C.5 — Record catalogue versions per call.** The block's `CATALOGUE VERSIONS` line
       lands in the prompt file and the Director's step input (`catalogueVersions`); a column on
       `llm_calls` would make it queryable.
