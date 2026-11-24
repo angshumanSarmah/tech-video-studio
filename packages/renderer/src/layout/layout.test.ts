@@ -177,6 +177,46 @@ describe('layout modes', () => {
     expect(centre(byKey(versus, 'after').rect).x).toBeGreaterThan(divider);
   });
 
+  it('puts a versus_split stat card with no zone in the shared row, across both halves', () => {
+    const props = {
+      value: 'about 1.3',
+      label: 'tokens per English word',
+      source: 'Field notes: counting tokens',
+    };
+    const card = item('rate', 'stat_card', props);
+    const halves = [node('plain', 'left', 'ENGLISH'), node('rare', 'right', 'RARE LANGUAGE')];
+    const shared = layout(
+      { items: [...halves, card], mode: 'versus_split', focus: [] },
+      theme,
+      fullFrame(),
+    );
+    // Above the divider, which spans only the halves.
+    const top = shared.guides[0]!.from.y;
+    const rect = byKey(shared, 'rate').rect;
+    expect(rect.y + rect.height).toBeLessThanOrEqual(top);
+    // An explicit zone still wins, and a card in a half shrinks the board.
+    const inHalf = layout(
+      {
+        items: [...halves, item('rate', 'stat_card', props, 'left')],
+        mode: 'versus_split',
+        focus: [],
+      },
+      theme,
+      fullFrame(),
+    );
+    expect(centre(byKey(inHalf, 'rate').rect).x).toBeLessThan(inHalf.guides[0]!.from.x);
+    expect(shared.scale).toBeGreaterThan(inHalf.scale);
+  });
+
+  it('defaults other zone-less elements in versus_split to the left half', () => {
+    const result = layout(
+      { items: [node('a', 'right'), node('b')], mode: 'versus_split', focus: [] },
+      theme,
+      fullFrame(),
+    );
+    expect(centre(byKey(result, 'b').rect).x).toBeLessThan(result.guides[0]!.from.x);
+  });
+
   it('puts the cycle steps on a ring, clockwise from the top', () => {
     const result = layout(
       { items: SCENES.cycle.items, mode: 'cycle', focus: [] },

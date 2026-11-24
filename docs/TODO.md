@@ -223,10 +223,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **Scriptwriter — tags on continuing beats (in reserve).** If continuing beats still fail
       on space in the live rerun, cap a continuing beat's tags (or a chain's) in the
       Scriptwriter, so the script never asks a board for more than it holds.
-- [ ] **Layout — versus_split and the script's stat card.** The mode has no `aside`, so a stat
-      card sits in a half: in a portrait frame each half is ~46% of the width (tokenizer b6: 72%
-      in a half, 100% in `shared`). Say in the mode's catalogue text where a card that describes
-      both sides goes, or give the mode an `aside`.
 - [ ] **Catalogue — asset sort.** `buildCatalogue`'s asset groups sort ids with `localeCompare`
       (docs only); the prompt blocks use code-unit order (`assetLines`). Align them if the docs
       order ever matters.

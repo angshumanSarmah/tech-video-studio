@@ -39,6 +39,13 @@ const MAP_DEFAULT_ZONES: Readonly<Record<string, string>> = {
   zone_polygon: 'overlay',
 };
 
+/**
+ * versus_split's defaults: a stat card (the script's figure, about both sides) goes in the shared
+ * row, which spans the board; in a portrait frame each half is under half its width, so a card in
+ * a half shrinks the whole board (tokenizer b6: 72% in a half, 100% shared).
+ */
+const VERSUS_DEFAULT_ZONES: Readonly<Record<string, string>> = { stat_card: 'shared' };
+
 /** A beat without a layout mode of its own and without patterns uses this one. */
 export const DEFAULT_LAYOUT_MODE: LayoutModeId = 'centered_focus';
 
@@ -55,7 +62,10 @@ const BEHAVIOURS: Readonly<Record<LayoutModeId, LayoutModeBehaviour>> = {
   pipeline: { place: placePipeline },
   cycle: { place: placeCycle },
   swimlane: { place: placeSwimlane },
-  versus_split: { place: placeVersusSplit },
+  versus_split: {
+    place: placeVersusSplit,
+    defaultZone: (primitive) => VERSUS_DEFAULT_ZONES[primitive ?? ''] ?? 'left',
+  },
   near_far: { place: placeNearFar },
   hub_spoke: { place: placeHubSpoke },
 };
