@@ -21,6 +21,12 @@ export const ON_SCREEN_TEXT_LIMITS = {
 /** Tags one beat's script may ask for. */
 export const MAX_TAGS_PER_BEAT = 3;
 
+/**
+ * Tags a beat that continues the previous board may ask for: that board already holds the
+ * earlier beats' elements, and every one keeps its place (the live runs ran out of room there).
+ */
+export const MAX_TAGS_CONTINUING = 1;
+
 /** Stat cards one beat's script may ask for: the one number the beat is about. */
 export const MAX_STAT_CARDS_PER_BEAT = 1;
 

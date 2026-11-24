@@ -264,6 +264,22 @@ describe('scriptProblems', () => {
     expect(codes(out)).toEqual(['tag_repeats_stat_card $.script[1].tags[0]']);
   });
 
+  it('allows one tag on a beat that continues the previous board, and flags a second', () => {
+    const continuing = plan();
+    continuing.story.beats[2]!.continuesPrevious = true;
+    const context = ctx({ plan: continuing });
+    const one = output();
+    one.script[2]!.tags = ['BACKLOG'];
+    expect(codes(one, context).filter((c) => c.startsWith('too_many_tags'))).toEqual([]);
+    const two = output();
+    two.script[2]!.tags = ['BACKLOG', 'SHED LOAD'];
+    expect(codes(two, context).filter((c) => c.startsWith('too_many_tags'))).toEqual([
+      'too_many_tags_continuing $.script[2].tags',
+    ]);
+    // A beat that starts its own board keeps the usual limit.
+    expect(codes(two).filter((c) => c.startsWith('too_many_tags'))).toEqual([]);
+  });
+
   it('requires a concept headline "term = meaning" on a beat that introduces a term', () => {
     const cases = [
       undefined,

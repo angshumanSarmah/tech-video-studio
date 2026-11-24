@@ -24,28 +24,18 @@ const spec: VideoSpec = (() => {
 
 const word = (index: number) => ({ type: 'word', index }) as const;
 
-/** Pins that make the board too wide: its labels shrink below readable size. */
+/** A continuation that makes the board too wide: its labels shrink below readable size. */
 function crowdedCountBoard(): Board {
-  return {
-    elements: [
-      {
-        id: 'count',
-        primitive: 'tag',
-        props: { text: 'Shared count', semantic: 'focus', pin: { to: 'shared', side: 'left' } },
-      },
-      {
-        id: 'double',
-        primitive: 'tag',
-        props: { text: 'Double admit', semantic: 'problem', pin: { to: 'own', side: 'bottom' } },
-      },
-    ],
-    events: [
-      { at: word(5), action: 'enter', targets: ['count'] },
-      { at: word(26), action: 'enter', targets: ['double'] },
-      { at: word(26), action: 'reject', targets: ['own'] },
-    ],
-    focus: ['own'],
-  };
+  const board = countBoard();
+  board.elements[0]!.props.pin = { to: 'shared', side: 'left' };
+  board.elements.push({
+    id: 'extra',
+    primitive: 'node_card',
+    props: { title: 'Second store copy', subtitle: 'kept on every gateway node', icon: 'database' },
+    zone: 'right',
+  });
+  board.events.push({ at: word(17), action: 'enter', targets: ['extra'] });
+  return board;
 }
 
 const notes = recordedNotes('rate-limiter');
@@ -95,7 +85,8 @@ describe('generatorCheck: seeded faults, with paths into the answer', () => {
   it('recover without a reject (timeline warning)', () => {
     const board = hookBoard();
     board.events.push({ at: word(20), action: 'recover', targets: ['limiter'] });
-    expect(paths(issues(0, board))).toContain('$.events[6] recover_without_reject');
+    const last = board.events.length - 1;
+    expect(paths(issues(0, board))).toContain(`$.events[${last}] recover_without_reject`);
   });
 
   it('a zone the layout mode does not have (layout warning)', () => {
@@ -150,7 +141,7 @@ describe('generatorCheck: seeded faults, with paths into the answer', () => {
       { id: 'link', primitive: 'connector', props: { from: 'own', to: 'shared' } },
       { id: 'note', primitive: 'tag', props: { text: 'Note', pin: { to: 'link', side: 'top' } } },
     );
-    board.events.push({ at: word(30), action: 'enter', targets: ['link', 'note'] });
+    board.events.push({ at: word(20), action: 'enter', targets: ['link', 'note'] });
     const scenes = [undefined, undefined, sceneFor(2, storeBoard())];
     const found = issues(3, board, scenes).filter((i) => i.code === 'pin_unresolved');
     expect(found[0]?.message).toMatch(
@@ -166,7 +157,7 @@ describe('generatorCheck: seeded faults, with paths into the answer', () => {
       props: { title: 'Store' },
     });
     const scenes = [undefined, undefined, sceneFor(2, storeBoard())];
-    expect(paths(issues(3, board, scenes))).toContain('$.elements[2].id duplicate_id');
+    expect(paths(issues(3, board, scenes))).toContain('$.elements[1].id duplicate_id');
   });
 });
 

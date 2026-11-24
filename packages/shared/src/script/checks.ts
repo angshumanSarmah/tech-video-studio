@@ -24,6 +24,7 @@ import {
 } from './note-values.ts';
 import {
   conceptHeadlineProblems,
+  continuingTagProblems,
   repeatedHeadlineProblems,
   statCardProblems,
   tagProblems,
@@ -104,6 +105,7 @@ export function scriptProblems(output: ScriptToCheck, ctx: ScriptCheckContext): 
     ...numbersPerBeatProblems(output, ctx),
     ...statCardProblems(output, ctx),
     ...tagProblems(output),
+    ...continuingTagProblems(output, ctx.plan),
     ...conceptHeadlineProblems(output, ctx.plan, ctx.notes),
     ...repeatedHeadlineProblems(output),
     ...hookProblems(output, ctx),

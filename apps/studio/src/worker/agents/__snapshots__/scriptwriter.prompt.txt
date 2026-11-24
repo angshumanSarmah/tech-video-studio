@@ -78,7 +78,8 @@ Numbers
 On-screen text
 - Headline: about 5 words stating the takeaway, not repeating the narration; for concept beats
   "X = plain meaning".
-- Tags and labels: as short as their limits allow, never a stat card's number.
+- Tags and labels: as short as their limits allow, never a stat card's number. A beat that
+  continues the previous board (continuesPrevious) gets at most one tag: its board is already full.
 - Stat cards: at most one per beat, only for a research number that surprises or anchors the
   beat's point (small counts stay in the narration), citing its number id; say its number in
   that beat's narration.

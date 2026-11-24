@@ -25,22 +25,16 @@ Draw the board for beat "b3" (3 of 7). It starts a new board. Return only this b
 
 ## SCRIPT
 {
-  "narration": "Learning starts from raw bytes: two hundred and fifty-six of them. Then the loop counts every neighbouring pair. It adds the most frequent one, say 't' plus 'h', as a new symbol, 'th'. Repeat.",
+  "narration": "Learning starts from raw bytes: two hundred fifty-six values, so any text can be written. Then count neighbouring pairs, join the most frequent — 't' plus 'h' becomes 'th' — and repeat.",
   "headline": {
-    "text": "Bytes first, merges build words",
+    "text": "Learn merges from raw bytes",
     "semantic": "concept"
   },
   "tags": [
-    "byte start",
-    "pair count",
-    "new symbol"
+    "raw bytes",
+    "most frequent pair"
   ],
-  "statCards": [
-    {
-      "value": "256",
-      "label": "starting byte values"
-    }
-  ],
+  "statCards": [],
   "formulaCard": null,
   "commandBubble": null,
   "source": "A field guide to subword merges"
@@ -54,34 +48,30 @@ Draw the board for beat "b3" (3 of 7). It starts a new board. Return only this b
 4 bytes: 1.54
 5 two 1.92
 6 hundred 2.31
-7 and 2.69
-8 fifty-six 3.08
-9 of 3.46
-10 them. 3.85
-11 Then 4.23
-12 the 4.62
-13 loop 5.00
-14 counts 5.38
-15 every 5.77
-16 neighbouring 6.15
-17 pair. 6.54
-18 It 6.92
-19 adds 7.31
+7 fifty-six 2.69
+8 values, 3.08
+9 so 3.46
+10 any 3.85
+11 text 4.23
+12 can 4.62
+13 be 5.00
+14 written. 5.38
+15 Then 5.77
+16 count 6.15
+17 neighbouring 6.54
+18 pairs, 6.92
+19 join 7.31
 20 the 7.69
 21 most 8.08
 22 frequent 8.46
-23 one, 8.85
-24 say 9.23
-25 't' 9.62
-26 plus 10.00
-27 'h', 10.38
-28 as 10.77
-29 a 11.15
-30 new 11.54
-31 symbol, 11.92
-32 'th'. 12.31
-33 Repeat. 12.69
-The narration lasts 13.08 s.
+23 't' 8.85
+24 plus 9.23
+25 'h' 9.62
+26 becomes 10.00
+27 'th' 10.38
+28 and 10.77
+29 repeat. 11.15
+The narration lasts 11.54 s.
 
 ## RESEARCH (the only facts; numbers: the only ones a label may show)
 {

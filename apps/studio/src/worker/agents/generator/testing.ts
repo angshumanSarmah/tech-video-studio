@@ -64,247 +64,125 @@ export type FixtureBoard = {
 };
 
 /** A clean board for the hook (beat1, two_column): the script's tags and stat card placed. */
+const scriptSource = (beatIndex: number) =>
+  fixtureScriptedSpec('rate-limiter').script?.[beatIndex]?.source ?? '';
+
+const node = (
+  id: string,
+  title: string,
+  icon: string,
+  zone?: string,
+): FixtureBoard['elements'][number] => ({
+  id,
+  primitive: 'node_card',
+  props: { title, icon },
+  ...(zone ? { zone } : {}),
+});
+
+const tag = (
+  id: string,
+  text: string,
+  pin: { to: string; side: string },
+  semantic = 'neutral',
+): FixtureBoard['elements'][number] => ({
+  id,
+  primitive: 'tag',
+  props: { text, semantic, pin },
+});
+
+/** beat1 (two_column): checkout failing, the rate limiter, the 31% stat card. */
 export function hookBoard(): FixtureBoard {
-  const source = fixtureScriptedSpec('rate-limiter').script?.[0]?.source ?? '';
   return {
     elements: [
-      {
-        id: 'shop',
-        primitive: 'node_card',
-        props: { title: 'Checkout', icon: 'shopping_bag' },
-        zone: 'left',
-      },
-      {
-        id: 'limiter',
-        primitive: 'node_card',
-        props: { title: 'Rate limiter', icon: 'shield' },
-        zone: 'right',
-      },
-      {
-        id: 'errors',
-        primitive: 'tag',
-        props: { text: 'Checkout errors', semantic: 'problem', pin: { to: 'shop', side: 'top' } },
-      },
-      {
-        id: 'traffic',
-        primitive: 'tag',
-        props: {
-          text: 'Too much traffic',
-          semantic: 'problem',
-          pin: { to: 'shop', side: 'bottom' },
-        },
-      },
+      node('shop', 'Checkout', 'shopping_bag', 'left'),
+      node('limiter', 'Rate limiter', 'shield', 'right'),
+      tag('errors', 'checkout failing', { to: 'shop', side: 'top' }, 'problem'),
+      tag('traffic', 'too much traffic', { to: 'limiter', side: 'bottom' }, 'problem'),
       {
         id: 'failed',
         primitive: 'stat_card',
-        props: { value: '31%', label: 'checkouts failed', source },
+        props: { value: '31%', label: 'Checkouts that failed', source: scriptSource(0) },
         zone: 'aside',
       },
     ],
     events: [
-      { at: word(0), action: 'enter', targets: ['failed'] },
-      { at: word(5), action: 'enter', targets: ['shop'] },
-      { at: word(6), action: 'enter', targets: ['errors'] },
-      { at: word(11), action: 'enter', targets: ['traffic'] },
-      { at: word(16), action: 'enter', targets: ['limiter'] },
-      { at: word(17), action: 'highlight', targets: ['limiter'] },
+      { at: word(6), action: 'enter', targets: ['shop'] },
+      { at: word(7), action: 'enter', targets: ['errors'] },
+      { at: word(12), action: 'enter', targets: ['limiter'] },
+      { at: word(17), action: 'enter', targets: ['traffic'] },
+      { at: word(20), action: 'enter', targets: ['failed'] },
     ],
     focus: ['limiter'],
   };
 }
 
-/** A clean first board for beat3 (versus_split) and a clean continuation for beat4. */
-export function storeBoard(): FixtureBoard {
-  return {
-    elements: [
-      {
-        id: 'own',
-        primitive: 'node_card',
-        props: { title: 'Own bucket', icon: 'server' },
-        zone: 'left',
-      },
-      {
-        id: 'shared',
-        primitive: 'node_card',
-        props: { title: 'Shared store', icon: 'database' },
-        zone: 'right',
-      },
-      {
-        id: 'one',
-        primitive: 'tag',
-        props: { text: 'One bucket', semantic: 'ok', pin: { to: 'shared', side: 'top' } },
-      },
-      {
-        id: 'agree',
-        primitive: 'tag',
-        props: { text: 'All nodes agree', semantic: 'ok', pin: { to: 'shared', side: 'bottom' } },
-      },
-    ],
-    events: [
-      { at: word(5), action: 'enter', targets: ['own'] },
-      { at: word(24), action: 'enter', targets: ['shared'] },
-      { at: word(25), action: 'enter', targets: ['one'] },
-      { at: word(28), action: 'enter', targets: ['agree'] },
-    ],
-    focus: ['shared'],
-  };
-}
-
-export function countBoard(): FixtureBoard {
-  return {
-    elements: [
-      {
-        id: 'count',
-        primitive: 'tag',
-        props: { text: 'Shared count', semantic: 'focus', pin: { to: 'own', side: 'top' } },
-      },
-      {
-        id: 'double',
-        primitive: 'tag',
-        props: { text: 'Double admit', semantic: 'problem', pin: { to: 'own', side: 'bottom' } },
-      },
-    ],
-    events: [
-      { at: word(5), action: 'enter', targets: ['count'] },
-      { at: word(26), action: 'enter', targets: ['double'] },
-      { at: word(26), action: 'reject', targets: ['own'] },
-    ],
-    focus: ['own'],
-  };
-}
-
-/** A clean first board for the tokenizer's b2 (versus_split), the board b3 zooms from. */
-export function versusBoard(): FixtureBoard {
-  return {
-    elements: [
-      {
-        id: 'chars',
-        primitive: 'node_card',
-        props: { title: 'Characters', icon: 'list' },
-        zone: 'left',
-      },
-      {
-        id: 'words',
-        primitive: 'node_card',
-        props: { title: 'Whole words', icon: 'book' },
-        zone: 'right',
-      },
-      {
-        id: 'pieces',
-        primitive: 'node_card',
-        props: { title: 'Subword pieces', icon: 'layers' },
-        zone: 'shared',
-      },
-      {
-        id: 'tag-chars',
-        primitive: 'tag',
-        props: { text: 'characters', pin: { to: 'chars', side: 'top' } },
-      },
-      {
-        id: 'tag-words',
-        primitive: 'tag',
-        props: { text: 'whole words', pin: { to: 'words', side: 'top' } },
-      },
-      {
-        id: 'tag-pieces',
-        primitive: 'tag',
-        props: { text: 'subwords', semantic: 'focus', pin: { to: 'pieces', side: 'top' } },
-      },
-    ],
-    events: [
-      { at: word(0), action: 'enter', targets: ['chars', 'tag-chars'] },
-      { at: word(16), action: 'enter', targets: ['words', 'tag-words'] },
-      { at: word(23), action: 'enter', targets: ['pieces', 'tag-pieces'] },
-      { at: word(29), action: 'highlight', targets: ['pieces'] },
-    ],
-    focus: ['pieces'],
-  };
-}
-
-const scriptSource = (beatIndex: number) =>
-  fixtureScriptedSpec('rate-limiter').script?.[beatIndex]?.source ?? '';
-
 /** beat2 (centered_focus, example numbers): a request's key and its token bucket. */
 export function bucketBoard(): FixtureBoard {
   return {
     elements: [
-      {
-        id: 'key',
-        primitive: 'node_card',
-        props: { title: 'Request key', icon: 'key' },
-        zone: 'around',
-      },
-      {
-        id: 'bucket',
-        primitive: 'node_card',
-        props: { title: 'Token bucket', icon: 'database' },
-        zone: 'center',
-      },
-      {
-        id: 'allowance',
-        primitive: 'tag',
-        props: { text: 'Allowance per key', semantic: 'ok', pin: { to: 'bucket', side: 'top' } },
-      },
-      {
-        id: 'spend',
-        primitive: 'tag',
-        props: { text: 'One token per request', pin: { to: 'bucket', side: 'bottom' } },
-      },
+      node('key', 'Request key', 'key', 'around'),
+      node('bucket', 'Token bucket', 'database', 'center'),
+      tag('allowance', 'per-key bucket', { to: 'bucket', side: 'top' }, 'ok'),
+      tag('spend', 'spend one token', { to: 'bucket', side: 'bottom' }),
     ],
     events: [
-      { at: word(3), action: 'enter', targets: ['key'] },
-      { at: word(11), action: 'enter', targets: ['bucket'] },
-      { at: word(14), action: 'enter', targets: ['allowance'] },
-      { at: word(27), action: 'enter', targets: ['spend'] },
-      { at: word(29), action: 'pulse', targets: ['bucket'] },
+      { at: word(5), action: 'enter', targets: ['key'] },
+      { at: word(8), action: 'enter', targets: ['bucket'] },
+      { at: word(9), action: 'enter', targets: ['allowance'] },
+      { at: word(26), action: 'enter', targets: ['spend'] },
+      { at: word(28), action: 'pulse', targets: ['bucket'] },
     ],
     focus: ['bucket'],
   };
 }
 
-/** beat5 (stacked_list): every check pays a network trip to the store. */
+/** beat3 (versus_split): a bucket on each node against one shared store; beat4 continues it. */
+export function storeBoard(): FixtureBoard {
+  return {
+    elements: [
+      node('own', 'Own bucket', 'server', 'left'),
+      node('shared', 'Shared store', 'database', 'right'),
+      tag('one', 'bucket per node', { to: 'own', side: 'top' }, 'problem'),
+      tag('agree', 'shared store', { to: 'shared', side: 'top' }, 'ok'),
+    ],
+    events: [
+      { at: word(6), action: 'enter', targets: ['own'] },
+      { at: word(8), action: 'enter', targets: ['one'] },
+      { at: word(23), action: 'enter', targets: ['shared'] },
+      { at: word(24), action: 'enter', targets: ['agree'] },
+    ],
+    focus: ['shared'],
+  };
+}
+
+/** beat4, continuing beat3's board: its one tag, and both nodes spending the same token. */
+export function countBoard(): FixtureBoard {
+  return {
+    elements: [tag('double', 'double spend', { to: 'own', side: 'bottom' }, 'problem')],
+    events: [
+      { at: word(14), action: 'enter', targets: ['double'] },
+      { at: word(25), action: 'reject', targets: ['own'] },
+    ],
+    focus: ['own'],
+  };
+}
+
+/** beat5 (stacked_list): every check crosses the network to the store. */
 export function tripBoard(): FixtureBoard {
   return {
     elements: [
-      {
-        id: 'node',
-        primitive: 'node_card',
-        props: { title: 'Gateway node', icon: 'server' },
-        zone: 'row',
-      },
-      {
-        id: 'store',
-        primitive: 'node_card',
-        props: { title: 'Shared store', icon: 'database' },
-        zone: 'row',
-      },
-      {
-        id: 'trip',
-        primitive: 'connector',
-        props: { from: 'node', to: 'store', label: 'Network trip' },
-      },
-      {
-        id: 'hop',
-        primitive: 'tag',
-        props: { text: 'Network hop', pin: { to: 'store', side: 'right' } },
-      },
-      {
-        id: 'every',
-        primitive: 'tag',
-        props: { text: 'Every request', pin: { to: 'node', side: 'right' } },
-      },
-      {
-        id: 'p99',
-        primitive: 'stat_card',
-        props: { value: '2.1 ms', label: 'p99 store round trip', source: scriptSource(4) },
-        zone: 'aside',
-      },
+      node('node', 'Gateway node', 'server', 'row'),
+      node('store', 'Shared store', 'database', 'row'),
+      { id: 'trip', primitive: 'connector', props: { from: 'node', to: 'store' } },
+      tag('hop', 'network round trip', { to: 'trip', side: 'middle' }),
+      tag('slow', 'slow store', { to: 'store', side: 'bottom' }, 'problem'),
     ],
     events: [
-      { at: word(4), action: 'enter', targets: ['store'] },
-      { at: word(9), action: 'enter', targets: ['node', 'every'] },
-      { at: word(12), action: 'enter', targets: ['trip', 'hop'] },
-      { at: word(23), action: 'enter', targets: ['p99'] },
+      { at: word(2), action: 'enter', targets: ['node'] },
+      { at: word(5), action: 'enter', targets: ['store', 'trip'] },
+      { at: word(6), action: 'enter', targets: ['hop'] },
+      { at: word(11), action: 'enter', targets: ['slow'] },
+      { at: word(16), action: 'pulse', targets: ['trip'] },
     ],
     focus: ['trip'],
   };
@@ -314,96 +192,47 @@ export function tripBoard(): FixtureBoard {
 export function failoverBoard(): FixtureBoard {
   return {
     elements: [
-      {
-        id: 'replica',
-        primitive: 'node_card',
-        props: { title: 'Store replica', icon: 'database' },
-        zone: 'center',
-      },
-      {
-        id: 'limiter',
-        primitive: 'node_card',
-        props: { title: 'Rate limiter', icon: 'shield' },
-        zone: 'around',
-      },
-      {
-        id: 'call',
-        primitive: 'connector',
-        props: { from: 'limiter', to: 'replica' },
-      },
-      {
-        id: 'move',
-        primitive: 'tag',
-        props: { text: 'Cross-zone move', pin: { to: 'replica', side: 'top' } },
-      },
-      {
-        id: 'tripped',
-        primitive: 'tag',
-        props: {
-          text: 'Timeout tripped',
-          semantic: 'problem',
-          pin: { to: 'replica', side: 'bottom' },
-        },
-      },
+      node('replica', 'Store replica', 'database', 'center'),
+      node('limiter', 'Rate limiter', 'shield', 'around'),
+      { id: 'call', primitive: 'connector', props: { from: 'limiter', to: 'replica' } },
+      tag('move', 'cross-zone replica', { to: 'replica', side: 'top' }),
+      tag('tripped', 'past the timeout', { to: 'replica', side: 'bottom' }, 'problem'),
       {
         id: 'slow',
         primitive: 'stat_card',
-        props: { value: '80 ms', label: 'store call after failover', source: scriptSource(5) },
+        props: { value: '80 ms', label: 'Store call after failover', source: scriptSource(5) },
         zone: 'aside',
       },
     ],
     events: [
       { at: word(3), action: 'enter', targets: ['limiter', 'replica', 'call'] },
-      { at: word(12), action: 'enter', targets: ['move'] },
-      { at: word(22), action: 'enter', targets: ['slow'] },
-      { at: word(27), action: 'enter', targets: ['tripped'] },
+      { at: word(9), action: 'enter', targets: ['move'] },
+      { at: word(20), action: 'enter', targets: ['slow'] },
+      { at: word(25), action: 'enter', targets: ['tripped'] },
       { at: word(34), action: 'reject', targets: ['replica'] },
     ],
     focus: ['replica'],
   };
 }
 
-/** beat7 (hub_spoke): fail open, every instance limits on its own, the provider floods. */
+/** beat7 (hub_spoke): requests go uncounted, every instance limits alone, the provider floods. */
 export function failOpenBoard(): FixtureBoard {
   return {
     elements: [
-      {
-        id: 'provider',
-        primitive: 'node_card',
-        props: { title: 'Payment provider', icon: 'credit_card' },
-        zone: 'hub',
-      },
-      {
-        id: 'inst-a',
-        primitive: 'node_card',
-        props: { title: 'Instance A', icon: 'server' },
-        zone: 'spoke',
-      },
-      {
-        id: 'inst-b',
-        primitive: 'node_card',
-        props: { title: 'Instance B', icon: 'server' },
-        zone: 'spoke',
-      },
+      node('provider', 'Payment provider', 'credit_card', 'hub'),
+      node('inst-a', 'Instance A', 'server', 'spoke'),
+      node('inst-b', 'Instance B', 'server', 'spoke'),
       { id: 'a-provider', primitive: 'connector', props: { from: 'inst-a', to: 'provider' } },
       { id: 'b-provider', primitive: 'connector', props: { from: 'inst-b', to: 'provider' } },
-      {
-        id: 'open',
-        primitive: 'tag',
-        props: { text: 'Fail open', semantic: 'problem', pin: { to: 'inst-a', side: 'top' } },
-      },
-      {
-        id: 'local',
-        primitive: 'tag',
-        props: { text: 'Local limits', pin: { to: 'inst-b', side: 'top' } },
-      },
+      tag('open', 'uncounted traffic', { to: 'inst-a', side: 'top' }, 'problem'),
+      tag('local', 'local limits', { to: 'inst-b', side: 'top' }),
     ],
     events: [
-      { at: word(2), action: 'enter', targets: ['inst-a', 'inst-b'] },
-      { at: word(6), action: 'enter', targets: ['open'] },
-      { at: word(16), action: 'enter', targets: ['local'] },
-      { at: word(21), action: 'enter', targets: ['provider', 'a-provider', 'b-provider'] },
-      { at: word(33), action: 'reject', targets: ['provider'] },
+      { at: word(6), action: 'enter', targets: ['inst-a', 'inst-b'] },
+      { at: word(10), action: 'enter', targets: ['open'] },
+      { at: word(19), action: 'enter', targets: ['local'] },
+      { at: word(24), action: 'enter', targets: ['provider', 'a-provider', 'b-provider'] },
+      { at: word(35), action: 'reject', targets: ['provider'] },
     ],
     focus: ['provider'],
   };
@@ -413,47 +242,24 @@ export function failOpenBoard(): FixtureBoard {
 export function fixBoard(): FixtureBoard {
   return {
     elements: [
-      {
-        id: 'closed',
-        primitive: 'node_card',
-        props: { title: 'Provider limiter', icon: 'shield_check' },
-        zone: 'cell',
-      },
-      {
-        id: 'fallback',
-        primitive: 'node_card',
-        props: { title: 'Fallback limits', icon: 'server' },
-        zone: 'cell',
-      },
-      {
-        id: 'timeout',
-        primitive: 'node_card',
-        props: { title: 'Store timeout', icon: 'clock' },
-        zone: 'cell',
-      },
-      {
-        id: 'fail-closed',
-        primitive: 'tag',
-        props: { text: 'Fail closed', semantic: 'ok', pin: { to: 'closed', side: 'top' } },
-      },
-      {
-        id: 'split',
-        primitive: 'tag',
-        props: { text: 'Split fallback', semantic: 'ok', pin: { to: 'fallback', side: 'top' } },
-      },
+      node('closed', 'Payment limiter', 'shield_check', 'cell'),
+      node('fallback', 'Fallback limits', 'server', 'cell'),
+      node('timeout', 'Store timeout', 'clock', 'cell'),
+      tag('fail-closed', 'refuse uncounted', { to: 'closed', side: 'top' }, 'ok'),
+      tag('split', 'split fallback', { to: 'fallback', side: 'top' }, 'ok'),
       {
         id: 'raised',
         primitive: 'stat_card',
-        props: { value: '150 ms', label: 'store timeout after fix', source: scriptSource(7) },
+        props: { value: '150 ms', label: 'Store timeout after fix', source: scriptSource(7) },
         zone: 'aside',
       },
     ],
     events: [
-      { at: word(1), action: 'enter', targets: ['closed'] },
-      { at: word(3), action: 'enter', targets: ['fail-closed'] },
-      { at: word(10), action: 'enter', targets: ['fallback'] },
-      { at: word(12), action: 'enter', targets: ['split'] },
-      { at: word(23), action: 'enter', targets: ['timeout'] },
+      { at: word(2), action: 'enter', targets: ['closed'] },
+      { at: word(4), action: 'enter', targets: ['fail-closed'] },
+      { at: word(14), action: 'enter', targets: ['fallback'] },
+      { at: word(17), action: 'enter', targets: ['split'] },
+      { at: word(22), action: 'enter', targets: ['timeout'] },
       { at: word(28), action: 'enter', targets: ['raised'] },
     ],
     focus: ['closed'],
@@ -471,5 +277,29 @@ export function rateLimiterBoards(): Record<string, FixtureBoard> {
     beat6: failoverBoard(),
     beat7: failOpenBoard(),
     beat8: fixBoard(),
+  };
+}
+
+/**
+ * A clean first board for the tokenizer's b2 (versus_split), the board b3 zooms from. Word
+ * indices count as `narrationWords` does (the narration's lone dashes are not words).
+ */
+export function versusBoard(): FixtureBoard {
+  return {
+    elements: [
+      node('chars', 'Characters', 'list', 'left'),
+      node('words', 'Whole words', 'book', 'right'),
+      node('pieces', 'Subword pieces', 'layers', 'shared'),
+      tag('tag-chars', 'single characters', { to: 'chars', side: 'top' }),
+      tag('tag-words', 'whole words', { to: 'words', side: 'top' }),
+      tag('tag-pieces', 'subword pieces', { to: 'pieces', side: 'top' }, 'focus'),
+    ],
+    events: [
+      { at: word(6), action: 'enter', targets: ['chars', 'tag-chars'] },
+      { at: word(22), action: 'enter', targets: ['words', 'tag-words'] },
+      { at: word(30), action: 'enter', targets: ['pieces', 'tag-pieces'] },
+      { at: word(31), action: 'highlight', targets: ['pieces'] },
+    ],
+    focus: ['pieces'],
   };
 }

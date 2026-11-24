@@ -25,14 +25,13 @@ Draw the board for beat "beat4" (4 of 8). It continues the previous beat's board
 
 ## SCRIPT
 {
-  "narration": "But the store reads the count, adds tokens, spends one, then writes it back. Every step must be indivisible. Two nodes that read the same count both see a token, and both let a request through.",
+  "narration": "But a shared bucket needs read, refill and write as one step. Otherwise two nodes read the same count and both see a token left. Both let their request through.",
   "headline": {
-    "text": "Read, spend, write: one step",
-    "semantic": "decision"
+    "text": "Two nodes spend one token",
+    "semantic": "problem"
   },
   "tags": [
-    "Shared count",
-    "Double admit"
+    "double spend"
   ],
   "statCards": [],
   "formulaCard": null,
@@ -42,42 +41,36 @@ Draw the board for beat "beat4" (4 of 8). It continues the previous beat's board
 
 ## NARRATION WORDS (anchor each event with {"type":"word","index":<index>}: index, word, seconds from the beat's start)
 0 But 0.00
-1 the 0.38
-2 store 0.77
-3 reads 1.15
-4 the 1.54
-5 count, 1.92
-6 adds 2.31
-7 tokens, 2.69
-8 spends 3.08
-9 one, 3.46
-10 then 3.85
-11 writes 4.23
-12 it 4.62
-13 back. 5.00
-14 Every 5.38
-15 step 5.77
-16 must 6.15
-17 be 6.54
-18 indivisible. 6.92
-19 Two 7.31
-20 nodes 7.69
-21 that 8.08
-22 read 8.46
-23 the 8.85
-24 same 9.23
-25 count 9.62
-26 both 10.00
-27 see 10.38
-28 a 10.77
-29 token, 11.15
-30 and 11.54
-31 both 11.92
-32 let 12.31
-33 a 12.69
-34 request 13.08
-35 through. 13.46
-The narration lasts 13.85 s.
+1 a 0.38
+2 shared 0.77
+3 bucket 1.15
+4 needs 1.54
+5 read, 1.92
+6 refill 2.31
+7 and 2.69
+8 write 3.08
+9 as 3.46
+10 one 3.85
+11 step. 4.23
+12 Otherwise 4.62
+13 two 5.00
+14 nodes 5.38
+15 read 5.77
+16 the 6.15
+17 same 6.54
+18 count 6.92
+19 and 7.31
+20 both 7.69
+21 see 8.08
+22 a 8.46
+23 token 8.85
+24 left. 9.23
+25 Both 9.62
+26 let 10.00
+27 their 10.38
+28 request 10.77
+29 through. 11.15
+The narration lasts 11.54 s.
 
 ## RESEARCH (the only facts; numbers: the only ones a label may show)
 {
@@ -147,8 +140,8 @@ The narration lasts 13.85 s.
 ## ON SCREEN (exhaustive: the ids already on this board; act on them with events, never declare them again)
 - own (node_card) "Own bucket": present; actions: enter, exit, highlight, dim, pulse, lock, release, reject, recover; pins: top, bottom, left, right
 - shared (node_card) "Shared store": present; actions: enter, exit, highlight, dim, pulse, lock, release, reject, recover; pins: top, bottom, left, right
-- one (tag) "One bucket": present; actions: enter, exit, highlight, dim, pulse, reject, recover; pins: top, bottom, left, right
-- agree (tag) "All nodes agree": present; actions: enter, exit, highlight, dim, pulse, reject, recover; pins: top, bottom, left, right
+- one (tag) "bucket per node": present; actions: enter, exit, highlight, dim, pulse, reject, recover; pins: top, bottom, left, right
+- agree (tag) "shared store": present; actions: enter, exit, highlight, dim, pulse, reject, recover; pins: top, bottom, left, right
 focus: shared
 units on screen: 2 of at most 8
 space left: the board is drawn at 88% of full size and text stays readable down to 75%, so room is little: add few, small elements. Everything here keeps its place and size; each element you add shrinks the whole board, and exiting one frees no room.
@@ -156,5 +149,5 @@ space left: the board is drawn at 88% of full size and text stays readable down 
 ## PREVIOUS BEAT
 {
   "id": "beat3",
-  "narration": "Why not give each gateway node its own bucket? Say twenty-four nodes. A client spread across them gets twenty-four times its limit. One shared store holds the bucket; every node reads and writes it there."
+  "narration": "So why not give each gateway node its own bucket? Across, say, twenty-four nodes, a client gets twenty-four times its limit. So one shared store holds the bucket, one place every node reads and writes."
 }

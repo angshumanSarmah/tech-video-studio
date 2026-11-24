@@ -600,7 +600,9 @@ researchStepId)`, not the newest research), the run's level and pace (`resolvePr
   break (one number per sentence; the beat's words left), so repairs do not oscillate. On-screen
   checks (`script/screen-checks.ts`): `stat_cards_per_beat` (`MAX_STAT_CARDS_PER_BEAT`, 1),
   `stat_cards_per_video` (`MAX_STAT_CARDS_PER_VIDEO`, 4, per part), `stat_card_not_spoken`
-  (the card's number is said in its beat), `tag_repeats_stat_card`, `headline_not_concept` (a
+  (the card's number is said in its beat), `tag_repeats_stat_card`, `too_many_tags_continuing`
+  (a `continuesPrevious` beat asks for at most `MAX_TAGS_CONTINUING` (1) tag: its board is
+  already full), `headline_not_concept` (a
   beat with `newTerms` has a `concept` headline "<term> = ...") and `headline_repeated` (two
   headlines share more than half the content words of the shorter, stopwords dropped). Codes,
   context and `planVideos` live in `script/context.ts`. `scriptwriterCheck` adds spec validation

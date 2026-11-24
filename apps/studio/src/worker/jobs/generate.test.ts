@@ -29,10 +29,10 @@ import { DIRECTOR_RESPONSES_DIR } from '../agents/director/testing.ts';
 import {
   failoverBoard,
   fixtureScriptedSpec,
+  hookBoard,
   rateLimiterBoards,
   storeBoard,
   countBoard,
-  tripBoard,
   type FixtureBoard,
 } from '../agents/generator/testing.ts';
 import { loadPromptTemplates, PROMPTS_DIR } from '../agents/prompts/templates.ts';
@@ -345,11 +345,11 @@ describe('generate job (rate-limiter fixture, hand-written boards, dry run)', ()
   });
 
   describe('post-pass across boards', () => {
-    /** Beats 5 and 6 without tags, so a board of only a stat card passes its own checks. */
+    /** Beats 1 and 6 without tags, so a board of only their stat card passes its own checks. */
     const untagged = (spec: VideoSpec): VideoSpec => ({
       ...spec,
       script: spec.script?.map((s) =>
-        s.beatId === 'beat5' || s.beatId === 'beat6' ? { ...s, tags: [] } : s,
+        s.beatId === 'beat1' || s.beatId === 'beat6' ? { ...s, tags: [] } : s,
       ),
     });
     const statOnly = (board: FixtureBoard): FixtureBoard => {
@@ -367,14 +367,19 @@ describe('generate job (rate-limiter fixture, hand-written boards, dry run)', ()
         focus: board.focus,
       };
     };
+    /** beat1 and beat6 both only a stat card: the second static board (beat6) fails. */
+    const staticAnswers = (beat6: readonly DryRunResponse[]) => ({
+      ...cleanAnswers(),
+      beat1: [answer(statOnly(hookBoard()))],
+      beat6,
+    });
 
     it('retries a beat that fails a check across boards once, with the issue as feedback', async () => {
       const { runId, specVersionId } = await scripted(untagged);
-      const answers = {
-        ...cleanAnswers(),
-        beat5: [answer(statOnly(tripBoard()))],
-        beat6: [answer(statOnly(failoverBoard())), answer(withoutTags(failoverBoard()))],
-      };
+      const answers = staticAnswers([
+        answer(statOnly(failoverBoard())),
+        answer(withoutTags(failoverBoard())),
+      ]);
       const job = await generate(registry(answers), runId, { specVersionId });
       expect(job.status).toBe('done');
       const output = latestGeneration(t.db, t.dataDir, runId)!.output;
@@ -384,81 +389,90 @@ describe('generate job (rate-limiter fixture, hand-written boards, dry run)', ()
       expect(userMessageOf(retry.promptPath)).toMatch(/## FEEDBACK[\s\S]*At most 1 beat may show/);
     });
 
-    describe('inside a chain (beat6 continues beat5)', () => {
-      /** Beats 1, 5 and 6 untagged and beat6 on beat5's board: stat-card-only 1 and 5 are static. */
+    describe('inside a chain (beat7 continues beat6)', () => {
+      /** Beats 1, 6 and 7 untagged and beat7 on beat6's board: stat-card-only 1 and 6 are static. */
       const chained = (spec: VideoSpec): VideoSpec => ({
         ...spec,
         story: {
           ...spec.story,
           beats: spec.story.beats.map((b) =>
-            b.id === 'beat6' ? { ...b, continuesPrevious: true } : b,
+            b.id === 'beat7' ? { ...b, continuesPrevious: true } : b,
           ),
         },
         script: spec.script?.map((s) =>
-          ['beat1', 'beat5', 'beat6'].includes(s.beatId) ? { ...s, tags: [] } : s,
+          ['beat1', 'beat6', 'beat7'].includes(s.beatId) ? { ...s, tags: [] } : s,
         ),
       });
       const word = (index: number) => ({ type: 'word', index }) as const;
-      const p99 = tripBoard().elements.find((e) => e.id === 'p99')!;
-      const store = tripBoard().elements.find((e) => e.id === 'store')!;
       const slow = failoverBoard().elements.find((e) => e.id === 'slow')!;
-      /** beat5's retry: the stat card with the store beside it (not static), keeping or renaming it. */
+      const replica = failoverBoard().elements.find((e) => e.id === 'replica')!;
+      /** beat6's retry: the stat card with the replica beside it (not static), kept or renamed. */
       const retried = (cardId: string): FixtureBoard => ({
-        elements: [store, { ...p99, id: cardId }],
+        elements: [replica, { ...slow, id: cardId }],
         events: [
-          { at: word(4), action: 'enter', targets: ['store'] },
-          { at: word(23), action: 'enter', targets: [cardId] },
+          { at: word(9), action: 'enter', targets: ['replica'] },
+          { at: word(20), action: 'enter', targets: [cardId] },
         ],
         focus: [cardId],
       });
-      /** beat6 on beat5's board: its own stat card, and a pulse on beat5's. */
+      /** beat7 on beat6's board: a provider card of its own, and a pulse on beat6's card. */
       const continuing = (cardId: string): FixtureBoard => ({
-        elements: [slow],
-        events: [
-          { at: word(14), action: 'pulse', targets: [cardId] },
-          { at: word(22), action: 'enter', targets: ['slow'] },
+        elements: [
+          {
+            id: 'provider',
+            primitive: 'node_card',
+            props: { title: 'Payment provider', icon: 'credit_card' },
+          },
         ],
-        focus: ['slow'],
+        events: [
+          { at: word(4), action: 'pulse', targets: [cardId] },
+          { at: word(24), action: 'enter', targets: ['provider'] },
+        ],
+        focus: ['provider'],
       });
-      const answers = (retry: FixtureBoard, beat6: readonly FixtureBoard[]) => ({
+      const answers = (retry: FixtureBoard, beat7: readonly FixtureBoard[]) => ({
         ...cleanAnswers(),
-        beat1: [answer(statOnly(rateLimiterBoards().beat1!))],
-        beat5: [answer(statOnly(tripBoard())), answer(retry)],
-        beat6: beat6.map(answer),
+        beat1: [answer(statOnly(hookBoard()))],
+        beat6: [answer(statOnly(failoverBoard())), answer(retry)],
+        beat7: beat7.map(answer),
       });
 
       it('redraws a later beat when the retry renames an element it uses', async () => {
         const { runId, specVersionId } = await scripted(chained);
-        const reg = registry(answers(retried('rtt'), [continuing('p99'), continuing('rtt')]));
+        const reg = registry(answers(retried('late'), [continuing('slow'), continuing('late')]));
         const job = await generate(reg, runId, { specVersionId });
         expect(job.status).toBe('done');
         const output = latestGeneration(t.db, t.dataDir, runId)!.output;
-        expect(output.beats.filter((b) => b.retried).map((b) => b.beatId)).toEqual(['beat5']);
+        expect(output.beats.filter((b) => b.retried).map((b) => b.beatId)).toEqual(['beat6']);
         expect(output.warnings).toEqual([]);
         expect(generatorCalls(runId)).toHaveLength(10);
-        const beat6 = output.beats.find((b) => b.beatId === 'beat6')!;
-        const step = getRunStep(t.db, beat6.stepId!)!;
+        const beat7 = output.beats.find((b) => b.beatId === 'beat7')!;
+        const step = getRunStep(t.db, beat7.stepId!)!;
         const input = GeneratorBeatInputSchema.parse(readDataJson(t.dataDir, step.inputPath!));
         expect(input.reason).toBe('revalidate');
-        expect(latestSpec(runId).scenes?.[5]?.events[0]?.targets).toEqual(['rtt']);
+        expect(latestSpec(runId).scenes?.[6]?.events[0]?.targets).toEqual(['late']);
         expect(
           logs(runId).some((l) =>
-            /Beat beat6 no longer fits beat beat5's new board/.test(l.message),
+            /Beat beat7 no longer fits beat beat6's new board/.test(l.message),
           ),
         ).toBe(true);
       });
 
       it('makes no extra call when the retry leaves what later beats use', async () => {
         const { runId, specVersionId } = await scripted(chained);
-        const job = await generate(registry(answers(retried('p99'), [continuing('p99')])), runId, {
-          specVersionId,
-        });
+        const job = await generate(
+          registry(answers(retried('slow'), [continuing('slow')])),
+          runId,
+          {
+            specVersionId,
+          },
+        );
         expect(job.status).toBe('done');
-        // 8 beats plus beat5's retry; beat6 keeps its first board.
+        // 8 beats plus beat6's retry; beat7 keeps its first board.
         expect(generatorCalls(runId)).toHaveLength(9);
         const output = latestGeneration(t.db, t.dataDir, runId)!.output;
         expect(output.warnings).toEqual([]);
-        const step = getRunStep(t.db, output.beats.find((b) => b.beatId === 'beat6')!.stepId!)!;
+        const step = getRunStep(t.db, output.beats.find((b) => b.beatId === 'beat7')!.stepId!)!;
         const input = GeneratorBeatInputSchema.parse(readDataJson(t.dataDir, step.inputPath!));
         expect(input.reason).toBe('generate');
       });
@@ -467,12 +481,9 @@ describe('generate job (rate-limiter fixture, hand-written boards, dry run)', ()
     it('sends what the retry could not fix to gate 3 as warnings', async () => {
       const { runId, specVersionId } = await scripted(untagged);
       const still = answer(statOnly(failoverBoard()));
-      const answers = {
-        ...cleanAnswers(),
-        beat5: [answer(statOnly(tripBoard()))],
-        beat6: [still, still, still, still],
-      };
-      const job = await generate(registry(answers), runId, { specVersionId });
+      const job = await generate(registry(staticAnswers([still, still, still, still])), runId, {
+        specVersionId,
+      });
       expect(job.status).toBe('done');
       const output = latestGeneration(t.db, t.dataDir, runId)!.output;
       expect(output.warnings).toEqual([

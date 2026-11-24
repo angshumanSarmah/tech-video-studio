@@ -21,6 +21,7 @@ export const SCRIPT_PROBLEM_CODES = [
   'stat_cards_per_beat',
   'stat_cards_per_video',
   'tag_repeats_stat_card',
+  'too_many_tags_continuing',
   'headline_not_concept',
   'headline_repeated',
   'hook_number_missing',

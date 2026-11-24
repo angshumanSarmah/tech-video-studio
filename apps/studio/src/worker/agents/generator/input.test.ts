@@ -85,8 +85,8 @@ describe('generatorUserMessage', () => {
       .filter((l) => /^\d/.test(l));
     const narration = rateLimiter.script?.[0]?.narration ?? '';
     expect(lines).toHaveLength(narrationWords(narration).length);
-    expect(lines[0]).toBe('0 Thirty-one 0.00');
-    expect(lines.at(-1)).toMatch(/^23 now\. \d+\.\d\d$/);
+    expect(lines[0]).toBe('0 In 0.00');
+    expect(lines.at(-1)).toMatch(/^24 fail\. \d+\.\d\d$/);
   });
 
   it("gives a board's first beat its fixed layout mode, and no ON SCREEN list", () => {
@@ -101,13 +101,13 @@ describe('generatorUserMessage', () => {
     const text = message('rate-limiter', 3, [undefined, undefined, storeScene]);
     const onScreen = sectionOf(text, 'ON SCREEN') ?? '';
     expect(onScreen).toContain('- own (node_card) "Own bucket": present;');
-    expect(onScreen).toContain('- one (tag) "One bucket": present;');
+    expect(onScreen).toContain('- one (tag) "bucket per node": present;');
     expect(onScreen).toContain('focus: shared');
     expect(onScreen).toMatch(/units on screen: \d+ of at most \d+/);
     expect(onScreen).toMatch(
       /space left: the board is drawn at \d+% of full size and text stays readable down to 75%/,
     );
-    expect(sectionOf(text, 'PREVIOUS BEAT')).toContain('Why not give each gateway node');
+    expect(sectionOf(text, 'PREVIOUS BEAT')).toContain('why not give each gateway node');
     const board = JSON.parse(sectionOf(text, 'BOARD') ?? '{}') as { layoutMode: { id: string } };
     expect(board.layoutMode.id).toBe('versus_split');
   });
@@ -179,6 +179,7 @@ describe('generatorUserMessage', () => {
   it('quotes each script item as JSON, so an edge space shows', () => {
     const spec = structuredClone(tokenizer);
     spec.script![0]!.tags = [' Paris', 'caps form'];
+    spec.script![0]!.narration = "Why do ' Paris' and 'PARIS' split differently?";
     const text = generatorUserMessage({
       spec,
       scenes: [],

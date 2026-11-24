@@ -3,7 +3,11 @@ import type { DirectorPlan } from '../director/plan.ts';
 import type { ResearchNotes } from '../research/notes.ts';
 import type { BeatScript } from '../spec/script.ts';
 import { planVideos, problem, type ScriptProblem, type ScriptToCheck } from './context.ts';
-import { MAX_STAT_CARDS_PER_BEAT, MAX_STAT_CARDS_PER_VIDEO } from './limits.ts';
+import {
+  MAX_STAT_CARDS_PER_BEAT,
+  MAX_STAT_CARDS_PER_VIDEO,
+  MAX_TAGS_CONTINUING,
+} from './limits.ts';
 import { isNumberWord } from '../research/numbers.ts';
 import { numberKey, numberMentions } from './number-mentions.ts';
 import { mentionsTerm } from './terms.ts';
@@ -133,6 +137,27 @@ export function tagProblems(output: ScriptToCheck): ScriptProblem[] {
         : [],
     );
   });
+}
+
+/**
+ * A beat the plan marks `continuesPrevious` asks for at most `MAX_TAGS_CONTINUING` tag: its board
+ * already holds the earlier beats' elements, each in its place.
+ */
+export function continuingTagProblems(output: ScriptToCheck, plan: DirectorPlan): ScriptProblem[] {
+  const continuing = new Set(plan.story.beats.filter((b) => b.continuesPrevious).map((b) => b.id));
+  return output.script.flatMap((beat, i) =>
+    continuing.has(beat.beatId) && beat.tags.length > MAX_TAGS_CONTINUING
+      ? [
+          problem(
+            ['script', i, 'tags'],
+            'too_many_tags_continuing',
+            `Beat "${beat.beatId}" continues the previous board, which is already full: give it ` +
+              `at most ${MAX_TAGS_CONTINUING} tag (it has ${beat.tags.length}). Keep the one ` +
+              'that names what this beat adds.',
+          ),
+        ]
+      : [],
+  );
 }
 
 // --- Headlines --------------------------------------------------------------------------------
