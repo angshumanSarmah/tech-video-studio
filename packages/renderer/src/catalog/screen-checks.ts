@@ -323,13 +323,16 @@ function numberChecks(
     if (leaf.kind === 'number') {
       const key = numberKey(leaf.value);
       const ok = leaf.unit === 'sec' ? allowed.seconds.has(key) : allowed.plain.has(key);
-      if (ok || EVERYDAY_VALUES.has(key)) return [];
+      if (ok || EVERYDAY_VALUES.has(key) || stepsFrom(leaf, allowed.plain)) return [];
       const shown = leaf.unit === 'sec' ? `${leaf.value} s` : String(leaf.value);
+      const step = leaf.steps
+        ? ` A counter may also step a research value by 1 to ${leaf.steps}.`
+        : '';
       return [
         warning(
           leaf.path,
           'screen_number_not_in_notes',
-          `${shown} is not a research value. ${hint}`,
+          `${shown} is not a research value. ${hint}${step}`,
         ),
       ];
     }
@@ -343,6 +346,18 @@ function numberChecks(
         `"${leaf.value}" shows ${unknown.join(', ')}, not a research value. ${hint}`,
       ),
     ];
+  });
+}
+
+/**
+ * A counter's number that steps a research value by 1 to its `steps` (100 tokens, then 99 after
+ * one is spent): the change the narration shows, not a number worked out.
+ */
+function stepsFrom(leaf: { value: number; steps?: number }, plain: ReadonlySet<string>): boolean {
+  if (!leaf.steps) return false;
+  return [...plain].some((key) => {
+    const gap = Math.abs(leaf.value - Number(key));
+    return Number.isInteger(gap) && gap >= 1 && gap <= (leaf.steps ?? 0);
   });
 }
 

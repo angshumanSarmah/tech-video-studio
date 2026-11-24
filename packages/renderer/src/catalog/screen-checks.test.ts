@@ -184,6 +184,32 @@ describe('screen_number_not_in_notes', () => {
   });
 });
 
+describe('screen_number_not_in_notes: a counter stepping a research value', () => {
+  // bucket (scene 2): a counter from 100 tokens (num-2), and a 60 s refill timer.
+  const counter = (value: number, from = 100) =>
+    golden((s) => Object.assign(props(s, 2, 0), { value, from }));
+
+  it('allows a counter one to three away from a research value (a token spent)', () => {
+    for (const value of [99, 98, 97, 101, 103]) expect(codes(counter(value))).toEqual([]);
+    expect(codes(counter(98, 99))).toEqual([]);
+  });
+
+  it('flags a counter four or more away, and says how far it may step', () => {
+    const found = screenTextWarnings(counter(96), { notes: notes() });
+    expect(found.map((w) => `${w.path} ${w.code}`)).toEqual([
+      '$.scenes[2].elements[0].props.value screen_number_not_in_notes',
+    ]);
+    expect(found[0]?.message).toContain('A counter may also step a research value by 1 to 3.');
+  });
+
+  it('allows no step on numbers other than a counter’s (a timer, a data value)', () => {
+    const timer = golden((s) => (props(s, 2, 2).durationSec = 61));
+    expect(codes(timer)).toEqual([
+      '$.scenes[2].elements[2].props.durationSec screen_number_not_in_notes',
+    ]);
+  });
+});
+
 describe('label_term_too_early', () => {
   it('flags a label naming a term a later beat introduces, and passes from that beat on', () => {
     const later = golden((s) => (at(s.story.beats, 2).newTerms = ['token bucket']));

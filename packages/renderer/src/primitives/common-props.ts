@@ -29,6 +29,17 @@ export function displayNumber<T extends z.ZodType>(schema: T, unit?: DisplayUnit
   return schema.meta({ displayNumber: unit ? { unit } : {} });
 }
 
+/** How far a stepping number may sit from a research value (a token spent, one by one). */
+export const MAX_DISPLAY_STEP = 3;
+
+/**
+ * Marks a counter's number: drawn on screen like `displayNumber`, and it may also step a research
+ * value by 1 to `MAX_DISPLAY_STEP` (100 tokens, then 99 after one is spent).
+ */
+export function steppingNumber<T extends z.ZodType>(schema: T): T {
+  return schema.meta({ displayNumber: { steps: MAX_DISPLAY_STEP } });
+}
+
 /** Marks a string prop as not plain screen text (LaTeX), so text checks skip it. */
 export function notScreenText<T extends z.ZodType>(schema: T): T {
   return schema.meta({ screenText: false });

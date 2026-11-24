@@ -1,16 +1,16 @@
 import { z } from 'zod';
 import type { Theme } from '../../theme/index.ts';
-import { displayNumber, lineText, semanticProp } from '../common-props.ts';
+import { steppingNumber, lineText, semanticProp } from '../common-props.ts';
 import { formatCount } from '../counter/format.ts';
 import { approxTextWidth, lineHeightPx } from '../measure.ts';
 import { definePrimitive, type SizeHints } from '../types.ts';
 
 export const CounterTransitionPropsSchema = z.strictObject({
-  from: displayNumber(z.number())
+  from: steppingNumber(z.number())
     .finite()
     .nullable()
     .describe('The number before the change, or null when it is unknown (shown as "?").'),
-  to: displayNumber(z.number()).finite().describe('The number after the change.'),
+  to: steppingNumber(z.number()).finite().describe('The number after the change.'),
   unit: lineText(16, 'Short unit after the new number.').optional(),
   label: lineText(32, 'Caption under the numbers.').optional(),
   fromSemantic: semanticProp('neutral', 'Colour of the old number'),

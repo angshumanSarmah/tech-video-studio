@@ -683,7 +683,8 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   `screen_number_not_in_notes` (each counted number, and each `displayNumber` value, is a value
   the board's beats so far cite or say; `sec` values compare with research times converted by
   code, so 600 matches "10 minutes"; identifiers such as p99 and HTTP 429 and counts 0-3 are
-  free; skipped without notes) and `label_term_too_early` (a glossary term a later beat
+  free; a counter's number (`steppingNumber`: `counter`, `counter_transition`) may also step a
+  research value by 1 to `MAX_DISPLAY_STEP` (3), as a token being spent; skipped without notes) and `label_term_too_early` (a glossary term a later beat
   introduces). Example numbers need no marking: code draws the EXAMPLE stamp (see Renderer).
 - **Across boards** (`catalog/layer-checks.ts`, `layerWarnings`; the Generator's post-pass and
   the Curator): `pattern_repeated_on_focus` (consecutive beats focus a new instance of the same

@@ -18,7 +18,14 @@ type JsonSchema = Record<string, unknown>;
 export type Leaf =
   | { kind: 'asset'; path: Path; value: string }
   | { kind: 'text'; path: Path; value: string }
-  | { kind: 'number'; path: Path; value: number; unit?: DisplayUnit };
+  | {
+      kind: 'number';
+      path: Path;
+      value: number;
+      unit?: DisplayUnit;
+      /** A counter's number may step a research value by up to this much (`steppingNumber`). */
+      steps?: number;
+    };
 
 /** The one-line text pattern of `lineText`, as JSON Schema writes it. */
 const ONE_LINE_PATTERN = '^[^\\n\\r]*$';
@@ -70,7 +77,16 @@ function leaf(node: JsonSchema, value: unknown, path: Path): Leaf[] {
   }
   if (typeof value === 'number' && isRecord(node.displayNumber)) {
     const unit = node.displayNumber.unit as DisplayUnit | undefined;
-    return [{ kind: 'number', path, value, ...(unit ? { unit } : {}) }];
+    const steps = node.displayNumber.steps;
+    return [
+      {
+        kind: 'number',
+        path,
+        value,
+        ...(unit ? { unit } : {}),
+        ...(typeof steps === 'number' ? { steps } : {}),
+      },
+    ];
   }
   return [];
 }
