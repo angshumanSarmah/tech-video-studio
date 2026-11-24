@@ -38,3 +38,8 @@ export * from './screen-checks.ts';
 export * from './layer-checks.ts';
 export * from './board-state.ts';
 export * from './pin-hosts.ts';
+// The Curator's code checks (P1C.8): text size after the camera, colour, variety, and all of them together.
+export { onScreenTextWarnings, TEXT_TOO_SMALL_ON_SCREEN } from '../layout/on-screen-text.ts';
+export * from './colour-checks.ts';
+export * from './variety-checks.ts';
+export * from './curator-checks.ts';

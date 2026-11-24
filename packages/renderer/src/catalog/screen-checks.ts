@@ -363,6 +363,74 @@ function stepsFrom(leaf: { value: number; steps?: number }, plain: ReadonlySet<s
   });
 }
 
+// --- Source lines for numbers on screen (P1C.8) -----------------------------------------------
+
+/**
+ * A board that shows a research number needs its beat's source line ("Source: …"): the
+ * Scriptwriter sets `source` on every beat that shows a sourced number, and code draws it.
+ * `source_missing_on_screen` (Scriptwriter) flags a beat whose own board text (what the
+ * Generator writes this beat; stat cards are the Scriptwriter's own `source_missing`) shows one
+ * with no source. Exempt: a beat marked `exampleNumbers` (code draws an EXAMPLE stamp instead),
+ * and a value an earlier beat of the same board already cited or said (attributed there).
+ * Everyday counts (0 to 3) and values the notes give only as dates are not sourced numbers.
+ * One warning per beat. Pure.
+ */
+export function sourceMissingOnScreenWarnings(
+  spec: RenderableVideoSpec,
+  notes: ResearchNotes,
+  registries: Registries = DEFAULT_REGISTRIES,
+): SpecError[] {
+  const index = numberIndex(notes);
+  return spec.scenes.flatMap((scene, i) => {
+    const story = spec.story.beats.find((b) => b.id === scene.beatId);
+    const k = spec.script.findIndex((s) => s.beatId === scene.beatId);
+    const script = spec.script[k];
+    if (!script || script.source !== undefined || story?.exampleNumbers) return [];
+    const carried = carriedKeys(spec, notes, i);
+    const shown = generatorLeaves(scene, i, registries).flatMap((leaf) =>
+      leafKeys(leaf)
+        .filter((key) => index.idsByKey.has(key) && !carried.has(key))
+        .map((key) => ({ leaf, key })),
+    );
+    const first = shown[0];
+    if (!first) return [];
+    const id = index.idsByKey.get(first.key)?.[0] ?? '';
+    const number = notes.numbers.find((n) => n.id === id);
+    const what = number ? `${id}: ${number.value} ${number.unit}`.trim() : id;
+    const label = first.leaf.kind === 'text' ? `"${first.leaf.value}"` : first.key;
+    return [
+      warning(
+        ['script', k, 'source'],
+        'source_missing_on_screen',
+        `The board shows ${label} (${what}), a research number, but beat ` +
+          `${scene.beatId} has no source line. Set its \`source\` to the publisher and what ` +
+          'it is, as for a stat card.',
+      ),
+    ];
+  });
+}
+
+/** Counted values of a leaf: a number as is, a text's counted numbers (everyday ones aside). */
+function leafKeys(leaf: WrittenLeaf): string[] {
+  if (leaf.kind === 'number') {
+    const key = numberKey(leaf.value);
+    return EVERYDAY_VALUES.has(key) ? [] : [key];
+  }
+  return leaf.kind === 'text' ? countedKeys(leaf.value) : [];
+}
+
+/** Values earlier beats of beat `i`'s board cited or said: attributed (or stamped) there. */
+function carriedKeys(spec: RenderableVideoSpec, notes: ResearchNotes, i: number): Set<string> {
+  const index = numberIndex(notes);
+  const earlier = boardBeats(spec, i).slice(0, -1);
+  return new Set([
+    ...earlier.flatMap((id) => saidKeys(spec, id)),
+    ...earlier
+      .flatMap((id) => citedIds(spec, id))
+      .flatMap((id) => [...(index.keysById.get(id) ?? [])]),
+  ]);
+}
+
 /** No label names a glossary term before the beat that introduces it. */
 function termChecks(
   spec: RenderableVideoSpec,

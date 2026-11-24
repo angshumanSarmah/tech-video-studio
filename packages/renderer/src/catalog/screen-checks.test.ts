@@ -6,7 +6,7 @@ import {
 import { describe, expect, it } from 'vitest';
 import { goldenFixtures, goldenRateLimiterSpec } from '../../fixtures/index.ts';
 import { layerWarnings } from './layer-checks.ts';
-import { screenTextWarnings } from './screen-checks.ts';
+import { screenTextWarnings, sourceMissingOnScreenWarnings } from './screen-checks.ts';
 
 const C = ['source-1#chunk-1'];
 
@@ -269,5 +269,51 @@ describe('layerWarnings', () => {
     expect(layerWarnings(two).map((w) => `${w.path} ${w.code}`)).toEqual([
       '$.scenes[3] static_beats',
     ]);
+  });
+});
+
+describe('source_missing_on_screen', () => {
+  const flagged = (spec: RenderableVideoSpec) =>
+    sourceMissingOnScreenWarnings(spec, notes()).map((w) => w.path);
+
+  it('flags each beat whose board shows a research number with no source line', () => {
+    // The golden fixture is invented and has no source lines at all.
+    expect(flagged(golden())).toEqual([
+      '$.script[0].source',
+      '$.script[1].source',
+      '$.script[4].source',
+      '$.script[6].source',
+    ]);
+    const [first] = sourceMissingOnScreenWarnings(golden(), notes());
+    expect(first?.code).toBe('source_missing_on_screen');
+    expect(first?.message).toContain('shows 10000 (num-1: 10,000 requests per second)');
+  });
+
+  it('accepts a source line, or an example beat with its stamp', () => {
+    const sourced = golden((s) => (at(s.script, 0).source = 'Acme engineering blog'));
+    expect(flagged(sourced)).not.toContain('$.script[0].source');
+    const example = golden((s) => (at(s.story.beats, 0).exampleNumbers = true));
+    expect(flagged(example)).not.toContain('$.script[0].source');
+  });
+
+  it('accepts a value an earlier beat of the same board already said', () => {
+    const spec = golden((s) => {
+      at(s.script, 4).source = 'Acme engineering blog';
+      at(s.scenes, 5).elements.push({
+        id: 'cap',
+        primitive: 'counter',
+        props: {
+          value: 200,
+          unit: 'req/min',
+          label: 'allowed',
+          pin: { to: 'shared', side: 'top' },
+        },
+      });
+    });
+    expect(flagged(spec)).not.toContain('$.script[4].source');
+    expect(flagged(spec)).not.toContain('$.script[5].source');
+    const alone = structuredClone(spec);
+    at(alone.script, 4).narration = 'Now run two copies of the API.';
+    expect(flagged(alone)).toContain('$.script[5].source');
   });
 });

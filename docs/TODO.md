@@ -8,11 +8,25 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       "Everything a beat adds enters on the word that names it; only the starting focus may be
       there from the start." `element_without_enter` enforces it, but today the model learns it
       only from a repair message. Change the design doc first, then `generator.v3` and re-record.
-- [ ] **Timing — Length after TTS.** With `wordsPerSec` at Kokoro's measured 2.56, a script at
-      its word budget narrates to about its planned length, but the ±15% budget tolerance and the
-      per-topic rate (2.47 to 2.64 on the fixtures) still let a video run past the configured
-      range (the rate limiter's draft would be about 94 s for a 90 s plan). Check the timed
-      length after the `tts` job and warn at the draft gate, or trim the tolerance.
+- [ ] **Scriptwriter — Another system's measured numbers.** Next Scriptwriter prompt change:
+      numbers measured in another system or source are attributed ("in one guide's tests,
+      a round trip took…"), not framed as an example with "say". The rate limiter's beat5
+      says "Say the median round trip is zero point four milliseconds" for the field guide's
+      measurement because the plan marks it `exampleNumbers` (needed by `mixed_system_numbers`),
+      so `example_not_labelled` requires the marker. Decide the rule for a marked beat whose
+      numbers are measurements (attribution as an accepted marker, or a second marking), change
+      the design doc first, then the prompt and the check.
+- [ ] **Golden — Strawberry takeaway tag.** `golden-strawberry`'s fix beat draws its "1 letter =
+      1 token" tag in `focus` beside its focused counter: `focus_colour_off_focus` (advisory,
+      pinned in `colour-checks.test.ts`). Make it `concept` and refresh the golden images
+      (`UPDATE_GOLDEN=1`), or keep it if two focus marks read well there.
+- [ ] **P1C.9 — Part runs in the Curator.** `planOfSpec` treats a spec as one video, so a
+      part run that ends on its cliffhanger would get `ending_kind` and its recap beat no
+      part context. When runs carry their part index, pass it to `curatorCodeChecks` and check
+      the part's ending and recap as the Director does.
+- [ ] **Generator — Text size after the camera.** `generatorCheck` still warns `text_too_small`
+      at chain scale; `onScreenTextWarnings` would spare boards whose cameras lift each beat.
+      Switch only if live runs show the Generator shrinking boards it did not need to.
 - [ ] **P1C.12 — Per-beat asset filter.** The Generator's prompt lists every approved asset in
       the cached prefix (about 105 today, 1–2k tokens). The design doc's per-beat filter (about
       60 candidates) waits until the library passes about 150 entries; it then goes in the user
@@ -227,9 +241,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       stays readable (`maxRowWidth` = frame / readable scale), not the arrangement that scales
       largest: with real glyph widths, `fan_out`'s three targets now sit in one row at 81% where
       two over one fit at 100% (`worker_pool` 100% -> 87%). Pick the larger-scale arrangement.
-- [ ] **Curator — readability on screen.** `text_too_small` measures the board scale before the
-      camera. The Curator should also measure each beat as shown (board scale x that beat's
-      camera zoom), so a continuing beat that exits elements is judged by what the viewer sees.
 - [ ] **Scriptwriter — tags on continuing beats (in reserve).** If continuing beats still fail
       on space in the live rerun, cap a continuing beat's tags (or a chain's) in the
       Scriptwriter, so the script never asks a board for more than it holds.
@@ -287,10 +298,11 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       layout). Its children are a plain stack (no pins or connectors between children). `bracket`
       spans its targets underneath; brace orientation along their shared side, and `parts`
       spans, need part geometry. `route_path`'s mover sits on the end pin when it arrives.
-- [ ] **P1B / P1C — Source required.** A beat that shows a real incident or a sourced number must
-      carry `BeatScript.source`. Schema code cannot tell, so the Scriptwriter prompt states it
-      as a DO rule and the Curator checks it against the research notes (`stat_card` already
-      requires its own source).
+- [ ] **P1C.8 — Source required, the rest.** `source_missing_on_screen` checks numbers the
+      board shows, and the Scriptwriter's `source_missing` checks planned sources and stat cards.
+      Still unchecked: a research number only said in the narration, a number that stays on a
+      continuing beat without a source line (the footnote is per beat), and a real-incident
+      beat without numbers (the Curator's review judges those).
 - [ ] **Scene — Container cycles.** `nestContained` (`scene/beat-world.ts`) never nests an
       overlay, and every container today (`inset_panel`) is an overlay, so containment cannot
       cycle. If a non-overlay container is ever added, add a cycle check (in `nestContained`
@@ -365,9 +377,9 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       what overhangs further.
 - [ ] **Layout — Radial centring.** `centered_focus` and `hub_spoke` centre the others on the
       middle element's cluster (with its pins), so a hub with a side pin sits off centre.
-- [ ] **P1C.8 / P1D — Layout warnings.** `generatorCheck` runs `specLayoutWarnings` on each
-      beat; the Curator runs it on the assembled spec with the run's theme and format, and the
-      scene gate shows it.
+- [ ] **P1D — Layout warnings at the scene gate.** `curatorCodeChecks` runs every code check
+      (layout included, with the run's theme and format) on the finished spec; the scene gate
+      shows its findings and runs it on saves.
 - [ ] **Recover without a reject.** A `recover` on an element or part that was never rejected
       (in its `continuesPrevious` chain) is a silent no-op. Add a timeline warning
       (`recover_without_reject`) so agents repair it; the board fixtures are checked by a test.

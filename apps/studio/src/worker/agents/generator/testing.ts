@@ -3,8 +3,15 @@ import { join } from 'node:path';
 import {
   assembleScriptedSpec,
   DirectorPlanSchema,
+  generatorScene,
+  GeneratorOutputSchema,
   ResearchNotesSchema,
   ScriptwriterOutputSchema,
+  TimingSettingsSchema,
+  validateRenderableVideoSpec,
+  validateVideoSpec,
+  type GeneratorOutput,
+  type RenderableVideoSpec,
   type DirectorPlan,
   type ResearchNotes,
   type ScriptwriterOutput,
@@ -12,6 +19,7 @@ import {
 } from '@explainer-studio/shared';
 import type { DryRunResponse } from '#worker/llm/index.ts';
 import { fixtureResponsesDir, fixtureTopic, type FixtureTopicId } from '../fixture-topics.ts';
+import { loadTimingFixture, withFixtureTiming } from './timing-fixture.ts';
 
 /**
  * Test and script helpers for the Generator: the recorded Director and Scriptwriter answers of a
@@ -49,6 +57,43 @@ export function fixtureScriptedSpec(topic: FixtureTopicId): VideoSpecInput {
     series: fixtureTopic(topic).seriesTag,
     seriesNumber: 1,
   });
+}
+
+/** The Generator's accepted (last) recorded board for each beat of a fixture topic. */
+export function recordedBoards(topic: FixtureTopicId): Record<string, GeneratorOutput> {
+  const file = join(fixtureResponsesDir('generator', topic), 'generator.json');
+  const byBeat = JSON.parse(readFileSync(file, 'utf8')) as Record<string, DryRunResponse[]>;
+  return Object.fromEntries(
+    Object.entries(byBeat).map(([beatId, responses]) => {
+      const content = responses.at(-1)?.content;
+      if (!content) throw new Error(`No recorded generator answer for ${topic} ${beatId}.`);
+      return [beatId, GeneratorOutputSchema.parse(JSON.parse(content))];
+    }),
+  );
+}
+
+/**
+ * The fixture topic as the Curator sees it: the recorded plan and script, timed with the
+ * committed timing fixture at the default pauses, and every recorded board. Throws when the
+ * pieces no longer fit together (re-record or re-time).
+ */
+export function fixtureGeneratedSpec(topic: FixtureTopicId): RenderableVideoSpec {
+  const scripted = validateVideoSpec(fixtureScriptedSpec(topic)).spec;
+  if (!scripted) throw new Error(`The ${topic} plan and script do not assemble into a spec.`);
+  const timed = withFixtureTiming(
+    scripted,
+    loadTimingFixture(topic),
+    TimingSettingsSchema.parse({}),
+  );
+  const boards = recordedBoards(topic);
+  const scenes = timed.story.beats.map((beat) => {
+    const board = boards[beat.id];
+    if (!board) throw new Error(`No recorded board for ${topic} ${beat.id}.`);
+    return generatorScene(board, beat);
+  });
+  const result = validateRenderableVideoSpec({ ...timed, scenes });
+  if (!result.ok) throw new Error(`The ${topic} boards do not make a valid spec.`);
+  return result.spec;
 }
 
 const word = (index: number) => ({ type: 'word', index }) as const;

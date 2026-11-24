@@ -778,6 +778,63 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   final version and the run's warning logs, and writes `contact-sheet.png` (one still per beat,
   `scripts/contact-sheet.ts`).
 
+### Curator (P1C.8; code checks so far, the review and repair loop follow)
+
+- **`curatorCodeChecks(spec, ctx)`** (`renderer/src/catalog/curator-checks.ts`, pure, exported
+  through `catalog` so gate saves can run it): every code check on a finished spec (the re-timed
+  spec after the Generator, or a gate edit), each finding a `CodeIssue` (shared
+  `curator/issue.ts`): the `SpecError` plus `severity` (`blocking` | `advisory`) and `owner`
+  (`scriptwriter` | `generator` | `director` | `researcher`; only the first two are ever
+  auto-repaired, `REPAIRABLE_OWNERS`). `ctx` (`CuratorCheckContext`): theme, notes, topic title,
+  series name and label, handle, resolved `settings.video`, `lengthOverrideSec`, pauses, recent
+  usage (`directorMemory`: combos, patterns), source names and sources.
+- **What runs:** validation errors (always blocking; then nothing else runs) and warnings
+  (`withRegistryChecks`); `specLayoutWarnings` with the chain-level `text_too_small` replaced by
+  `text_too_small_on_screen`; HUD text and subtitles; `beatCheckWarnings`,
+  `screenTextWarnings` (with notes) and `layerWarnings`; `colourWarnings`;
+  `sourceMissingOnScreenWarnings`; `patternVarietyWarnings`; `directorPlanProblems` on
+  `planOfSpec(spec)` (shared: the spec as a one-video plan) less what only a plan has (planned
+  length, parts: `PLAN_ONLY_CODES`); `scriptProblems`, less the word budgets once the spec is
+  timed; then `timedLengthProblems`, `hookNumberRepeats` and `readabilityProblems` (shared
+  `curator/`). De-duplicated by path and code.
+- **Severity and owner:** `CURATOR_CODE_POLICY` rates every warning code (blocking:
+  `BLOCKING_WARNING_CODES`: unreadable or hidden text, script items or numbers not as written,
+  numbers and facts not in the notes, missing attribution, `beat_over_target`,
+  `video_out_of_range`, `hook_number_repeated`); a test fails when a code any fixture raises,
+  or any plan, script, layout or spec warning code, has no rating. The owner follows the path
+  (`ownerOfPath`: `$.scenes` Generator, `$.script` and `$.timing` Scriptwriter, the rest Director).
+- **New checks:**
+  - **Length after TTS** (`timedLengthProblems`, timed specs only): a beat's scene span (narration,
+    gap, landing; the last beat without the end tail) over `BEAT_OVER_TARGET_RATIO` (1.25) × its
+    `targetSec` is `beat_over_target` (with words to cut at its measured rate); the beats over
+    `VIDEO_OVER_TARGET_RATIO` (1.1) × the target (or the run's fixed length) are
+    `video_over_target`; the whole video outside `settings.video`'s range is
+    `video_out_of_range` (not with a fixed length).
+  - **`hook_number_repeated`**: a later beat's narration says a `hookNumberIds` value (everyday
+    one to three aside), unless it cites another research number with that value.
+  - **`readability_low`**: Flesch reading ease (`text/readability.ts`, vowel-group syllables)
+    below `READABILITY_THRESHOLDS` (beginner 60, intermediate 50, none for experts). Neither
+    recorded topic goes below 60; jargon in short words scores well, so the review judges level.
+  - **Colour** (`colourWarnings`): `focus_colour_off_focus` (an element a beat adds in the focus
+    colour that is dimmed the whole beat; one pinned to a reported host is left out) and
+    `ok_element_rejected` (a whole-element `reject` on an element drawn `ok`).
+  - **`source_missing_on_screen`**: a beat with no `source` whose own board text (not the
+    script's items) shows a research number; exempt: `exampleNumbers` beats (the stamp) and
+    values an earlier beat of the board cited or said.
+  - **`pattern_recently_used`**: past `MAX_RECENT_PATTERN_REUSE` (1), a pattern drawn in this
+    video that a recent video used.
+  - **Text size after the camera** (`layout/on-screen-text.ts`, option B): on a chain the layout
+    finds `text_too_small`, each beat is measured at board scale × the smallest zoom it holds
+    (start framing and `focus` reframings; semantic-zoom pushes left out). The camera only
+    zooms in (≥ 1), so this clears beats, never adds any: `text_too_small_on_screen` marks the
+    beats still below `MIN_TEXT_PX`. The Generator still checks before the camera.
+- **Tests:** seeded faults per check (shared `curator/curator.test.ts`, renderer
+  `on-screen-text.test.ts`, `colour-checks.test.ts`, `screen-checks.test.ts`,
+  `curator-checks.test.ts`) and the recorded topics (`agents/curator/code-checks.test.ts`, on
+  `fixtureGeneratedSpec(topic)`: recorded plan, script and boards with the committed timing).
+  The rate limiter raises only `beat_over_target` on beat1 (135%) and beat7 (127%); the
+  tokenizer `focus_colour_off_focus` on b5 and b6 and `video_over_target` (112%).
+
 API conventions: routes under `/api`, inputs validated with the `validate()` helper against schemas
 from `packages/shared/src/api`, list responses wrapped as `{ items }`, and every error is
 `ApiErrorSchema` (`{ error: { code, message, issues? } }`). Domain errors from core
