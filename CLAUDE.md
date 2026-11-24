@@ -707,8 +707,10 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   `semantic_zoom` beat, ZOOM FROM (the previous board's present ids). ON SCREEN comes from
   `boardState(spec, previousBeatId)` (renderer `catalog/board-state.ts`, pure): every element and
   instance the board declared, its text, present or exited, held reject / lock (whole and per
-  part), held highlight, actions and parts, inner ids with `innerActions`, the focus and the
-  units against `maxUnits`, as the previous scene leaves the screen. `generator/board.ts`
+  part), held highlight, actions and parts, which pins it can host (`catalog/pin-hosts.ts`,
+  `primitivePinHost`: any side, a connector's middle only, none on a pattern instance or its
+  inner elements), inner ids with `innerActions`, the focus, the units against `maxUnits` and
+  the board's scale headroom (`space left`), as the previous scene leaves the screen. `generator/board.ts`
   (`spliceBoards`, `placeholderScene`, `boardStart`) is shared with the check. Snapshots in
   `generator/__snapshots__/` (rate limiter beat4, continuing; tokenizer b3, semantic zoom) show
   what the model reads: review their diff.
@@ -1311,7 +1313,8 @@ message }` for the Curator): `too_many_elements` (mode `maxUnits`), `text_too_sm
   `params.parts`: `unknown_part` (unknown id, or a target without parts), `parts_need_one_target`,
   and `unsupported_action` at the event's `action` when the parts do not support it. For element
   refs: `unknown_element` (not in the beat's scope), `invalid_element_ref` (itself, the wrong
-  primitive, an overlay put in a container, or an element already in another container) and
+  primitive, a pin to a pattern instance (it names the board's own pin hosts), an overlay put
+  in a container, or an element already in another container) and
   `unknown_part` (a ref's parts). It also adds **warnings** (the spec stays valid, Studio shows
   them, agent output repairs them since warnings count as failures there): `unknown_asset` for
   asset ids (from `assetRefs`) that are neither in the asset registry nor a declared logo slot

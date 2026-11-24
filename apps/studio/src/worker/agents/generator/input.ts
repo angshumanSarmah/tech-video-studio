@@ -4,6 +4,7 @@ import {
   boardState,
   DEFAULT_REGISTRIES,
   LAYOUT_MODES,
+  pinHostText,
   type BoardEntry,
   type Registries,
 } from '@explainer-studio/renderer/catalog';
@@ -276,6 +277,7 @@ function entryLine(entry: BoardEntry): string {
     ...(entry.highlighted ? ['highlighted'] : []),
     ...entry.heldParts.map((p) => `part ${p.part} ${p.held.join(', ')}`),
     `actions: ${entry.actions.join(', ')}`,
+    pinHostText(entry.pinHost),
     ...(entry.parts
       ? [`parts: ${entry.parts.ids.join(', ')} (${entry.parts.actions.join(', ')})`]
       : []),
@@ -291,7 +293,7 @@ function entryLine(entry: BoardEntry): string {
     return `  - ${i.id} (${i.primitive}): ${state.join('; ')}`;
   });
   return [
-    `${head}; inner elements take only ${entry.innerActions?.join(', ') ?? ''}:`,
+    `${head}; inner elements take only ${entry.innerActions?.join(', ') ?? ''} and host no pins:`,
     ...inner,
   ].join('\n');
 }

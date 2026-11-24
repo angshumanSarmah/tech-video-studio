@@ -13,6 +13,7 @@ import {
   type SpecError,
 } from '@explainer-studio/shared';
 import { sceneChain } from '../scene/beat-world.ts';
+import { takesPin } from './pin-hosts.ts';
 import { DEFAULT_REGISTRIES, type Registries } from './registries.ts';
 import { paramLeaves, propLeaves, type Leaf } from './schema-leaves.ts';
 
@@ -78,7 +79,7 @@ export function screenTextWarnings(
   return spec.scenes.flatMap((scene, i) => {
     const written = generatorLeaves(scene, i, registries);
     return [
-      ...scriptTextChecks(spec.script[i], scene, i),
+      ...scriptTextChecks(spec.script[i], scene, i, registries),
       ...(notes ? numberChecks(spec, notes, i, written) : []),
       ...termChecks(spec, i, written),
     ];
@@ -150,6 +151,7 @@ function scriptTextChecks(
   script: BeatScript | undefined,
   scene: BeatScene,
   i: number,
+  registries: Registries,
 ): SpecError[] {
   const expected = expectedItems(script);
   const used = new Set<Expected>();
@@ -185,7 +187,7 @@ function scriptTextChecks(
         ['scenes', i, 'elements'],
         'script_text_missing',
         `The script's ${e.describe} is not on the board: place it as a ${e.primitive} element, ` +
-          'exactly as written, pinned to what it describes.',
+          `exactly as written${takesPin(registries.primitives.get(e.primitive)) ? ', pinned to what it describes' : ' (it takes no pin)'}.`,
       ),
     );
   return [...changed, ...missing];

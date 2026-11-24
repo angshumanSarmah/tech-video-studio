@@ -104,6 +104,19 @@ describe('script_text_missing / script_text_changed', () => {
     ]);
   });
 
+  it('asks for a pin only on what takes one (a tag), never on a stat card', () => {
+    const message = (spec: RenderableVideoSpec) =>
+      screenTextWarnings(spec).find((w) => w.code === 'script_text_missing')?.message;
+    const tag = golden((s) => at(s.scenes, 0).elements.splice(4, 1));
+    expect(message(tag)).toMatch(/exactly as written, pinned to what it describes\.$/);
+    const card = golden(
+      (s) => (at(s.script, 0).statCards = [{ value: '10k/s', label: 'peak', sourceRef: 'num-1' }]),
+    );
+    expect(message(card)).toMatch(
+      /as a stat_card element, exactly as written \(it takes no pin\)\.$/,
+    );
+  });
+
   it('compares tags without case (they are drawn upper case)', () => {
     const spec = golden((s) => (at(s.script, 5).tags = ['100 total']));
     expect(codes(spec, false)).toEqual([]);

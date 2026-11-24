@@ -118,9 +118,12 @@ export const PinSchema = z
   .describe('Optional: pin this element to another one so it stays attached to it.');
 export type Pin = z.output<typeof PinSchema>;
 
+/** The primitives a `middle` pin may point to (a line's midpoint). */
+export const MIDDLE_PIN_HOSTS: readonly string[] = ['connector'];
+
 /** The element ref a `pin` prop declares (none without a pin). */
 export function pinRefs(pin: Pin | undefined): ElementRef[] {
   if (!pin) return [];
-  const middle = pin.side === 'middle' ? { primitives: ['connector'] } : {};
+  const middle = pin.side === 'middle' ? { primitives: [...MIDDLE_PIN_HOSTS] } : {};
   return [{ path: ['pin', 'to'], id: pin.to, pin: pin.side, ...middle }];
 }

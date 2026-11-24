@@ -145,10 +145,10 @@ The narration lasts 13.85 s.
 }
 
 ## ON SCREEN (exhaustive: the ids already on this board; act on them with events, never declare them again)
-- own (node_card) "Own bucket": present; actions: enter, exit, highlight, dim, pulse, lock, release, reject, recover
-- shared (node_card) "Shared store": present; actions: enter, exit, highlight, dim, pulse, lock, release, reject, recover
-- one (tag) "One bucket": present; actions: enter, exit, highlight, dim, pulse, reject, recover
-- agree (tag) "All nodes agree": present; actions: enter, exit, highlight, dim, pulse, reject, recover
+- own (node_card) "Own bucket": present; actions: enter, exit, highlight, dim, pulse, lock, release, reject, recover; pins: top, bottom, left, right
+- shared (node_card) "Shared store": present; actions: enter, exit, highlight, dim, pulse, lock, release, reject, recover; pins: top, bottom, left, right
+- one (tag) "One bucket": present; actions: enter, exit, highlight, dim, pulse, reject, recover; pins: top, bottom, left, right
+- agree (tag) "All nodes agree": present; actions: enter, exit, highlight, dim, pulse, reject, recover; pins: top, bottom, left, right
 focus: shared
 units on screen: 2 of at most 8
 space left: the board is drawn at 88% of full size and text stays readable down to 75%, so room is little: add few, small elements. Everything here keeps its place and size; each element you add shrinks the whole board, and exiting one frees no room.

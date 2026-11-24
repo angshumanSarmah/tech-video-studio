@@ -1,3 +1,4 @@
+import { INSTANCE_PIN_MESSAGE, primitivePinHost } from './pin-hosts.ts';
 import {
   toJsonPath,
   type BeatScene,
@@ -96,7 +97,7 @@ export function elementRefErrors(
     const propsPath = ['scenes', i, 'elements', j, 'props'];
     return definition.elementRefs(props.data).flatMap((ref) => {
       const path = [...propsPath, ...ref.path];
-      const base = refError(element.id, ref, path, scope);
+      const base = refError(element.id, ref, path, scope, registries);
       if (base) return [base];
       const entry = scope.get(ref.id);
       return [
@@ -107,11 +108,26 @@ export function elementRefErrors(
   });
 }
 
-function refError(owner: string, ref: ElementRef, path: Path, scope: Scope): SpecError | undefined {
+function refError(
+  owner: string,
+  ref: ElementRef,
+  path: Path,
+  scope: Scope,
+  registries: Registries,
+): SpecError | undefined {
   if (ref.id === owner) {
     return error(path, 'invalid_element_ref', `"${owner}" cannot point to itself.`);
   }
   const entry = scope.get(ref.id);
+  if (ref.pin !== undefined && entry && registries.patterns.has(entry.label)) {
+    const hosts = pinHosts(scope, owner, ref.pin === 'middle' ? 'middle' : 'sides', registries);
+    return error(
+      path,
+      'invalid_element_ref',
+      `"${ref.id}" is ${INSTANCE_PIN_MESSAGE}. Pin to one of this board's own elements` +
+        `${hosts.length > 0 ? ` (${hosts.join(', ')})` : ''}, or give it a zone instead.`,
+    );
+  }
   if (!entry) {
     const known = [...scope.keys()].filter((id) => id !== owner && !id.includes('/')).join(', ');
     return error(
@@ -125,6 +141,19 @@ function refError(owner: string, ref: ElementRef, path: Path, scope: Scope): Spe
     return error(path, 'invalid_element_ref', message);
   }
   return undefined;
+}
+
+/** The ids in scope that can take this kind of pin (never the owner or a pattern's elements). */
+function pinHosts(
+  scope: Scope,
+  owner: string,
+  side: 'sides' | 'middle',
+  registries: Registries,
+): string[] {
+  return [...scope.entries()]
+    .filter(([id]) => id !== owner && !id.includes('/'))
+    .filter(([, entry]) => primitivePinHost(registries.primitives.get(entry.label)) === side)
+    .map(([id]) => id);
 }
 
 /** A ref limited to parts (`bracket.parts`): each must be a part of the target. */

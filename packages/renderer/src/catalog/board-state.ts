@@ -16,6 +16,7 @@ import { beatWorld, sceneChain, type WorldItem } from '../scene/beat-world.ts';
 import { getTheme, type Theme } from '../theme/index.ts';
 import { sceneEndSec } from '../timing/frames.ts';
 import { DEFAULT_REGISTRIES, type Registries } from './registries.ts';
+import { primitivePinHost, type PinHost } from './pin-hosts.ts';
 import { paramLeaves, propLeaves } from './schema-leaves.ts';
 import { sceneScopes, type ScopeEntry } from './scope.ts';
 import { flattenWorld } from './settled.ts';
@@ -56,6 +57,8 @@ export type BoardEntry = {
   actions: readonly string[];
   /** Its parts and the actions they take (`params.parts`), when it has parts. */
   parts?: { ids: readonly string[]; actions: readonly string[] };
+  /** Which pins it can host (`primitivePinHost`; a pattern instance: none). */
+  pinHost: PinHost;
   /** A pattern instance's elements, which events may target with `innerActions` only. */
   inner?: BoardInner[];
   innerActions?: readonly string[];
@@ -157,6 +160,7 @@ function elementEntry(
     heldParts,
     actions: entry?.actions ?? [],
     ...(entry?.parts ? { parts: { ids: entry.parts.ids, actions: entry.parts.actions } } : {}),
+    pinHost: primitivePinHost(definition),
   };
 }
 
@@ -194,6 +198,7 @@ function patternEntry(
     highlighted: inner.length > 0 && inner.every((i) => i.highlighted),
     heldParts: [],
     actions: entry?.actions ?? [],
+    pinHost: 'none',
     inner,
     innerActions: INNER_TARGET_ACTIONS,
   };
