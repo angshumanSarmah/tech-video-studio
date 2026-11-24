@@ -22,6 +22,7 @@ export function iconSizeHints(_props: IconProps, theme: Theme): SizeHints {
 export const iconPrimitive = definePrimitive({
   id: 'icon',
   family: 'annotation',
+  zoomable: true,
   propsSchema: IconPropsSchema,
   actions: ['enter', 'exit', 'highlight', 'dim', 'pulse'],
   sizeHints: iconSizeHints,

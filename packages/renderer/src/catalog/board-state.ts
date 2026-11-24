@@ -12,6 +12,7 @@ import { minReadableScale } from '../layout/readable.ts';
 import { specLayout } from '../layout/spec-layout.ts';
 import { INNER_TARGET_ACTIONS } from '../patterns/types.ts';
 import { elementState, type PartState } from '../primitives/element-state.ts';
+import type { PrimitiveDefinition } from '../primitives/types.ts';
 import { beatWorld, sceneChain, type WorldItem } from '../scene/beat-world.ts';
 import { getTheme, type Theme } from '../theme/index.ts';
 import { sceneEndSec } from '../timing/frames.ts';
@@ -39,6 +40,8 @@ export type BoardInner = {
   present: boolean;
   held: HeldState[];
   highlighted: boolean;
+  /** A component inside the pattern a semantic zoom can go into (`isComponent`). */
+  zoomable: boolean;
 };
 
 export type BoardEntry = {
@@ -59,6 +62,8 @@ export type BoardEntry = {
   parts?: { ids: readonly string[]; actions: readonly string[] };
   /** Which pins it can host (`primitivePinHost`; a pattern instance: none). */
   pinHost: PinHost;
+  /** A component a semantic zoom can go inside: a zoomable primitive not pinned, or an instance. */
+  zoomable: boolean;
   /** A pattern instance's elements, which events may target with `innerActions` only. */
   inner?: BoardInner[];
   innerActions?: readonly string[];
@@ -161,7 +166,15 @@ function elementEntry(
     actions: entry?.actions ?? [],
     ...(entry?.parts ? { parts: { ids: entry.parts.ids, actions: entry.parts.actions } } : {}),
     pinHost: primitivePinHost(definition),
+    zoomable: isComponent(definition, element.props),
   };
+}
+
+/** A zoomable primitive that is not pinned to another element (then it annotates that one). */
+function isComponent(definition: PrimitiveDefinition | undefined, props: unknown): boolean {
+  if (!definition?.zoomable) return false;
+  const pin = (props as { pin?: unknown } | null | undefined)?.pin;
+  return pin === undefined || pin === null;
 }
 
 function patternEntry(
@@ -183,6 +196,7 @@ function patternEntry(
     return {
       id: key,
       primitive: item?.kind === 'primitive' ? item.definition.id : '',
+      zoomable: item?.kind === 'primitive' && isComponent(item.definition, item.props),
       present: (state?.presence ?? 0) > 0.5,
       held: heldOf(state),
       highlighted: (state?.highlight ?? 0) > 0,
@@ -199,6 +213,7 @@ function patternEntry(
     heldParts: [],
     actions: entry?.actions ?? [],
     pinHost: 'none',
+    zoomable: true,
     inner,
     innerActions: INNER_TARGET_ACTIONS,
   };

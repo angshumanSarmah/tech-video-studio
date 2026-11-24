@@ -78,6 +78,7 @@ export function nodeCardSizeHints(props: NodeCardProps, theme: Theme): SizeHints
 export const nodeCardPrimitive = definePrimitive({
   id: 'node_card',
   family: 'annotation',
+  zoomable: true,
   propsSchema: NodeCardPropsSchema,
   actions: ['enter', 'exit', 'highlight', 'dim', 'pulse', 'lock', 'reject'],
   sizeHints: nodeCardSizeHints,

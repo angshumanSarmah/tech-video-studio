@@ -69,6 +69,7 @@ export function slotGridSizeHints(props: SlotGridProps, theme: Theme): SizeHints
 export const slotGridPrimitive = definePrimitive({
   id: 'slot_grid',
   family: 'object',
+  zoomable: true,
   propsSchema: SlotGridPropsSchema,
   actions: ['enter', 'exit', 'highlight', 'dim'],
   sizeHints: slotGridSizeHints,

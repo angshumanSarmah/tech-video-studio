@@ -140,6 +140,8 @@ describe('generatorUserMessage', () => {
     const zoom = sectionOf(message('tokenizer', 2, [undefined, versusScene]), 'ZOOM FROM') ?? '';
     expect(zoom).toContain('- pieces (node_card) "Subword pieces"');
     expect(zoom).toContain('- chars (node_card) "Characters"');
+    // Components only: never a tag or another pinned annotation.
+    expect(zoom).not.toContain('(tag)');
   });
 
   it('tells the final beat which words the ending card covers', () => {

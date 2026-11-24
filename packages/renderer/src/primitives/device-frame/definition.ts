@@ -88,6 +88,7 @@ export function deviceFrameEventWarnings(props: DeviceFrameProps, events: readon
 export const deviceFramePrimitive = definePrimitive({
   id: 'device_frame',
   family: 'object',
+  zoomable: true,
   propsSchema: DeviceFramePropsSchema,
   actions: ['enter', 'exit', 'highlight', 'dim', 'pulse', 'morph'],
   sizeHints: deviceFrameSizeHints,

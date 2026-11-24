@@ -68,6 +68,7 @@ export function dataBlockSizeHints(props: DataBlockProps, theme: Theme): SizeHin
 export const dataBlockPrimitive = definePrimitive({
   id: 'data_block',
   family: 'data',
+  zoomable: true,
   propsSchema: DataBlockPropsSchema,
   actions: ['enter', 'exit', 'highlight', 'dim', 'pulse'],
   sizeHints: dataBlockSizeHints,

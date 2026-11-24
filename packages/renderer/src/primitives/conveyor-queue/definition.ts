@@ -58,6 +58,7 @@ export function conveyorSizeHints(props: ConveyorQueueProps, theme: Theme): Size
 export const conveyorQueuePrimitive = definePrimitive({
   id: 'conveyor_queue',
   family: 'flow',
+  zoomable: true,
   propsSchema: ConveyorQueuePropsSchema,
   actions: ['enter', 'exit', 'highlight', 'dim', 'pulse'],
   sizeHints: conveyorSizeHints,

@@ -151,6 +151,12 @@ export interface PrimitiveDefinition<Id extends string = string, S extends z.Zod
   /** How the layout engine places it, when not as an ordinary element (see the role list). */
   layoutRole?: PrimitiveLayoutRole;
   /**
+   * A component a semantic zoom can go inside (`zoomFrom`): a card, an icon, a block of data, a
+   * device. Annotations (tags, callouts, brackets), lines, metrics and overlays are not; nor is
+   * any element pinned to another. The Generator's ZOOM FROM list shows only these.
+   */
+  zoomable?: boolean;
+  /**
    * Text it draws outside its own body (a label on a ring's rim), in box px. The layout reports
    * `text_covered` when an element is placed over one. Omit when all its text is inside it.
    */

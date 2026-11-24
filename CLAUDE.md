@@ -704,7 +704,9 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   (introduced so far with plain meanings, and `notYet`), BOARD (format, layout mode with zones
   and `maxUnits`: the plan's on a board's first beat, the generated first scene's on a
   continuing beat; logo slots); on a continuing beat, ON SCREEN and PREVIOUS BEAT; on a
-  `semantic_zoom` beat, ZOOM FROM (the previous board's present ids). ON SCREEN comes from
+  `semantic_zoom` beat, ZOOM FROM (the previous board's present components: a primitive that
+  declares `zoomable` (cards, icons, data blocks, devices) and is not pinned, or a pattern
+  instance and its zoomable inner elements; never tags or other annotations). ON SCREEN comes from
   `boardState(spec, previousBeatId)` (renderer `catalog/board-state.ts`, pure): every element and
   instance the board declared, its text, present or exited, held reject / lock (whole and per
   part), held highlight, actions and parts, which pins it can host (`catalog/pin-hosts.ts`,

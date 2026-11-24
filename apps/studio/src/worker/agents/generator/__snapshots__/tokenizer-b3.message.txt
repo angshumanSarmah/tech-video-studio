@@ -140,10 +140,7 @@ The narration lasts 13.08 s.
   "logoSlots": []
 }
 
-## ZOOM FROM (exhaustive: with transitionIn "zoom-in", set zoomFrom to one of these ids of the previous board)
+## ZOOM FROM (exhaustive: with transitionIn "zoom-in", set zoomFrom to one of these components of the previous board)
 - chars (node_card) "Characters"
 - words (node_card) "Whole words"
 - pieces (node_card) "Subword pieces"
-- tag-chars (tag) "characters"
-- tag-words (tag) "whole words"
-- tag-pieces (tag) "subwords"

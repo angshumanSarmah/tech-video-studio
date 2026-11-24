@@ -298,7 +298,10 @@ function entryLine(entry: BoardEntry): string {
   ].join('\n');
 }
 
-/** The previous board's elements a semantic zoom may push into (`zoomFrom`). */
+/**
+ * The previous board's components a semantic zoom may push into (`zoomFrom`): cards, icons and
+ * pattern instances (`zoomable`), never tags or other pinned annotations.
+ */
 function zoomSection(
   spec: RenderableVideoSpec,
   previous: StoryBeat,
@@ -306,13 +309,15 @@ function zoomSection(
 ): string {
   const state = boardState(spec, previous.id, options);
   const choices = state.entries
-    .filter((e) => e.present)
+    .filter((e) => e.present && e.zoomable)
     .flatMap((e) => [
       `- ${e.id} (${e.kind === 'pattern' ? `pattern ${e.type}` : e.type})${e.text === undefined ? '' : ` "${e.text}"`}`,
-      ...(e.inner ?? []).filter((i) => i.present).map((i) => `- ${i.id} (${i.primitive})`),
+      ...(e.inner ?? [])
+        .filter((i) => i.present && i.zoomable)
+        .map((i) => `- ${i.id} (${i.primitive})`),
     ]);
   return section(
-    'ZOOM FROM (exhaustive: with transitionIn "zoom-in", set zoomFrom to one of these ids of the previous board)',
+    'ZOOM FROM (exhaustive: with transitionIn "zoom-in", set zoomFrom to one of these components of the previous board)',
     choices.length > 0 ? choices.join('\n') : '(the previous board is not generated yet)',
   );
 }

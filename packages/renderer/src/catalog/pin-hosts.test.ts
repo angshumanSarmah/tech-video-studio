@@ -75,3 +75,22 @@ describe('ON SCREEN pin hosts (boardState)', () => {
     expect(flood).toMatchObject({ kind: 'pattern', pinHost: 'none' });
   });
 });
+
+describe('zoomable components (boardState)', () => {
+  it('cards and pattern instances are; tags, pinned elements and lines are not', () => {
+    const fleet = boardState(goldenRateLimiterSpec, 'fleet-fix');
+    const zoomable = fleet.entries.filter((e) => e.zoomable).map((e) => e.id);
+    expect(zoomable).toEqual(expect.arrayContaining(['user', 'api-a', 'api-b', 'shared']));
+    for (const id of ['to-a', 'count-a', 'leak', 'total']) expect(zoomable).not.toContain(id);
+    const payoff = boardState(goldenRateLimiterSpec, 'payoff').entries;
+    expect(payoff.find((e) => e.id === 'flood')?.zoomable).toBe(true);
+  });
+
+  it('declares zoomable primitives in the registry, never annotations or lines', () => {
+    const zoomable = [...PRIMITIVES.values()].filter((p) => p.zoomable).map((p) => p.id);
+    expect(zoomable).toEqual(expect.arrayContaining(['node_card', 'icon', 'data_block']));
+    for (const id of ['tag', 'callout', 'bracket', 'connector', 'stat_card', 'statement_card']) {
+      expect(zoomable).not.toContain(id);
+    }
+  });
+});
