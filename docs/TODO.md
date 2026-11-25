@@ -64,6 +64,13 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       summaries, which carry the original's domain nouns ("a seat", "a rider"); the Director's
       prompt forbids reusing the domain, and only names in `namesToAvoid` are checked. If plans
       start borrowing a reference's domain, add the domain nouns as `example` names.
+- [ ] **P1C.11 — Beat devices in a record's `videoDevices`.** The analyst put
+      `planted_question` (failover) and `persona_hook` (food delivery) in `videoDevices` though
+      both sit on beats; `referenceRecordProblems` only checks the other way
+      (`whole_video_device_on_beat`). In R2's live runs both Directors first listed
+      `planted_question` in `story.devices` on no beat (`devices_unused`, one repair each).
+      Either keep only `WHOLE_VIDEO_DEVICES` in a brief's `videoDevices`, or add a record check
+      and re-record the seeds.
 - [ ] **P1D.7 — Backlog names across requesters.** Reference rows use the analyst's snake_case
       names; run rows keep the Director's and Generator's names as written. Group by a
       normalised name (`catalogueKey`) on the Backlog page, or normalise run names on write.
