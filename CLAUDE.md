@@ -219,6 +219,12 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   pass through.
 - **Shutdown** (SIGTERM/SIGINT, including `tsx watch` restarts) aborts the handler's `signal`; a job
   that throws after the abort is requeued and its attempt refunded.
+- **Cancel** (P1C.9): each job gets its own signal (`watchCancel` in `runner.ts`), also aborted
+  when its run is cancelled (checked every `CANCEL_POLL_MS`, 1 s); a job that throws after that is
+  `cancelled` (`cancelRunningJob`), never requeued.
+- **Cost cap** (P1C.9): a handler that throws `RunBudgetReachedError` (`#core/errors.ts`, from the
+  LLM client) is requeued with its attempt refunded and its run set `paused` with a `run_status`
+  and a `warn` log event (`pauseForBudget`). The claim skips a paused run's jobs.
 - **Crash recovery** assumes a single worker: on startup every `running` job is stale. It is
   requeued, or failed once it has used `MAX_JOB_ATTEMPTS` (3) hard crashes. There is no
   heartbeat or lease; add one before running a second worker.
@@ -329,6 +335,19 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
     paused with no job queued or running (409). Merges the named fields (`patchRunSettings`, see
     "Settings snapshot"), so the next job uses them and finished steps keep theirs, logs every
     changed leaf (`settingsChanges`), then advances the run (an auto-approve switched on).
+- **Cancel and resume** (`#core/services/run-control.ts`; step 6): `POST /api/runs/:id/cancel`
+  (`cancelRun`, one transaction): the run and its active parts `cancelled`, their queued jobs
+  `cancelled` (with `job_status` events); the running job is stopped by the worker within about
+  a second. A terminal run is a 409. `POST /api/runs/:id/resume` (`resumeRun`): a failed run is
+  `running` again at the step it failed at with no step job, so the orchestrator queues that
+  step's job again (resumable jobs reuse what they finished: the Generator's beat steps, a
+  repair's steps); a resumed part reopens its failed parent at `children`; a parent itself, or a
+  run that is not failed, is a 409.
+- **Cost cap** (step 7): the LLM client stops a run at `budget.maxRunUsd` (see "LLM client") and
+  the worker pauses it. Raising the cap with `PUT /api/runs/:id/settings` (allowed while paused,
+  its requeued job in the queue) resumes it when the new cap is above what it has spent
+  (`resumeUnderCap`: a `run_status` event and a log line either way). Gate payloads show the
+  cost per role.
 - **Dry run:** `LLM_DRY_RUN_DIR` (env) makes the worker replay `<role>.json` recordings from that
   directory (`workerTransport`) instead of calling the API.
 - **Tests:** `decide.test.ts` (every transition, regenerate routes, parts, paused and cancelled);
@@ -349,7 +368,11 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   update at a gate that changes only the named model; `regenerate.test.ts`: every regenerate
   path (feedback in the rerun's prompts; one beat at the scenes and draft gates with every other
   beat byte-identical, the draft re-rendering only that clip, the scenes gate carried from the
-  draft gate).
+  draft gate); `run-control.test.ts`: a worker killed mid-generate finishes after a restart
+  (`Harness.restart`: stale jobs requeued, runs swept) paying each beat once, a cancel during
+  generate ends the run within 2 s with nothing queued after, a failed run resumes, and a cost
+  cap below the Director's cost pauses at `direct` until raised. `Harness.hangAfter` holds a
+  role's calls in the next worker (abortable, or for good: a killed process).
 
 ### Source ingestion (`src/worker/ingest`, job in `jobs/ingest.ts`)
 
@@ -512,6 +535,10 @@ stepId?, aliases?, check?, signal?, log? })`** is the only way to call a model (
   `replayKey` (`CallJsonRequest.replayKey`, passed on `TransportRequest`, written to the prompt
   file; HTTP ignores it), so calls made in parallel replay deterministically; `recordedInOrder`
   reads a role recorded in call order, `recordKeyedResponses` (fixture scripts) records per key.
+- **Cost cap:** before each request (and again once a semaphore slot is free) a run's call
+  compares `runCostUsd` with the snapshot's `budget.maxRunUsd`; at or over it, nothing is sent and
+  `RunBudgetReachedError` is thrown (no `llm_calls` row). Calls already in flight finish, so a
+  run can end slightly over its cap.
 - **Concurrency:** at most `llm.maxConcurrent` (default 3) requests in flight, across every role:
   one FIFO semaphore per client (`llm/semaphore.ts`) around each HTTP request (the wait is not
   part of `durationMs`; an abort while waiting leaves the queue).

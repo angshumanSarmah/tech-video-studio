@@ -104,6 +104,17 @@ export function setActiveRunStatus(db: Executor, id: number, status: RunStatus):
   return row && toRun(row);
 }
 
+/** A failed run made active again (resumed); undefined when it was not failed. */
+export function reopenFailedRun(db: Executor, id: number): Run | undefined {
+  const row = db
+    .update(runs)
+    .set({ status: 'running' })
+    .where(and(eq(runs.id, id), eq(runs.status, 'failed')))
+    .returning()
+    .get();
+  return row && toRun(row);
+}
+
 /** Moves the orchestrator's cursor: the step the run is in, and the job that step queued. */
 export function setPipelineStep(
   db: Executor,

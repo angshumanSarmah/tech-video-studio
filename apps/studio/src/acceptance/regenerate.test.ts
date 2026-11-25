@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { appendFileSync, readFileSync } from 'node:fs';
 import type { RenderableVideoSpec } from '@explainer-studio/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { resolveDataPath } from '#core/data-files.ts';
@@ -11,6 +11,8 @@ import { getLatestSpecVersion } from '#core/db/repositories/spec-versions.ts';
 import { latestCuration } from '#core/services/curation.ts';
 import { latestDirection } from '#core/services/direction.ts';
 import { latestResearch } from '#core/services/research-notes.ts';
+import { startRun } from '#core/services/runs.ts';
+import { fixtureRunSettings } from '#worker/agents/fixture-topics.ts';
 import { answer, reviewOf } from '#worker/agents/curator/testing.ts';
 import { fixtureGeneratedSpec } from '#worker/agents/generator/testing.ts';
 import { decided, expectError, Harness } from './harness.ts';
@@ -77,6 +79,51 @@ describe('regenerate at the research gate', () => {
       kind: 'step',
       id: research.step.id,
     });
+  });
+
+  it('a re-fetch pins the new text for the run that asked; a new run on the topic uses it too', async () => {
+    const first = await h.runUntilWaiting({});
+    const { topicId, seriesId } = getRun(h.t.db, first)!;
+    const second = startRun(h.t.db, {
+      topicId,
+      seriesId,
+      settings: fixtureRunSettings({}),
+      app: h.settings,
+    }).run.id;
+    await h.drain({ researcher: h.recording('researcher') });
+    const pin = (runId: number, sourceId: number) =>
+      listRunSources(h.t.db, runId).find((s) => s.sourceId === sourceId)?.contentHash;
+    const source = listTopicSources(h.t.db, topicId)[0]!;
+    const before = pin(first, source.id);
+    expect(pin(second, source.id)).toBe(before);
+
+    // The uploaded file changed; the second run fetches it again.
+    appendFileSync(
+      resolveDataPath(h.t.dataDir, source.filePath!),
+      '\n\nAn added paragraph, long enough to count as new text in the normalized source.\n',
+    );
+    await decided(
+      await h.post(second, 'research', {
+        action: 'regenerate',
+        target: 'source',
+        sourceId: source.id,
+      }),
+    );
+    await h.drain({ researcher: h.recording('researcher') });
+    const after = pin(second, source.id);
+    expect(after).not.toBe(before);
+    // Limited to the run that asked: the first keeps the text it used.
+    expect(pin(first, source.id)).toBe(before);
+
+    // A new run on the topic starts from the latest fetched version.
+    const third = startRun(h.t.db, {
+      topicId,
+      seriesId,
+      settings: fixtureRunSettings({}),
+      app: h.settings,
+    }).run.id;
+    await h.drain({}, 1);
+    expect(pin(third, source.id)).toBe(after);
   });
 
   it('fetches one source again, then runs the Researcher', async () => {

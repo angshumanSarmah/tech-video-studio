@@ -19,7 +19,8 @@ import { listEventsSince } from '#core/db/repositories/events.ts';
 import { listRunJobs } from '#core/db/repositories/jobs.ts';
 import { getSpecVersion } from '#core/db/repositories/spec-versions.ts';
 import { createTestDb, type TestDb } from '#core/db/testing.ts';
-import { advanceRun } from '#core/orchestrator/advance.ts';
+import { advanceRun, sweepRuns } from '#core/orchestrator/advance.ts';
+import { recoverStaleJobs } from '#core/services/jobs.ts';
 import { findWorkspaceRoot } from '#core/workspace-root.ts';
 import { createApp, type App } from '#server/app.ts';
 import {
@@ -97,6 +98,12 @@ export class Harness {
     }
   }
 
+  /** Empties a role's queue: its next call finds no answer and fails (a job that fails). */
+  drop(role: 'researcher' | 'director' | 'scriptwriter' | 'curator'): void {
+    if (this.queues.size === 0) this.loadRecordings();
+    this.queues.set(role, []);
+  }
+
   /** The topic's recorded answers for a role (to replay a rerun of it). */
   recording(role: 'researcher' | 'director' | 'scriptwriter'): DryRunResponse[] {
     return [...recordedInOrder(fixtureResponsesDir(role, this.topic), role)];
@@ -120,9 +127,44 @@ export class Harness {
     }
   }
 
+  /** Workers built so far: a hang applies to one of them (a worker that died). */
+  private generation = 0;
+  private hang: { generation: number; role: string; after: number; abortable: boolean } | null =
+    null;
+  /** Calls a hang is holding (never answered, or answered only by an abort). */
+  hung = 0;
+
+  /**
+   * The next worker's calls of `role` after the first `after` of them never return (the
+   * queued answer stays for a later worker); `abortable`: they reject when their signal aborts,
+   * as a real request does, else they hang for good (a killed process).
+   */
+  hangAfter(role: string, after: number, abortable: boolean): void {
+    this.hang = { generation: this.generation + 1, role, after, abortable };
+  }
+
+  /** The replay transport of one worker (`generation`). */
+  private transportFor(generation: number): LlmTransport {
+    let calls = 0;
+    const count = (role: string) => (role === this.hang?.role ? (calls += 1) : 0);
+    return { send: (request) => this.replay(request, generation, () => count(request.role)) };
+  }
+
   /** Replays the next queued answer for the call's role (and beat). */
-  private readonly transport: LlmTransport = {
-    send: (request) => {
+  private readonly replay = (
+    request: Parameters<LlmTransport['send']>[0],
+    generation: number,
+    count: () => number,
+  ): ReturnType<LlmTransport['send']> => {
+    const hang = this.hang;
+    if (hang?.generation === generation && hang.role === request.role && count() > hang.after) {
+      this.hung += 1;
+      return new Promise((_, reject) => {
+        if (!hang.abortable) return;
+        request.signal?.addEventListener('abort', () => reject(request.signal!.reason as Error));
+      });
+    }
+    {
       const keyed = request.role === 'generator';
       const next = this.queues
         .get(keyed ? `generator:${request.replayKey}` : request.role)
@@ -131,17 +173,18 @@ export class Harness {
         ? { generator: { [request.replayKey ?? '']: next ? [next] : [] } }
         : { [request.role]: next ? [next] : [] };
       return dryRunTransport(fixtures).send(request);
-    },
+    }
   };
 
   worker(answers: Answers = {}): JobRegistry {
     const { t, topic } = this;
     this.enqueue(answers);
+    this.generation += 1;
     const llm = createLlmClient({
       db: t.db,
       dataDir: t.dataDir,
       llm: this.settings.llm,
-      transport: this.transport,
+      transport: this.transportFor(this.generation),
     });
     const tts = fixtureTts(topic, join(t.dataDir, 'fake-tts')).provider;
     const { tools, engine } = fakeTools();
@@ -151,14 +194,43 @@ export class Harness {
     );
   }
 
+  private readonly advance = (tx: Executor, runId: number) => advanceRun(tx, this.t.dataDir, runId);
+
   /** Runs jobs as the worker does (the orchestrator queues each next one), at most `limit`. */
   async drain(answers: Answers = {}, limit = Infinity): Promise<void> {
     const registry = this.worker(answers);
     const signal = new AbortController().signal;
-    const advance = (tx: Executor, runId: number) => advanceRun(tx, this.t.dataDir, runId);
     for (let i = 0; i < limit; i += 1) {
-      const ran = await runNextJob({ db: this.t.db, registry, workerId: 't', signal, advance });
+      const ran = await runNextJob({
+        db: this.t.db,
+        registry,
+        workerId: 't',
+        signal,
+        advance: this.advance,
+      });
       if (!ran) return;
+    }
+  }
+
+  /** One job on a new worker, not awaited (a test kills or cancels it). */
+  runOne(answers: Answers = {}): Promise<boolean> {
+    const registry = this.worker(answers);
+    const signal = new AbortController().signal;
+    return runNextJob({ db: this.t.db, registry, workerId: 't', signal, advance: this.advance });
+  }
+
+  /** A worker starting up after a crash: stale running jobs requeued, stalled runs moved on. */
+  restart(): void {
+    recoverStaleJobs(this.t.db, { failsRun: () => true, advance: this.advance });
+    sweepRuns(this.t.db, this.t.dataDir);
+  }
+
+  /** Resolves once `condition` holds (checked every 10 ms), or fails after `timeoutMs`. */
+  async until(condition: () => boolean, timeoutMs = 5_000): Promise<void> {
+    const start = Date.now();
+    while (!condition()) {
+      if (Date.now() - start > timeoutMs) throw new Error('Timed out waiting for a condition.');
+      await new Promise((resolve) => setTimeout(resolve, 10));
     }
   }
 

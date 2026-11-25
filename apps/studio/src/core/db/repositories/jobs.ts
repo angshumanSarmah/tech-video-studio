@@ -1,7 +1,7 @@
 import type { JobStatus } from '@explainer-studio/shared';
 import { and, asc, eq, lte, sql } from 'drizzle-orm';
 import type { Executor } from '../client.ts';
-import { jobs } from '../schema.ts';
+import { jobs, runs } from '../schema.ts';
 
 export type Job = typeof jobs.$inferSelect;
 
@@ -40,14 +40,22 @@ export interface ClaimOptions {
 }
 
 /**
- * Atomically moves the next due job (oldest `run_after`, then id) from `queued` to `running`,
+ * Atomically moves the next due job (oldest `run_after`, then id; none of a paused run) from
+ * `queued` to `running`,
  * locks it and counts the attempt. A single UPDATE, so two claimers can never take the same job.
  */
 export function claimNextJob(db: Executor, { workerId, now }: ClaimOptions): Job | undefined {
   const next = db
     .select({ id: jobs.id })
     .from(jobs)
-    .where(and(eq(jobs.status, 'queued'), lte(jobs.runAfter, now)))
+    .where(
+      and(
+        eq(jobs.status, 'queued'),
+        lte(jobs.runAfter, now),
+        // A paused run's job waits in the queue until the run resumes (its cost cap raised).
+        sql`(${jobs.runId} is null or ${jobs.runId} not in (select ${runs.id} from ${runs} where ${runs.status} = 'paused'))`,
+      ),
+    )
     .orderBy(asc(jobs.runAfter), asc(jobs.id))
     .limit(1);
   return db
@@ -86,4 +94,14 @@ export function releaseJob(db: Executor, id: number, release: JobRelease): Job |
     .where(and(eq(jobs.id, id), eq(jobs.status, 'running')))
     .returning()
     .get();
+}
+
+/** Cancels a run's queued jobs (a run cancelled); returns them. */
+export function cancelQueuedJobs(db: Executor, runId: number): Job[] {
+  return db
+    .update(jobs)
+    .set({ status: 'cancelled', lockedAt: null, lockedBy: null })
+    .where(and(eq(jobs.runId, runId), eq(jobs.status, 'queued')))
+    .returning()
+    .all();
 }

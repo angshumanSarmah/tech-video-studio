@@ -173,9 +173,10 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **P1C.9 step 9 — Edited notes and plans block.** A gate 1 or gate 2 edit is saved when its
       schema passes; its check findings are returned and shown, but blocking for those gates is
       empty until step 9 decides which findings block auto-approve.
-- [ ] **P1C.9 — Paused and cancelled.** The run status `paused` and the job status `cancelled`
-      exist since step 1; nothing sets them until the cost cap (step 7) and cancel (step 6).
-      `budget.maxRunUsd` is already in every run's snapshot.
+- [ ] **P1C.9 — Cost cap per video.** The cap is per run: a multi-part video's parts each have
+      their own `budget.maxRunUsd` (the parent's snapshot), so the whole video can spend up to
+      the cap times the parts plus the parent's research and plan. Sum a parent's and its parts'
+      spend if that matters. Calls already in flight when the cap is reached still finish.
 - [ ] **P1B.1 — Pronunciation editing.** `readPronunciations` only reads. Settings (GET/PUT
       `/api/pronunciations`) needs a `savePronunciations` (atomic, validated) in core. Keys are
       single tokens; multi-word keys ("Kafka Streams") and misaki's inline IPA override

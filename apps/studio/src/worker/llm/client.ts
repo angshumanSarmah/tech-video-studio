@@ -9,8 +9,9 @@ import {
 import type { z } from 'zod';
 import { llmCallPaths, writeDataJson } from '#core/data-files.ts';
 import type { Db } from '#core/db/client.ts';
-import { insertLlmCall, type LlmCallRow } from '#core/db/repositories/llm-calls.ts';
+import { insertLlmCall, runCostUsd, type LlmCallRow } from '#core/db/repositories/llm-calls.ts';
 import { getRun } from '#core/db/repositories/runs.ts';
+import { RunBudgetReachedError } from '#core/errors.ts';
 import { callCostUsd } from './cost.ts';
 import { normalizeJsonText, type FieldAlias } from './normalize.ts';
 import { createSemaphore } from './semaphore.ts';
@@ -226,12 +227,23 @@ export function createLlmClient(deps: LlmClientDeps): LlmClient {
     return run.resolvedSettings.llm;
   }
 
+  /** A run's spend before a request: at its cap, nothing more is sent (`RunBudgetReachedError`). */
+  function checkBudget(runId: number | null | undefined): void {
+    if (runId === undefined || runId === null) return;
+    const run = getRun(deps.db, runId);
+    if (!run) return;
+    const cap = run.resolvedSettings.budget.maxRunUsd;
+    const spent = runCostUsd(deps.db, runId);
+    if (spent >= cap) throw new RunBudgetReachedError(runId, spent, cap);
+  }
+
   async function attempt<S extends z.ZodType>(
     request: CallJsonRequest<S>,
     messages: readonly ChatMessage[],
     attemptNo: number,
   ): Promise<{ row: LlmCallRow; outcome: Outcome<z.output<S>>; content: string }> {
     const { role } = request;
+    checkBudget(request.runId);
     const { models, prices } = modelsAndPrices(request.runId);
     const model = models[role];
     const price = prices[model];
@@ -265,6 +277,8 @@ export function createLlmClient(deps: LlmClientDeps): LlmClient {
     try {
       // The wait for a free slot is not part of the request's duration.
       response = await limiter.run(() => {
+        // Checked again once a slot is free: calls queued behind others see their cost.
+        checkBudget(request.runId);
         started = performance.now();
         return deps.transport.send({
           role,
@@ -275,6 +289,7 @@ export function createLlmClient(deps: LlmClientDeps): LlmClient {
         });
       }, request.signal);
     } catch (error) {
+      if (error instanceof RunBudgetReachedError) throw error;
       insertLlmCall(deps.db, {
         ...base,
         servedModel: null,

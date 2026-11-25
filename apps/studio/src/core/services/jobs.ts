@@ -97,6 +97,40 @@ export function requeueJob(db: Db, job: Job, options: { refundAttempt: boolean }
   );
 }
 
+/** A running job stopped because its run was cancelled: cancelled, not requeued. */
+export function cancelRunningJob(db: Db, job: Job): Job | undefined {
+  return db.transaction((tx) => release(tx, job, { status: 'cancelled' }));
+}
+
+/**
+ * A job stopped by its run's cost cap (`RunBudgetReachedError`): requeued with its attempt
+ * refunded, and the run paused with an event, in one transaction. The queue skips a paused run's
+ * jobs, so it waits there until the cap is raised.
+ */
+export function pauseForBudget(db: Db, job: Job, message: string): Job | undefined {
+  return db.transaction((tx) => {
+    const requeued = release(tx, job, { status: 'queued', refundAttempt: true });
+    if (job.runId === null) return requeued;
+    const run = setActiveRunStatus(tx, job.runId, 'paused');
+    if (run) {
+      const payload = { status: run.status, step: run.pipelineStep };
+      appendEvent(tx, { runId: run.id, jobId: job.id, type: 'run_status', payload });
+      appendEvent(tx, {
+        runId: run.id,
+        jobId: job.id,
+        type: 'log',
+        payload: { level: 'warn', message },
+      });
+    }
+    return requeued;
+  });
+}
+
+/** Records jobs that changed outside `release` (cancelled while queued). */
+export function appendJobStatusEvents(tx: Executor, changed: readonly Job[]): void {
+  for (const job of changed) appendJobStatus(tx, job);
+}
+
 export interface RecoveryOptions extends ReleaseHooks {
   /** Whether a failure of this job type fails its run (from the worker's handler registry). */
   readonly failsRun: (jobType: string) => boolean;

@@ -28,3 +28,23 @@ export class InvalidEditError extends Error {
     super(message);
   }
 }
+
+/**
+ * A run's LLM spend has reached its cap (`budget.maxRunUsd`, P1C.9): thrown by the LLM client
+ * before a request, so nothing more is billed. The worker requeues the job (attempt refunded)
+ * and pauses the run; raising the cap resumes it.
+ */
+export class RunBudgetReachedError extends Error {
+  override readonly name = 'RunBudgetReachedError';
+
+  constructor(
+    readonly runId: number,
+    readonly spentUsd: number,
+    readonly capUsd: number,
+  ) {
+    super(
+      `Run ${runId} has spent $${spentUsd.toFixed(4)} of its $${capUsd.toFixed(2)} cap ` +
+        '(budget.maxRunUsd): raise the cap to resume it.',
+    );
+  }
+}

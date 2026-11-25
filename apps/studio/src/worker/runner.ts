@@ -3,10 +3,14 @@ import { z } from 'zod';
 import type { Db } from '#core/db/client.ts';
 import { appendEvent } from '#core/db/repositories/events.ts';
 import type { Job } from '#core/db/repositories/jobs.ts';
+import { getRun } from '#core/db/repositories/runs.ts';
+import { RunBudgetReachedError } from '#core/errors.ts';
 import {
+  cancelRunningJob,
   claimJob,
   completeJob,
   failJob,
+  pauseForBudget,
   requeueJob,
   type AdvanceRun,
 } from '#core/services/jobs.ts';
@@ -16,6 +20,9 @@ import { createProgressThrottle, type ProgressThrottle } from './progress.ts';
 
 export const PROGRESS_INTERVAL_MS = 1_000;
 
+/** How often a running job checks whether its run was cancelled. */
+export const CANCEL_POLL_MS = 1_000;
+
 export interface RunnerDeps {
   readonly db: Db;
   readonly registry: JobRegistry;
@@ -24,6 +31,8 @@ export interface RunnerDeps {
   /** Aborted on graceful shutdown. */
   readonly signal: AbortSignal;
   readonly progressIntervalMs?: number;
+  /** How often a running job checks whether its run was cancelled (default `CANCEL_POLL_MS`). */
+  readonly cancelPollMs?: number;
   /** Moves a run on when one of its jobs ends (the orchestrator); omitted, jobs run alone. */
   readonly advance?: AdvanceRun;
   readonly onError?: (message: string, error: unknown) => void;
@@ -70,21 +79,70 @@ async function execute(
   payload: unknown,
 ): Promise<void> {
   const throttle = createJobThrottle(deps, job);
+  const stop = watchCancel(deps, job);
   try {
-    await handler.run(createContext(deps, job, payload, throttle));
+    await handler.run(createContext(deps, job, payload, throttle, stop.signal));
   } catch (error) {
     throttle.flush();
-    settleThrownJob(deps, job, handler, error);
+    settleThrownJob(deps, job, handler, error, stop.cancelled());
     return;
+  } finally {
+    stop.dispose();
   }
   throttle.flush();
   completeJob(deps.db, job, { advance: deps.advance });
 }
 
-/** A throw after a graceful abort requeues (attempt refunded); any other throw fails the job. */
-function settleThrownJob(deps: RunnerDeps, job: Job, handler: JobHandler, error: unknown): void {
+/**
+ * The job's own signal: aborted on shutdown, or once its run is cancelled (checked every
+ * `cancelPollMs`, so a cancel ends the job within about a second).
+ */
+function watchCancel(deps: RunnerDeps, job: Job) {
+  const controller = new AbortController();
+  let cancelled = false;
+  const onShutdown = () => controller.abort(deps.signal.reason);
+  deps.signal.addEventListener('abort', onShutdown, { once: true });
+  const check = () => {
+    // A timer: a throw here would crash the worker, so a failed read stops the check instead.
+    try {
+      if (getRun(deps.db, job.runId!)?.status !== 'cancelled') return;
+      cancelled = true;
+      controller.abort(new Error(`Run ${job.runId} was cancelled.`));
+    } catch (error) {
+      if (timer) clearInterval(timer);
+      deps.onError?.(`cancel check failed for job ${job.id}`, error);
+    }
+  };
+  const timer =
+    job.runId === null ? undefined : setInterval(check, deps.cancelPollMs ?? CANCEL_POLL_MS);
+  return {
+    signal: controller.signal,
+    cancelled: () => cancelled,
+    dispose: () => {
+      if (timer) clearInterval(timer);
+      deps.signal.removeEventListener('abort', onShutdown);
+    },
+  };
+}
+
+/**
+ * How a throw ends a job: after a graceful shutdown it is requeued (attempt refunded); after its
+ * run was cancelled it is cancelled; at the run's cost cap it is requeued and the run paused;
+ * anything else fails it.
+ */
+function settleThrownJob(
+  deps: RunnerDeps,
+  job: Job,
+  handler: JobHandler,
+  error: unknown,
+  cancelled: boolean,
+): void {
   if (deps.signal.aborted) {
     requeueJob(deps.db, job, { refundAttempt: true });
+  } else if (cancelled) {
+    cancelRunningJob(deps.db, job);
+  } else if (error instanceof RunBudgetReachedError) {
+    pauseForBudget(deps.db, job, error.message);
   } else {
     failJob(deps.db, job, errorMessage(error), {
       failsRun: handler.failsRun ?? true,
@@ -98,6 +156,7 @@ function createContext(
   job: Job,
   payload: unknown,
   throttle: ProgressThrottle,
+  signal: AbortSignal,
 ): JobContext<unknown> {
   return {
     job,
@@ -114,7 +173,7 @@ function createContext(
         type: 'log',
         payload: { level, message },
       }),
-    signal: deps.signal,
+    signal,
   };
 }
 

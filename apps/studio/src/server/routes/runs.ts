@@ -11,6 +11,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import type { Db } from '#core/db/client.ts';
 import { getRunSummary, listRuns } from '#core/db/repositories/runs.ts';
+import { cancelRun, resumeRun } from '#core/services/run-control.ts';
 import { updateRunSettings } from '#core/services/run-settings.ts';
 import { getRunDetail, startRun } from '#core/services/runs.ts';
 import { toRunDetailDto, toRunDto } from '../dto.ts';
@@ -28,6 +29,16 @@ export function createRunsRoute(db: Db, dataDir: string, appSettings: () => RunS
     .post('/', validate('json', CreateRunRequestSchema), (c) => {
       const { run } = startRun(db, { ...c.req.valid('json'), app: appSettings() });
       return c.json<RunDto>(toRunDto({ ...run, lastError: null }), 201);
+    })
+    .post('/:id/cancel', validate('param', RunParamsSchema), (c) => {
+      const { id } = c.req.valid('param');
+      cancelRun(db, id);
+      return c.json<RunDto>(toRunDto(getRunSummary(db, id)!));
+    })
+    .post('/:id/resume', validate('param', RunParamsSchema), (c) => {
+      const { id } = c.req.valid('param');
+      resumeRun(db, dataDir, id);
+      return c.json<RunDto>(toRunDto(getRunSummary(db, id)!));
     })
     .put(
       '/:id/settings',
