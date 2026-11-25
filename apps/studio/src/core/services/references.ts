@@ -17,6 +17,7 @@ import {
   type ReferenceCheckContext,
   type ReferenceRecord,
   type UnmappedItem,
+  withoutBeatDevicesInVideoDevices,
 } from '@explainer-studio/shared';
 import {
   readDataJson,
@@ -107,7 +108,7 @@ export function saveReferenceRecord(
   record: ReferenceRecord,
   extra: { seedHash?: string } = {},
 ): { row: ReferenceRow; added: BacklogRequest[] } {
-  const settled = withoutHeadingTitle(record, readReferenceBreakdown(dataDir, row));
+  const settled = settleReferenceRecord(record, readReferenceBreakdown(dataDir, row));
   const recordPath = writeDataJson(dataDir, referenceRecordPath(row.slug), settled);
   const saved = updateReference(tx, row.id, {
     title: settled.title,
@@ -274,6 +275,14 @@ function assertNotQueued(db: Executor, referenceId: number): void {
  * our breakdown, not the original video, and the same topic's plan may well share its words. The
  * original's title, when the person knows it, is kept (`names-to-avoid.json`, `--avoid title:…`).
  */
+/**
+ * A record as the library saves it: no beat device in `videoDevices`
+ * (`withoutBeatDevicesInVideoDevices`) and no title name that is only the breakdown's heading.
+ */
+export function settleReferenceRecord(record: ReferenceRecord, breakdown: string): ReferenceRecord {
+  return withoutHeadingTitle(withoutBeatDevicesInVideoDevices(record), breakdown);
+}
+
 export function withoutHeadingTitle(record: ReferenceRecord, breakdown: string): ReferenceRecord {
   const heading = /^#{1,3}\s+(.+)$/m.exec(breakdown)?.[1] ?? '';
   const keys = new Set([headingKey(heading), headingKey(firstHeading(breakdown) ?? '')]);

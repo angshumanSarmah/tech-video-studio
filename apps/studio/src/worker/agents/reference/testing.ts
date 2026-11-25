@@ -20,6 +20,8 @@ export {
   savedSeedRecord,
   SEED_SLUGS,
   seedBreakdown,
+  seededRecord,
+  seedNames,
   seedRecord,
 } from '#core/services/references-testing.ts';
 

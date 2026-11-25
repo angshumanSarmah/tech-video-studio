@@ -1403,10 +1403,12 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
 - **Rows and files:** `reference_videos` (0007: `slug` unique, `origin` seed | pasted, `status`
   pending | ready | failed, `error`, list fields copied from the record, `seed_hash`,
   `attachments`); `references/<slug>/breakdown.md`, `record.json`, `attachments/<hash>.<ext>`
-  (`#core/data-files.ts`). Only `ready` rows are shown to the Director. A saved record drops a
-  `title` name that is only its breakdown's own heading (`withoutHeadingTitle`: it names our
-  breakdown, not the original), so a seed's saved record can differ from its committed file
-  (`savedSeedRecord` in tests).
+  (`#core/data-files.ts`). Only `ready` rows are shown to the Director. A saved record is
+  settled (`settleReferenceRecord`): a device a beat carries leaves `videoDevices`
+  (`withoutBeatDevicesInVideoDevices`, shared), and a `title` name that is only its breakdown's
+  own heading is dropped (`withoutHeadingTitle`: it names our breakdown, not the original), so a
+  seed's saved record can differ from its committed file (`savedSeedRecord`, and
+  `seededRecord` with the names file's names, in tests).
 - **Backlog link:** `saveReferenceRecord` (`#core/services/references.ts`) writes the record,
   copies title, class and devices, and `syncReferenceBacklog` (`repositories/backlog.ts`): a
   `missing_primitive_requests` row per buildable unmapped name (`reference_video_id`, `run_id`
@@ -1423,9 +1425,13 @@ namesToAvoid? }`): system message = preamble (default video settings), role prom
 - **Seeds** (`#core/services/reference-seed.ts`, from `prepareDatabase`; `seedReferencesDir`
   option, tests use `noSeedReferences()`): `apps/studio/seed/references/<slug>.md` +
   `<slug>.record.json` (the recorded analyst answer, reviewed) + `names-to-avoid.json`
-  (`NamesToAvoidFileSchema`, per slug; the person fills it). Never calls a model; rewritten only
-  when the files' hash changes, so an API edit stays until then; checked with the names (a
-  failing record is `failed` with the reason, a missing record too).
+  (`NamesToAvoidFileSchema`, per slug: each product's brand and the creator's channel, from the
+  design doc; an entry with an empty `text` and a `todo` is a slot to fill by hand, skipped by
+  seeding (`namesToAvoidOf`) and printed by `db:migrate` (`openNameSlots`): the failover's
+  incident organisation). Never calls a model; rewritten only when the files' hash changes (it
+  includes `SEED_SAVE_VERSION`: bump it when saving settles records differently), so an API
+  edit stays until then; checked with the names (a failing record is `failed` with the reason,
+  a missing record too).
 - **`reference:fixture [--replay] [--record] [--timeout]`**: the analyst live on the six
   breakdowns in a scratch DB (`<DATA_DIR>/reference/fixture/`); `--record` (all six passing)
   writes the six `.record.json` and `agents/reference/fixtures/responses/reference.json` (run
@@ -1453,7 +1459,8 @@ jobId }`), `GET /:id` (record, breakdown, attachments, backlog rows), `PUT /:id`
   device; ties by class-preferred overlap, then slug. `scoreReferences` /
   `directorReferences` (`#core/services/reference-retrieval.ts`) run it on the ready records;
   the `direct` job sends the picks' briefs (`referenceBrief`, shared `reference/brief.ts`: a
-  label "Reference A", class, format, length, why picked, hook, arc, video devices, one line
+  label "Reference A", class, format, length, why picked, hook, arc, video devices (only
+  `WHOLE_VIDEO_DEVICES`), one line
   per beat with its devices, patterns (registry ones only) and layout mode, pacing; never the
   slug, title, names, unmapped items or primitives) in its user message after the INTRO's
   "References show structure only" line, and records `DirectorReferencesSchema` (expected

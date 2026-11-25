@@ -4,6 +4,7 @@
  */
 import { loadConfig } from '../config.ts';
 import { migrationsDirFor } from './client.ts';
+import { NAMES_TO_AVOID_FILE } from '../services/reference-seed.ts';
 import { prepareDatabase } from './prepare.ts';
 
 const config = loadConfig();
@@ -24,4 +25,9 @@ if (references.failed.length > 0) {
   console.warn(
     `[references] not ready: ${references.failed.join(', ')} (see pnpm studio references)`,
   );
+}
+if (!quiet) {
+  for (const slot of references.openSlots) {
+    console.log(`[references] name to fill in ${NAMES_TO_AVOID_FILE}: ${slot.slug}: ${slot.todo}`);
+  }
 }

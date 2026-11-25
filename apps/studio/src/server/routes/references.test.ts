@@ -10,7 +10,7 @@ import { getJob } from '#core/db/repositories/jobs.ts';
 import { jobs } from '#core/db/schema.ts';
 import { requireReference, saveReferenceRecord, withNames } from '#core/services/references.ts';
 import {
-  savedSeedRecord,
+  seededRecord,
   SEED_SLUGS,
   seedBreakdown,
   seedRecord,
@@ -49,7 +49,7 @@ describe('/api/references', () => {
   it('shows a record with its breakdown and backlog rows', async () => {
     const id = requireReference(s.db, 'ride-hailing-demand-heatmap').id;
     const ref = await detail(id);
-    expect(ref.record).toEqual(savedSeedRecord('ride-hailing-demand-heatmap'));
+    expect(ref.record).toEqual(seededRecord('ride-hailing-demand-heatmap'));
     expect(ref.breakdown).toBe(seedBreakdown('ride-hailing-demand-heatmap'));
     expect(ref.backlog.length).toBeGreaterThan(0);
     expect(ref.backlog.every((b) => b.referenceVideoId === id)).toBe(true);

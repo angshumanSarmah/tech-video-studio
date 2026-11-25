@@ -1,7 +1,12 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { NamesToAvoidFileSchema, type NamesToAvoidFile } from '@explainer-studio/shared';
+import {
+  namesToAvoidOf,
+  NamesToAvoidFileSchema,
+  openNameSlots,
+  type AvoidName,
+} from '@explainer-studio/shared';
 import { referenceBreakdownPath, resolveDataPath, writeDataText } from '../data-files.ts';
 import type { Db, Executor } from '../db/client.ts';
 import {
@@ -34,11 +39,23 @@ export const SEED_REFERENCES_DIR = 'apps/studio/seed/references';
 
 export const NAMES_TO_AVOID_FILE = 'names-to-avoid.json';
 
+/**
+ * Part of every seed's hash: bump it when `saveReferenceRecord` changes what it writes from the
+ * same files, so the next `db:migrate` saves every seed again. 2: beat devices left
+ * `videoDevices` (P1C.11 R2).
+ */
+export const SEED_SAVE_VERSION = 2;
+
+/** Each seed's names from the file, slots left out. */
+type SeedNames = Readonly<Record<string, readonly AvoidName[]>>;
+
 export interface SeedReferencesResult {
   inserted: number;
   updated: number;
   unchanged: number;
   failed: string[];
+  /** Name slots in the names file still empty (`todo` entries), to fill by hand. */
+  openSlots: { slug: string; todo: string }[];
 }
 
 export function defaultSeedReferencesDir(): string {
@@ -57,9 +74,16 @@ export function seedReferences(
   dataDir: string,
   seedDir: string = defaultSeedReferencesDir(),
 ): SeedReferencesResult {
-  const result: SeedReferencesResult = { inserted: 0, updated: 0, unchanged: 0, failed: [] };
+  const result: SeedReferencesResult = {
+    inserted: 0,
+    updated: 0,
+    unchanged: 0,
+    failed: [],
+    openSlots: [],
+  };
   if (!existsSync(seedDir)) return result;
-  const names = readNames(seedDir);
+  const { names, openSlots } = readNames(seedDir);
+  result.openSlots = openSlots;
   for (const seed of seedFiles(seedDir, names)) {
     const row = getReferenceBySlug(db, seed.slug);
     if (row && row.origin !== 'seed') continue; // a pasted reference took the name first
@@ -96,7 +120,7 @@ function storeSeedRecord(
   dataDir: string,
   row: ReferenceRow,
   seed: SeedFiles,
-  names: NamesToAvoidFile[string],
+  names: readonly AvoidName[],
 ): boolean {
   if (seed.record === undefined) {
     markReferenceFailed(tx, row.id, `No ${seed.slug}.record.json: run reference:fixture --record.`);
@@ -119,14 +143,21 @@ function storeSeedRecord(
   return true;
 }
 
-function readNames(seedDir: string): NamesToAvoidFile {
+function readNames(seedDir: string): {
+  names: SeedNames;
+  openSlots: SeedReferencesResult['openSlots'];
+} {
   const path = join(seedDir, NAMES_TO_AVOID_FILE);
-  if (!existsSync(path)) return {};
-  return NamesToAvoidFileSchema.parse(JSON.parse(readFileSync(path, 'utf8')));
+  if (!existsSync(path)) return { names: {}, openSlots: [] };
+  const file = NamesToAvoidFileSchema.parse(JSON.parse(readFileSync(path, 'utf8')));
+  const names = Object.fromEntries(
+    Object.entries(file).map(([slug, entries]) => [slug, namesToAvoidOf(entries)]),
+  );
+  return { names, openSlots: openNameSlots(file) };
 }
 
 /** Each `<slug>.md` with its record (if committed), sorted by slug, and the hash of all three. */
-function seedFiles(seedDir: string, names: NamesToAvoidFile): SeedFiles[] {
+function seedFiles(seedDir: string, names: SeedNames): SeedFiles[] {
   return readdirSync(seedDir)
     .filter((file) => file.endsWith('.md'))
     .sort()
@@ -136,6 +167,7 @@ function seedFiles(seedDir: string, names: NamesToAvoidFile): SeedFiles[] {
       const recordPath = join(seedDir, `${slug}.record.json`);
       const record = existsSync(recordPath) ? readFileSync(recordPath, 'utf8') : undefined;
       const hash = createHash('sha256')
+        .update(`v${SEED_SAVE_VERSION}\0`)
         .update(breakdown)
         .update('\0')
         .update(record ?? '')

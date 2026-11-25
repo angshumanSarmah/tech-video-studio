@@ -21,7 +21,7 @@ import {
   scoreReferences,
 } from './reference-retrieval.ts';
 import { editReferenceRecord, requireReference } from './references.ts';
-import { seedRecord } from './references-testing.ts';
+import { SEED_SLUGS, seedNames, seedRecord } from './references-testing.ts';
 
 /**
  * P1C.11's retrieval acceptance: the two fixture topics, with their recorded research notes,
@@ -147,8 +147,11 @@ describe('directorReferences', () => {
   });
 
   it('lists every ready reference’s names for the originality check', () => {
-    expect(referenceNamesToAvoid(t.db, t.dataDir).map((r) => r.slug)).toEqual([
-      'database-failover-split-brain',
+    const all = referenceNamesToAvoid(t.db, t.dataDir);
+    expect(all.map((r) => r.slug)).toEqual([...SEED_SLUGS]);
+    expect(all.find((r) => r.slug === 'ride-hailing-demand-heatmap')?.names).toEqual([
+      { text: 'Uber', kind: 'brand' },
+      { text: 'DevMonk', kind: 'brand' },
     ]);
     const row = requireReference(t.db, 'seat-booking-contention');
     const record = { ...seedRecord(row.slug), namesToAvoid: [{ text: 'Ticketo', kind: 'brand' }] };
@@ -157,5 +160,9 @@ describe('directorReferences', () => {
       slug: 'seat-booking-contention',
       names: [{ text: 'Ticketo', kind: 'brand' }],
     });
+    expect(seedNames('seat-booking-contention')).toEqual([
+      { text: 'BookMyShow', kind: 'brand' },
+      { text: 'DevMonk', kind: 'brand' },
+    ]);
   });
 });

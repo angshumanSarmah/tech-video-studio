@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { listReferenceBacklog } from '#core/db/repositories/backlog.ts';
 import { createTestDb, type TestDb } from '#core/db/testing.ts';
 import { readReferenceRecord, requireReference } from '#core/services/references.ts';
-import { savedSeedRecord, seedBreakdown, seedRecord } from '#worker/agents/reference/testing.ts';
+import { seedBreakdown, seededRecord, seedRecord } from '#worker/agents/reference/testing.ts';
 import { avoidName, parseCommand, UsageError } from './args.ts';
 import { runCli } from './cli.ts';
 import { cliContext, fakeIo } from './testing.ts';
@@ -47,7 +47,7 @@ describe('studio references', () => {
     expect(shown.out).toMatch(/backlog #\d+ hex_grid_equidistance \[open\]/);
 
     const json = await cli(['references', 'show', '1', '--json']);
-    expect(JSON.parse(json.out)).toEqual(savedSeedRecord('database-failover-split-brain'));
+    expect(JSON.parse(json.out)).toEqual(seededRecord('database-failover-split-brain'));
 
     const missing = await cli(['references', 'show', 'no-such-reference']);
     expect(missing.code).toBe(1);

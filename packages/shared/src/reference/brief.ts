@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { DeviceIdSchema } from '../catalogues/devices.ts';
 import { TopicClassSchema, VideoFormatSchema } from '../spec/meta.ts';
-import type { ReferenceRecord } from './record.ts';
+import { WHOLE_VIDEO_DEVICES, type ReferenceRecord } from './record.ts';
 import { ExpectedClassSchema, ReferencePickSchema, type ReferencePick } from './retrieve.ts';
 
 /**
@@ -10,6 +10,9 @@ import { ExpectedClassSchema, ReferencePickSchema, type ReferencePick } from './
  * of the original's domain is offered as a name to reuse. Beat lines keep the structural
  * summary with its devices, patterns and layout mode. Pure.
  */
+/** Only these are shown as spanning the video; a record's other `videoDevices` are dropped. */
+const WHOLE_VIDEO: ReadonlySet<string> = new Set(WHOLE_VIDEO_DEVICES);
+
 export const ReferenceBriefSchema = z.strictObject({
   label: z.string(),
   topicClass: TopicClassSchema,
@@ -62,7 +65,7 @@ export function referenceBrief(
     whyPicked: whyPicked(pick),
     hook: `${record.hook.kind}/${record.hook.device}: ${record.hook.shape}`,
     arc: record.arc,
-    videoDevices: record.videoDevices,
+    videoDevices: record.videoDevices.filter((d) => WHOLE_VIDEO.has(d)),
     beats: record.beats.map((beat) => {
       const ids = [
         ...(beat.devices.length > 0 ? [`devices ${beat.devices.join(', ')}`] : []),

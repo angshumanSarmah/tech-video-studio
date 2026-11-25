@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { referenceBrief } from './brief.ts';
 import { notesTextOf, referenceReuseProblems, titleWordSimilarity } from './originality.ts';
-import { ReferenceRecordSchema, type ReferenceRecord } from './record.ts';
+import {
+  ReferenceRecordSchema,
+  withoutBeatDevicesInVideoDevices,
+  type ReferenceRecord,
+} from './record.ts';
 import {
   candidateDevices,
   expectedClass,
@@ -185,6 +189,27 @@ describe('referenceBrief', () => {
     expect(text).not.toContain('Acme');
     expect(text).not.toContain('an invented reference');
     expect(text).not.toContain('retired_pattern');
+  });
+
+  it('shows only whole-video devices as spanning the video', () => {
+    const r = { ...record(), videoDevices: ['persona_hook' as const, 'hero_metric' as const] };
+    const brief = referenceBrief(r, 0, { slug: 'x', score: 3, reasons: [] });
+    expect(brief.videoDevices).toEqual(['hero_metric']);
+  });
+});
+
+describe('withoutBeatDevicesInVideoDevices', () => {
+  it('drops a whole-video device that a beat carries, and keeps the rest', () => {
+    const r = {
+      ...record({ devices: ['planted_question'] }),
+      videoDevices: ['planted_question' as const, 'roadmap' as const],
+    };
+    expect(withoutBeatDevicesInVideoDevices(r).videoDevices).toEqual(['roadmap']);
+    // The hook beat's device counts too; a record with nothing to drop is returned as is.
+    const hook = { ...record(), videoDevices: ['contention_hook' as const] };
+    expect(withoutBeatDevicesInVideoDevices(hook).videoDevices).toEqual([]);
+    const clean = record();
+    expect(withoutBeatDevicesInVideoDevices(clean)).toBe(clean);
   });
 });
 

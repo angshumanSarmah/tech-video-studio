@@ -30,9 +30,7 @@ Plan the video for this topic. The research notes below are the only facts you m
       "whyPicked": "secondary class concept; devices failure_before_fix, real_incident, what_breaks, contrast_takeaway; series system-design",
       "hook": "puzzle/failure_before_fix: A primary database dies overnight and writes stop, framed as a mismatch between a brief glitch and a long outage.",
       "arc": "failure hook → failover mechanism → open question → dated incident → split-brain twist → new rule → two-line close",
-      "videoDevices": [
-        "planted_question"
-      ],
+      "videoDevices": [],
       "beats": [
         "hook: An application writes to a primary database until it dies overnight and the writes stop, framed as a tiny hiccup with a long aftermath. [devices failure_before_fix; patterns failover; layout pipeline]",
         "step: A follower is handed the leader badge, the other followers re-point to copy from it, and the application's writes re-route to the new primary. [patterns failover; layout pipeline; continues the previous board]",
@@ -55,9 +53,7 @@ Plan the video for this topic. The research notes below are the only facts you m
       "whyPicked": "devices failure_before_fix, counterfactual; series system-design",
       "hook": "puzzle/persona_hook: A person sneaks a glance at a live score on a phone at work, and the question of where that number is born is left hanging.",
       "arc": "Persona hook with an open question → six steps through the write path, queue, workers and cache → the answer → callback ending",
-      "videoDevices": [
-        "planted_question"
-      ],
+      "videoDevices": [],
       "beats": [
         "hook: A person sneaks a look at a live score on a phone at work, and the question of where that number comes from is left open. [devices persona_hook, planted_question; layout centered_focus]",
         "step: The moment on the field becomes a record with an identity, a value, the people involved and a line of commentary. [devices object_to_data; layout centered_focus]",

@@ -1,4 +1,4 @@
-import { cpSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { backlogItems } from '@explainer-studio/shared';
@@ -56,6 +56,57 @@ describe('seedReferences', () => {
       updated: 0,
       unchanged: 6,
       failed: [],
+      openSlots: [
+        {
+          slug: 'database-failover-split-brain',
+          todo: "The incident's organisation: put its name in text.",
+        },
+      ],
+    });
+  });
+
+  it('saves no beat device as a whole-video device', () => {
+    t = createTestDb();
+    const videoDevices = (slug: string) =>
+      readReferenceRecord(t!.dataDir, requireReference(t!.db, slug))?.videoDevices;
+    // The analyst listed these on beats and as whole-video devices too: the beats keep them.
+    expect(seedRecord('database-failover-split-brain').videoDevices).toEqual(['planted_question']);
+    expect(videoDevices('database-failover-split-brain')).toEqual([]);
+    expect(videoDevices('food-delivery-eta')).toEqual([]);
+    expect(videoDevices('live-score-fanout')).toEqual([]);
+    expect(videoDevices('quick-commerce-dark-store')).toEqual(['hero_metric', 'question_chapters']);
+    expect(videoDevices('seat-booking-contention')).toEqual(['roadmap']);
+  });
+
+  it('merges each seed’s names from the committed file, slots left out', () => {
+    t = createTestDb();
+    const names = (slug: string) =>
+      readReferenceRecord(t!.dataDir, requireReference(t!.db, slug))
+        ?.namesToAvoid.filter((n) => n.kind === 'brand')
+        .map((n) => n.text);
+    expect(names('ride-hailing-demand-heatmap')).toEqual(['Uber', 'DevMonk']);
+    expect(names('live-score-fanout')).toEqual(['Cricbuzz', 'DevMonk']);
+    expect(names('seat-booking-contention')).toEqual(['BookMyShow', 'DevMonk']);
+    expect(names('quick-commerce-dark-store')).toEqual(['Flipkart Minutes', 'DevMonk']);
+    expect(names('food-delivery-eta')).toEqual(['Zomato', 'DevMonk']);
+    expect(names('database-failover-split-brain')).toEqual(['DevMonk']);
+  });
+
+  it('saves a seed again once its slot is filled', () => {
+    const dir = seedCopy();
+    t = createTestDb({ seedReferencesDir: dir });
+    const file = JSON.parse(readFileSync(join(dir, NAMES_TO_AVOID_FILE), 'utf8')) as Record<
+      string,
+      { text: string }[]
+    >;
+    file['database-failover-split-brain']![1]!.text = 'Northwind Health';
+    writeFileSync(join(dir, NAMES_TO_AVOID_FILE), JSON.stringify(file));
+    const result = seedReferences(t.db, t.dataDir, dir);
+    expect([result.updated, result.openSlots]).toEqual([1, []]);
+    const row = requireReference(t.db, 'database-failover-split-brain');
+    expect(readReferenceRecord(t.dataDir, row)?.namesToAvoid).toContainEqual({
+      text: 'Northwind Health',
+      kind: 'brand',
     });
   });
 
@@ -70,10 +121,12 @@ describe('seedReferences', () => {
       edited.title,
     );
 
-    writeFileSync(
-      join(dir, NAMES_TO_AVOID_FILE),
-      JSON.stringify({ 'live-score-fanout': [{ text: 'Scorely', kind: 'brand' }] }),
-    );
+    const names = JSON.parse(readFileSync(join(dir, NAMES_TO_AVOID_FILE), 'utf8')) as Record<
+      string,
+      unknown[]
+    >;
+    names['live-score-fanout']!.push({ text: 'Scorely', kind: 'brand' });
+    writeFileSync(join(dir, NAMES_TO_AVOID_FILE), JSON.stringify(names));
     expect(seedReferences(t.db, t.dataDir, dir).updated).toBe(1);
     const reseeded = readReferenceRecord(t.dataDir, requireReference(t.db, row.slug));
     expect(reseeded?.title).toBe(seedRecord(row.slug).title);

@@ -1,8 +1,26 @@
 {
-  "database-failover-split-brain": [],
-  "food-delivery-eta": [],
-  "live-score-fanout": [],
-  "quick-commerce-dark-store": [],
-  "ride-hailing-demand-heatmap": [],
-  "seat-booking-contention": []
+  "database-failover-split-brain": [
+    { "text": "DevMonk", "kind": "brand" },
+    { "text": "", "kind": "brand", "todo": "The incident's organisation: put its name in text." }
+  ],
+  "food-delivery-eta": [
+    { "text": "Zomato", "kind": "brand" },
+    { "text": "DevMonk", "kind": "brand" }
+  ],
+  "live-score-fanout": [
+    { "text": "Cricbuzz", "kind": "brand" },
+    { "text": "DevMonk", "kind": "brand" }
+  ],
+  "quick-commerce-dark-store": [
+    { "text": "Flipkart Minutes", "kind": "brand" },
+    { "text": "DevMonk", "kind": "brand" }
+  ],
+  "ride-hailing-demand-heatmap": [
+    { "text": "Uber", "kind": "brand" },
+    { "text": "DevMonk", "kind": "brand" }
+  ],
+  "seat-booking-contention": [
+    { "text": "BookMyShow", "kind": "brand" },
+    { "text": "DevMonk", "kind": "brand" }
+  ]
 }

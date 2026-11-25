@@ -174,6 +174,17 @@ export function referenceDevices(record: ReferenceRecord): DeviceId[] {
   return [...new Set(devices)];
 }
 
+/**
+ * `videoDevices` without any device a beat carries: a device on a beat belongs to that beat, so
+ * listing it as whole-video too tells the Director it spans the video (P1C.11 R2: the analyst
+ * put `planted_question` and `persona_hook` there). Applied when a record is saved.
+ */
+export function withoutBeatDevicesInVideoDevices(record: ReferenceRecord): ReferenceRecord {
+  const onBeats = new Set(record.beats.flatMap((b) => b.devices));
+  const videoDevices = record.videoDevices.filter((d) => !onBeats.has(d));
+  return videoDevices.length === record.videoDevices.length ? record : { ...record, videoDevices };
+}
+
 /** Every pattern the beats use, in order of first use. */
 export function referencePatterns(record: ReferenceRecord): string[] {
   return [...new Set(record.beats.flatMap((b) => b.patterns))];
