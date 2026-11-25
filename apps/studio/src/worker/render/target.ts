@@ -8,7 +8,7 @@ import type {
   RenderSettings,
   ResolvedAsset,
 } from '@explainer-studio/shared';
-import { z } from 'zod';
+import type { SpecSource } from '#core/render-manifests.ts';
 import type { RenderEngine } from './engine.ts';
 
 /**
@@ -33,12 +33,7 @@ export interface RenderTarget {
   readonly source?: SpecSource;
 }
 
-/** A `spec_versions` row: its id and its per-run version number. */
-export const SpecSourceSchema = z.strictObject({
-  specVersionId: z.number().int().positive(),
-  version: z.number().int().positive(),
-});
-export type SpecSource = z.infer<typeof SpecSourceSchema>;
+export { SpecSourceSchema, type SpecSource } from '#core/render-manifests.ts';
 
 /** How renders run: Remotion, ffmpeg and the configured presets and concurrency. */
 export interface RenderTools {

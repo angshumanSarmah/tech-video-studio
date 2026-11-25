@@ -94,7 +94,7 @@ function requireStep(db: Executor, run: Run, stage: 'research' | 'direct'): numb
  * sources come in P1C.9 step 9). Scenes: the Curator's blocking issues. Draft: what would stop
  * the final.
  */
-function gateBlocking(
+export function gateBlocking(
   db: Executor,
   dataDir: string,
   run: Run,

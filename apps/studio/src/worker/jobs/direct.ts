@@ -1,7 +1,6 @@
 import { directorCatalogueBlock, titleRoomChars } from '@explainer-studio/renderer/catalog';
 import { getTheme } from '@explainer-studio/renderer/theme';
 import {
-  bareSourceNames,
   DirectorPlanSchema,
   PROGRESS_DONE_PCT,
   storyCatalogueVersions,
@@ -27,6 +26,7 @@ import { getTopic } from '#core/db/repositories/topics.ts';
 import { NotFoundError } from '#core/errors.ts';
 import { directorMemory, nextSeriesNumber } from '#core/services/director-memory.ts';
 import { latestResearch } from '#core/services/research-notes.ts';
+import { planCheckDeps } from '#core/checks/plan.ts';
 import { directorCheck } from '../agents/director/check.ts';
 import { directorUserMessage } from '../agents/director/input.ts';
 import { styleRulesSection } from '../agents/sections.ts';
@@ -167,24 +167,17 @@ async function writePlan(
     styleRules: styleRulesSection(input.memory.styleRules),
     input: directorUserMessage(input, notes),
   });
-  const check = directorCheck({
-    notes,
-    video: variables,
-    ...(input.length.overrideSec === undefined
-      ? {}
-      : { lengthOverrideSec: input.length.overrideSec }),
-    recentCombos: input.memory.recent.combos,
-    series: { name: series.name, label: series.label },
-    sourceNames: bareSourceNames(sources),
-    sources,
-    spec: {
-      id: `run-${run.id}`,
-      series: series.tag,
-      ...(input.formatOverride ? { formatOverride: input.formatOverride } : {}),
-      seriesNumber: input.series.nextNumber,
-    },
-    hud: { seriesLabel: series.label, channelHandle: seriesChannelHandle(deps.db, series.id) },
-  });
+  const check = directorCheck(
+    planCheckDeps({
+      runId: run.id,
+      input,
+      notes,
+      sources,
+      video: variables,
+      series,
+      channelHandle: seriesChannelHandle(deps.db, series.id),
+    }),
+  );
   const result = await deps.llm.callJson({
     role: 'director',
     prompt,

@@ -1,4 +1,4 @@
-import type { RenderableVideoSpec, VideoSpec } from '@explainer-studio/shared';
+import type { RenderableVideoSpec, VideoSpec } from './shape.ts';
 
 /**
  * A spec as the renderer's text checks need it before scenes exist: its own script (or one

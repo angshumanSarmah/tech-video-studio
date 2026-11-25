@@ -55,7 +55,7 @@ export default tseslint.config(
   // Node-side code
   {
     files: [
-      'apps/studio/src/{core,server,worker}/**',
+      'apps/studio/src/{core,server,worker,acceptance}/**',
       'apps/studio/scripts/**',
       'packages/renderer/scripts/**',
       '**/*.config.{ts,js}',

@@ -9,13 +9,14 @@ export interface TestServer extends TestDb {
   readonly app: App;
 }
 
-export function createTestServer(deps: Partial<Omit<AppDeps, 'db'>> = {}): TestServer {
+export function createTestServer(deps: Partial<Omit<AppDeps, 'db' | 'dataDir'>> = {}): TestServer {
   const testDb = createTestDb();
   const app = createApp({
     events: { pollMs: 5, heartbeatMs: 1_000 },
     appSettings: () => SettingsSchema.parse({}),
     ...deps,
     db: testDb.db,
+    dataDir: testDb.dataDir,
   });
   return { ...testDb, app };
 }

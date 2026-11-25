@@ -31,3 +31,11 @@ export type RunDetailDto = z.infer<typeof RunDetailDtoSchema>;
 
 export const RunListResponseSchema = listOf(RunDtoSchema);
 export type RunListResponse = z.infer<typeof RunListResponseSchema>;
+
+/**
+ * `PUT /api/runs/:id/settings`: the run's overrides, replaced whole, and a new settings snapshot
+ * resolved from them and the app settings as they are now. Only for a run waiting at a gate or
+ * paused, never while a job of it is queued or running (409).
+ */
+export const UpdateRunSettingsRequestSchema = z.strictObject({ settings: RunSettingsSchema });
+export type UpdateRunSettingsRequest = z.input<typeof UpdateRunSettingsRequestSchema>;

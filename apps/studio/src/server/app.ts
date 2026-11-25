@@ -8,6 +8,7 @@ import {
   DEFAULT_EVENT_STREAM_OPTIONS,
   type EventStreamOptions,
 } from './routes/events.ts';
+import { createGatesRoute } from './routes/gates.ts';
 import { createHealthRoute } from './routes/health.ts';
 import { createRunsRoute } from './routes/runs.ts';
 import { createSeriesRoute } from './routes/series.ts';
@@ -16,6 +17,8 @@ import { mountSpa } from './static.ts';
 
 export interface AppDeps {
   readonly db: Db;
+  /** The data dir: gates read and write the run's files (notes, plans, spec versions). */
+  readonly dataDir: string;
   /** The app settings as they are now, read when a run starts (its snapshot resolves from them). */
   readonly appSettings: () => RunSettingsSource;
   readonly uptimeSeconds?: () => number;
@@ -31,7 +34,8 @@ function createApi(deps: AppDeps) {
     .route('/health', createHealthRoute(deps.uptimeSeconds ?? (() => process.uptime())))
     .route('/series', createSeriesRoute(deps.db))
     .route('/topics', createTopicsRoute(deps.db))
-    .route('/runs', createRunsRoute(deps.db, deps.appSettings))
+    .route('/runs', createRunsRoute(deps.db, deps.dataDir, deps.appSettings))
+    .route('/runs', createGatesRoute(deps.db, deps.dataDir))
     .route('/events', createEventsRoute(deps.db, deps.events ?? DEFAULT_EVENT_STREAM_OPTIONS));
   if (deps.enableDevRoutes) api.route('/dev', createDevRoute(deps.db));
   return api;

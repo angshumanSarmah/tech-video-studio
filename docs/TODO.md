@@ -167,10 +167,16 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **P1C.9 — Backlog fallback.** `missing_primitive_requests` has no `fallback_used` column;
       the orchestrator appends "(fallback used: …)" to the description. Add the column (an
       appended migration) when the backlog UI needs to filter by it.
-- [ ] **P1C.9 — Gate views read the gate's subject.** Gates store what they review
-      (`subject_step_id`, `spec_version_id`); the gate API and UI (step 4, P1D.3) should read that
-      row, not "the latest", and compare it with the outputs' manifests (`draft.json`,
-      `stills/stills.json`) to show when a preview is from another version.
+- [ ] **P1C.9 step 5 — Regenerate with feedback.** The gate API accepts `regenerate` for whole
+      stages only (Researcher, Director, Scriptwriter, Generator) and refuses one beat, one source
+      or feedback (400): the research and direct jobs take no feedback, and there is no `repair`
+      job yet. Step 5 adds them (and records where the feedback goes in the job payload).
+- [ ] **P1D — Gate previews over HTTP.** `GET …/gates/:gate` lists stills and the draft as
+      data-dir paths; nothing serves those files yet. The gate views (P1D.3–P1D.5) need a file
+      route (or signed paths) and the beat-level actions they list.
+- [ ] **P1C.9 step 9 — Edited notes and plans block.** A gate 1 or gate 2 edit is saved when its
+      schema passes; its check findings are returned and shown, but blocking for those gates is
+      empty until step 9 decides which findings block auto-approve.
 - [ ] **P1C.9 — Paused and cancelled.** The run status `paused` and the job status `cancelled`
       exist since step 1; nothing sets them until the cost cap (step 7) and cancel (step 6).
       `budget.maxRunUsd` is already in every run's snapshot.

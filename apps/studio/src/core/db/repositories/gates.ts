@@ -68,3 +68,15 @@ export function decideGate(
     .returning()
     .get();
 }
+
+/**
+ * Sends a decided gate back to review (a regenerate reopens the deciding gate and every later
+ * one). Its subject stays: the gate opens again on the rerun's new subject when the run gets
+ * there. A gate never opened is left alone.
+ */
+export function reopenGate(db: Executor, runId: number, gate: GateId): void {
+  db.update(gates)
+    .set({ status: 'pending', decidedBy: null, notes: null, decidedAt: null })
+    .where(and(eq(gates.runId, runId), eq(gates.gate, gate)))
+    .run();
+}

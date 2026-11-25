@@ -110,6 +110,25 @@ export function setPipelineStep(
   db.update(runs).set({ pipelineStep: step, stepJobId }).where(eq(runs.id, id)).run();
 }
 
+/** Replaces a run's overrides and its settings snapshot (P1C.9: only between jobs). */
+export function setRunSettings(
+  db: Executor,
+  id: number,
+  settings: RunSettings,
+  snapshot: ResolvedRunSettings,
+): Run | undefined {
+  const row = db
+    .update(runs)
+    .set({
+      settings: RunSettingsSchema.parse(settings),
+      resolvedSettings: ResolvedRunSettingsSchema.parse(snapshot),
+    })
+    .where(eq(runs.id, id))
+    .returning()
+    .get();
+  return row && toRun(row);
+}
+
 /** Records the stage of the job a run is running (`current_stage`). */
 export function setCurrentStage(db: Executor, id: number, stage: Stage): void {
   db.update(runs).set({ currentStage: stage }).where(eq(runs.id, id)).run();

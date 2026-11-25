@@ -1,4 +1,10 @@
-import type { GateId, PipelineStepId, RunStatus } from '@explainer-studio/shared';
+import type {
+  DecidedBy,
+  GateId,
+  GateStatus,
+  PipelineStepId,
+  RunStatus,
+} from '@explainer-studio/shared';
 import type { Db, Executor } from '../db/client.ts';
 import { appendEvent } from '../db/repositories/events.ts';
 import { decideGate, getGate, openGate } from '../db/repositories/gates.ts';
@@ -179,8 +185,11 @@ function versionFor(
   }
 }
 
-/** The run enters `step`: a run_status event records it (the stage sequence of the run). */
-function moveTo(tx: Executor, run: Run, step: PipelineStepId): void {
+/**
+ * The run enters `step` (with no job yet): a run_status event records it (the stage sequence of
+ * the run). A run waiting for review is running again. Gate decisions use it to send a run back.
+ */
+export function moveTo(tx: Executor, run: Run, step: PipelineStepId): void {
   setPipelineStep(tx, run.id, step, null);
   const status = run.status === 'awaiting_review' ? 'running' : run.status;
   if (status !== run.status) setActiveRunStatus(tx, run.id, status);
@@ -210,12 +219,13 @@ function approve(tx: Executor, run: Run, gate: GateId): void {
   gateEvent(tx, run, gate, 'approved', 'auto', []);
 }
 
-function gateEvent(
+/** A gate opened or decided: the `gate` event. */
+export function gateEvent(
   tx: Executor,
-  run: Run,
+  run: Pick<Run, 'id'>,
   gate: GateId,
-  status: 'pending' | 'approved',
-  decidedBy: 'auto' | 'user' | undefined,
+  status: GateStatus,
+  decidedBy: DecidedBy | undefined,
   blocking: readonly string[],
 ): void {
   appendEvent(tx, {

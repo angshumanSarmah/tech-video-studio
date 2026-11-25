@@ -60,3 +60,25 @@ export function runCostUsd(db: Executor, runId: number): number {
     .get();
   return row?.total ?? 0;
 }
+
+export interface RoleCost {
+  readonly role: string;
+  readonly costUsd: number;
+  /** Attempts, repairs and failed requests included. */
+  readonly calls: number;
+}
+
+/** What the run's LLM calls cost so far, per role (most expensive first). */
+export function runCostByRole(db: Executor, runId: number): RoleCost[] {
+  return db
+    .select({
+      role: llmCalls.role,
+      costUsd: sql<number>`coalesce(sum(${llmCalls.costUsd}), 0)`,
+      calls: sql<number>`count(*)`,
+    })
+    .from(llmCalls)
+    .where(eq(llmCalls.runId, runId))
+    .groupBy(llmCalls.role)
+    .orderBy(sql`2 desc`, llmCalls.role)
+    .all();
+}

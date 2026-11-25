@@ -1,5 +1,6 @@
 import type {
   EventDto,
+  GateDto,
   JobDto,
   RunDetailDto,
   RunDto,
@@ -11,6 +12,7 @@ import type { Job } from '#core/db/repositories/jobs.ts';
 import type { RunSummary } from '#core/db/repositories/runs.ts';
 import type { Series } from '#core/db/repositories/series.ts';
 import type { Topic } from '#core/db/repositories/topics.ts';
+import type { GateView } from '#core/services/gates.ts';
 import type { RunDetail } from '#core/services/runs.ts';
 
 /** DB rows -> wire shapes (`Date` -> ISO string, internal columns dropped). */
@@ -54,4 +56,8 @@ export function toJobDto(j: Job): JobDto {
     status: j.status,
     createdAt: j.createdAt.toISOString(),
   };
+}
+
+export function toGateDto(g: GateView): GateDto {
+  return { ...g, decidedAt: g.decidedAt?.toISOString() ?? null };
 }

@@ -1,4 +1,4 @@
-import type { CitableChunk, ResearchInput, ResearchSource } from '@explainer-studio/shared';
+import type { ResearchInput, ResearchSource } from '@explainer-studio/shared';
 import { selectChunks } from './select-chunks.ts';
 
 export interface ResearchInputParts {
@@ -29,10 +29,7 @@ export function buildResearchInput(parts: ResearchInputParts): ResearchInput {
   };
 }
 
-/** The chunks the notes may cite: exactly the ones sent. */
-export function citableChunks(input: ResearchInput): CitableChunk[] {
-  return input.sources.flatMap((s) => s.chunks);
-}
+export { citableChunks } from '@explainer-studio/shared';
 
 const INTRO = [
   'Write the research notes for this topic and series from the sources below.',

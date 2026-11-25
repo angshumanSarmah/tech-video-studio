@@ -4,6 +4,7 @@ import {
   type GateStatus,
   type JobStatus,
   type PipelineStepId,
+  type RegenerateTarget,
   type RunStatus,
 } from '@explainer-studio/shared';
 import { GATE_STEPS, isAfter, nextStep, PIPELINE } from './pipeline.ts';
@@ -118,17 +119,7 @@ function decideChildren(parts: readonly RunStatus[]): Action {
 
 // --- Regenerate --------------------------------------------------------------------------------
 
-/** What a gate's "regenerate" reruns (P1C.9 step 5 wires the API; this is the routing). */
-export type RegenerateTarget =
-  /** The Researcher again, with feedback. */
-  | 'researcher'
-  /** One source fetched again, then the Researcher. */
-  | 'source'
-  | 'director'
-  /** One beat's script and/or board (`repairBeats`), then curate. */
-  | 'beat'
-  | 'scriptwriter'
-  | 'generator';
+export type { RegenerateTarget };
 
 const TARGETS_AT: Readonly<Record<GateId, readonly RegenerateTarget[]>> = {
   research: ['researcher', 'source'],

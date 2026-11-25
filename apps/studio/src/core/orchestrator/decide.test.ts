@@ -77,6 +77,13 @@ describe('decide: the order', () => {
     ]);
   });
 
+  it('after a gate edit: TTS again, then the Curator without repairs, then the stills', () => {
+    expect(nextStep('edit_retime')).toBe('edit_curate');
+    expect(nextStep('edit_curate')).toBe('stills');
+    const curate = PIPELINE.edit_curate;
+    expect(curate.kind === 'job' && curate.payload).toEqual({ repair: false });
+  });
+
   it.each(['split', 'spec', 'board_backlog'] as const)('%s is a transition', (step) => {
     expect(decide(snap({ step }))).toEqual({ kind: 'effect', step, then: nextStep(step) });
   });

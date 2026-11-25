@@ -53,3 +53,8 @@ export const ResearchInputSchema = z.strictObject({
   omittedChunks: z.array(OmittedChunkSchema),
 });
 export type ResearchInput = z.infer<typeof ResearchInputSchema>;
+
+/** The chunks the notes may cite: exactly the ones sent. */
+export function citableChunks(input: ResearchInput): ResearchSource['chunks'] {
+  return input.sources.flatMap((s) => s.chunks);
+}

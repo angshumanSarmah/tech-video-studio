@@ -8,7 +8,9 @@ import { HTTPException } from 'hono/http-exception';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import type { z } from 'zod';
 import { RunHasExportsError } from '#core/db/repositories/runs.ts';
-import { NotFoundError } from '#core/errors.ts';
+import { ConflictError, InvalidEditError, NotFoundError } from '#core/errors.ts';
+import { RegenerateNotAllowedError } from '#core/orchestrator/decide.ts';
+import { OrchestratorStateError } from '#core/orchestrator/snapshot.ts';
 
 type Issues = NonNullable<ApiError['error']['issues']>;
 
@@ -34,6 +36,14 @@ export function handleError(err: Error, c: Context): Response {
   if (err instanceof NotFoundError) return apiError(c, 404, 'not_found', err.message);
   if (err instanceof RunHasExportsError) return apiError(c, 409, 'conflict', err.message);
   if (err instanceof RunSettingsConflictError) return apiError(c, 400, 'bad_request', err.message);
+  if (err instanceof ConflictError) return apiError(c, 409, 'conflict', err.message);
+  if (err instanceof OrchestratorStateError) return apiError(c, 409, 'conflict', err.message);
+  if (err instanceof InvalidEditError) {
+    return apiError(c, 400, 'bad_request', err.message, [...err.issues]);
+  }
+  if (err instanceof RegenerateNotAllowedError) {
+    return apiError(c, 400, 'bad_request', err.message);
+  }
   if (err instanceof HTTPException && err.status < 500) {
     return apiError(c, err.status, 'bad_request', err.message);
   }

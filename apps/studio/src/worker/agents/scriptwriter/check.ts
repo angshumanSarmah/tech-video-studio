@@ -21,10 +21,10 @@ import {
   type ScriptToCheck,
   type SpecError,
   type VideoSpec,
+  previewSpec,
 } from '@explainer-studio/shared';
 import { z } from 'zod';
 import type { OutputIssue } from '#worker/llm/types.ts';
-import { previewSpec } from '../preview-spec.ts';
 
 export interface ScriptwriterCheckDeps extends ScriptCheckContext {
   /** What turns the plan into a spec (id, series, run format, series number). */

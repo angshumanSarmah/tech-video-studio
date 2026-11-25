@@ -17,6 +17,7 @@ const db = openDatabase(dbPathFor(config.dataDir));
 
 const app = createApp({
   db,
+  dataDir: config.dataDir,
   // Read on each run start, so a settings edit applies to the next run without a restart.
   appSettings: () => readSettings(config.settingsPath),
   webDistDir: isProductionBuild ? WEB_DIST_DIR : undefined,

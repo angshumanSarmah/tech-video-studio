@@ -1,4 +1,4 @@
-import type { Stage } from '@explainer-studio/shared';
+import type { SpecAuthor, Stage } from '@explainer-studio/shared';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import type { Executor } from '../client.ts';
 import { runSteps } from '../schema.ts';
@@ -16,6 +16,8 @@ export function startRunStep(
     readonly stage: Stage;
     /** For a per-beat step (the Generator's). */
     readonly beatId?: string;
+    /** Default `agent`; `user` for an edit saved at a gate. */
+    readonly createdBy?: SpecAuthor;
     readonly now?: Date;
   },
 ): RunStep {
@@ -25,6 +27,7 @@ export function startRunStep(
       runId: input.runId,
       stage: input.stage,
       beatId: input.beatId ?? null,
+      createdBy: input.createdBy ?? 'agent',
       status: 'running',
       startedAt: input.now ?? new Date(),
     })

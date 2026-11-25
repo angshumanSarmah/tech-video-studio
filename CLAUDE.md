@@ -183,6 +183,7 @@ narrative devices: `DEVICE_IDS`, `DeviceId`), `layout-modes` (ids, zones, `maxUn
   snapshot** (`resolved_settings`, below), and, for a part of a multi-part video, `parent_run_id`,
   `part_index` and `part_count` (all three or none; a CHECK holds it). `gates` carry what they
   review: `spec_version_id` (scenes, draft) or `subject_step_id` (research, beat sheet).
+  `run_steps.created_by` is `agent` or `user` (an edit saved at a gate).
 - Large JSON and text live in files under the data dir (`runs/<run_id>/`,
   `topics/<topic_id>/sources/<source_id>/<content_hash>.txt`). The DB stores paths relative to the
   data dir; use the helpers in `#core/data-files.ts`.
@@ -241,7 +242,9 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   (repairs on) → stills → gate_scenes → draft → gate_draft → final → done. Each step is a job (its
   type, stage and which spec version its payload pins: none, latest, the curated one, the one a
   gate approved), a gate, a transition, `children` or the end. `children` (a parent waiting for
-  its parts) and `repair` (a gate's "regenerate beat", step 5) are entered only explicitly.
+  its parts), `repair` (a gate's "regenerate beat", step 5) and `edit_retime` → `edit_curate`
+  (a gate edit: TTS again, then the Curator with repairs off, then stills) are entered only
+  explicitly; a job step may name its `next`.
 - **`decide(snapshot) → action`** (`decide.ts`, pure, table-driven): enqueue, advance, effect,
   open / approve / carry a gate, await review, finish, or idle. A gate auto-approves only when
   its `autoApprove` flag is on and nothing blocks; a rejected gate cancels the run; a paused,
@@ -252,7 +255,7 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   `pipeline_step` and `step_job_id`, its jobs, the gate row and what it reviews and what blocks
   it), decide, apply, repeat until idle (at most 50 actions). It runs **in the transaction that
   ends a job** (`completeJob` / `failJob` take an `advance` hook; the runner's `RunnerDeps.advance`,
-  set by the worker) and, from step 4, in the one that records a gate decision. A state it cannot
+  set by the worker) and in the one that records a gate decision (the gate services). A state it cannot
   work from (`OrchestratorStateError`: no spec version, no curation) fails the run with the
   reason logged. It then moves on the runs this one unblocks (its parent, its next part).
   `sweepRuns` at worker startup advances every queued or running run with no active job.
@@ -274,6 +277,37 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   n is past `spec`. `spec` assembles plan + script (`assembleScriptedSpec`, the run's format
   override, series number = the Director's `nextNumber` + part offset) as the next version
   (`saveSpecVersionIn`). `board_backlog` records the Generator's requests.
+- **Gate API** (step 4; `#core/services/gates.ts`, `gate-decisions.ts`, `gate-edits.ts`,
+  `run-settings.ts`; routes `server/routes/gates.ts`; shapes `shared/api/gates.ts`):
+  - `GET /api/runs/:id/gates/:gate` (`readGate`): the row, `waiting` (the run is
+    `awaiting_review` at that gate step), the subject (`{ kind: step | spec_version, id }`) and
+    its content, `checks` (research: `researchNotesProblems`; beat sheet: `planIssues`,
+    `#core/checks/plan.ts`, the Director's own check list; scenes and draft: the Curator's code
+    issues, when its report's `final` is that version), `badges`, `blocking`, the stills and
+    draft of that version (data-dir paths, from their manifests, `#core/render-manifests.ts`),
+    and the run's cost in total and per role (`runCostByRole`).
+  - `POST` (`decideAtGate`, one transaction with `advanceRun`): only on a gate the run waits at
+    (else 409, `ConflictError`). `approve` and `edit` name the `subjectId` they were made on: not
+    the gate's current subject (and, for scenes and draft, the run's latest version) is a 409.
+    `reject` cancels the run. `regenerate` sends the run back to `regenerateRoute(...).from`,
+    reopening the deciding gate and every later one (`reopenGate`); one beat, one source or
+    feedback is refused (400) until step 5. Gate events record user decisions (`decidedBy: user`).
+  - **Edits** (`editAtGate`): the whole subject, parsed with its schema (`InvalidEditError`, 400
+    with issues; nothing saved). Notes and plans become the user's finished step
+    (`run_steps.created_by = user`, reading the replaced step's input file); the gate reopens on
+    it and the response carries the checks' findings. A spec (`prepareSpecEdit`, pure) moves a
+    narration-edited beat's untouched board onto the new words (`remapAnchors`; anchors that
+    cannot move are reported, `anchor_word_removed`), drops the timing when narration changed
+    (else only its event cache), must validate with the registry checks (warnings returned), and
+    is saved as the user's version; the run goes to `edit_retime` (narration changed, or a board
+    while `landingSec` > 0) or `edit_curate`, then stills and the scenes gate (at the draft gate,
+    scenes keeps its approval, `carry_gate`, and the draft renders again). An edit identical to
+    the subject saves nothing.
+  - `PUT /api/runs/:id/settings` (`updateRunSettings`): only for a run waiting at a gate or
+    paused with no job queued or running (409). Replaces the overrides and writes a new snapshot
+    resolved against the app settings as they are now (so a model changed in settings.json since
+    the run started applies from its next job; finished steps keep theirs), logs every changed
+    leaf (`settingsChanges`), then advances the run (an auto-approve switched on).
 - **Dry run:** `LLM_DRY_RUN_DIR` (env) makes the worker replay `<role>.json` recordings from that
   directory (`workerTransport`) instead of calling the API.
 - **Tests:** `decide.test.ts` (every transition, regenerate routes, parts, paused and cancelled);
@@ -282,6 +316,10 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   the startup sweep, a state problem, the pipeline's job types against the registry, the dry-run
   switch. The Curator there answers with `reviewOf` (`agents/curator/testing.ts`: a claims audit
   and story pass that flag nothing), since the recorded reviews' repairs were never recorded.
+  `src/acceptance/gates.test.ts` (it may import server and worker): the gate API over the same
+  dry-run worker: a run paused at the beat sheet resumes on approve, reject, a plan edit, a
+  regenerate, a scenes edit re-timed and curated again, stale approves (409), and run settings
+  updated at a gate (the next job's model changes, finished calls keep theirs).
 
 ### Source ingestion (`src/worker/ingest`, job in `jobs/ingest.ts`)
 
@@ -339,7 +377,7 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   written last, only once both files exist, and is refreshed (not duplicated) when the job
   reruns. A run with an exports row cannot be deleted (`RunHasExportsError`, `restrict` FK).
 - **Every output records its spec version** (`{ specVersionId, version }`) in a JSON sidecar
-  (`render/manifests.ts`): a clip's `.draft.json` (with its cache key), `draft.json`,
+  (`render/manifests.ts`; schemas in `#core/render-manifests.ts`): a clip's `.draft.json` (with its cache key), `draft.json`,
   `stills/stills.json` and `<slug>.json`. The version is not part of the cache key: a reused
   clip keeps the version it was made from, and `draft.json` lists each clip's.
 - **Remotion renders silently; ffmpeg muxes narration.** Each beat clip gets its own slice (its
@@ -561,7 +599,9 @@ seriesNumber })` makes the spec; with parts its `targetLengthSec` is the parts' 
   (a suggestion for the Generator: the beat keeps the previous board), `beats[].newTerms`
   (glossary terms introduced), `beats[].source` (real-incident footnote, carried into the
   script), `rejectedAlternative.chosenBeatId`, `ending.specCard` (3 lines of at most 40 chars).
-- **Checks** (`directorPlanProblems`, shared, pure; `directorCheck` adds the spec and registry
+- **Checks** (`directorPlanProblems`, shared, pure; `planIssues` (`#core/checks/plan.ts`, which
+  `directorCheck` wraps and the beat-sheet gate runs on edits; `planCheckDeps` builds its
+  context from the step's input) adds the spec and registry
   checks and `hudTextWarnings` on a placeholder renderable spec, also when the spec has reference
   errors (its shape is checked), so one repair covers both; paths pointing into the plan):
   research ids exist (`unknown_fact`); at beginner a beat cites at most
@@ -680,7 +720,7 @@ researchStepId)`, not the newest research), the run's level and pace (`resolvedS
   headlines share more than half the content words of the shorter, stopwords dropped). Codes,
   context and `planVideos` live in `script/context.ts`. `scriptwriterCheck` adds spec validation
   of plan + script, `hudTextWarnings` (headlines), `subtitleWarnings` and the layout's
-  `text_truncated` (sources) on `previewSpec` (`agents/preview-spec.ts`: empty boards, estimated
+  `text_truncated` (sources) on `previewSpec` (shared `spec/preview-spec.ts`: empty boards, estimated
   timing; the Director uses it too) and each on-screen item against its primitive's props
   schema (LaTeX via `latexProblem`), keeping only issues under `$.script`. An answer that fails
   only the output schema's limits is still checked against the spec's looser Script layer, so
@@ -1060,7 +1100,9 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
 API conventions: routes under `/api`, inputs validated with the `validate()` helper against schemas
 from `packages/shared/src/api`, list responses wrapped as `{ items }`, and every error is
 `ApiErrorSchema` (`{ error: { code, message, issues? } }`). Domain errors from core
-(`NotFoundError`, `RunHasExportsError`) map to statuses in `src/server/errors.ts`. Services that
+(`NotFoundError` 404, `RunHasExportsError` / `ConflictError` / `OrchestratorStateError` 409,
+`InvalidEditError` / `RegenerateNotAllowedError` / `RunSettingsConflictError` 400) map to statuses
+in `src/server/errors.ts`. `AppDeps` carries the `dataDir` (gates read and write run files). Services that
 compose repositories live in `src/core/services`; handlers call them or a repository directly.
 Demo and debug endpoints live under `/api/dev` (`src/server/routes/dev.ts`), mounted only outside
 the production build (`enableDevRoutes`). There is no generic `POST /api/jobs`: jobs are queued by

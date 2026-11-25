@@ -8,7 +8,7 @@ export default defineConfig({
         test: {
           name: 'node',
           environment: 'node',
-          include: ['src/{core,server,worker}/**/*.test.ts', 'scripts/**/*.test.ts'],
+          include: ['src/{core,server,worker,acceptance}/**/*.test.ts', 'scripts/**/*.test.ts'],
         },
       },
       {

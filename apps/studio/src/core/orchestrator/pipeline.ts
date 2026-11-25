@@ -33,6 +33,8 @@ export type StepDefinition =
       readonly payload?: Readonly<Record<string, unknown>>;
       /** A failed job does not stop the run (its handler does not fail the run either). */
       readonly mayFail?: boolean;
+      /** The step after this one, when it is not the next one in pipeline order. */
+      readonly next?: PipelineStepId;
     }
   | { readonly kind: 'gate'; readonly gate: GateId }
   /** A transition code makes between steps (spec assembly, backlog, parts). */
@@ -45,7 +47,9 @@ const job = (
   jobType: string,
   stage: Stage,
   version: JobVersion,
-  extra: Partial<Pick<Extract<StepDefinition, { kind: 'job' }>, 'payload' | 'mayFail'>> = {},
+  extra: Partial<
+    Pick<Extract<StepDefinition, { kind: 'job' }>, 'payload' | 'mayFail' | 'next'>
+  > = {},
 ): StepDefinition => ({ kind: 'job', jobType, stage, version, ...extra });
 
 export const PIPELINE: Readonly<Record<PipelineStepId, StepDefinition>> = {
@@ -64,6 +68,8 @@ export const PIPELINE: Readonly<Record<PipelineStepId, StepDefinition>> = {
   retime: job('tts', 'tts', 'latest'),
   repair: job('repair', 'repair', 'latest'),
   curate: job('curate', 'curate', 'latest', { payload: { repair: true } }),
+  edit_retime: job('tts', 'tts', 'latest', { next: 'edit_curate' }),
+  edit_curate: job('curate', 'curate', 'latest', { payload: { repair: false } }),
   stills: job('render_stills', 'draft_render', 'curated', { mayFail: true }),
   gate_scenes: { kind: 'gate', gate: 'scenes' },
   draft: job('render_draft', 'draft_render', 'approved_scenes'),
@@ -74,12 +80,19 @@ export const PIPELINE: Readonly<Record<PipelineStepId, StepDefinition>> = {
 
 /**
  * Steps the pipeline never passes through on its own: `children` is entered only by a split with
- * parts, `repair` only by a gate's "regenerate beat".
+ * parts, `repair` only by a gate's "regenerate beat", the `edit_` steps only by a gate edit.
  */
-const ENTERED_EXPLICITLY: ReadonlySet<PipelineStepId> = new Set(['children', 'repair']);
+const ENTERED_EXPLICITLY: ReadonlySet<PipelineStepId> = new Set([
+  'children',
+  'repair',
+  'edit_retime',
+  'edit_curate',
+]);
 
-/** The step after `step` in pipeline order. */
+/** The step after `step`: its own `next`, else the next one in pipeline order. */
 export function nextStep(step: PipelineStepId): PipelineStepId {
+  const definition = PIPELINE[step];
+  if (definition.kind === 'job' && definition.next) return definition.next;
   for (let i = PIPELINE_STEP_IDS.indexOf(step) + 1; i < PIPELINE_STEP_IDS.length; i += 1) {
     const id = PIPELINE_STEP_IDS[i]!;
     if (!ENTERED_EXPLICITLY.has(id)) return id;

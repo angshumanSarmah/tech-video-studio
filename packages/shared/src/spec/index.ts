@@ -15,3 +15,4 @@ export * from './timing.ts';
 export * from './validate.ts';
 export * from './video-spec.ts';
 export * from './remap-anchors.ts';
+export * from './preview-spec.ts';

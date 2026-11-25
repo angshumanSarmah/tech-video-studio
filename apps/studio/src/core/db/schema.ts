@@ -220,6 +220,8 @@ export const runSteps = sqliteTable(
     /** The story beat a per-beat step is for (the Generator's); null for a whole-stage step. */
     beatId: text('beat_id'),
     status: text('status', { enum: STEP_STATUSES }).notNull().default('pending'),
+    /** Who made the output: an agent, or the user's edit at a gate (P1C.9). */
+    createdBy: text('created_by', { enum: SPEC_AUTHORS }).notNull().default('agent'),
     inputPath: text('input_path'),
     outputPath: text('output_path'),
     startedAt: timestamp('started_at'),
