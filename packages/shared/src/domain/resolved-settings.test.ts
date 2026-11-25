@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { SettingsSchema, type SettingsInput } from '../config/settings.ts';
-import { resolveRunSettings, RunSettingsConflictError } from './resolved-settings.ts';
-import { RunSettingsSchema, type RunSettingsInput } from './run.ts';
+import {
+  patchRunSettings,
+  resolveRunSettings,
+  RunSettingsConflictError,
+} from './resolved-settings.ts';
+import { RunSettingsPatchSchema, RunSettingsSchema, type RunSettingsInput } from './run.ts';
 
 const resolve = (run: RunSettingsInput = {}, app: SettingsInput = {}) =>
   resolveRunSettings(RunSettingsSchema.parse(run), SettingsSchema.parse(app));
@@ -71,5 +75,65 @@ describe('resolveRunSettings', () => {
 
   it('rejects a run override that conflicts with the app settings', () => {
     expect(() => resolve({ video: { lengthMinSec: 160 } })).toThrow(RunSettingsConflictError);
+  });
+});
+
+describe('resolveRunSettings: models', () => {
+  it("takes a run's model per role over the app's", () => {
+    const resolved = resolve({ llm: { models: { curator: 'deepseek-v4-pro' } } });
+    expect(resolved.llm.models.curator).toBe('deepseek-v4-pro');
+    expect(resolved.llm.models.scriptwriter).toBe('deepseek-flash');
+  });
+});
+
+describe('patchRunSettings', () => {
+  const settings = RunSettingsSchema.parse({ lengthOverrideSec: 60 });
+  const snapshot = resolveRunSettings(settings, SettingsSchema.parse({}));
+  /** The app as it is now: an edited price for the run's model, and a new model. */
+  const app = SettingsSchema.parse({
+    llm: {
+      prices: {
+        'deepseek-flash': { inputCacheHitPerMTok: 9, inputCacheMissPerMTok: 9, outputPerMTok: 9 },
+        'deepseek-v4-pro': { inputCacheHitPerMTok: 9, inputCacheMissPerMTok: 9, outputPerMTok: 9 },
+        '<example-model>': { inputCacheHitPerMTok: 1, inputCacheMissPerMTok: 2, outputPerMTok: 3 },
+      },
+    },
+  });
+  const priceOf = (model: string) => app.llm.prices[model];
+  const patch = (value: unknown) =>
+    patchRunSettings({ settings, snapshot }, RunSettingsPatchSchema.parse(value), priceOf);
+
+  it("naming the Scriptwriter's model changes nothing else in the snapshot", () => {
+    const next = patch({ llm: { models: { scriptwriter: '<example-model>' } } });
+    expect(next.snapshot).toEqual({
+      ...snapshot,
+      llm: {
+        models: { ...snapshot.llm.models, scriptwriter: '<example-model>' },
+        // The new model's price only; the run's other prices stay as they were.
+        prices: { ...snapshot.llm.prices, '<example-model>': app.llm.prices['<example-model>'] },
+      },
+    });
+    expect(next.settings).toEqual({
+      ...settings,
+      llm: { models: { scriptwriter: '<example-model>' } },
+    });
+  });
+
+  it('merges nested fields and gates one by one', () => {
+    const next = patch({ video: { maxParts: 2 }, autoApprove: { scenes: true } });
+    expect(next.snapshot.video).toEqual({ ...snapshot.video, maxParts: 2 });
+    expect(next.settings.autoApprove).toEqual({ ...settings.autoApprove, scenes: true });
+    expect(next.settings.lengthOverrideSec).toBe(60);
+  });
+
+  it('refuses a model with no price and a merge that breaks the rules', () => {
+    expect(() => patch({ llm: { models: { director: '<example-unpriced>' } } })).toThrow(
+      RunSettingsConflictError,
+    );
+    expect(() => patch({ video: { lengthMinSec: 160 } })).toThrow(RunSettingsConflictError);
+  });
+
+  it('an empty patch changes nothing', () => {
+    expect(patch({})).toEqual({ settings, snapshot });
   });
 });

@@ -78,8 +78,13 @@ const PayloadSchema = z.strictObject({
   specVersionId: z.number().int().positive(),
   /** Regenerate this beat only (a gate's request), then what it breaks. */
   beatId: SpecIdSchema.optional(),
-  /** The reviewer's note for a regenerated beat. */
+  /** The reviewer's note: for the regenerated beat, or with `redraw` for every beat. */
   feedback: z.string().trim().min(1).optional(),
+  /**
+   * Draw every beat again, reusing no finished beat step (a gate's regenerate of the
+   * Generator, P1C.9); without it a rerun reuses the beats whose input did not change.
+   */
+  redraw: z.boolean().default(false),
 });
 type Ctx = JobContext<z.output<typeof PayloadSchema>>;
 
@@ -184,6 +189,7 @@ function prepare(deps: GenerateJobDeps, run: Run, ctx: Ctx): GenerateJob {
       specVersionId: pinned.id,
       beatId: ctx.payload.beatId ?? null,
       feedback: ctx.payload.feedback ?? null,
+      ...(ctx.payload.redraw ? { redraw: true } : {}),
       directStepId: direction.step.id,
       researchStepId,
       model: run.resolvedSettings.llm.models.generator,
@@ -261,6 +267,7 @@ async function drawAll(c: BeatStepContext, job: GenerateJob, ctx: Ctx): Promise<
         scenes: visibleScenes(spec, i, boards.scenes),
         beatIndex: i,
         reason: 'generate',
+        ...redrawOptions(job, ctx),
       });
       record(boards, i, result);
       const beatId = spec.story.beats[i]?.id ?? String(i);
@@ -271,6 +278,15 @@ async function drawAll(c: BeatStepContext, job: GenerateJob, ctx: Ctx): Promise<
   const failure = (await Promise.allSettled(done)).find((r) => r.status === 'rejected');
   if (failure) throw failure.reason;
   return boards;
+}
+
+/** A whole redraw's feedback for every beat, and a salt so no earlier beat step is reused. */
+function redrawOptions(job: GenerateJob, ctx: Ctx): { feedback?: string; salt?: string } {
+  if (!job.input.redraw) return {};
+  return {
+    ...(job.input.feedback ? { feedback: job.input.feedback } : {}),
+    salt: `job-${ctx.job.id}`,
+  };
 }
 
 /**

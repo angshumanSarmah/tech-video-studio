@@ -30,6 +30,7 @@ import {
   type NormalizerFix,
   type ResolvedRunSettings,
   type RunSettings,
+  type StepRequests,
 } from '@explainer-studio/shared';
 import { sql } from 'drizzle-orm';
 import type { AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
@@ -163,7 +164,12 @@ export const runs = sqliteTable(
     stepJobId: integer('step_job_id').references((): AnySQLiteColumn => jobs.id, {
       onDelete: 'set null',
     }),
-    /** The run's own overrides, as given when it started. */
+    /** Extra payload for the next job at a step (`StepRequestsSchema`), used once. */
+    stepRequests: text('step_requests', { mode: 'json' })
+      .$type<StepRequests>()
+      .notNull()
+      .default({}),
+    /** The run's own overrides (as given when it started, then changed between jobs). */
     settings: text('settings', { mode: 'json' }).$type<RunSettings>().notNull(),
     /**
      * Every setting the run's jobs read, resolved once when it started (overrides, app settings,
@@ -251,6 +257,11 @@ export const gates = sqliteTable(
       onDelete: 'set null',
     }),
     decidedBy: text('decided_by', { enum: DECIDED_BY }),
+    /**
+     * An approval kept for a new subject because a later gate's edit or regenerate reran this
+     * gate's steps (the scenes gate after a beat regenerated at the draft gate): that gate.
+     */
+    carriedFrom: text('carried_from', { enum: GATE_IDS }),
     notes: text('notes'),
     decidedAt: timestamp('decided_at'),
     createdAt: createdAt(),

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ModelRoleSchema } from '../config/llm.ts';
 import { PauseSecSchema, RunCostCapSchema, TtsSpeedSchema } from '../config/settings.ts';
 import { VideoLengthSecSchema, VideoSettingsOverrideSchema } from '../config/video.ts';
 import { VideoFormatSchema } from '../spec/meta.ts';
@@ -93,6 +94,20 @@ export const RunSettingsSchema = z.strictObject({
   video: VideoSettingsOverrideSchema.optional(),
   /** Per-run cost cap; omitted uses the app's `budget.maxRunUsd`. */
   budget: z.strictObject({ maxRunUsd: RunCostCapSchema.optional() }).optional(),
+  /** Per-run model per role; omitted roles use the app's `llm.models`. */
+  llm: z
+    .strictObject({ models: z.partialRecord(ModelRoleSchema, z.string().trim().min(1)) })
+    .optional(),
 });
 export type RunSettings = z.infer<typeof RunSettingsSchema>;
 export type RunSettingsInput = z.input<typeof RunSettingsSchema>;
+
+/**
+ * A change to a run's settings (`PUT /api/runs/:id/settings`): only the fields it names, each
+ * merged onto the run's overrides and its snapshot (`patchRunSettings`). Same fields as
+ * `RunSettingsSchema`, every one optional, `autoApprove` per gate.
+ */
+export const RunSettingsPatchSchema = RunSettingsSchema.extend({
+  autoApprove: z.partialRecord(GateIdSchema, z.boolean()).optional(),
+}).partial();
+export type RunSettingsPatch = z.infer<typeof RunSettingsPatchSchema>;

@@ -183,7 +183,10 @@ narrative devices: `DEVICE_IDS`, `DeviceId`), `layout-modes` (ids, zones, `maxUn
   snapshot** (`resolved_settings`, below), and, for a part of a multi-part video, `parent_run_id`,
   `part_index` and `part_count` (all three or none; a CHECK holds it). `gates` carry what they
   review: `spec_version_id` (scenes, draft) or `subject_step_id` (research, beat sheet).
-  `run_steps.created_by` is `agent` or `user` (an edit saved at a gate).
+  `run_steps.created_by` is `agent` or `user` (an edit saved at a gate). `runs.step_requests`
+  (`StepRequestsSchema`) holds extra payload a gate decision left for the run's next job at a
+  step, used once; `gates.carried_from` marks an approval kept for a new subject because a later
+  gate's decision reran this gate's steps.
 - Large JSON and text live in files under the data dir (`runs/<run_id>/`,
   `topics/<topic_id>/sources/<source_id>/<content_hash>.txt`). The DB stores paths relative to the
   data dir; use the helpers in `#core/data-files.ts`.
@@ -232,7 +235,11 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   an edit applies to the next run and never to a running one. Machine settings stay with the
   process: API key and base URL, timeouts, `maxConcurrent`, render concurrency, the Python path.
   Scripts start their runs from their config (`seedFixtureRun(..., config)`).
-  `settings-snapshot.test.ts` is the acceptance test.
+  `settings-snapshot.test.ts` is the acceptance test. A run may override the model per role
+  (`settings.llm.models`, partial). Between jobs, `PUT /api/runs/:id/settings` merges a
+  `RunSettingsPatchSchema` onto the run's overrides and its snapshot (`patchRunSettings`, pure):
+  only the named fields change, and settings.json is read only for the price of a model the
+  snapshot has none for (none there: a 400).
 
 ### Orchestrator (`#core/orchestrator`, P1C.9)
 
@@ -244,7 +251,9 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   gate approved), a gate, a transition, `children` or the end. `children` (a parent waiting for
   its parts), `repair` (a gate's "regenerate beat", step 5) and `edit_retime` → `edit_curate`
   (a gate edit: TTS again, then the Curator with repairs off, then stills) are entered only
-  explicitly; a job step may name its `next`.
+  explicitly; a job step may name its `next`. `repair` is the `repair` job (`jobs/repair.ts`:
+  `repairBeats` on a gate's one-beat requests; an agent that cannot answer leaves the beat as it
+  was, logged), then `curate`.
 - **`decide(snapshot) → action`** (`decide.ts`, pure, table-driven): enqueue, advance, effect,
   open / approve / carry a gate, await review, finish, or idle. A gate auto-approves only when
   its `autoApprove` flag is on and nothing blocks; a rejected gate cancels the run; a paused,
@@ -289,9 +298,22 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   - `POST` (`decideAtGate`, one transaction with `advanceRun`): only on a gate the run waits at
     (else 409, `ConflictError`). `approve` and `edit` name the `subjectId` they were made on: not
     the gate's current subject (and, for scenes and draft, the run's latest version) is a 409.
-    `reject` cancels the run. `regenerate` sends the run back to `regenerateRoute(...).from`,
-    reopening the deciding gate and every later one (`reopenGate`); one beat, one source or
-    feedback is refused (400) until step 5. Gate events record user decisions (`decidedBy: user`).
+    `reject` cancels the run. Gate events record user decisions (`decidedBy: user`).
+  - **Regenerate** (`regenerateAtGate`, `gate-regenerate.ts`; step 5): the run goes back to
+    `regenerateRoute(...).from`, reopening the deciding gate and every later one (`reopenGate`);
+    an earlier approved gate the rerun passes is marked `carried_from` the deciding gate
+    (`markCarried`; kept through `carry_gate`, shown as `carriedFrom` in the gate payload). What
+    the rerun needs goes to `runs.step_requests` and into that step's job payload when the
+    orchestrator queues it (then cleared). Paths: research gate `researcher` (`research`
+    `{ feedback }`) or `source` + `sourceId` (`ingest` `{ refetchSourceIds }`, then research,
+    with the feedback when given); beat sheet `director` (`direct` `{ feedback }`); scenes and
+    draft `scriptwriter` (`script` `{ feedback }` → spec → tts → generate → retime → curate),
+    `generator` (`generate` `{ redraw: true, feedback }` → retime → curate) or `beat` +
+    `beatId`, `fields` and `feedback` (required): `repair` `{ requests }`
+    (`repairRequestsFor`: one request per agent owning a named field, the feedback as issue
+    `reviewer_feedback`; `plan` is a 400) → `curate` `{ scope: { sinceSpecVersionId } }` →
+    stills → the scenes gate (carried at the draft gate) → the draft, whose cache re-renders only
+    the clips whose inputs changed. A field that belongs to another target is a 400.
   - **Edits** (`editAtGate`): the whole subject, parsed with its schema (`InvalidEditError`, 400
     with issues; nothing saved). Notes and plans become the user's finished step
     (`run_steps.created_by = user`, reading the replaced step's input file); the gate reopens on
@@ -304,26 +326,37 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
     scenes keeps its approval, `carry_gate`, and the draft renders again). An edit identical to
     the subject saves nothing.
   - `PUT /api/runs/:id/settings` (`updateRunSettings`): only for a run waiting at a gate or
-    paused with no job queued or running (409). Replaces the overrides and writes a new snapshot
-    resolved against the app settings as they are now (so a model changed in settings.json since
-    the run started applies from its next job; finished steps keep theirs), logs every changed
-    leaf (`settingsChanges`), then advances the run (an auto-approve switched on).
+    paused with no job queued or running (409). Merges the named fields (`patchRunSettings`, see
+    "Settings snapshot"), so the next job uses them and finished steps keep theirs, logs every
+    changed leaf (`settingsChanges`), then advances the run (an auto-approve switched on).
 - **Dry run:** `LLM_DRY_RUN_DIR` (env) makes the worker replay `<role>.json` recordings from that
   directory (`workerTransport`) instead of calling the API.
 - **Tests:** `decide.test.ts` (every transition, regenerate routes, parts, paused and cancelled);
   `worker/orchestrator.test.ts`: the tokenizer from topic to export with every gate on auto (the
   stage sequence and events pinned), a gate that waits and resumes on approval, the parts split,
   the startup sweep, a state problem, the pipeline's job types against the registry, the dry-run
-  switch. The Curator there answers with `reviewOf` (`agents/curator/testing.ts`: a claims audit
-  and story pass that flag nothing), since the recorded reviews' repairs were never recorded.
-  `src/acceptance/gates.test.ts` (it may import server and worker): the gate API over the same
-  dry-run worker: a run paused at the beat sheet resumes on approve, reject, a plan edit, a
-  regenerate, a scenes edit re-timed and curated again, stale approves (409), and run settings
-  updated at a gate (the next job's model changes, finished calls keep theirs).
+  switch. The all-auto run replays the topic's recorded Curator round (`curateRound`,
+  `agents/curator/fixtures/<topic>/round/`: the review, its repairs' Scriptwriter and Generator
+  answers, the second review), so gate 3 passes with the real Curator; the other tests answer
+  with `reviewOf` (`agents/curator/testing.ts`: a claims audit and story pass that flag nothing).
+  Record a round with `curate-round:fixture [--topic] [--record] [--timeout]`: the same run with
+  the Curator live (and the Scriptwriter and Generator once their recordings run out), recorded
+  only when it passed gate 3 with nothing blocking.
+  `src/acceptance/` (it may import server and worker; `Harness`: the API over a dry-run worker
+  whose replay queues persist across drains, each drain appending the answers a test gives it):
+  `gates.test.ts`: a run paused at the beat sheet resumes on approve, reject, a plan edit, a
+  regenerate, a scenes edit re-timed and curated again, stale approves (409), and a settings
+  update at a gate that changes only the named model; `regenerate.test.ts`: every regenerate
+  path (feedback in the rerun's prompts; one beat at the scenes and draft gates with every other
+  beat byte-identical, the draft re-rendering only that clip, the scenes gate carried from the
+  draft gate).
 
 ### Source ingestion (`src/worker/ingest`, job in `jobs/ingest.ts`)
 
-- **`ingest` job** (the run's first job, payload `{}`): extracts every source of the run's topic
+- **`ingest` job** (the run's first job, payload `{ refetchSourceIds? }`: sources a gate's
+  re-fetch names are fetched again even though extracted, and only those repin their new text to
+  the run (`recordRunSources(..., repin)`); a failed re-fetch keeps the earlier text): extracts
+  every source of the run's topic
   that is `pending` or `failed`, one at a time; `extracted` ones are reused, never re-fetched
   (re-fetching is the explicit retry, P1D.2). A source that fails gets `status: failed`, `error`
   (what happened and what to do, e.g. "HTTP 403: the site blocks automated access, so upload the
@@ -518,7 +551,8 @@ stepId?, aliases?, check?, signal?, log? })`** is the only way to call a model (
 
 ### Researcher (`src/worker/agents/researcher`, job in `jobs/research.ts`)
 
-- **`research` job** (payload `{}`): reads the chunks of the versions pinned to the run
+- **`research` job** (payload `{ feedback? }`: a gate's regenerate note, recorded in the step
+  input and sent as the user message's last section, `withFeedback`, `agents/sections.ts`): reads the chunks of the versions pinned to the run
   (`loadRunSources`: `run_sources` → `<hash>.chunks.json`), applies the source token budget,
   builds the prompt (user message: topic, angle = `topics.notes`, series and the sent chunks as
   JSON, so a source cannot forge chunk boundaries) and calls `callJson` with
@@ -573,7 +607,8 @@ stepId?, aliases?, check?, signal?, log? })`** is the only way to call a model (
 
 ### Director (`src/worker/agents/director`, job in `jobs/direct.ts`)
 
-- **`direct` job** (payload `{}`): reads the run's latest research notes (`latestResearch`; none
+- **`direct` job** (payload `{ feedback? }`: a gate's regenerate note, recorded in the step
+  input and sent as the user message's last section, `withFeedback`, `agents/sections.ts`): reads the run's latest research notes (`latestResearch`; none
   fails the job), its memory (`directorMemory`, `#core/services/director-memory.ts`: active style
   rules scoped `director` or `all`, usage of the last `RECENT_VIDEOS` (5) exported videos, past
   exported topics) and the run's length / parts / level / format settings, then calls
@@ -665,7 +700,8 @@ seriesNumber })` makes the spec; with parts its `targetLengthSec` is the parts' 
 
 ### Scriptwriter (`src/worker/agents/scriptwriter`, job in `jobs/script.ts`)
 
-- **`script` job** (payload `{}`): reads the run's latest plan (`latestDirection`; none fails the
+- **`script` job** (payload `{ feedback? }`: a gate's regenerate note, recorded in the step
+  input and sent as the user message's last section, `withFeedback`, `agents/sections.ts`): reads the run's latest plan (`latestDirection`; none fails the
   job) and the notes of the research step that plan was made from (`researchOfStep(input.
 researchStepId)`, not the newest research), the run's level and pace (`resolvedSettings.video`)
   and pauses (`resolvedSettings.timing`), and style rules (`activeStyleRules(db, 'scriptwriter')`,
@@ -841,7 +877,8 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   (`spliceBoards`, `placeholderScene`, `boardStart`) is shared with the check. Snapshots in
   `generator/__snapshots__/` (rate limiter beat4, continuing; tokenizer b3, semantic zoom) show
   what the model reads: review their diff.
-- **`generate` job** (`jobs/generate.ts`, payload `{ specVersionId, beatId?, feedback? }`):
+- **`generate` job** (`jobs/generate.ts`, payload `{ specVersionId, beatId?, feedback?, redraw? }`;
+  `redraw`: every beat drawn again with the feedback, no beat step reused (a salt per job)):
   draws every board of the pinned spec version (it must have a script; timing is used when
   present) from the notes of the plan's research step, with registries whose assets are the DB's
   approved rows (`loadAssetLibrary` → `buildAssetRegistry`; the prompt lists and the checks use
@@ -1011,7 +1048,11 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   states its number's value), `owner_not_allowed`, `field_not_owned`, and in a second round
   `previous_status_missing` / `unknown_previous_issue`.
 
-- **`curate` job** (`jobs/curate.ts`, payload `{ specVersionId, repair }`: the re-timed spec
+- **`curate` job** (`jobs/curate.ts`, payload `{ specVersionId, repair, scope? }`; `scope:
+{ sinceSpecVersionId }` (after a gate's one-beat regenerate): the first review is a second
+  round scoped to the beats whose script or board differ from that version (`changedBeats`)
+  against the issues of the curation that ended on it, the others carry over, only changed
+  beats are repaired, and the report records `scope`; the re-timed spec
   after the Generator; `repair` defaults to true): the code checks on the pinned version (context from the run: the plan's research
   step's notes and sources, series and handle, resolved video settings and pauses,
   `directorMemory` usage, the DB's approved assets), then the two review passes

@@ -61,6 +61,8 @@ export const GenerateInputSchema = z.strictObject({
   /** Regenerate only this beat (and what it breaks); null for the whole video. */
   beatId: SpecIdSchema.nullable(),
   feedback: z.string().nullable(),
+  /** Every beat drawn again (a gate's regenerate of the Generator): no beat step is reused. */
+  redraw: z.boolean().optional(),
   directStepId: z.number().int().positive(),
   researchStepId: z.number().int().positive(),
   model: z.string().min(1),

@@ -1,0 +1,100 @@
+{
+  "beat1": [
+    {
+      "content": "{\n  \"elements\": [\n    {\n      \"id\": \"checkout\",\n      \"primitive\": \"node_card\",\n      \"props\": {\n        \"title\": \"Checkout\",\n        \"subtitle\": \"Larkspur Pay\",\n        \"icon\": \"shopping_bag\",\n        \"semantic\": \"neutral\"\n      },\n      \"zone\": \"left\"\n    },\n    {\n      \"id\": \"checkout_failing\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"checkout failing\",\n        \"semantic\": \"problem\",\n        \"pin\": {\n          \"to\": \"checkout\",\n          \"side\": \"top\"\n        }\n      }\n    },\n    {\n      \"id\": \"down_47\",\n      \"primitive\": \"counter\",\n      \"props\": {\n        \"value\": 47,\n        \"unit\": \"min\",\n        \"label\": \"Checkout down\",\n        \"semantic\": \"problem\",\n        \"pin\": {\n          \"to\": \"checkout\",\n          \"side\": \"bottom\"\n        }\n      }\n    },\n    {\n      \"id\": \"rate_limiter\",\n      \"primitive\": \"node_card\",\n      \"props\": {\n        \"title\": \"Rate limiter\",\n        \"subtitle\": \"a gate per request\",\n        \"icon\": \"filter\",\n        \"semantic\": \"concept\"\n      },\n      \"zone\": \"right\"\n    },\n    {\n      \"id\": \"too_much_traffic\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"too much traffic\",\n        \"semantic\": \"problem\",\n        \"pin\": {\n          \"to\": \"rate_limiter\",\n          \"side\": \"top\"\n        }\n      }\n    },\n    {\n      \"id\": \"failed_31\",\n      \"primitive\": \"stat_card\",\n      \"props\": {\n        \"value\": \"31%\",\n        \"label\": \"Checkouts that failed\",\n        \"source\": \"Post-incident report: checkout errors on 14 March 2025\",\n        \"semantic\": \"problem\"\n      },\n      \"zone\": \"aside\"\n    }\n  ],\n  \"events\": [\n    {\n      \"at\": { \"type\": \"word\", \"index\": 2 },\n      \"action\": \"enter\",\n      \"targets\": [\"checkout\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 5 },\n      \"action\": \"reject\",\n      \"targets\": [\"checkout\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 5 },\n      \"action\": \"enter\",\n      \"targets\": [\"checkout_failing\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 7 },\n      \"action\": \"enter\",\n      \"targets\": [\"down_47\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 8 },\n      \"action\": \"enter\",\n      \"targets\": [\"failed_31\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 10 },\n      \"action\": \"enter\",\n      \"targets\": [\"rate_limiter\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 11 },\n      \"action\": \"focus\",\n      \"targets\": [\"rate_limiter\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 16 },\n      \"action\": \"enter\",\n      \"targets\": [\"too_much_traffic\"]\n    }\n  ],\n  \"focus\": [\"checkout\"],\n  \"transitionIn\": \"fade\"\n}",
+      "servedModel": "deepseek-flash",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 34058,
+        "completion_tokens": 11818,
+        "prompt_cache_hit_tokens": 32896,
+        "prompt_cache_miss_tokens": 1162,
+        "prompt_tokens_details": {
+          "cached_tokens": 32896
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 11027
+        },
+        "total_tokens": 45876
+      }
+    },
+    {
+      "content": "{\"elements\":[{\"id\":\"fail_time\",\"primitive\":\"counter\",\"zone\":\"right\",\"props\":{\"value\":47,\"unit\":\"min\",\"label\":\"How long it lasted\",\"semantic\":\"problem\"}},{\"id\":\"fail_tag\",\"primitive\":\"tag\",\"props\":{\"text\":\"checkout failing\",\"semantic\":\"problem\",\"pin\":{\"to\":\"fail_time\",\"side\":\"top\"}}},{\"id\":\"limiter\",\"primitive\":\"node_card\",\"zone\":\"left\",\"props\":{\"title\":\"RATE LIMITER\",\"subtitle\":\"Gate per request\",\"icon\":\"filter\",\"semantic\":\"concept\"}},{\"id\":\"traffic_tag\",\"primitive\":\"tag\",\"props\":{\"text\":\"too much traffic\",\"semantic\":\"problem\",\"pin\":{\"to\":\"limiter\",\"side\":\"bottom\"}}},{\"id\":\"stat_31\",\"primitive\":\"stat_card\",\"zone\":\"aside\",\"props\":{\"value\":\"31%\",\"label\":\"Checkouts that failed\",\"source\":\"Post-incident report: checkout errors on 14 March 2025\",\"semantic\":\"problem\"}}],\"events\":[{\"at\":{\"type\":\"word\",\"index\":5},\"action\":\"enter\",\"targets\":[\"fail_time\"]},{\"at\":{\"type\":\"word\",\"index\":7},\"action\":\"count\",\"targets\":[\"fail_time\"]},{\"at\":{\"type\":\"word\",\"index\":10},\"action\":\"enter\",\"targets\":[\"limiter\"]},{\"at\":{\"type\":\"word\",\"index\":11},\"action\":\"focus\",\"targets\":[\"limiter\"]},{\"at\":{\"type\":\"word\",\"index\":17},\"action\":\"enter\",\"targets\":[\"stat_31\"]}],\"focus\":[\"fail_time\"],\"transitionIn\":\"fade\"}",
+      "servedModel": "deepseek-flash",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 34106,
+        "completion_tokens": 7297,
+        "prompt_cache_hit_tokens": 33792,
+        "prompt_cache_miss_tokens": 314,
+        "prompt_tokens_details": {
+          "cached_tokens": 33792
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 6951
+        },
+        "total_tokens": 41403
+      }
+    }
+  ],
+  "beat2": [
+    {
+      "content": "{\n  \"elements\": [\n    {\n      \"id\": \"checkout\",\n      \"primitive\": \"item_icon\",\n      \"props\": {\n        \"asset\": \"credit_card\",\n        \"caption\": \"checkout request\",\n        \"semantic\": \"neutral\"\n      },\n      \"zone\": \"around\"\n    },\n    {\n      \"id\": \"bucket\",\n      \"primitive\": \"data_block\",\n      \"props\": {\n        \"title\": \"TOKEN BUCKET\",\n        \"fields\": [\n          {\n            \"key\": \"key\",\n            \"value\": \"user\",\n            \"semantic\": \"concept\"\n          },\n          {\n            \"key\": \"capacity\",\n            \"value\": 100,\n            \"semantic\": \"neutral\"\n          },\n          {\n            \"key\": \"refill\",\n            \"value\": \"10/s\",\n            \"semantic\": \"concept\"\n          }\n        ]\n      },\n      \"zone\": \"center\"\n    },\n    {\n      \"id\": \"tokens\",\n      \"primitive\": \"counter\",\n      \"props\": {\n        \"from\": 100,\n        \"value\": 99,\n        \"label\": \"tokens left\",\n        \"semantic\": \"focus\",\n        \"pin\": {\n          \"to\": \"bucket\",\n          \"side\": \"bottom\"\n        }\n      },\n      \"zone\": \"around\"\n    },\n    {\n      \"id\": \"per-key-tag\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"per-key bucket\",\n        \"semantic\": \"concept\",\n        \"pin\": {\n          \"to\": \"bucket\",\n          \"side\": \"top\"\n        }\n      },\n      \"zone\": \"aside\"\n    },\n    {\n      \"id\": \"spend-tag\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"spend one token\",\n        \"semantic\": \"focus\",\n        \"pin\": {\n          \"to\": \"tokens\",\n          \"side\": \"right\"\n        }\n      },\n      \"zone\": \"aside\"\n    }\n  ],\n  \"patterns\": [],\n  \"events\": [\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 1\n      },\n      \"action\": \"enter\",\n      \"targets\": [\n        \"checkout\"\n      ]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 5\n      },\n      \"action\": \"enter\",\n      \"targets\": [\n        \"bucket\"\n      ]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 5\n      },\n      \"action\": \"focus\",\n      \"targets\": [\n        \"bucket\"\n      ]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 9\n      },\n      \"action\": \"enter\",\n      \"targets\": [\n        \"per-key-tag\"\n      ]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 19\n      },\n      \"action\": \"enter\",\n      \"targets\": [\n        \"tokens\"\n      ]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 19\n      },\n      \"action\": \"focus\",\n      \"targets\": [\n        \"tokens\"\n      ]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 22\n      },\n      \"action\": \"pulse\",\n      \"targets\": [\n        \"bucket\"\n      ]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 26\n      },\n      \"action\": \"enter\",\n      \"targets\": [\n        \"spend-tag\"\n      ]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 28\n      },\n      \"action\": \"count\",\n      \"targets\": [\n        \"tokens\"\n      ]\n    }\n  ],\n  \"focus\": [\n    \"checkout\"\n  ],\n  \"transitionIn\": \"fade\"\n}",
+      "servedModel": "deepseek-flash",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 34325,
+        "completion_tokens": 12047,
+        "prompt_cache_hit_tokens": 33408,
+        "prompt_cache_miss_tokens": 917,
+        "prompt_tokens_details": {
+          "cached_tokens": 33408
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 11165
+        },
+        "total_tokens": 46372
+      }
+    }
+  ],
+  "beat5": [
+    {
+      "content": "{\n  \"elements\": [\n    {\n      \"id\": \"gw\",\n      \"primitive\": \"node_card\",\n      \"props\": {\n        \"title\": \"GATEWAY\",\n        \"subtitle\": \"runs the check\",\n        \"icon\": \"router\",\n        \"semantic\": \"neutral\"\n      },\n      \"zone\": \"row\"\n    },\n    {\n      \"id\": \"store\",\n      \"primitive\": \"node_card\",\n      \"props\": {\n        \"title\": \"SHARED STORE\",\n        \"subtitle\": \"every gateway reads it\",\n        \"icon\": \"memory\",\n        \"semantic\": \"neutral\"\n      },\n      \"zone\": \"row\"\n    },\n    {\n      \"id\": \"trip\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"network round trip\",\n        \"semantic\": \"focus\"\n      },\n      \"zone\": \"aside\"\n    },\n    {\n      \"id\": \"slow\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"slow store\",\n        \"semantic\": \"problem\",\n        \"pin\": {\n          \"to\": \"store\",\n          \"side\": \"top\"\n        }\n      },\n      \"zone\": \"aside\"\n    },\n    {\n      \"id\": \"rt-median\",\n      \"primitive\": \"counter\",\n      \"props\": {\n        \"value\": 0.4,\n        \"decimals\": 1,\n        \"unit\": \"ms\",\n        \"label\": \"median round trip\",\n        \"semantic\": \"focus\"\n      },\n      \"zone\": \"row\"\n    },\n    {\n      \"id\": \"rt-p99\",\n      \"primitive\": \"counter\",\n      \"props\": {\n        \"value\": 2.1,\n        \"decimals\": 1,\n        \"unit\": \"ms\",\n        \"label\": \"p99 round trip\",\n        \"semantic\": \"focus\"\n      },\n      \"zone\": \"row\"\n    }\n  ],\n  \"patterns\": [],\n  \"events\": [\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 2\n      },\n      \"action\": \"enter\",\n      \"targets\": [\n        \"gw\"\n      ]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 5\n      },\n      \"action\": \"enter\",\n      \"targets\": [\n        \"trip\"\n      ]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 5\n      },\n      \"action\": \"focus\",\n      \"targets\": [\n        \"trip\"\n      ]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 9\n      },\n      \"action\": \"enter\",\n      \"targets\": [\n        \"store\"\n      ]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 9\n      },\n      \"action\": \"focus\",\n      \"targets\": [\n        \"store\"\n      ]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 11\n      },\n      \"action\": \"pulse\",\n      \"targets\": [\n        \"store\"\n      ]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 14\n      },\n      \"action\": \"enter\",\n      \"targets\": [\n        \"rt-median\"\n      ]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 14\n      },\n      \"action\": \"focus\",\n      \"targets\": [\n        \"rt-median\"\n      ]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 23\n      },\n      \"action\": \"enter\",\n      \"targets\": [\n        \"rt-p99\"\n      ]\n    },\n    {\n      \"at\": {\n        \"type\": \"word\",\n        \"index\": 23\n      },\n      \"action\": \"focus\",\n      \"targets\": [\n        \"rt-p99\"\n      ]\n    }\n  ],\n  \"focus\": [\n    \"gw\"\n  ],\n  \"transitionIn\": \"fade\"\n}",
+      "servedModel": "deepseek-flash",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 34241,
+        "completion_tokens": 22958,
+        "prompt_cache_hit_tokens": 33408,
+        "prompt_cache_miss_tokens": 833,
+        "prompt_tokens_details": {
+          "cached_tokens": 33408
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 22051
+        },
+        "total_tokens": 57199
+      }
+    }
+  ],
+  "beat7": [
+    {
+      "content": "{\n  \"elements\": [\n    {\n      \"id\": \"fleet\",\n      \"primitive\": \"node_card\",\n      \"zone\": \"spoke\",\n      \"props\": {\n        \"title\": \"CHECKOUT FLEET\",\n        \"subtitle\": \"40 instances\",\n        \"icon\": \"cluster\",\n        \"semantic\": \"neutral\"\n      }\n    },\n    {\n      \"id\": \"link\",\n      \"primitive\": \"connector\",\n      \"props\": {\n        \"from\": \"fleet\",\n        \"to\": \"provider\",\n        \"heads\": \"end\",\n        \"semantic\": \"neutral\"\n      }\n    },\n    {\n      \"id\": \"tag-uncounted\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"uncounted traffic\",\n        \"semantic\": \"problem\",\n        \"pin\": {\n          \"to\": \"link\",\n          \"side\": \"middle\"\n        }\n      }\n    },\n    {\n      \"id\": \"tag-local\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"local limits\",\n        \"semantic\": \"problem\",\n        \"pin\": {\n          \"to\": \"fleet\",\n          \"side\": \"bottom\"\n        }\n      }\n    },\n    {\n      \"id\": \"provider\",\n      \"primitive\": \"node_card\",\n      \"zone\": \"hub\",\n      \"props\": {\n        \"title\": \"PAYMENT PROVIDER\",\n        \"icon\": \"credit_card\",\n        \"semantic\": \"neutral\"\n      }\n    },\n    {\n      \"id\": \"burst\",\n      \"primitive\": \"packet_stream\",\n      \"props\": {\n        \"along\": \"link\",\n        \"rate\": 10,\n        \"semantic\": \"focus\"\n      }\n    },\n    {\n      \"id\": \"load\",\n      \"primitive\": \"counter\",\n      \"zone\": \"aside\",\n      \"props\": {\n        \"value\": 40,\n        \"from\": 0,\n        \"unit\": \"×\",\n        \"label\": \"vs. contracted rate\",\n        \"semantic\": \"focus\"\n      }\n    }\n  ],\n  \"patterns\": [],\n  \"events\": [\n    {\n      \"at\": { \"type\": \"word\", \"index\": 1 },\n      \"action\": \"enter\",\n      \"targets\": [\"fleet\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 2 },\n      \"action\": \"enter\",\n      \"targets\": [\"link\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 4 },\n      \"action\": \"enter\",\n      \"targets\": [\"tag-uncounted\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 12 },\n      \"action\": \"enter\",\n      \"targets\": [\"tag-local\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 16 },\n      \"action\": \"enter\",\n      \"targets\": [\"provider\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 17 },\n      \"action\": \"enter\",\n      \"targets\": [\"burst\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 21 },\n      \"action\": \"enter\",\n      \"targets\": [\"load\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 22 },\n      \"action\": \"focus\",\n      \"targets\": [\"load\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 23 },\n      \"action\": \"count\",\n      \"targets\": [\"load\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 27 },\n      \"action\": \"reject\",\n      \"targets\": [\"burst\"]\n    }\n  ],\n  \"focus\": [\"burst\"],\n  \"transitionIn\": \"slide\"\n}",
+      "servedModel": "deepseek-flash",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 34185,
+        "completion_tokens": 14143,
+        "prompt_cache_hit_tokens": 33152,
+        "prompt_cache_miss_tokens": 1033,
+        "prompt_tokens_details": {
+          "cached_tokens": 33152
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 13297
+        },
+        "total_tokens": 48328
+      }
+    }
+  ]
+}

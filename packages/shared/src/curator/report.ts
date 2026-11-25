@@ -118,6 +118,16 @@ export const CuratorReportSchema = z.strictObject({
   stop: z.enum(CURATE_STOPS),
   /** Every issue left, for gate 3. */
   badges: z.array(GateBadgeSchema),
+  /**
+   * A scoped curate (a gate's "regenerate beat"): the version the review was scoped against and
+   * the beats it reviewed; the others' issues carried over.
+   */
+  scope: z
+    .strictObject({
+      sinceSpecVersionId: z.number().int().positive(),
+      changedBeatIds: z.array(z.string()),
+    })
+    .optional(),
   /** Any blocking issue left, code's or the review's: gate 3 does not auto-approve. */
   blocking: z.boolean(),
   cost: z.strictObject({

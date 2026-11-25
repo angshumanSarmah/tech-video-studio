@@ -21,3 +21,13 @@ export function styleRulesSection(rules: readonly string[]): string | undefined 
     '\n',
   );
 }
+
+/**
+ * A reviewer's note on the agent's whole answer (a gate's "regenerate with feedback", P1C.9),
+ * appended as the user message's last section, so the static prefix still caches.
+ */
+export function withFeedback(message: string, feedback: string | undefined): string {
+  const note = feedback?.trim();
+  if (!note) return message;
+  return `${message}\n\n## FEEDBACK (from the reviewer: answer again in full, and address this)\n${note}`;
+}

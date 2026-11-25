@@ -1,0 +1,20 @@
+[
+  {
+    "content": "{\"script\": [{\"beatId\": \"b7\", \"narration\": \"So Corrowby counts tokens with the exact tokenizer of the model it calls. The Paris reply is budgeted in tokens, and costs are reported per language.\", \"headline\": {\"text\": \"Count with the model's tokenizer\", \"semantic\": \"resolution\"}, \"tags\": [\"exact tokenizer\", \"budgets in tokens\"], \"statCards\": []}]}",
+    "servedModel": "deepseek-flash",
+    "finishReason": "stop",
+    "usage": {
+      "prompt_tokens": 11553,
+      "completion_tokens": 2046,
+      "prompt_cache_hit_tokens": 10880,
+      "prompt_cache_miss_tokens": 673,
+      "prompt_tokens_details": {
+        "cached_tokens": 10880
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 1950
+      },
+      "total_tokens": 13599
+    }
+  }
+]

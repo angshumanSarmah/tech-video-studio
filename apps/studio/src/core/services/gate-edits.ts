@@ -18,6 +18,7 @@ import type { z } from 'zod';
 import { planIssues } from '../checks/plan.ts';
 import { directPlanPath, researchNotesPath, writeDataJson } from '../data-files.ts';
 import type { Executor } from '../db/client.ts';
+import { markCarried } from '../db/repositories/gates.ts';
 import {
   finishRunStep,
   setRunStepInput,
@@ -126,6 +127,7 @@ function editSpec(
     note: `Edited at the ${gate} gate.`,
   });
   if (!saved.created) return { saved: null, issues: edit.issues };
+  if (gate === 'draft') markCarried(tx, run.id, 'scenes', 'draft');
   moveTo(tx, run, edit.retime ? 'edit_retime' : 'edit_curate');
   advanceRun(tx, dataDir, run.id);
   return { saved: subjectDto(tx, { specVersionId: saved.version.id }), issues: edit.issues };

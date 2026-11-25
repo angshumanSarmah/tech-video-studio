@@ -6,7 +6,12 @@ import {
   type CuratorIssue,
   type RenderableVideoSpec,
 } from '@explainer-studio/shared';
-import { recordedInOrder, type DryRunFixtures, type DryRunResponse } from '#worker/llm/index.ts';
+import {
+  loadDryRunFixtures,
+  recordedInOrder,
+  type DryRunFixtures,
+  type DryRunResponse,
+} from '#worker/llm/index.ts';
 import { saveSpecVersion } from '#core/services/spec-versions.ts';
 import type { Db } from '#core/db/client.ts';
 import { enqueueJob } from '#core/db/repositories/jobs.ts';
@@ -100,3 +105,36 @@ export const reviewOf = (
   issues: CuratorIssue[] = [],
   previous?: { id: string; status: string }[],
 ): DryRunResponse[] => [quietClaims(spec), answer({ issues, ...(previous ? { previous } : {}) })];
+
+/**
+ * Where a topic's recorded Curator round lives (`curate-round:fixture --record`): the review and
+ * repair answers of one curate job with its repair loop, after the topic's recorded chain.
+ */
+export function curateRoundDir(topic: FixtureTopicId): string {
+  return join(fixtureResponsesDir('curator', topic), '..', 'round');
+}
+
+/** A recorded Curator round, to replay after the topic's recordings (the same run, in order). */
+export interface CurateRound {
+  readonly curator: readonly DryRunResponse[];
+  /** The repairs' Scriptwriter answers, after the recorded script's. */
+  readonly scriptwriter: readonly DryRunResponse[];
+  /** The repairs' Generator answers per beat, after the recorded boards. */
+  readonly generator: Readonly<Record<string, readonly DryRunResponse[]>>;
+}
+
+export function curateRound(topic: FixtureTopicId): CurateRound {
+  const fixtures = loadDryRunFixtures(curateRoundDir(topic));
+  const ordered = (role: 'curator' | 'scriptwriter') => {
+    const list = fixtures[role] ?? [];
+    if (!Array.isArray(list)) throw new Error(`The ${role} round is not recorded in call order.`);
+    return list as readonly DryRunResponse[];
+  };
+  const generator = fixtures.generator ?? {};
+  if (Array.isArray(generator)) throw new Error('The Generator round is not recorded per beat.');
+  return {
+    curator: ordered('curator'),
+    scriptwriter: ordered('scriptwriter'),
+    generator: generator as Record<string, readonly DryRunResponse[]>,
+  };
+}

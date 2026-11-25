@@ -29,5 +29,7 @@ export const ScriptwriterInputSchema = z.strictObject({
   budgets: z.array(WordBudgetSchema).min(1),
   /** Accepted style rules for the scriptwriter (scope `scriptwriter` or `all`). */
   styleRules: z.array(z.string()),
+  /** A reviewer's note from a gate's regenerate (the user message's FEEDBACK section). */
+  feedback: z.string().min(1).optional(),
 });
 export type ScriptwriterInput = z.infer<typeof ScriptwriterInputSchema>;

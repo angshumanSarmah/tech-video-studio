@@ -46,6 +46,7 @@ import { getTopic } from '#core/db/repositories/topics.ts';
 import { NotFoundError } from '#core/errors.ts';
 import { directorMemory } from '#core/services/director-memory.ts';
 import { latestDirection } from '#core/services/direction.ts';
+import { latestCuration } from '#core/services/curation.ts';
 import { researchOfStep } from '#core/services/research-notes.ts';
 import { getSpecVersion } from '#core/db/repositories/spec-versions.ts';
 import { pinnedSpecVersion } from '#core/services/spec-versions.ts';
@@ -84,6 +85,12 @@ const PayloadSchema = z.strictObject({
   specVersionId: z.number().int().positive(),
   /** Run the repair loop (default); false reviews only (the fixture scripts' recorded reviews). */
   repair: z.boolean().default(true),
+  /**
+   * A scoped curate (after a gate's "regenerate beat", P1C.9): the review covers only the beats
+   * that changed since this version (the one the last curation ended on), the earlier issues on
+   * the others carry over, and only the changed beats are repaired.
+   */
+  scope: z.strictObject({ sinceSpecVersionId: z.number().int().positive() }).optional(),
 });
 type Ctx = JobContext<z.output<typeof PayloadSchema>>;
 
@@ -185,12 +192,24 @@ async function curateLoop(
   };
   const firstCode = checks(job.spec);
   ctx.progress(10, `Code checks: ${firstCode.length} finding(s)`);
+  const scope = job.valid ? scopeOf(deps, ctx, runId, job.spec) : undefined;
+  const firstIssues = async (): Promise<CuratorIssue[]> => {
+    if (!job.valid) return [];
+    if (!scope) return (await review(job.spec, firstCode)).issues;
+    const earlier = scope.previous.review?.issues ?? [];
+    if (scope.changed.size === 0) return earlier;
+    const result = await review(job.spec, firstCode, {
+      previous: numbered(earlier),
+      changedBeatIds: [...scope.changed],
+    });
+    return mergeRoundReview(earlier, result, scope.changed);
+  };
   let now: Standing = {
     spec: job.spec,
     specVersionId: job.input.specVersionId,
     version: job.input.version,
     code: firstCode,
-    issues: job.valid ? (await review(job.spec, firstCode)).issues : [],
+    issues: await firstIssues(),
   };
   const rounds: CurateRound[] = [];
   let stop: CuratorReport['stop'] = job.valid
@@ -201,7 +220,9 @@ async function curateLoop(
   if (!job.valid)
     ctx.log('warn', 'The spec has validation errors: no review until they are fixed.');
   for (let round = 1; job.valid && ctx.payload.repair && round <= MAX_REPAIR_ROUNDS; round += 1) {
-    const requests = repairRequests(now.spec, now.code, now.issues);
+    const requests = repairRequests(now.spec, now.code, now.issues).filter(
+      (r) => !scope || scope.changed.has(r.beatId),
+    );
     const before = blockingKeys(now.spec, now.code, now.issues);
     if (requests.length === 0) {
       stop = before.length > 0 ? 'nothing_repairable' : 'clean';
@@ -234,7 +255,58 @@ async function curateLoop(
     }
     stop = 'max_rounds';
   }
-  return buildReport(deps.db, runId, job.input, now, reviews, rounds, stop);
+  const report = buildReport(deps.db, runId, job.input, now, reviews, rounds, stop);
+  if (!scope) return report;
+  return {
+    ...report,
+    review: report.review ?? scope.previous.review,
+    scope: {
+      sinceSpecVersionId: scope.since,
+      changedBeatIds: [...scope.changed],
+    },
+  };
+}
+
+interface Scope {
+  readonly since: number;
+  /** The report of the curation that ended on `since`. */
+  readonly previous: CuratorReport;
+  /** Beats whose script or board differ from `since`. */
+  readonly changed: ReadonlySet<string>;
+}
+
+/** The payload's scope, with what it needs; undefined (logged) when it cannot be scoped. */
+function scopeOf(
+  deps: CurateJobDeps,
+  ctx: Ctx,
+  runId: number,
+  spec: RenderableVideoSpec,
+): Scope | undefined {
+  const since = ctx.payload.scope?.sinceSpecVersionId;
+  if (since === undefined) return undefined;
+  const previous = latestCuration(deps.db, deps.dataDir, runId)?.report;
+  if (previous?.final.specVersionId !== since) {
+    ctx.log('warn', `No curation ended on spec version ${since}: reviewing every beat.`);
+    return undefined;
+  }
+  const before = loadSpec(deps, since);
+  return { since, previous, changed: changedBeats(before, spec) };
+}
+
+/** Beats whose script entry or board differ between two versions. */
+export function changedBeats(before: RenderableVideoSpec, after: RenderableVideoSpec): Set<string> {
+  const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+  const find = <T extends { beatId: string }>(list: readonly T[], id: string) =>
+    list.find((x) => x.beatId === id);
+  return new Set(
+    after.story.beats
+      .map((b) => b.id)
+      .filter(
+        (id) =>
+          !same(find(before.script, id), find(after.script, id)) ||
+          !same(find(before.scenes, id), find(after.scenes, id)),
+      ),
+  );
 }
 
 /** One repair; undefined (logged) when an agent could not produce a valid fix. */

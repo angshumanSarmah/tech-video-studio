@@ -1,9 +1,4 @@
-import {
-  resolveRunSettings,
-  RunSettingsSchema,
-  type RunSettingsInput,
-  type RunSettingsSource,
-} from '@explainer-studio/shared';
+import { patchRunSettings, type ModelPrice, type RunSettingsPatch } from '@explainer-studio/shared';
 import type { Db } from '../db/client.ts';
 import { appendEvent } from '../db/repositories/events.ts';
 import { listRunJobs } from '../db/repositories/jobs.ts';
@@ -14,25 +9,30 @@ import { PIPELINE } from '../orchestrator/pipeline.ts';
 import { requireRun } from '../orchestrator/snapshot.ts';
 
 /**
- * "Update run settings" (P1C.9 step 4): the run's overrides replaced, and a new settings snapshot
- * resolved from them and the app settings as they are now (so a model or price changed in
- * settings.json since the run started applies from its next job). Only between jobs: for a run
- * waiting at a gate or paused. What finished steps did stays as it was. The change is logged; the
- * orchestrator then moves the run on if it now can (an auto-approve switched on).
+ * "Update run settings" (P1C.9 steps 4-5): the named fields merged onto the run's overrides and
+ * its settings snapshot (`patchRunSettings`), so the run's next job uses them and nothing else
+ * changes; the app settings are not re-read, except for the price of a newly named model
+ * (`priceOf`). Only between jobs: for a run waiting at a gate or paused. What finished steps did
+ * stays as it was. The change is logged; the orchestrator then moves the run on if it now can (an
+ * auto-approve switched on).
  */
 
 export interface UpdateRunSettingsInput {
   readonly runId: number;
-  readonly settings: RunSettingsInput;
-  readonly app: RunSettingsSource;
+  readonly patch: RunSettingsPatch;
+  /** The app's price of a model (read only for a model the snapshot has no price for). */
+  readonly priceOf: (model: string) => ModelPrice | undefined;
 }
 
 export function updateRunSettings(db: Db, dataDir: string, input: UpdateRunSettingsInput): Run {
   return db.transaction((tx) => {
     const run = requireRun(tx, input.runId);
     assertBetweenJobs(run, activeJobs(tx, run.id));
-    const settings = RunSettingsSchema.parse(input.settings);
-    const snapshot = resolveRunSettings(settings, input.app);
+    const { settings, snapshot } = patchRunSettings(
+      { settings: run.settings, snapshot: run.resolvedSettings },
+      input.patch,
+      input.priceOf,
+    );
     setRunSettings(tx, run.id, settings, snapshot);
     const changes = [
       ...settingsChanges('settings', run.settings, settings),

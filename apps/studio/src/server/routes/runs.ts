@@ -36,7 +36,11 @@ export function createRunsRoute(db: Db, dataDir: string, appSettings: () => RunS
       (c) => {
         const { id } = c.req.valid('param');
         const { settings } = c.req.valid('json');
-        updateRunSettings(db, dataDir, { runId: id, settings, app: appSettings() });
+        updateRunSettings(db, dataDir, {
+          runId: id,
+          patch: settings,
+          priceOf: (model) => appSettings().llm.prices[model],
+        });
         return c.json<RunDto>(toRunDto(getRunSummary(db, id)!));
       },
     );

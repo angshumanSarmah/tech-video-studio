@@ -50,6 +50,7 @@ export interface GateView {
   readonly gate: GateId;
   readonly status: GateStatus | null;
   readonly decidedBy: DecidedBy | null;
+  readonly carriedFrom: GateId | null;
   readonly notes: string | null;
   readonly decidedAt: Date | null;
   readonly waiting: boolean;
@@ -82,6 +83,7 @@ export function readGate(db: Executor, dataDir: string, runId: number, gate: Gat
     gate,
     status: row?.status ?? null,
     decidedBy: row?.decidedBy ?? null,
+    carriedFrom: row?.carriedFrom ?? null,
     notes: row?.notes ?? null,
     decidedAt: row?.decidedAt ?? null,
     waiting: waitsAt(run, gate),

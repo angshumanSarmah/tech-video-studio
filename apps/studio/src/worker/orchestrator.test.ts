@@ -22,25 +22,37 @@ import { PIPELINE } from '#core/orchestrator/pipeline.ts';
 import { readRunSnapshot } from '#core/orchestrator/snapshot.ts';
 import { latestDirection } from '#core/services/direction.ts';
 import { findWorkspaceRoot } from '#core/workspace-root.ts';
-import { reviewOf } from './agents/curator/testing.ts';
-import { fixtureResponsesDir, fixtureRunSettings, fixtureTopic } from './agents/fixture-topics.ts';
+import { curateRound, reviewOf, type CurateRound } from './agents/curator/testing.ts';
+import {
+  FIXTURE_TOPIC_IDS,
+  fixtureResponsesDir,
+  fixtureRunSettings,
+  fixtureTopic,
+  type FixtureTopicId,
+} from './agents/fixture-topics.ts';
 import { fixtureGeneratedSpec } from './agents/generator/testing.ts';
 import { loadPromptTemplates, PROMPTS_DIR } from './agents/prompts/templates.ts';
 import { seedRunWithUploads } from './agents/researcher/testing.ts';
 import { createJobHandlers, createJobRegistry, type JobRegistry } from './jobs/registry.ts';
 import { createLlmClient } from './llm/client.ts';
-import { dryRunTransport, loadDryRunFixtures, recordedInOrder } from './llm/dry-run.ts';
+import {
+  dryRunTransport,
+  loadDryRunFixtures,
+  recordedInOrder,
+  type DryRunResponse,
+} from './llm/dry-run.ts';
 import { workerTransport } from './llm/index.ts';
 import { fakeTools } from './render/testing.ts';
 import { fixtureTts } from './repair/testing.ts';
 import { runNextJob } from './runner.ts';
 
 /**
- * P1C.9 step 3's acceptance (the design doc's acceptance 1): a dry-run run of the tokenizer from
+ * P1C.9 step 3's acceptance (the design doc's acceptance 1): a dry-run run of each fixture topic from
  * topic to the end with every gate on auto, through the real job handlers and the orchestrator.
- * The recorded Researcher, Director, Scriptwriter and Generator answers; a Curator review that
- * flags nothing (the recorded reviews flag blocking issues whose repairs were never recorded);
- * the committed Kokoro timing (`fixtureTts`); a fake renderer.
+ * The recorded Researcher, Director, Scriptwriter and Generator answers, and the topic's recorded
+ * Curator round (`curateRound`: the review, its repairs and the second review), so gate 3 passes
+ * with the real Curator; the committed Kokoro timing (`fixtureTts`); a fake renderer. The other
+ * tests here use a Curator that flags nothing (`reviewOf`).
  */
 
 const TOPIC = 'tokenizer';
@@ -55,10 +67,24 @@ beforeEach(() => {
 
 afterEach(() => t.cleanup());
 
-/** The worker's handlers with the recorded answers (and a Curator that flags nothing). */
-function worker(): JobRegistry {
+/**
+ * The worker's handlers with the recorded answers. The Curator: a recorded review-plus-repair
+ * round (`round`, after which the recorded Scriptwriter and Generator answers go on with the
+ * round's repairs), else a review that flags nothing.
+ */
+function worker(round?: CurateRound, topic: FixtureTopicId = TOPIC): JobRegistry {
   const recorded = (role: 'researcher' | 'director' | 'scriptwriter') =>
-    recordedInOrder(fixtureResponsesDir(role, TOPIC), role);
+    recordedInOrder(fixtureResponsesDir(role, topic), role);
+  const boards = loadDryRunFixtures(fixtureResponsesDir('generator', topic)).generator as Record<
+    string,
+    DryRunResponse[]
+  >;
+  const generator = Object.fromEntries(
+    Object.entries(boards).map(([beat, list]) => [
+      beat,
+      [...list, ...(round?.generator[beat] ?? [])],
+    ]),
+  );
   const llm = createLlmClient({
     db: t.db,
     dataDir: t.dataDir,
@@ -66,12 +92,12 @@ function worker(): JobRegistry {
     transport: dryRunTransport({
       researcher: recorded('researcher'),
       director: recorded('director'),
-      scriptwriter: recorded('scriptwriter'),
-      generator: loadDryRunFixtures(fixtureResponsesDir('generator', TOPIC)).generator!,
-      curator: reviewOf(fixtureGeneratedSpec(TOPIC)),
+      scriptwriter: [...recorded('scriptwriter'), ...(round?.scriptwriter ?? [])],
+      generator,
+      curator: round?.curator ?? reviewOf(fixtureGeneratedSpec(topic)),
     }),
   });
-  const tts = fixtureTts(TOPIC, join(t.dataDir, 'fake-tts')).provider;
+  const tts = fixtureTts(topic, join(t.dataDir, 'fake-tts')).provider;
   const { tools } = fakeTools();
   return createJobRegistry(
     createJobHandlers({ db: t.db, dataDir: t.dataDir, tools, tts, llm, prompts }),
@@ -87,8 +113,8 @@ async function drain(registry: JobRegistry): Promise<void> {
   }
 }
 
-function startTokenizer(): number {
-  const { topic, sourceFiles, seriesTag } = fixtureTopic(TOPIC);
+function startTopic(id: FixtureTopicId = TOPIC): number {
+  const { topic, sourceFiles, seriesTag } = fixtureTopic(id);
   return seedRunWithUploads(t.db, t.dataDir, topic, sourceFiles, {
     seriesTag,
     settings: fixtureRunSettings({ autoApprove: AUTO }),
@@ -111,10 +137,10 @@ function eventLines(events: readonly EventDto[]): string[] {
   });
 }
 
-describe('the orchestrator, dry run', () => {
-  it('takes a run from topic to the end with every gate on auto', async () => {
-    const runId = startTokenizer();
-    await drain(worker());
+describe.each(FIXTURE_TOPIC_IDS)('the orchestrator, dry run: %s', (topicId) => {
+  it('takes a run from topic to the end with every gate on auto, the real Curator included', async () => {
+    const runId = startTopic(topicId);
+    await drain(worker(curateRound(topicId), topicId));
 
     const run = getRun(t.db, runId)!;
     const events = listEventsSince(t.db, { runId, afterId: 0, limit: 5_000 }).map((e) => ({
@@ -376,13 +402,13 @@ describe('the orchestrator: a state it cannot work from', () => {
 });
 
 describe('the pipeline table', () => {
-  it('names only job types the worker runs (repair arrives with the regenerate paths)', () => {
+  it('names only job types the worker runs', () => {
     const registry = worker();
     const missing = PIPELINE_STEP_IDS.flatMap((id) => {
       const step = PIPELINE[id];
       return step.kind === 'job' && !registry.get(step.jobType) ? [step.jobType] : [];
     });
-    expect(missing).toEqual(['repair']);
+    expect(missing).toEqual([]);
   });
 });
 

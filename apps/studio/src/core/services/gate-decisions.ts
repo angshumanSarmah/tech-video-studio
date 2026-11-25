@@ -4,23 +4,21 @@ import type {
   GateIssue,
   GateSubjectDto,
   PipelineStepId,
-  RegenerateTarget,
   RunStatus,
 } from '@explainer-studio/shared';
 import type { Db, Executor } from '../db/client.ts';
-import { appendEvent } from '../db/repositories/events.ts';
-import { decideGate, getGate, reopenGate } from '../db/repositories/gates.ts';
+import { decideGate, getGate } from '../db/repositories/gates.ts';
 import type { Run } from '../db/repositories/runs.ts';
 import { getLatestSpecVersion } from '../db/repositories/spec-versions.ts';
 import { ConflictError } from '../errors.ts';
-import { advanceRun, gateEvent, moveTo } from '../orchestrator/advance.ts';
-import { regenerateRoute, RegenerateNotAllowedError } from '../orchestrator/decide.ts';
+import { advanceRun, gateEvent } from '../orchestrator/advance.ts';
 import { requireRun } from '../orchestrator/snapshot.ts';
 import { editAtGate } from './gate-edits.ts';
+import { regenerateAtGate } from './gate-regenerate.ts';
 import { currentSubject, subjectId, waitsAt } from './gates.ts';
 
 /**
- * Decisions on a gate the run waits at (P1C.9 step 4): approve, reject, edit, regenerate. Each
+ * Decisions on a gate the run waits at (P1C.9 steps 4-5): approve, reject, edit, regenerate. Each
  * runs in one transaction with the orchestrator (`advanceRun`), so the run moves on, or goes back,
  * with the decision. The server and the CLI call this; neither holds any logic of its own.
  */
@@ -78,7 +76,7 @@ function apply(
       requireCurrentSubject(tx, dataDir, run, gate, decision.subjectId);
       return editAtGate(tx, dataDir, run, gate, decision.content);
     case 'regenerate':
-      regenerate(tx, dataDir, run, gate, decision);
+      regenerateAtGate(tx, dataDir, run, gate, decision);
       return NOTHING_SAVED;
   }
 }
@@ -130,38 +128,4 @@ function record(
 ): void {
   decideGate(tx, run.id, gate, { status, decidedBy: 'user', notes: notes ?? null });
   gateEvent(tx, run, gate, status, 'user', []);
-}
-
-/** Targets whose rerun needs more than the stage's job again: P1C.9 step 5 builds them. */
-const NOT_YET: ReadonlySet<RegenerateTarget> = new Set(['beat', 'source']);
-
-/**
- * Sends the run back to the step that reruns `target`, reopening the deciding gate and every
- * later one (`regenerateRoute`). Feedback and single beats wait for step 5's paths.
- */
-function regenerate(
-  tx: Executor,
-  dataDir: string,
-  run: Run,
-  gate: GateId,
-  decision: Extract<GateDecision, { action: 'regenerate' }>,
-): void {
-  const route = regenerateRoute(gate, decision.target);
-  if (NOT_YET.has(decision.target) || decision.feedback || decision.beatId) {
-    throw new RegenerateNotAllowedError(
-      'Regenerating one beat or source, or with feedback, comes with P1C.9 step 5; ' +
-        'regenerate the whole stage without feedback for now.',
-    );
-  }
-  for (const reopened of route.reopen) reopenGate(tx, run.id, reopened);
-  appendEvent(tx, {
-    runId: run.id,
-    type: 'log',
-    payload: {
-      level: 'info',
-      message: `Regenerate ${decision.target} at the ${gate} gate: the run goes back to ${route.from}.`,
-    },
-  });
-  moveTo(tx, run, route.from);
-  advanceRun(tx, dataDir, run.id);
 }

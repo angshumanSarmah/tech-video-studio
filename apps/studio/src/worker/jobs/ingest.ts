@@ -25,7 +25,13 @@ export interface IngestJobDeps {
   readonly now?: () => Date;
 }
 
-const PayloadSchema = z.strictObject({});
+const PayloadSchema = z.strictObject({
+  /**
+   * Sources to fetch again even though they are extracted (a gate's "re-fetch this source",
+   * P1C.9): a new text is pinned to the run in place of the old one; a failed fetch keeps it.
+   */
+  refetchSourceIds: z.array(z.number().int().positive()).default([]),
+});
 type Ctx = JobContext<z.output<typeof PayloadSchema>>;
 
 type Outcome = { readonly ok: true } | { readonly ok: false; readonly reason: string };
@@ -57,8 +63,13 @@ async function ingest(deps: IngestJobDeps, ctx: Ctx): Promise<void> {
   }
 
   const failures: string[] = [];
+  const refetch = new Set(ctx.payload.refetchSourceIds);
+  for (const id of refetch) {
+    if (!sources.some((s) => s.id === id))
+      throw new Error(`Source ${id} is not one of the topic's.`);
+  }
   for (const [i, source] of sources.entries()) {
-    const outcome = await ingestOne(deps, ctx, source);
+    const outcome = await ingestOne(deps, ctx, source, refetch.has(source.id));
     if (!outcome.ok) failures.push(`${describe(source)}: ${outcome.reason}`);
     ctx.progress(
       Math.round(((i + 1) / sources.length) * 95),
@@ -66,7 +77,7 @@ async function ingest(deps: IngestJobDeps, ctx: Ctx): Promise<void> {
     );
   }
 
-  const pinned = recordRunSources(deps.db, runId);
+  const pinned = recordRunSources(deps.db, runId, [...refetch]);
   if (pinned.length === 0) {
     throw new Error(`No source could be extracted:\n${failures.map((f) => `  ${f}`).join('\n')}`);
   }
@@ -75,8 +86,14 @@ async function ingest(deps: IngestJobDeps, ctx: Ctx): Promise<void> {
   ctx.progress(PROGRESS_DONE_PCT, 'Sources ingested');
 }
 
-async function ingestOne(deps: IngestJobDeps, ctx: Ctx, source: Source): Promise<Outcome> {
-  if (source.status === 'extracted' && source.contentHash !== null) {
+async function ingestOne(
+  deps: IngestJobDeps,
+  ctx: Ctx,
+  source: Source,
+  refetch: boolean,
+): Promise<Outcome> {
+  const extracted = source.status === 'extracted' && source.contentHash !== null;
+  if (extracted && !refetch) {
     ctx.log('info', `${describe(source)}: already extracted, reused.`);
     return { ok: true };
   }
@@ -91,6 +108,13 @@ async function ingestOne(deps: IngestJobDeps, ctx: Ctx, source: Source): Promise
   } catch (error) {
     if (ctx.signal.aborted) throw error;
     const failure = asFailure(error);
+    if (extracted) {
+      ctx.log(
+        'warn',
+        `${describe(source)}: fetching it again failed (${failure.message}); the earlier text stays.`,
+      );
+      return { ok: true };
+    }
     markSourceFailed(deps.db, source.id, failure);
     ctx.log('warn', `${describe(source)} failed: ${failure.message}`);
     return { ok: false, reason: failure.message };

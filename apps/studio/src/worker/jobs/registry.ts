@@ -5,6 +5,7 @@ import type { JobHandler } from './handler.ts';
 import { ingestJobHandler, type IngestJobDeps } from './ingest.ts';
 import { noopJob } from './noop.ts';
 import { renderJobHandlers, type RenderJobDeps } from './render.ts';
+import { repairJobHandler } from './repair.ts';
 import { researchJobHandler, type ResearchJobDeps } from './research.ts';
 import { scriptJobHandler, type ScriptJobDeps } from './script.ts';
 import { ttsJobHandler, type TtsJobDeps } from './tts.ts';
@@ -47,6 +48,7 @@ export function createJobHandlers(deps: WorkerDeps): JobHandler[] {
     scriptJobHandler(deps),
     generateJobHandler(deps),
     curateJobHandler(deps),
+    repairJobHandler(deps),
     ...renderJobHandlers(deps),
     ttsJobHandler(deps),
   ];

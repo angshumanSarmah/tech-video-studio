@@ -1,0 +1,22 @@
+{
+  "b7": [
+    {
+      "content": "{\n  \"elements\": [\n    {\n      \"id\": \"corrowby\",\n      \"primitive\": \"node_card\",\n      \"props\": {\n        \"title\": \"CORROWBY\",\n        \"subtitle\": \"counts tokens\",\n        \"icon\": \"server\",\n        \"semantic\": \"neutral\"\n      },\n      \"zone\": \"around\"\n    },\n    {\n      \"id\": \"model-card\",\n      \"primitive\": \"node_card\",\n      \"props\": {\n        \"title\": \"MODEL\",\n        \"subtitle\": \"its own tokenizer\",\n        \"icon\": \"brain\",\n        \"semantic\": \"focus\"\n      },\n      \"zone\": \"center\"\n    },\n    {\n      \"id\": \"link\",\n      \"primitive\": \"connector\",\n      \"props\": {\n        \"from\": \"corrowby\",\n        \"to\": \"model-card\",\n        \"label\": \"calls\",\n        \"semantic\": \"concept\"\n      }\n    },\n    {\n      \"id\": \"tag-exact\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"exact tokenizer\",\n        \"semantic\": \"focus\",\n        \"pin\": {\n          \"to\": \"model-card\",\n          \"side\": \"bottom\"\n        }\n      }\n    },\n    {\n      \"id\": \"tag-budget\",\n      \"primitive\": \"tag\",\n      \"props\": {\n        \"text\": \"budgets in tokens\",\n        \"semantic\": \"concept\",\n        \"pin\": {\n          \"to\": \"corrowby\",\n          \"side\": \"bottom\"\n        }\n      }\n    }\n  ],\n  \"events\": [\n    {\n      \"at\": { \"type\": \"word\", \"index\": 1 },\n      \"action\": \"enter\",\n      \"targets\": [\"corrowby\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 3 },\n      \"action\": \"enter\",\n      \"targets\": [\"tag-budget\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 6 },\n      \"action\": \"enter\",\n      \"targets\": [\"model-card\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 7 },\n      \"action\": \"enter\",\n      \"targets\": [\"tag-exact\"]\n    },\n    {\n      \"at\": { \"type\": \"word\", \"index\": 10 },\n      \"action\": \"enter\",\n      \"targets\": [\"link\"]\n    }\n  ],\n  \"focus\": [\"model-card\"],\n  \"transitionIn\": \"fade\"\n}",
+      "servedModel": "deepseek-flash",
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 33991,
+        "completion_tokens": 6673,
+        "prompt_cache_hit_tokens": 32896,
+        "prompt_cache_miss_tokens": 1095,
+        "prompt_tokens_details": {
+          "cached_tokens": 32896
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 6114
+        },
+        "total_tokens": 40664
+      }
+    }
+  ]
+}

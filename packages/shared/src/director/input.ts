@@ -54,5 +54,7 @@ export const DirectorInputSchema = z.strictObject({
    * the prompt's title hint. Absent in steps from before the hint was per series.
    */
   titleMaxChars: z.number().int().positive().optional(),
+  /** A reviewer's note from a gate's regenerate (the user message's FEEDBACK section). */
+  feedback: z.string().min(1).optional(),
 });
 export type DirectorInput = z.infer<typeof DirectorInputSchema>;

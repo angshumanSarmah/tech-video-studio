@@ -29,7 +29,7 @@ import { latestResearch } from '#core/services/research-notes.ts';
 import { planCheckDeps } from '#core/checks/plan.ts';
 import { directorCheck } from '../agents/director/check.ts';
 import { directorUserMessage } from '../agents/director/input.ts';
-import { styleRulesSection } from '../agents/sections.ts';
+import { styleRulesSection, withFeedback } from '../agents/sections.ts';
 import { buildPrompt } from '../agents/prompt-builder.ts';
 import { type PromptVariables } from '../agents/prompt-variables.ts';
 import type { PromptTemplates } from '../agents/prompts/templates.ts';
@@ -50,7 +50,10 @@ export interface DirectJobDeps {
   readonly references?: (input: DirectorInput) => string | undefined;
 }
 
-const PayloadSchema = z.strictObject({});
+const PayloadSchema = z.strictObject({
+  /** A reviewer's note from a gate's regenerate: the user message's FEEDBACK section. */
+  feedback: z.string().trim().min(1).optional(),
+});
 type Ctx = JobContext<z.output<typeof PayloadSchema>>;
 
 /** What a step reads besides its input file: the notes and the HUD's run context. */
@@ -91,7 +94,7 @@ async function direct(deps: DirectJobDeps, catalogue: () => string, ctx: Ctx): P
   }
   const step = startRunStep(deps.db, { runId, stage: DIRECT_JOB_TYPE });
   try {
-    const { input, context } = prepare(deps, run);
+    const { input, context } = prepare(deps, run, ctx.payload.feedback);
     setRunStepInput(
       deps.db,
       step.id,
@@ -113,7 +116,11 @@ async function direct(deps: DirectJobDeps, catalogue: () => string, ctx: Ctx): P
   }
 }
 
-function prepare(deps: DirectJobDeps, run: Run): { input: DirectorInput; context: DirectContext } {
+function prepare(
+  deps: DirectJobDeps,
+  run: Run,
+  feedback: string | undefined,
+): { input: DirectorInput; context: DirectContext } {
   const topic = getTopic(deps.db, run.topicId);
   if (!topic) throw new NotFoundError('topic', run.topicId);
   const series = getSeries(deps.db, run.seriesId);
@@ -144,6 +151,7 @@ function prepare(deps: DirectJobDeps, run: Run): { input: DirectorInput; context
     memory: directorMemory(deps.db, run.id),
     catalogueVersions: storyCatalogueVersions(),
     titleMaxChars: titleRoomChars(getTheme(), series.label),
+    ...(feedback ? { feedback } : {}),
   };
   return {
     input,
@@ -165,7 +173,7 @@ async function writePlan(
     catalogue,
     references: deps.references?.(input),
     styleRules: styleRulesSection(input.memory.styleRules),
-    input: directorUserMessage(input, notes),
+    input: withFeedback(directorUserMessage(input, notes), input.feedback),
   });
   const check = directorCheck(
     planCheckDeps({

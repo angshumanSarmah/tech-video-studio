@@ -2,7 +2,9 @@ import {
   resolveRunSettings,
   ResolvedRunSettingsSchema,
   RunSettingsSchema,
+  StepRequestsSchema,
   type PipelineStepId,
+  type StepRequests,
   type ResolvedRunSettings,
   type RunSettings,
   type RunSettingsSource,
@@ -26,9 +28,10 @@ import { exports, jobs, runSources, runs, sources } from '../schema.ts';
 
 type RunRow = typeof runs.$inferSelect;
 
-export type Run = Omit<RunRow, 'settings' | 'resolvedSettings'> & {
+export type Run = Omit<RunRow, 'settings' | 'resolvedSettings' | 'stepRequests'> & {
   readonly settings: RunSettings;
   readonly resolvedSettings: ResolvedRunSettings;
+  readonly stepRequests: StepRequests;
 };
 
 export interface NewRun {
@@ -51,6 +54,7 @@ function toRun(row: RunRow): Run {
     ...row,
     settings: RunSettingsSchema.parse(row.settings),
     resolvedSettings: ResolvedRunSettingsSchema.parse(row.resolvedSettings),
+    stepRequests: StepRequestsSchema.parse(row.stepRequests),
   };
 }
 
@@ -127,6 +131,14 @@ export function setRunSettings(
     .returning()
     .get();
   return row && toRun(row);
+}
+
+/** Replaces the extra payloads a gate decision left for the run's next jobs. */
+export function setStepRequests(db: Executor, id: number, requests: StepRequests): void {
+  db.update(runs)
+    .set({ stepRequests: StepRequestsSchema.parse(requests) })
+    .where(eq(runs.id, id))
+    .run();
 }
 
 /** Records the stage of the job a run is running (`current_stage`). */
@@ -219,9 +231,15 @@ export interface RunSourceVersion {
 
 /**
  * Pins the current version of every extracted source of the run's topic to the run. Sources
- * already pinned keep their original hash, so a later re-fetch never changes what the run used.
+ * already pinned keep their original hash, so a later re-fetch never changes what the run used,
+ * except those in `repin`: the ones this run fetched again (a gate's re-fetch), which pin their
+ * new text.
  */
-export function recordRunSources(db: Db, runId: number): RunSourceVersion[] {
+export function recordRunSources(
+  db: Db,
+  runId: number,
+  repin: readonly number[] = [],
+): RunSourceVersion[] {
   return db.transaction((tx) => {
     const run = tx.select({ topicId: runs.topicId }).from(runs).where(eq(runs.id, runId)).get();
     if (!run) throw new Error(`Run ${runId} not found`);
@@ -236,6 +254,12 @@ export function recordRunSources(db: Db, runId: number): RunSourceVersion[] {
         .values(current.map((s) => ({ runId, ...s })))
         .onConflictDoNothing()
         .run();
+      for (const s of current.filter((c) => repin.includes(c.sourceId))) {
+        tx.update(runSources)
+          .set({ contentHash: s.contentHash })
+          .where(and(eq(runSources.runId, runId), eq(runSources.sourceId, s.sourceId)))
+          .run();
+      }
     }
     return listRunSources(tx, runId);
   });

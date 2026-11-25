@@ -1,0 +1,38 @@
+[
+  {
+    "content": "{\"script\":[{\"beatId\":\"beat1\",\"narration\":\"In March, Larkspur Pay checkout broke for forty-seven minutes. A rate limiter, a gate per request, let thirty-one percent fail.\",\"headline\":{\"text\":\"Rate limiter = may you go now?\",\"semantic\":\"concept\"},\"tags\":[\"checkout failing\",\"too much traffic\"],\"statCards\":[{\"value\":\"31%\",\"label\":\"Checkouts that failed\",\"sourceRef\":\"num-15\"}],\"source\":\"Post-incident report: checkout errors on 14 March 2025\"}]}",
+    "servedModel": "deepseek-flash",
+    "finishReason": "stop",
+    "usage": {
+      "prompt_tokens": 13571,
+      "completion_tokens": 3424,
+      "prompt_cache_hit_tokens": 13437,
+      "prompt_cache_miss_tokens": 134,
+      "prompt_tokens_details": {
+        "cached_tokens": 13437
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 3302
+      },
+      "total_tokens": 16995
+    }
+  },
+  {
+    "content": "{\"script\":[{\"beatId\":\"beat7\",\"narration\":\"So requests went through uncounted, and each of the forty checkout instances enforced the limit alone. Traffic hit the payment provider at roughly forty times its contract. Checkouts failed.\",\"headline\":{\"text\":\"Each instance enforces its own limit\",\"semantic\":\"problem\"},\"tags\":[\"uncounted traffic\",\"local limits\"],\"statCards\":[],\"source\":\"Larkspur Pay platform team incident report, 14 Mar 2025\"}]}",
+    "servedModel": "deepseek-flash",
+    "finishReason": "stop",
+    "usage": {
+      "prompt_tokens": 13565,
+      "completion_tokens": 1608,
+      "prompt_cache_hit_tokens": 12160,
+      "prompt_cache_miss_tokens": 1405,
+      "prompt_tokens_details": {
+        "cached_tokens": 12160
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 1503
+      },
+      "total_tokens": 15173
+    }
+  }
+]

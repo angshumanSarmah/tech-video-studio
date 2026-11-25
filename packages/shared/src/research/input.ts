@@ -51,6 +51,8 @@ export const ResearchInputSchema = z.strictObject({
   }),
   /** Chunks the budget left out, in source order; empty when everything fit. */
   omittedChunks: z.array(OmittedChunkSchema),
+  /** A reviewer's note from a gate's regenerate (the user message's FEEDBACK section). */
+  feedback: z.string().min(1).optional(),
 });
 export type ResearchInput = z.infer<typeof ResearchInputSchema>;
 

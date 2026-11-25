@@ -32,6 +32,7 @@ export function openGate(db: Executor, runId: number, gate: GateId, subject: Gat
     specVersionId: subject.specVersionId ?? null,
     subjectStepId: subject.subjectStepId ?? null,
     decidedBy: null,
+    carriedFrom: null,
     notes: null,
     decidedAt: null,
   };
@@ -47,6 +48,8 @@ export interface GateDecision {
   readonly status: Exclude<GateStatus, 'pending'>;
   readonly decidedBy: DecidedBy;
   readonly notes?: string | null;
+  /** An approval kept for a new subject: the later gate whose decision reran this one. */
+  readonly carriedFrom?: GateId | null;
 }
 
 /** Records a decision on a pending gate; undefined when there is no pending gate to decide. */
@@ -61,6 +64,7 @@ export function decideGate(
     .set({
       status: decision.status,
       decidedBy: decision.decidedBy,
+      carriedFrom: decision.carriedFrom ?? null,
       notes: decision.notes ?? null,
       decidedAt: new Date(),
     })
@@ -76,7 +80,18 @@ export function decideGate(
  */
 export function reopenGate(db: Executor, runId: number, gate: GateId): void {
   db.update(gates)
-    .set({ status: 'pending', decidedBy: null, notes: null, decidedAt: null })
+    .set({ status: 'pending', decidedBy: null, carriedFrom: null, notes: null, decidedAt: null })
     .where(and(eq(gates.runId, runId), eq(gates.gate, gate)))
+    .run();
+}
+
+/**
+ * Marks an approved gate whose steps a later gate's decision reruns: when the run reaches it
+ * again it keeps the approval for the new subject (`carry_gate`), badged with `from`.
+ */
+export function markCarried(db: Executor, runId: number, gate: GateId, from: GateId): void {
+  db.update(gates)
+    .set({ carriedFrom: from })
+    .where(and(eq(gates.runId, runId), eq(gates.gate, gate), eq(gates.status, 'approved')))
     .run();
 }

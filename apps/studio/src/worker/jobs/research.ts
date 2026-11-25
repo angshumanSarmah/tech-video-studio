@@ -30,6 +30,7 @@ import {
 } from '../agents/researcher/input.ts';
 import { loadRunSources } from '../agents/researcher/load-sources.ts';
 import type { LlmClient } from '../llm/client.ts';
+import { withFeedback } from '../agents/sections.ts';
 import { defineJobHandler, type JobContext, type JobHandler } from './handler.ts';
 
 export const RESEARCH_JOB_TYPE = 'research' satisfies Stage;
@@ -41,7 +42,10 @@ export interface ResearchJobDeps {
   readonly prompts: PromptTemplates;
 }
 
-const PayloadSchema = z.strictObject({});
+const PayloadSchema = z.strictObject({
+  /** A reviewer's note from a gate's regenerate: the user message's FEEDBACK section. */
+  feedback: z.string().trim().min(1).optional(),
+});
 type Ctx = JobContext<z.output<typeof PayloadSchema>>;
 
 /**
@@ -70,7 +74,7 @@ async function research(deps: ResearchJobDeps, ctx: Ctx): Promise<void> {
   }
   const step = startRunStep(deps.db, { runId, stage: RESEARCH_JOB_TYPE });
   try {
-    const input = prepareInput(deps, run);
+    const input = withNote(prepareInput(deps, run), ctx.payload.feedback);
     setRunStepInput(
       deps.db,
       step.id,
@@ -121,7 +125,7 @@ async function writeNotes(
   const prompt = buildPrompt(deps.prompts, {
     role: 'researcher',
     variables: run.resolvedSettings.video,
-    input: researcherUserMessage(input),
+    input: withFeedback(researcherUserMessage(input), input.feedback),
   });
   const chunks = citableChunks(input);
   const result = await deps.llm.callJson({
@@ -143,4 +147,9 @@ function summarize(notes: ResearchNotes): string {
     `${notes.glossary.length} glossary terms, ${notes.analogies.length} analogies, ` +
     `${notes.failureModes.length} failure modes, ${notes.openQuestions.length} open questions.`
   );
+}
+
+/** The step input with the reviewer's note, when the job has one. */
+function withNote<T extends object>(input: T, feedback: string | undefined): T {
+  return feedback ? { ...input, feedback } : input;
 }

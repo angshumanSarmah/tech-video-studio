@@ -167,10 +167,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **P1C.9 — Backlog fallback.** `missing_primitive_requests` has no `fallback_used` column;
       the orchestrator appends "(fallback used: …)" to the description. Add the column (an
       appended migration) when the backlog UI needs to filter by it.
-- [ ] **P1C.9 step 5 — Regenerate with feedback.** The gate API accepts `regenerate` for whole
-      stages only (Researcher, Director, Scriptwriter, Generator) and refuses one beat, one source
-      or feedback (400): the research and direct jobs take no feedback, and there is no `repair`
-      job yet. Step 5 adds them (and records where the feedback goes in the job payload).
 - [ ] **P1D — Gate previews over HTTP.** `GET …/gates/:gate` lists stills and the draft as
       data-dir paths; nothing serves those files yet. The gate views (P1D.3–P1D.5) need a file
       route (or signed paths) and the beat-level actions they list.

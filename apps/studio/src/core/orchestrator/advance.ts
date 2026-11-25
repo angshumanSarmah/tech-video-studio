@@ -16,6 +16,7 @@ import {
   setActiveRunStatus,
   setCurrentStage,
   setPipelineStep,
+  setStepRequests,
   type Run,
 } from '../db/repositories/runs.ts';
 import { latestCuration } from '../services/curation.ts';
@@ -147,11 +148,14 @@ function enqueueStep(tx: Executor, dataDir: string, run: Run, step: PipelineStep
   const definition = PIPELINE[step];
   if (definition.kind !== 'job') throw new OrchestratorStateError(`Step ${step} is not a job.`);
   const version = versionFor(tx, dataDir, run, definition.version);
+  const { [step]: request, ...otherRequests } = run.stepRequests;
   const payload = {
     ...(version === undefined ? {} : { specVersionId: version }),
     ...definition.payload,
+    ...request,
   };
   const job = queueJobIn(tx, { type: definition.jobType, runId: run.id, payload });
+  if (request) setStepRequests(tx, run.id, otherRequests);
   setPipelineStep(tx, run.id, step, job.id);
   setCurrentStage(tx, run.id, definition.stage);
   if (run.status !== 'running') setStatus(tx, run, 'running');
@@ -206,6 +210,7 @@ function openOrCarry(tx: Executor, dataDir: string, run: Run, gate: GateId, carr
       status: 'approved',
       decidedBy: previous.decidedBy ?? 'auto',
       notes: previous.notes,
+      carriedFrom: previous.carriedFrom,
     });
     gateEvent(tx, run, gate, 'approved', previous.decidedBy ?? 'auto', []);
     return;

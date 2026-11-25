@@ -33,7 +33,7 @@ import { type PromptVariables } from '../agents/prompt-variables.ts';
 import type { PromptTemplates } from '../agents/prompts/templates.ts';
 import { scriptwriterCheck } from '../agents/scriptwriter/check.ts';
 import { scriptwriterUserMessage } from '../agents/scriptwriter/input.ts';
-import { styleRulesSection } from '../agents/sections.ts';
+import { styleRulesSection, withFeedback } from '../agents/sections.ts';
 import type { LlmClient } from '../llm/client.ts';
 import { defineJobHandler, type JobContext, type JobHandler } from './handler.ts';
 
@@ -46,7 +46,10 @@ export interface ScriptJobDeps {
   readonly prompts: PromptTemplates;
 }
 
-const PayloadSchema = z.strictObject({});
+const PayloadSchema = z.strictObject({
+  /** A reviewer's note from a gate's regenerate: the user message's FEEDBACK section. */
+  feedback: z.string().trim().min(1).optional(),
+});
 type Ctx = JobContext<z.output<typeof PayloadSchema>>;
 
 /** What a step reads besides its input file. */
@@ -86,7 +89,7 @@ async function script(deps: ScriptJobDeps, ctx: Ctx): Promise<void> {
   }
   const step = startRunStep(deps.db, { runId, stage: SCRIPT_JOB_TYPE });
   try {
-    const { input, context } = prepare(deps, run);
+    const { input, context } = prepare(deps, run, ctx.payload.feedback);
     setRunStepInput(
       deps.db,
       step.id,
@@ -108,7 +111,7 @@ async function script(deps: ScriptJobDeps, ctx: Ctx): Promise<void> {
   }
 }
 
-function prepare(deps: ScriptJobDeps, run: Run) {
+function prepare(deps: ScriptJobDeps, run: Run, feedback: string | undefined) {
   const topic = getTopic(deps.db, run.topicId);
   if (!topic) throw new NotFoundError('topic', run.topicId);
   const series = getSeries(deps.db, run.seriesId);
@@ -131,6 +134,7 @@ function prepare(deps: ScriptJobDeps, run: Run) {
     pauses,
     budgets: wordBudgets(direction.plan, variables.wordsPerSec, pauses),
     styleRules: activeStyleRules(deps.db, 'scriptwriter'),
+    ...(feedback ? { feedback } : {}),
   };
   const context: ScriptContext = {
     run,
@@ -156,16 +160,19 @@ async function writeScript(
     role: 'scriptwriter',
     variables,
     styleRules: styleRulesSection(input.styleRules),
-    input: scriptwriterUserMessage({
-      topic,
-      series: { name: series.name },
-      level: input.explanationLevel,
-      format,
-      plan,
-      notes,
-      research,
-      budgets: input.budgets,
-    }),
+    input: withFeedback(
+      scriptwriterUserMessage({
+        topic,
+        series: { name: series.name },
+        level: input.explanationLevel,
+        format,
+        plan,
+        notes,
+        research,
+        budgets: input.budgets,
+      }),
+      input.feedback,
+    ),
   });
   const check = scriptwriterCheck({
     plan,

@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { RunSettingsSchema, RunStatusSchema, StageSchema } from '../domain/run.ts';
+import {
+  RunSettingsPatchSchema,
+  RunSettingsSchema,
+  RunStatusSchema,
+  StageSchema,
+} from '../domain/run.ts';
 import { listOf } from './common.ts';
 
 export const CreateRunRequestSchema = z.strictObject({
@@ -33,9 +38,10 @@ export const RunListResponseSchema = listOf(RunDtoSchema);
 export type RunListResponse = z.infer<typeof RunListResponseSchema>;
 
 /**
- * `PUT /api/runs/:id/settings`: the run's overrides, replaced whole, and a new settings snapshot
- * resolved from them and the app settings as they are now. Only for a run waiting at a gate or
+ * `PUT /api/runs/:id/settings`: the fields to change, merged onto the run's overrides and its
+ * settings snapshot (`patchRunSettings`); nothing else changes and settings.json is not re-read,
+ * except for the price of a model the snapshot has none for. Only for a run waiting at a gate or
  * paused, never while a job of it is queued or running (409).
  */
-export const UpdateRunSettingsRequestSchema = z.strictObject({ settings: RunSettingsSchema });
+export const UpdateRunSettingsRequestSchema = z.strictObject({ settings: RunSettingsPatchSchema });
 export type UpdateRunSettingsRequest = z.input<typeof UpdateRunSettingsRequestSchema>;

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { ModelRoleSchema } from '../config/llm.ts';
 import { GateBadgeSchema } from '../curator/report.ts';
+import { FixFieldSchema } from '../curator/review.ts';
 import { DirectorPlanSchema } from '../director/plan.ts';
 import { PipelineStepIdSchema, RegenerateTargetSchema } from '../domain/pipeline.ts';
 import { DecidedBySchema, GateIdSchema, GateStatusSchema, RunStatusSchema } from '../domain/run.ts';
@@ -62,6 +63,11 @@ export const GateDtoSchema = z.object({
   /** The gate's row; null until the run first reaches it. */
   status: GateStatusSchema.nullable(),
   decidedBy: DecidedBySchema.nullable(),
+  /**
+   * An approval kept for a new subject because a later gate's edit or regenerate reran this
+   * gate's steps (the scenes gate after a beat regenerated at the draft gate): that gate.
+   */
+  carriedFrom: GateIdSchema.nullable(),
   notes: z.string().nullable(),
   decidedAt: z.iso.datetime().nullable(),
   /** The run is stopped at this gate for a decision (approve, edit, regenerate, reject). */
@@ -109,11 +115,19 @@ export const GateDecisionRequestSchema = z.discriminatedUnion('action', [
     subjectId: z.number().int().positive(),
     content: z.unknown(),
   }),
+  /**
+   * What reruns (`target`, which the gate must allow) with the reviewer's `feedback` (the jobs'
+   * FEEDBACK section). `beat`: `beatId`, the `fields` to change (Scriptwriter fields and/or
+   * `board`) and `feedback` are required. `source`: `sourceId` (fetched again, then the
+   * Researcher, with the feedback when given).
+   */
   z.strictObject({
     action: z.literal('regenerate'),
     target: RegenerateTargetSchema,
-    beatId: z.string().trim().min(1).optional(),
     feedback: NotesSchema.optional(),
+    beatId: z.string().trim().min(1).optional(),
+    fields: z.array(FixFieldSchema).min(1).optional(),
+    sourceId: z.number().int().positive().optional(),
   }),
 ]);
 export type GateDecisionRequest = z.input<typeof GateDecisionRequestSchema>;

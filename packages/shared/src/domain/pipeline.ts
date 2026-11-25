@@ -44,6 +44,17 @@ export const PipelineStepIdSchema = z.enum(PIPELINE_STEP_IDS);
 export type PipelineStepId = z.infer<typeof PipelineStepIdSchema>;
 
 /**
+ * Extra payload for a run's next job at a step, set by a gate decision (a regenerate's feedback,
+ * the beat to repair, the source to fetch again) and used once: the orchestrator merges it into
+ * that step's job and clears it.
+ */
+export const StepRequestsSchema = z.partialRecord(
+  PipelineStepIdSchema,
+  z.record(z.string(), z.unknown()),
+);
+export type StepRequests = z.infer<typeof StepRequestsSchema>;
+
+/**
  * What a gate's "regenerate" reruns (P1C.9; `regenerateRoute` in the orchestrator says which gate
  * allows which). Exhaustive.
  * - `researcher`: the Researcher again; `source`: one source fetched again, then the Researcher.
