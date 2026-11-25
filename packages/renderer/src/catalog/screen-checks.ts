@@ -3,9 +3,11 @@ import {
   numberIndex,
   numberKey,
   numberMentions,
+  referenceReuseProblems,
   researchValueKeys,
   toJsonPath,
   type BeatScene,
+  type OriginalityContext,
   type BeatScript,
   type RenderableVideoSpec,
   type ResearchNotes,
@@ -84,6 +86,23 @@ export function screenTextWarnings(
       ...termChecks(spec, i, written),
     ];
   });
+}
+
+/**
+ * A reference video's names, examples or title in text the Generator writes on a board
+ * (P1C.11): the script's own items are checked with the script.
+ */
+export function boardOriginalityWarnings(
+  spec: RenderableVideoSpec,
+  ctx: OriginalityContext,
+  registries: Registries = DEFAULT_REGISTRIES,
+): SpecError[] {
+  const texts = spec.scenes.flatMap((scene, i) =>
+    generatorLeaves(scene, i, registries).flatMap((leaf) =>
+      leaf.kind === 'text' ? [{ path: toJsonPath(leaf.path), text: leaf.value }] : [],
+    ),
+  );
+  return referenceReuseProblems(texts, ctx);
 }
 
 function warning(path: Path, code: string, message: string): SpecError {

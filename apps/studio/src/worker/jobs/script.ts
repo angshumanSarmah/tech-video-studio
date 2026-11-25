@@ -1,3 +1,4 @@
+import { referenceNamesToAvoid } from '#core/services/reference-retrieval.ts';
 import {
   bareSourceNames,
   narrationWords,
@@ -194,6 +195,7 @@ async function writeScript(
     topicTitle: topic.title,
     sourceNames: bareSourceNames(research.sources),
     sources: research.sources,
+    references: referenceNamesToAvoid(deps.db, deps.dataDir),
     level: input.explanationLevel,
     wordsPerSec: input.wordsPerSec,
     pauses: input.pauses,

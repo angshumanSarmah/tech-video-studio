@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { listReferenceBacklog } from '#core/db/repositories/backlog.ts';
 import { createTestDb, type TestDb } from '#core/db/testing.ts';
 import { readReferenceRecord, requireReference } from '#core/services/references.ts';
-import { seedBreakdown, seedRecord } from '#worker/agents/reference/testing.ts';
+import { savedSeedRecord, seedBreakdown, seedRecord } from '#worker/agents/reference/testing.ts';
 import { avoidName, parseCommand, UsageError } from './args.ts';
 import { runCli } from './cli.ts';
 import { cliContext, fakeIo } from './testing.ts';
@@ -47,7 +47,7 @@ describe('studio references', () => {
     expect(shown.out).toMatch(/backlog #\d+ hex_grid_equidistance \[open\]/);
 
     const json = await cli(['references', 'show', '1', '--json']);
-    expect(JSON.parse(json.out)).toEqual(seedRecord('database-failover-split-brain'));
+    expect(JSON.parse(json.out)).toEqual(savedSeedRecord('database-failover-split-brain'));
 
     const missing = await cli(['references', 'show', 'no-such-reference']);
     expect(missing.code).toBe(1);
@@ -121,6 +121,35 @@ describe('studio references', () => {
     expect(run.code).toBe(0);
     expect(run.out).toContain('reads food-delivery-eta again');
     expect(requireReference(t.db, 'food-delivery-eta').status).toBe('ready');
+  });
+});
+
+describe('studio references pick', () => {
+  it('scores every reference for a topic and marks the picks', async () => {
+    const run = await cli([
+      'references',
+      'pick',
+      '--topic',
+      'Rate limiters',
+      '--series',
+      'system-design',
+    ]);
+    expect(run.code).toBe(0);
+    expect(run.io.lines[0]).toBe('Expected class: concept (from the title)');
+    expect(run.out).toMatch(
+      /✓\s+6\.5\s+database-failover-split-brain: secondary class concept \+1\.5/,
+    );
+    expect(run.io.lines.filter((l) => l.includes('✓'))).toHaveLength(3);
+    expect(run.io.lines.at(-1)).toMatch(/^Shown to the Director: database-failover-split-brain, /);
+  });
+
+  it('needs a run or a topic with its series', () => {
+    expect(() => parseCommand(['references', 'pick', '--topic', 'x'])).toThrow(UsageError);
+    expect(parseCommand(['references', 'pick', '--run', '3'])).toEqual({
+      kind: 'references',
+      action: 'pick',
+      from: { runId: 3 },
+    });
   });
 });
 

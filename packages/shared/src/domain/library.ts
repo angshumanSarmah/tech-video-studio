@@ -52,6 +52,8 @@ export const USAGE_KINDS = [
   'ending',
   /** Its first few distinct patterns in board order, `a>b>c` (`mainPatternSequence`). */
   'pattern_sequence',
+  /** A reference video its Director was shown (the slug; P1C.11): picks rotate across videos. */
+  'reference',
 ] as const;
 export const UsageKindSchema = z.enum(USAGE_KINDS);
 export type UsageKind = z.infer<typeof UsageKindSchema>;

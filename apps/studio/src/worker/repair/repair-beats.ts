@@ -1,4 +1,6 @@
 import type { Registries } from '@explainer-studio/renderer/catalog';
+import { referenceNamesToAvoid } from '#core/services/reference-retrieval.ts';
+import type { ReferenceNames } from '@explainer-studio/shared';
 import {
   bareSourceNames,
   measuredBeatLengths,
@@ -127,6 +129,8 @@ interface RepairContext {
   readonly channelHandle: string | null;
   /** The active style rules of the repair's two agents, read once (P1C.10). */
   readonly styleRules: { readonly scriptwriter: string[]; readonly generator: string[] };
+  /** Every ready reference's names to avoid (P1C.11): the originality check. */
+  readonly references: readonly ReferenceNames[];
 }
 
 export async function repairBeats(deps: RepairDeps, args: RepairArgs): Promise<RepairResult> {
@@ -193,6 +197,7 @@ function prepare(deps: RepairDeps, run: Run, args: RepairArgs): RepairContext {
       scriptwriter: activeStyleRules(deps.db, 'scriptwriter'),
       generator: activeStyleRules(deps.db, 'generator'),
     },
+    references: referenceNamesToAvoid(deps.db, deps.dataDir),
   };
 }
 
@@ -321,6 +326,7 @@ function checkDeps(ctx: RepairContext): ScriptwriterCheckDeps {
     topicTitle: ctx.topic.title,
     sourceNames: bareSourceNames(ctx.research.sources),
     sources: ctx.research.sources,
+    references: ctx.references,
     level: ctx.variables.explanationLevel,
     wordsPerSec: ctx.variables.wordsPerSec,
     pauses: { beatGapSec: ctx.pauses.beatGapSec, landingSec: ctx.pauses.landingSec },

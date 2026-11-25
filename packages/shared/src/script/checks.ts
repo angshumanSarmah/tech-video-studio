@@ -1,4 +1,6 @@
 import type { ExplanationLevel } from '../config/video.ts';
+import { notesTextOf, referenceReuseProblems } from '../reference/originality.ts';
+import { toJsonPath } from '../spec/validate.ts';
 import { MAX_NUMBERS_PER_BEAT } from '../director/checks.ts';
 import { bareSourceMessage, isBareSourceLine } from '../research/source-names.ts';
 import type { DirectorPlan } from '../director/plan.ts';
@@ -114,7 +116,33 @@ export function scriptProblems(output: ScriptToCheck, ctx: ScriptCheckContext): 
     ...exampleLabelProblems(output, ctx),
     ...exampleTiedProblems(output, ctx),
     ...sourceProblems(output, ctx.plan, ctx.sourceNames),
+    ...originalityProblems(output, ctx),
   ];
+}
+
+/** A reference's names in what the script says or shows (P1C.11). */
+function originalityProblems(output: ScriptToCheck, ctx: ScriptCheckContext): ScriptProblem[] {
+  if (!ctx.references?.length) return [];
+  const texts = output.script.flatMap((beat, i) => {
+    const at = (...rest: (string | number)[]) => toJsonPath(['script', i, ...rest]);
+    return [
+      { path: at('narration'), text: beat.narration },
+      ...(beat.headline ? [{ path: at('headline', 'text'), text: beat.headline.text }] : []),
+      ...beat.tags.map((text, j) => ({ path: at('tags', j), text })),
+      ...beat.statCards.map((card, j) => ({ path: at('statCards', j, 'label'), text: card.label })),
+      ...(beat.formulaCard?.caption
+        ? [{ path: at('formulaCard', 'caption'), text: beat.formulaCard.caption }]
+        : []),
+      ...(beat.commandBubble
+        ? [{ path: at('commandBubble', 'text'), text: beat.commandBubble.text }]
+        : []),
+      ...(beat.source ? [{ path: at('source'), text: beat.source }] : []),
+    ];
+  });
+  return referenceReuseProblems(texts, {
+    references: ctx.references,
+    notesText: notesTextOf(ctx.notes),
+  });
 }
 
 // --- Word budget and sentences ----------------------------------------------------------------

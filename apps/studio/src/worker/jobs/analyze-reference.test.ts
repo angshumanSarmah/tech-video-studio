@@ -13,6 +13,7 @@ import {
   noSeedReferences,
   REFERENCE_RESPONSES_DIR,
   runAnalysis,
+  savedSeedRecord,
   SEED_SLUGS,
   seedBreakdown,
   seedRecord,
@@ -50,7 +51,7 @@ describe('analyze_reference', () => {
       expect((await run(job.id)).status).toBe('done');
       const row = requireReference(t.db, slug);
       expect(row.status).toBe('ready');
-      expect(readReferenceRecord(t.dataDir, row)).toEqual(seedRecord(slug));
+      expect(readReferenceRecord(t.dataDir, row)).toEqual(savedSeedRecord(slug));
     }
     // Every recorded answer used, repairs included: none left over, none missing.
     expect(referenceCalls()).toHaveLength(recorded.length);

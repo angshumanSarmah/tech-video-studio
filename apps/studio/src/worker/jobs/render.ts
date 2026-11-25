@@ -18,7 +18,9 @@ import type { Job } from '#core/db/repositories/jobs.ts';
 import { latestDoneStep } from '#core/db/repositories/run-steps.ts';
 import { getRun } from '#core/db/repositories/runs.ts';
 import { NotFoundError } from '#core/errors.ts';
+import { latestDirection } from '#core/services/direction.ts';
 import { writeFinalCheck } from '#core/services/final-check.ts';
+import { referenceUsage } from '#core/services/reference-retrieval.ts';
 import {
   renderBeatDraft,
   renderDraft,
@@ -132,13 +134,16 @@ function finalJob(deps: RenderJobDeps) {
       // Only now that both files exist: the row makes the run undeletable. A video of the
       // pipeline records its usage history with it (P1C.10); a scratch render run does not.
       const pipelineVideo = latestDoneStep(deps.db, runId, 'direct') !== undefined;
+      const shown = pipelineVideo
+        ? referenceUsage(latestDirection(deps.db, deps.dataDir, runId)?.input)
+        : [];
       recordExport(deps.db, {
         runId,
         mp4Path: rel.video,
         srtPath: rel.subtitles,
         durationMs: Math.round(result.durationSec * 1000),
         title: input.target.spec.meta.title,
-        ...(pipelineVideo ? { usage: usageOfSpec(input.target.spec) } : {}),
+        ...(pipelineVideo ? { usage: [...usageOfSpec(input.target.spec), ...shown] } : {}),
       });
       ctx.log(
         'info',

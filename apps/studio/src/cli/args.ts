@@ -115,6 +115,11 @@ export type ReferencesCommand = { readonly kind: 'references' } & (
   | { readonly action: 'show'; readonly ref: string; readonly json: boolean }
   | { readonly action: 'edit'; readonly ref: string; readonly file?: string }
   | { readonly action: 'reanalyze'; readonly ref: string; readonly dryRun?: string }
+  | {
+      readonly action: 'pick';
+      readonly from:
+        { readonly runId: number } | { readonly topic: string; readonly series: SeriesTag };
+    }
 );
 
 export type Command =
@@ -182,6 +187,8 @@ export const USAGE = `Usage: pnpm studio <command> [options]
         default brand). Screenshots are kept for you, never sent to a model.
   references show <ref> [--json] · references edit <ref> [<record.json>] · references reanalyze <ref>
         <ref> is a slug or an id. edit opens $EDITOR on the record (or saves the file given).
+  references pick (--run <id> | --topic "<title>" --series ai|system-design)
+        Which references the Director would be shown, every one scored with its reasons.
   usage [--videos <n>]    What the last n exported videos used (default ${DEFAULT_USAGE_VIDEOS}): each
                           video's hook, ending and main patterns, then counts per kind.
   render <spec.json> [--draft|--final] [--series ai|system-design] [--dry-run <dir>]
@@ -478,6 +485,9 @@ function parseReferences(args: readonly string[]): ReferencesCommand {
     avoid: { type: 'string', multiple: true },
     attach: { type: 'string', multiple: true },
     json: { type: 'boolean' },
+    run: { type: 'string' },
+    topic: { type: 'string' },
+    series: { type: 'string' },
     'dry-run': { type: 'string' },
   });
   const [sub = 'list', ...rest] = found;
@@ -520,11 +530,28 @@ function parseReferences(args: readonly string[]): ReferencesCommand {
     }
     case 'reanalyze':
       return { kind: 'references', action: 'reanalyze', ref: one('reanalyze <ref>'), ...dryRun };
+    case 'pick':
+      return { kind: 'references', action: 'pick', from: pickFrom(values, rest) };
     default:
       throw new UsageError(
-        `Unknown references command "${sub}": list, add, show, edit or reanalyze.`,
+        `Unknown references command "${sub}": list, add, show, edit, reanalyze or pick.`,
       );
   }
+}
+
+function pickFrom(
+  values: Record<string, unknown>,
+  rest: readonly string[],
+): Extract<ReferencesCommand, { action: 'pick' }>['from'] {
+  const form = 'references pick (--run <id> | --topic "<title>" --series ai|system-design)';
+  if (rest.length > 0) throw new UsageError(`Expected: ${form}`);
+  if (values['run'] !== undefined) {
+    if (values['topic'] !== undefined) throw new UsageError(`Expected: ${form}`);
+    return { runId: runIdOf(text(values['run'])) };
+  }
+  const topic = text(values['topic']);
+  if (!topic) throw new UsageError(`Expected: ${form}`);
+  return { topic, series: oneOf('--series', values['series'], SERIES_TAGS, true) };
 }
 
 /** `--avoid "[<kind>:]<name>"`: a brand unless it starts with a known kind. */

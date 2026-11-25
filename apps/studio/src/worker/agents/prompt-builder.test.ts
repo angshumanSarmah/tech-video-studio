@@ -18,8 +18,6 @@ const variables = SettingsSchema.parse({}).video;
 const FIXTURE = {
   catalogue:
     '## ALLOWED PATTERNS (exhaustive: use only these ids)\n- <example-pattern-id>: <example description>',
-  references:
-    '## REFERENCE BREAKDOWNS (structure only)\n- <example-reference>: hook, 6 beats, spec card',
   styleRules: '## STYLE RULES\n- <example-style-rule>',
   input: '{"topic": "<example-topic>", "notes": "<example-notes>"}',
 };
@@ -30,7 +28,6 @@ function parts(role: PromptRole, extra: Partial<PromptParts> = {}): PromptParts 
     variables,
     catalogue: FIXTURE.catalogue,
     styleRules: FIXTURE.styleRules,
-    ...(role === 'director' ? { references: FIXTURE.references } : {}),
     input: FIXTURE.input,
     ...extra,
   };
@@ -56,7 +53,6 @@ describe('buildPrompt', () => {
       'You are part of Tech Explainer Studio',
       'Role: Director.',
       FIXTURE.catalogue,
-      FIXTURE.references,
       FIXTURE.styleRules,
     ].map((text) => system.indexOf(text));
     expect(order.every((i) => i >= 0)).toBe(true);
@@ -125,10 +121,7 @@ describe('buildPrompt', () => {
     expect(prompt.messages[0]!.content.endsWith('"additionalProperties": false\n}')).toBe(true);
   });
 
-  it('refuses reference breakdowns outside the director, and empty input', () => {
-    expect(() => buildPrompt(templates, parts('generator', { references: 'x' }))).toThrow(
-      PromptBuildError,
-    );
+  it('refuses empty input', () => {
     expect(() => buildPrompt(templates, parts('generator', { input: '  ' }))).toThrow(
       /Empty input/,
     );

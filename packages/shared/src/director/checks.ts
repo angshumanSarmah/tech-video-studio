@@ -20,6 +20,12 @@ import {
   MAX_SCENES_PER_LAYOUT_MODE,
 } from '../spec/story.ts';
 import { beatsFingerprint, type RecentStructure } from '../memory/fingerprint.ts';
+import {
+  notesTextOf,
+  ORIGINALITY_CODES,
+  referenceReuseProblems,
+  type ReferenceNames,
+} from '../reference/originality.ts';
 import type { DirectorPlan } from './plan.ts';
 import { exampleNumberIds, incidentSourceIds } from './systems.ts';
 
@@ -88,6 +94,8 @@ export const DIRECTOR_PROBLEM_CODES = [
   'layout_mode_overused',
   'layout_mode_repeated',
   'pattern_overused',
+  // Originality (P1C.11): a reference video's names, examples or title reused.
+  ...ORIGINALITY_CODES,
 ] as const;
 export type DirectorProblemCode = (typeof DIRECTOR_PROBLEM_CODES)[number];
 
@@ -125,6 +133,11 @@ export interface DirectorCheckContext {
    * failure or rejected alternative) was checked on the parent's plan.
    */
   readonly part?: PartRef;
+  /**
+   * Every ready reference's names to avoid (P1C.11, code only): the plan may not reuse a
+   * reference's names, examples or title, unless the notes use the name too.
+   */
+  readonly references?: readonly ReferenceNames[];
 }
 
 /** Distinct new glossary terms a whole video (or plan) may introduce, per explanation level. */
@@ -232,7 +245,25 @@ export function directorPlanProblems(
     ...varietyProblems(plan, ctx.recentCombos),
     ...videos.flatMap((video) => historyProblems(plan, video, ctx.recentStructures ?? [])),
     ...videos.flatMap((video) => sceneVarietyProblems(plan, video)),
+    ...originalityProblems(plan, ctx),
   ];
+}
+
+/** A reference's names in the plan's prose, its title or its source lines (P1C.11). */
+function originalityProblems(plan: DirectorPlan, ctx: DirectorCheckContext): DirectorProblem[] {
+  if (!ctx.references?.length) return [];
+  const texts = [
+    { path: '$.meta.title', text: plan.meta.title, isTitle: true },
+    ...proseFields(plan).map(([path, text]) => ({ path: toJsonPath(path), text })),
+    ...plan.story.beats.flatMap((b, i) =>
+      b.source ? [{ path: toJsonPath(['story', 'beats', i, 'source']), text: b.source }] : [],
+    ),
+    ...(plan.story.ending.cta ? [{ path: '$.story.ending.cta', text: plan.story.ending.cta }] : []),
+  ];
+  return referenceReuseProblems(texts, {
+    references: ctx.references,
+    notesText: notesTextOf(ctx.notes),
+  });
 }
 
 /** The plan's videos: its parts, else the one video (a part of a bigger video when `part`). */

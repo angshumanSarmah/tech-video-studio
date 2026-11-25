@@ -1,3 +1,4 @@
+import { referenceNamesToAvoid } from '#core/services/reference-retrieval.ts';
 import {
   buildAssetRegistry,
   curatorCodeChecks,
@@ -487,6 +488,7 @@ function checkContext(
     recent,
     sourceNames: bareSourceNames(sources),
     sources,
+    references: referenceNamesToAvoid(deps.db, deps.dataDir),
   };
 }
 

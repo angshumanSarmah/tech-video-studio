@@ -41,8 +41,8 @@ export type RecentUsage = Required<DirectorMemory['recent']>;
  * What the last `RECENT_VIDEOS` exported videos used, without the run's own video: the
  * Director's `recent` memory, and what the Curator's variety checks read.
  */
-export function recentUsage(db: Executor, runId: number): RecentUsage {
-  return recentOf(db, exportedVideos(db, { excludeVideoOf: runId }));
+export function recentUsage(db: Executor, runId?: number): RecentUsage {
+  return recentOf(db, exportedVideos(db, runId === undefined ? {} : { excludeVideoOf: runId }));
 }
 
 function recentOf(db: Executor, videos: readonly ExportedVideo[]): RecentUsage {
@@ -55,7 +55,22 @@ function recentOf(db: Executor, videos: readonly ExportedVideo[]): RecentUsage {
     patterns: usage.values('pattern'),
     combos: usage.values('device_layout'),
     structures: recentStructures(recent, usage),
+    referencesShown: referencesShown(recent, usage),
   };
+}
+
+/** How many of the videos were shown each reference (usage kind `reference`), by slug. */
+function referencesShown(
+  videos: readonly ExportedVideo[],
+  usage: ReturnType<typeof videosUsage>,
+): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const video of videos) {
+    for (const slug of new Set(usage.ofVideo(video, 'reference'))) {
+      counts[slug] = (counts[slug] ?? 0) + 1;
+    }
+  }
+  return counts;
 }
 
 function pastTopics(

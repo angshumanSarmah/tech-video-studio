@@ -17,6 +17,7 @@ export const REFERENCE_RESPONSES_DIR = 'apps/studio/src/worker/agents/reference/
 
 export {
   noSeedReferences,
+  savedSeedRecord,
   SEED_SLUGS,
   seedBreakdown,
   seedRecord,

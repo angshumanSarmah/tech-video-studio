@@ -77,6 +77,7 @@ describe('directorMemory', () => {
         patterns: [],
         combos: [],
         structures: [],
+        referencesShown: {},
       },
       pastTopics: [],
       similarTopics: [],

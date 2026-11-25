@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { ExplanationLevelSchema, VideoLengthSecSchema } from '../config/video.ts';
 import { RecentStructureSchema } from '../memory/fingerprint.ts';
 import { TopicMatchSchema } from '../memory/topic-similarity.ts';
+import { DirectorReferencesSchema } from '../reference/brief.ts';
 import { VideoFormatSchema } from '../spec/meta.ts';
 
 /**
@@ -25,6 +26,11 @@ export const DirectorMemorySchema = z.strictObject({
      * steps from before usage history.
      */
     structures: z.array(RecentStructureSchema).optional(),
+    /**
+     * How many of the recent videos were shown each reference (usage kind `reference`, P1C.11).
+     * Absent in steps from before the reference library.
+     */
+    referencesShown: z.record(z.string(), z.number().int().positive()).optional(),
   }),
   /** Topics of earlier exported videos, newest first: not to repeat. */
   pastTopics: z.array(z.strictObject({ title: z.string(), notes: z.string().nullable() })),
@@ -66,6 +72,11 @@ export const DirectorInputSchema = z.strictObject({
    * the prompt's title hint. Absent in steps from before the hint was per series.
    */
   titleMaxChars: z.number().int().positive().optional(),
+  /**
+   * The reference videos picked for this step and shown in its user message (P1C.11), as sent.
+   * Absent in steps from before the reference library.
+   */
+  references: DirectorReferencesSchema.optional(),
   /** A reviewer's note from a gate's regenerate (the user message's FEEDBACK section). */
   feedback: z.string().min(1).optional(),
 });

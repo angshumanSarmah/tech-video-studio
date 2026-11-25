@@ -107,17 +107,18 @@ export function saveReferenceRecord(
   record: ReferenceRecord,
   extra: { seedHash?: string } = {},
 ): { row: ReferenceRow; added: BacklogRequest[] } {
-  const recordPath = writeDataJson(dataDir, referenceRecordPath(row.slug), record);
+  const settled = withoutHeadingTitle(record, readReferenceBreakdown(dataDir, row));
+  const recordPath = writeDataJson(dataDir, referenceRecordPath(row.slug), settled);
   const saved = updateReference(tx, row.id, {
-    title: record.title,
-    topicClass: record.topicClass,
-    devices: referenceDevices(record),
+    title: settled.title,
+    topicClass: settled.topicClass,
+    devices: referenceDevices(settled),
     status: 'ready',
     error: null,
     recordPath,
     ...extra,
   });
-  const items = backlogItems(record).map((item) => ({
+  const items = backlogItems(settled).map((item) => ({
     name: item.name,
     description: backlogDescription(item),
   }));
@@ -268,6 +269,23 @@ function assertNotQueued(db: Executor, referenceId: number): void {
 }
 
 /** The names a record carries plus the person's, for a saved analysis. */
+/**
+ * A record without a `title` name that is only its breakdown's own heading: the heading names
+ * our breakdown, not the original video, and the same topic's plan may well share its words. The
+ * original's title, when the person knows it, is kept (`names-to-avoid.json`, `--avoid title:…`).
+ */
+export function withoutHeadingTitle(record: ReferenceRecord, breakdown: string): ReferenceRecord {
+  const heading = /^#{1,3}\s+(.+)$/m.exec(breakdown)?.[1] ?? '';
+  const keys = new Set([headingKey(heading), headingKey(firstHeading(breakdown) ?? '')]);
+  keys.delete('');
+  const namesToAvoid = record.namesToAvoid.filter(
+    (name) => name.kind !== 'title' || !keys.has(headingKey(name.text)),
+  );
+  return namesToAvoid.length === record.namesToAvoid.length ? record : { ...record, namesToAvoid };
+}
+
+const headingKey = (text: string) => text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+
 export function withNames(record: ReferenceRecord, names: readonly AvoidName[]): ReferenceRecord {
   return { ...record, namesToAvoid: mergeAvoidNames(record.namesToAvoid, names) };
 }

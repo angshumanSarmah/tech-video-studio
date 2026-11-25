@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { ReferenceRecordSchema, type ReferenceRecord } from '@explainer-studio/shared';
 import { findWorkspaceRoot } from '../workspace-root.ts';
 import { SEED_REFERENCES_DIR } from './reference-seed.ts';
+import { withoutHeadingTitle } from './references.ts';
 
 /** Test-only helpers for the reference library (P1C.11). Not imported by any entrypoint. */
 
@@ -28,6 +29,11 @@ export function seedRecord(slug: string): ReferenceRecord {
   return ReferenceRecordSchema.parse(
     JSON.parse(readFileSync(join(seedDir, `${slug}.record.json`), 'utf8')),
   );
+}
+
+/** A seed's record as the library saves it: without a title that is only its breakdown's heading. */
+export function savedSeedRecord(slug: string): ReferenceRecord {
+  return withoutHeadingTitle(seedRecord(slug), seedBreakdown(slug));
 }
 
 /** An empty seed folder: a database with no seed references. */

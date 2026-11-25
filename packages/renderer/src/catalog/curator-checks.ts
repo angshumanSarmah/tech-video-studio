@@ -4,6 +4,8 @@ import {
   SPEC_WARNING_CODES,
   directorPlanProblems,
   hookNumberRepeats,
+  notesTextOf,
+  ORIGINALITY_CODES,
   planOfSpec,
   readabilityProblems,
   scriptProblems,
@@ -19,6 +21,7 @@ import {
   type RenderableVideoSpec,
   type ResearchNotes,
   type RecentStructure,
+  type ReferenceNames,
   type ScriptProblemCode,
   type SpecError,
   type VideoSettings,
@@ -34,7 +37,11 @@ import { beatCheckWarnings } from './beat-checks.ts';
 import { colourWarnings } from './colour-checks.ts';
 import { layerWarnings } from './layer-checks.ts';
 import { DEFAULT_REGISTRIES, type Registries } from './registries.ts';
-import { screenTextWarnings, sourceMissingOnScreenWarnings } from './screen-checks.ts';
+import {
+  boardOriginalityWarnings,
+  screenTextWarnings,
+  sourceMissingOnScreenWarnings,
+} from './screen-checks.ts';
 import { withRegistryChecks } from './validate.ts';
 import { TERM_SHOWN_LATE, termShownLateWarnings } from './term-checks.ts';
 import { patternVarietyWarnings } from './variety-checks.ts';
@@ -76,6 +83,8 @@ export type CuratorCheckContext = {
   };
   sourceNames?: readonly string[];
   sources?: readonly IncidentSource[];
+  /** Every ready reference's names to avoid (P1C.11, code only): the originality check. */
+  references?: readonly ReferenceNames[];
 };
 
 /**
@@ -135,6 +144,8 @@ export const BLOCKING_WARNING_CODES = [
   'mixed_system_numbers',
   'incident_not_in_notes',
   'incident_source_missing',
+  // A reference video's names, examples or title (P1C.11): a copy, whoever wrote it.
+  ...ORIGINALITY_CODES,
 ] as const;
 
 /** Every other warning a check here can raise (a test keeps this list complete). */
@@ -260,13 +271,20 @@ function boardWarnings(
     ...sourceMissingOnScreenWarnings(spec, ctx.notes, registries),
     ...patternVarietyWarnings(spec, ctx.recent.patterns),
     ...termShownLateWarnings(spec, registries),
+    ...(ctx.references?.length
+      ? boardOriginalityWarnings(
+          spec,
+          { references: ctx.references, notesText: notesTextOf(ctx.notes) },
+          registries,
+        )
+      : []),
   ];
 }
 
 /** Plan and script checks on the finished spec, the measured length, hook numbers, reading ease. */
 function storyWarnings(spec: RenderableVideoSpec, ctx: CuratorCheckContext): SpecError[] {
   const plan = planOfSpec(spec);
-  const { notes, video, sourceNames, sources } = ctx;
+  const { notes, video, sourceNames, sources, references } = ctx;
   const planned = directorPlanProblems(plan, {
     notes,
     video,
@@ -277,6 +295,7 @@ function storyWarnings(spec: RenderableVideoSpec, ctx: CuratorCheckContext): Spe
     ...(sourceNames ? { sourceNames } : {}),
     ...(sources ? { sources } : {}),
     ...(spec.meta.part ? { part: spec.meta.part } : {}),
+    ...(references ? { references } : {}),
   }).filter((p) => !PLAN_ONLY_CODES.includes(p.code));
   const measured = spec.timing !== undefined;
   const scripted = scriptProblems(
@@ -290,6 +309,7 @@ function storyWarnings(spec: RenderableVideoSpec, ctx: CuratorCheckContext): Spe
       pauses: ctx.pauses,
       ...(sourceNames ? { sourceNames } : {}),
       ...(sources ? { sources } : {}),
+      ...(references ? { references } : {}),
     },
   ).filter((p) => !(measured && BUDGET_CODES.includes(p.code)));
   return [

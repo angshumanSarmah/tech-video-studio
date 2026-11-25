@@ -588,9 +588,6 @@ Common mistakes to avoid
 ## ALLOWED PATTERNS (exhaustive: use only these ids)
 - <example-pattern-id>: <example description>
 
-## REFERENCE BREAKDOWNS (structure only)
-- <example-reference>: hook, 6 beats, spec card
-
 ## STYLE RULES
 - <example-style-rule>
 

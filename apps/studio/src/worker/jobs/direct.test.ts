@@ -20,6 +20,8 @@ import { createTopic } from '#core/db/repositories/topics.ts';
 import { memoryRules, usageHistory } from '#core/db/schema.ts';
 import { createTestDb, TEST_APP_SETTINGS, type TestDb } from '#core/db/testing.ts';
 import { latestDirection } from '#core/services/direction.ts';
+import { editReferenceRecord, requireReference } from '#core/services/references.ts';
+import { seedRecord } from '#core/services/references-testing.ts';
 import { findWorkspaceRoot } from '#core/workspace-root.ts';
 import { DIRECTOR_RESPONSES_DIR } from '../agents/director/testing.ts';
 import { loadPromptTemplates, promptId, PROMPTS_DIR } from '../agents/prompts/templates.ts';
@@ -161,9 +163,40 @@ describe('direct job (rate-limiter fixture, dry run)', () => {
     expect(user!.content).toContain(`"id": "${result.plan.story.beats[0]!.hookNumberIds![0]}"`);
     expect(user!.content).not.toContain('sourceChunkId');
     expect(user!.content).toContain('Decide within 45-150 s');
+    // References (P1C.11): picked in code, recorded with the step, in the user message only.
+    expect(result.input.references?.picks.map((p) => p.slug)).toEqual([
+      'database-failover-split-brain',
+      'live-score-fanout',
+      'ride-hailing-demand-heatmap',
+    ]);
+    expect(system!.content).not.toContain('REFERENCE BREAKDOWNS');
+    expect(system!.content).not.toContain('Reference A');
+    expect(user!.content).toContain('References show structure only');
+    expect(user!.content).toContain('"label": "Reference A"');
+    expect(user!.content).not.toContain('database-failover-split-brain');
+    await expect(user!.content).toMatchFileSnapshot(
+      '../agents/__snapshots__/director.user.with-references.txt',
+    );
 
     expect(logs(runId).map((l) => l.message)).toEqual(
       expect.arrayContaining(summarize(goodPlan())),
+    );
+  });
+
+  it('repairs a plan that reuses a reference video’s name (the originality check)', async () => {
+    const row = requireReference(t.db, 'seat-booking-contention');
+    const record = { ...seedRecord(row.slug), namesToAvoid: [{ text: 'Ticketo', kind: 'brand' }] };
+    t.db.transaction((tx) => editReferenceRecord(tx, t.dataDir, row.id, record));
+    const copied = answer((p) => {
+      p.story.beats[1]!.intent = `${p.story.beats[1]!.intent.replace(/\.$/, '')}, as on Ticketo.`;
+    });
+    const { runId, job } = await direct(registry([copied, goodAnswer]));
+    expect(job.status).toBe('done');
+    const calls = directorCalls(runId);
+    expect(calls[0]!.error).toMatch(/reference_name_reused/);
+    const repair = promptOf(calls[1]!.promptPath).messages.at(-1)!.content;
+    expect(repair).toContain(
+      '"Ticketo" is a reference video\'s name (reference seat-booking-contention)',
     );
   });
 

@@ -25,6 +25,8 @@ import { getSeries, seriesChannelHandle, type Series } from '#core/db/repositori
 import { getTopic } from '#core/db/repositories/topics.ts';
 import { NotFoundError } from '#core/errors.ts';
 import { directorMemory, nextSeriesNumber } from '#core/services/director-memory.ts';
+import { latestDirection } from '#core/services/direction.ts';
+import { directorReferences, referenceNamesToAvoid } from '#core/services/reference-retrieval.ts';
 import { latestResearch } from '#core/services/research-notes.ts';
 import { planCheckDeps } from '#core/checks/plan.ts';
 import { directorCheck } from '../agents/director/check.ts';
@@ -43,11 +45,6 @@ export interface DirectJobDeps {
   readonly dataDir: string;
   readonly llm: LlmClient;
   readonly prompts: PromptTemplates;
-  /**
-   * Reference breakdowns for this run (prompt section 4, structure only). Retrieval is P1C.11;
-   * until then no section is sent.
-   */
-  readonly references?: (input: DirectorInput) => string | undefined;
 }
 
 const PayloadSchema = z.strictObject({
@@ -68,7 +65,8 @@ interface DirectContext {
 
 /**
  * The Director (P1C.5): plans the video from the run's latest research notes, its memory (style
- * rules, recent usage, past topics) and the summaries-only catalogue, and repairs the plan until
+ * rules, recent usage, past topics), up to three reference videos picked in code (P1C.11, in the
+ * user message, structure only) and the summaries-only catalogue, and repairs the plan until
  * the schema and every check pass (`directorCheck`). Each attempt is its own `run_steps` row
  * (stage `direct`) with its input and plan files; the newest finished one is gate 2's input
  * (`latestDirection`). Turning the plan into spec versions (and parts into runs) is P1C.9's.
@@ -128,6 +126,15 @@ function prepare(
   const research = latestResearch(deps.db, deps.dataDir, run.id);
   if (!research) throw new Error('The run has no finished research: run the Researcher first.');
   const variables = run.resolvedSettings.video;
+  const memory = directorMemory(deps.db, run.id);
+  const previous = latestDirection(deps.db, deps.dataDir, run.id);
+  const references = directorReferences(deps.db, deps.dataDir, {
+    topicTitle: topic.title,
+    seriesTag: series.tag,
+    notes: research.notes,
+    ...(previous ? { previousTopicClass: previous.plan.meta.topicClass } : {}),
+    memory,
+  });
   const input: DirectorInput = {
     topic: { title: topic.title, notes: topic.notes },
     series: {
@@ -148,9 +155,10 @@ function prepare(
     explanationLevel: variables.explanationLevel,
     ...(run.settings.format === undefined ? {} : { formatOverride: run.settings.format }),
     researchStepId: research.step.id,
-    memory: directorMemory(deps.db, run.id),
+    memory,
     catalogueVersions: storyCatalogueVersions(),
     titleMaxChars: titleRoomChars(getTheme(), series.label),
+    ...(references.picks.length > 0 ? { references } : {}),
     ...(feedback ? { feedback } : {}),
   };
   return {
@@ -171,7 +179,6 @@ async function writePlan(
     role: 'director',
     variables,
     catalogue,
-    references: deps.references?.(input),
     styleRules: styleRulesSection(input.memory.styleRules),
     input: withFeedback(directorUserMessage(input, notes), input.feedback),
   });
@@ -184,6 +191,7 @@ async function writePlan(
       video: variables,
       series,
       channelHandle: seriesChannelHandle(deps.db, series.id),
+      references: referenceNamesToAvoid(deps.db, deps.dataDir),
     }),
   );
   const result = await deps.llm.callJson({

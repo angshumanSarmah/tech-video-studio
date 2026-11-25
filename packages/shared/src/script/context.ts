@@ -4,6 +4,7 @@ import type { ResearchNotes } from '../research/notes.ts';
 import type { BeatScript } from '../spec/script.ts';
 import { toJsonPath } from '../spec/validate.ts';
 import type { IncidentSource } from './incident-names.ts';
+import { ORIGINALITY_CODES, type ReferenceNames } from '../reference/originality.ts';
 
 /** What the Scriptwriter checks share: problem codes, the context they run in, path helpers. */
 
@@ -33,6 +34,8 @@ export const SCRIPT_PROBLEM_CODES = [
   'source_missing',
   'source_changed',
   'source_label_bare',
+  // Originality (P1C.11): a reference video's names, examples or title reused.
+  ...ORIGINALITY_CODES,
 ] as const;
 export type ScriptProblemCode = (typeof SCRIPT_PROBLEM_CODES)[number];
 
@@ -69,6 +72,8 @@ export interface ScriptCheckContext {
   readonly sourceNames?: readonly string[];
   /** The run's sources: the incident's titles name its organisation (`incidentNames`). */
   readonly sources?: readonly IncidentSource[];
+  /** Every ready reference's names to avoid (P1C.11, code only). */
+  readonly references?: readonly ReferenceNames[];
 }
 
 export type Path = (string | number)[];

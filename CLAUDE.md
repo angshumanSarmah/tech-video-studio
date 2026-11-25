@@ -673,9 +673,9 @@ stepId?, aliases?, check?, signal?, log? })`** is the only way to call a model (
   live versions are kept (a test checks it; each call's prompt file holds the full messages it
   sent, and git keeps the old files). `buildPrompt(templates, parts)` puts
   preamble, role prompt, the role's output JSON Schema (`ROLE_OUTPUT_SCHEMAS` in
-  `agents/output-schemas.ts`, rendered with `z.toJSONSchema`, input side), catalogue,
-  references (Director only) and style rules in the system message and the run's input in the
-  user message, so the static prefix caches. A new agent registers its output schema there and
+  `agents/output-schemas.ts`, rendered with `z.toJSONSchema`, input side), catalogue and
+  style rules in the system message and the run's input in the user message (the Director's
+  also carries its memory and reference videos, P1C.11), so the static prefix caches. A new agent registers its output schema there and
   passes the same schema to `callJson` (the Curator does not: its two passes put their shapes in
   the user message, `outputSchemaSection`, so both share one system prompt). `{{name}}`
   takes values from the run's `resolvedSettings.video` (run override →
@@ -754,7 +754,8 @@ stepId?, aliases?, check?, signal?, log? })`** is the only way to call a model (
   tokens) and style rules as section 5; the user message holds topic, angle, series and its next
   number (`nextSeriesNumber`), the length instruction (fixed `lengthOverrideSec`, else the
   configured range), parts, format, recently used ids and combos, past topics and the notes
-  without chunk ids. References (P1C.11) come from an optional `references` dep: none yet.
+  without chunk ids, and up to three reference videos (`references`, before the notes; see
+  "Reference library"), recorded in the step input as `DirectorInput.references`.
 - **Steps and files** like the Researcher: one `run_steps` row per attempt (stage `direct`),
   `runs/<id>/direct/input-<step>.json` (`DirectorInputSchema`) and `plan-<step>.json`. **Gate 2
   input** is `latestDirection(db, dataDir, runId)` (`#core/services/direction.ts`). The job writes
@@ -1289,7 +1290,8 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   exported spec used (`usageOfSpec`, renderer `catalog/usage.ts`, pure: devices, each new
   board's layout mode, each beat's `<device>/<layout>` as the Director's combo check reads it,
   drawn patterns, primitives placed directly, metaphor world, topic class, `hook`, `ending`,
-  `pattern_sequence`) in the transaction of its exports row (`recordExport({ usage })`, which
+  `pattern_sequence`), plus `reference` rows for the reference videos its Director was shown
+  (`referenceUsage`, from the plan step's input, P1C.11) in the transaction of its exports row (`recordExport({ usage })`, which
   replaces the run's rows: a re-export refreshes them). Only a run with a finished `direct` step
   records usage, so a scratch `studio render` run never becomes a video. Each part records its
   own at its export; the parent records nothing.
@@ -1372,7 +1374,7 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   proposal per event), `style-rules.test.ts`, the CLI (`cli.test.ts`: a terminal note to an
   active rule, then `rules`), shared `memory/*.test.ts`.
 
-### Reference library (P1C.11, R1: records, seeding, API, CLI)
+### Reference library (P1C.11: records, seeding, API, CLI, Director retrieval, originality)
 
 - **`ReferenceRecord`** (shared `reference/record.ts`): a reference video's structure only:
   `title` (the topic in generic words, never the original's title), `series`, `topicClass`
@@ -1401,7 +1403,10 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
 - **Rows and files:** `reference_videos` (0007: `slug` unique, `origin` seed | pasted, `status`
   pending | ready | failed, `error`, list fields copied from the record, `seed_hash`,
   `attachments`); `references/<slug>/breakdown.md`, `record.json`, `attachments/<hash>.<ext>`
-  (`#core/data-files.ts`). Only `ready` rows will be shown to the Director (R2).
+  (`#core/data-files.ts`). Only `ready` rows are shown to the Director. A saved record drops a
+  `title` name that is only its breakdown's own heading (`withoutHeadingTitle`: it names our
+  breakdown, not the original), so a seed's saved record can differ from its committed file
+  (`savedSeedRecord` in tests).
 - **Backlog link:** `saveReferenceRecord` (`#core/services/references.ts`) writes the record,
   copies title, class and devices, and `syncReferenceBacklog` (`repositories/backlog.ts`): a
   `missing_primitive_requests` row per buildable unmapped name (`reference_video_id`, `run_id`
@@ -1435,6 +1440,38 @@ jobId }`), `GET /:id` (record, breakdown, attachments, backlog rows), `PUT /:id`
   `references.test.ts`, `jobs/analyze-reference.test.ts` (the recording replayed into the
   committed records, no screenshot in the prompt, a missing primitive to the backlog, a repair,
   a failure), `routes/references.test.ts`, `cli/references.test.ts`.
+- **Retrieval** (`pickReferences`, shared `reference/retrieve.ts`, pure): the expected class
+  (`expectedClass`: the previous plan's on a rerun, else the class whose `exampleTopics` the
+  title is at least `CLASS_GUESS_SIMILARITY` (0.5) close to by `topicSimilarity`, ties to the
+  series' class, else the series', AI → ai-ml), the candidate devices (its `preferredDevices`
+  plus what the notes support: an incident, failure modes, rejected alternatives,
+  misconceptions, 3+ numbers), then `REFERENCE_SCORE` per reference: class +3 (secondary
+  +1.5), +1 per shared device (at most 5), series +1, −2 for a hook or main pattern sequence
+  (`referenceFingerprint`) a recent video used, −1 per recent video it was shown to
+  (`DirectorMemory.recent.referencesShown`, from usage kind `reference`). Up to
+  `MAX_REFERENCES` (3) at `MIN_REFERENCE_SCORE` (2) or more, never two with the same hook
+  device; ties by class-preferred overlap, then slug. `scoreReferences` /
+  `directorReferences` (`#core/services/reference-retrieval.ts`) run it on the ready records;
+  the `direct` job sends the picks' briefs (`referenceBrief`, shared `reference/brief.ts`: a
+  label "Reference A", class, format, length, why picked, hook, arc, video devices, one line
+  per beat with its devices, patterns (registry ones only) and layout mode, pacing; never the
+  slug, title, names, unmapped items or primitives) in its user message after the INTRO's
+  "References show structure only" line, and records `DirectorReferencesSchema` (expected
+  class, candidates, picks with reasons, briefs as sent). `pnpm studio references pick (--run
+<id> | --topic "<t>" --series <s>)` prints every reference scored. Acceptance:
+  `reference-retrieval.test.ts` pins both fixture topics' picks (rate limiter: failover,
+  live score, ride hailing; tokenizer: food delivery, failover, quick commerce).
+- **Originality** (`referenceReuseProblems`, shared `reference/originality.ts`, pure): every
+  ready reference's `namesToAvoid` (`referenceNamesToAvoid`, read live; code only) in the
+  plan's title, prose, source lines and CTA (`directorPlanProblems`, context `references`), the
+  script's narration, headline, tags, stat card labels, formula caption, command and source
+  (`scriptProblems`), and at the Curator the boards' Generator text too
+  (`boardOriginalityWarnings`, renderer `screen-checks.ts`): `reference_name_reused` (whole
+  words, plain plural) and `reference_title_reused` (a `title` name, or a title worded at least
+  `TITLE_REUSE_SIMILARITY` (0.75) alike: `titleWordSimilarity`, word Jaccard, not topic
+  similarity, since titles on one topic share its words). A name the run's notes use is the
+  topic's own (`notesTextOf`). Blocking everywhere: Director and Scriptwriter repairs, gate 2,
+  and the Curator (`BLOCKING_WARNING_CODES`; owner by path).
 
 API conventions: routes under `/api`, inputs validated with the `validate()` helper against schemas
 from `packages/shared/src/api`, list responses wrapped as `{ items }`, and every error is

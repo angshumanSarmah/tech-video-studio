@@ -69,7 +69,13 @@ describe('usage history: two dry runs in a row', () => {
     await h.drain(curateRound('tokenizer'));
     expect(getRun(t().db, first)!.status).toBe('done');
     const exported = getLatestSpecVersion(t().db, first)!;
-    expect(usageRows(first)).toEqual(usageOfSpec(h.spec(exported.id)));
+    // What the boards used, then the reference videos its Director was shown (P1C.11).
+    const shown = stepInput(first, 'direct', DirectorInputSchema).references?.picks ?? [];
+    expect(shown.length).toBeGreaterThan(0);
+    expect(usageRows(first)).toEqual([
+      ...usageOfSpec(h.spec(exported.id)),
+      ...shown.map((p) => ({ kind: 'reference', value: p.slug })),
+    ]);
     expect(usageRows(first)).toContainEqual({ kind: 'hook', value: 'puzzle/planted_question' });
 
     h.useTopic('rate-limiter');
@@ -87,6 +93,10 @@ describe('usage history: two dry runs in a row', () => {
       { title: tokenizer.meta.title, hooks: ['puzzle/planted_question'], sequences: [] },
     ]);
     expect(memory.pastTopics.map((p) => p.title)).toEqual(['How an LLM tokenizer works']);
+    // The first video's references count against being shown again (rotation, P1C.11).
+    expect(memory.recent.referencesShown).toEqual(
+      Object.fromEntries(shown.map((p) => [p.slug, 1])),
+    );
     // The two recorded plans share one device/layout combo, on one beat each: within the reuse
     // allowed, so the beat sheet approved itself with nothing to report.
     const reused = latestDirection(t().db, t().dataDir, second)!.plan.story.beats.filter(

@@ -144,6 +144,45 @@ describe('curatorCodeChecks: a part of a multi-part video (meta.part)', () => {
   });
 });
 
+describe('curatorCodeChecks: the originality check (P1C.11)', () => {
+  const references = [
+    {
+      slug: 'invented-reference',
+      names: [
+        { text: 'Zippo', kind: 'brand' as const },
+        { text: 'A rate limiter, explained', kind: 'title' as const },
+      ],
+    },
+  ];
+
+  it('flags a reference’s names in the story, the script and the boards, each with its owner', () => {
+    const spec = structuredClone(goldenRateLimiterSpec);
+    spec.meta.title = 'A rate limiter explained';
+    spec.script[0]!.narration = spec.script[0]!.narration.replace('your API', 'the Zippo API');
+    spec.scenes[0]!.elements[0]!.props = { ...spec.scenes[0]!.elements[0]!.props, title: 'Zippo' };
+    const found = curatorCodeChecks(spec, { ...context(), references })
+      .filter((i) => i.code.startsWith('reference_'))
+      .map((i) => [i.path, i.code, i.owner, i.severity]);
+    expect(found).toEqual([
+      ['$.scenes[0].elements[0].props.title', 'reference_name_reused', 'generator', 'blocking'],
+      ['$.meta.title', 'reference_title_reused', 'director', 'blocking'],
+      ['$.script[0].narration', 'reference_name_reused', 'scriptwriter', 'blocking'],
+    ]);
+  });
+
+  it('leaves a name the run’s notes use, and runs nothing without references', () => {
+    const spec = structuredClone(goldenRateLimiterSpec);
+    spec.script[0]!.narration = spec.script[0]!.narration.replace('your API', 'the Zippo API');
+    const withName = notes();
+    withName.facts[0]!.statement = 'Zippo publishes its rate limits.';
+    const issues = curatorCodeChecks(spec, { ...context(), notes: withName, references });
+    expect(issues.filter((i) => i.code.startsWith('reference_'))).toEqual([]);
+    expect(
+      curatorCodeChecks(spec, context()).filter((i) => i.code.startsWith('reference_')),
+    ).toEqual([]);
+  });
+});
+
 describe('curatorCodeChecks', () => {
   it('gives each finding the owner of what its path points at', () => {
     expect(ownerOfPath('$.scenes[2].elements[0].props.title')).toBe('generator');

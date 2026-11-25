@@ -6,6 +6,7 @@ import {
   referenceDevices,
   referencePatterns,
   type ReferenceRecord,
+  type Retrieval,
 } from '@explainer-studio/shared';
 import { readDataText, referenceDir, resolveDataPath, writeDataJson } from '#core/data-files.ts';
 import type { BacklogRequest } from '#core/db/repositories/backlog.ts';
@@ -21,6 +22,13 @@ import {
   type Attachment,
   type ReferenceDetail,
 } from '#core/services/references.ts';
+import { getRun } from '#core/db/repositories/runs.ts';
+import { getSeries } from '#core/db/repositories/series.ts';
+import { getTopic } from '#core/db/repositories/topics.ts';
+import { directorMemory, recentUsage } from '#core/services/director-memory.ts';
+import { latestDirection } from '#core/services/direction.ts';
+import { scoreReferences } from '#core/services/reference-retrieval.ts';
+import { latestResearch } from '#core/services/research-notes.ts';
 import type { ReferencesCommand } from '../args.ts';
 import { CliError, EXIT, type CliContext } from '../context.ts';
 import { withWorker } from '../host.ts';
@@ -38,6 +46,9 @@ export async function referencesCommand(ctx: CliContext, cmd: ReferencesCommand)
       return add(ctx, cmd);
     case 'edit':
       return edit(ctx, cmd.ref, cmd.file);
+    case 'pick':
+      for (const line of pickLines(pickFor(ctx, cmd.from))) ctx.io.out(line);
+      return EXIT.ok;
     case 'reanalyze': {
       const row = resolveRef(ctx, cmd.ref);
       return withWorker(ctx, cmd.dryRun, async () => {
@@ -154,8 +165,58 @@ function readJson(text: string, from: string): unknown {
   }
 }
 
+/** The retrieval a Director call would make: for a run (its notes, memory, plan), or a topic. */
+function pickFor(
+  ctx: CliContext,
+  from: Extract<ReferencesCommand, { action: 'pick' }>['from'],
+): Retrieval {
+  const { db } = ctx;
+  const dataDir = ctx.config.dataDir;
+  if ('topic' in from) {
+    const recent = recentUsage(db);
+    return scoreReferences(db, dataDir, {
+      topicTitle: from.topic,
+      seriesTag: from.series,
+      memory: { styleRules: [], recent, pastTopics: [] },
+    });
+  }
+  const run = getRun(db, from.runId);
+  if (!run) throw new CliError(`No run ${from.runId}.`);
+  const topic = getTopic(db, run.topicId);
+  const series = getSeries(db, run.seriesId);
+  if (!topic || !series) throw new CliError(`Run ${run.id} has no topic or series.`);
+  const notes = latestResearch(db, dataDir, run.id)?.notes;
+  const previous = latestDirection(db, dataDir, run.id);
+  return scoreReferences(db, dataDir, {
+    topicTitle: topic.title,
+    seriesTag: series.tag,
+    ...(notes ? { notes } : {}),
+    ...(previous ? { previousTopicClass: previous.plan.meta.topicClass } : {}),
+    memory: directorMemory(db, run.id),
+  });
+}
+
 // ---------------------------------------------------------------------------------------------
 // Pure: what is printed
+
+/** The expected class, the candidate devices, then every reference scored (picks marked ✓). */
+export function pickLines(retrieval: Retrieval): string[] {
+  const expected = retrieval.expected
+    ? `${retrieval.expected.topicClass} (from the ${retrieval.expected.from.replace('_', ' ')})`
+    : 'none';
+  const picked = new Set(retrieval.picks.map((p) => p.slug));
+  return [
+    `Expected class: ${expected}`,
+    `Candidate devices: ${retrieval.candidateDevices.join(', ') || '-'}`,
+    ...retrieval.scored.map(
+      (s) =>
+        `  ${picked.has(s.slug) ? '✓' : ' '} ${s.score.toFixed(1).padStart(5)}  ${s.slug}: ${s.reasons.join('; ') || 'nothing in common'}`,
+    ),
+    retrieval.picks.length > 0
+      ? `Shown to the Director: ${retrieval.picks.map((p) => p.slug).join(', ')}`
+      : 'No reference scores high enough: the Director is shown none.',
+  ];
+}
 
 /** One line per reference, oldest first. */
 export function referenceTable(rows: readonly ReferenceRow[]): string[] {

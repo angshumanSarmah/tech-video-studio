@@ -12,6 +12,10 @@ const INTRO =
   "avoid, and so is a recent video's structure (its hook and main patterns, newest first); " +
   'the past topics are not to repeat, and a similar topic needs a clearly different angle.';
 
+/** After INTRO when the message carries references (P1C.11). */
+const REFERENCES_NOTE =
+  'References show structure only: borrow a technique, never their sequence or their domain.';
+
 export function directorUserMessage(input: DirectorInput, notes: ResearchNotes): string {
   const { recent } = input.memory;
   const payload = {
@@ -34,9 +38,11 @@ export function directorUserMessage(input: DirectorInput, notes: ResearchNotes):
     ...(input.memory.similarTopics?.length
       ? { similarTopics: input.memory.similarTopics.map(({ title, angle }) => ({ title, angle })) }
       : {}),
+    ...(input.references?.briefs.length ? { references: input.references.briefs } : {}),
     researchNotes: notesWithoutChunks(notes),
   };
-  return `${INTRO}\n\n${JSON.stringify(payload, null, 2)}`;
+  const intro = input.references?.briefs.length ? `${INTRO} ${REFERENCES_NOTE}` : INTRO;
+  return `${intro}\n\n${JSON.stringify(payload, null, 2)}`;
 }
 
 /** A recent video's structure in the Director's words: `hook.kind/device`, then its patterns. */

@@ -1,3 +1,4 @@
+import { referenceNamesToAvoid } from './reference-retrieval.ts';
 import {
   citableChunks,
   researchGateFindings,
@@ -168,5 +169,6 @@ export function planDeps(
     video: run.resolvedSettings.video,
     series,
     channelHandle: seriesChannelHandle(db, series.id),
+    references: referenceNamesToAvoid(db, dataDir),
   });
 }

@@ -17,11 +17,12 @@ export interface PromptParts {
   readonly variables: PromptVariables;
   /** 3. Closed lists and the catalogue block (P1C.4). */
   readonly catalogue?: string;
-  /** 4. Reference breakdowns: Director only, structure only (P1C.11). */
-  readonly references?: string;
-  /** 5. The person's accepted style rules (P1C.10). */
+  /** 4. The person's accepted style rules (P1C.10). */
   readonly styleRules?: string;
-  /** 6. This run's input: topic, notes, plan, script or beat. */
+  /**
+   * 5. This run's input: topic, notes, plan, script or beat (the Director's also carries its
+   * memory and reference videos, P1C.11).
+   */
   readonly input: string;
 }
 
@@ -69,13 +70,10 @@ function section(text: string | undefined): string[] {
 
 /**
  * Assembles a prompt in the design doc's order, static content first so the provider's prefix
- * cache hits: preamble, role prompt, output JSON Schema, catalogue, references, style rules (one
+ * cache hits: preamble, role prompt, output JSON Schema, catalogue, style rules (one
  * system message), then the run's input (the user message).
  */
 export function buildPrompt(templates: PromptTemplates, parts: PromptParts): BuiltPrompt {
-  if (parts.references && parts.role !== 'director') {
-    throw new PromptBuildError(`Reference breakdowns are for the director only, not ${parts.role}`);
-  }
   const preamble = templates.preamble;
   const rolePrompt = templates[parts.role];
   const system = [
@@ -83,7 +81,6 @@ export function buildPrompt(templates: PromptTemplates, parts: PromptParts): Bui
     fillTemplate(rolePrompt, parts.variables).trim(),
     ...outputSection(parts.role),
     ...section(parts.catalogue),
-    ...section(parts.references),
     ...section(parts.styleRules),
   ].join('\n\n');
   const input = parts.input.trim();

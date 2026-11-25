@@ -17,6 +17,7 @@ import {
   type DirectorPlan,
   type PlanSpecContext,
   type ResearchNotes,
+  type ReferenceNames,
   type ResearchSource,
   type SpecError,
   type VideoSpec,
@@ -44,6 +45,8 @@ export interface PlanCheckSources {
   readonly video: DirectorCheckContext['video'];
   readonly series: { readonly tag: string; readonly name: string; readonly label: string };
   readonly channelHandle: HudContext['channelHandle'];
+  /** Every ready reference's names to avoid (P1C.11): the originality check. */
+  readonly references?: readonly ReferenceNames[];
 }
 
 export function planCheckDeps(s: PlanCheckSources): PlanCheckDeps {
@@ -59,6 +62,7 @@ export function planCheckDeps(s: PlanCheckSources): PlanCheckDeps {
     series: { name: s.series.name, label: s.series.label },
     sourceNames: bareSourceNames(s.sources),
     sources: s.sources,
+    ...(s.references?.length ? { references: s.references } : {}),
     spec: {
       id: `run-${s.runId}`,
       series: s.series.tag,

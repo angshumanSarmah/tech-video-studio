@@ -60,10 +60,10 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **P1C.10 — Record `device_layout` usage.** The Director's variety check reads
       `usage_history` rows of kind `device_layout` (`<device>/<layout>`, `deviceLayoutCombo`)
       next to device, layout and pattern; the post-export usage writer must record them.
-- [ ] **P1C.11 R2 — Director references.** `directJobHandler` takes an optional `references`
-      provider that still feeds the system message (`PromptParts.references`, section 4); R2
-      moves references into the Director's user message (director.v4 already asks for them),
-      removes that section and wires retrieval.
+- [ ] **P1C.11 — Reference domains in briefs.** A brief's beat lines keep their structural
+      summaries, which carry the original's domain nouns ("a seat", "a rider"); the Director's
+      prompt forbids reusing the domain, and only names in `namesToAvoid` are checked. If plans
+      start borrowing a reference's domain, add the domain nouns as `example` names.
 - [ ] **P1D.7 — Backlog names across requesters.** Reference rows use the analyst's snake_case
       names; run rows keep the Director's and Generator's names as written. Group by a
       normalised name (`catalogueKey`) on the Backlog page, or normalise run names on write.
