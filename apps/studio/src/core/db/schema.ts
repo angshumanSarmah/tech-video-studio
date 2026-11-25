@@ -445,8 +445,16 @@ export const memoryRules = sqliteTable(
     scope: text('scope', { enum: MEMORY_RULE_SCOPES }).notNull(),
     text: text('text').notNull(),
     status: text('status', { enum: MEMORY_RULE_STATUSES }).notNull().default('proposed'),
+    /** The reviewer's gate note it was proposed from (P1C.10); null for a rule added by hand. */
+    note: text('note'),
+    /** The Analyst's one line: the preference in the note this rule generalises. */
+    reason: text('reason'),
     sourceRunId: integer('source_run_id').references(() => runs.id, { onDelete: 'set null' }),
     sourceGate: text('source_gate', { enum: GATE_IDS }),
+    /** The `gate` event of the decision it was proposed from. */
+    sourceEventId: integer('source_event_id').references(() => events.id, {
+      onDelete: 'set null',
+    }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

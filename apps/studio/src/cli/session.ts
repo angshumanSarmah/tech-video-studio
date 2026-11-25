@@ -5,7 +5,7 @@ import { resolveDataPath, runDir, writeDataJson } from '#core/data-files.ts';
 import { listRunExports } from '#core/db/repositories/exports.ts';
 import { runCostByRole } from '#core/db/repositories/llm-calls.ts';
 import { getRunSummary, listPartRuns } from '#core/db/repositories/runs.ts';
-import { ConflictError, InvalidEditError } from '#core/errors.ts';
+import { ConflictError, InvalidEditError, InvalidProposalError } from '#core/errors.ts';
 import { RegenerateNotAllowedError } from '#core/orchestrator/decide.ts';
 import { videoCostUsd } from '#core/services/budget.ts';
 import { decideAtGate, type GateDecision } from '#core/services/gate-decisions.ts';
@@ -14,6 +14,7 @@ import type { GateAction } from './args.ts';
 import { CliError, EXIT, type CliContext } from './context.ts';
 import { followRun, runLabel, type FollowCursors, type FollowEnd } from './follow.ts';
 import { GATE_PROMPT, parseGateReply } from './gate-reply.ts';
+import { settleProposals, type PendingProposal } from './proposals.ts';
 import { gateCommands, gateSummary } from './summaries.ts';
 
 /**
@@ -21,41 +22,63 @@ import { gateCommands, gateSummary } from './summaries.ts';
  * With a terminal it asks what to do and goes on; without one it prints the exact commands and
  * stops (the run waits). Returns the exit code.
  */
-export async function driveRun(ctx: CliContext, rootId: number, after: number): Promise<number> {
+export async function driveRun(
+  ctx: CliContext,
+  rootId: number,
+  after: number,
+  proposals: readonly PendingProposal[] = [],
+): Promise<number> {
   const cursors: FollowCursors = new Map();
+  const pending = [...proposals];
   for (;;) {
     const end = await followRun(ctx, rootId, cursors, after);
+    // The run stopped (a gate, or the end): proposal jobs queued with a decision run now.
+    await settleProposals(ctx, pending.splice(0));
     if (end.kind !== 'gate') return finish(ctx, end);
     const view = readGate(ctx.db, ctx.config.dataDir, end.runId, end.gate);
     for (const line of gateSummary(view, ctx.config.dataDir)) ctx.io.out(line);
     const editFile = writeEditFile(ctx, view);
-    if (!ctx.io.isTTY || !(await askAtGate(ctx, view, editFile))) {
+    const decided = ctx.io.isTTY ? await askAtGate(ctx, view, editFile) : null;
+    if (!decided) {
       for (const line of gateCommands(end.runId, end.gate, editFile)) ctx.io.out(line);
       return EXIT.ok;
     }
+    if (decided.proposal) pending.push(decided.proposal);
   }
 }
 
-/** The prompt until a decision is made (true) or the user quits (false). */
-async function askAtGate(ctx: CliContext, view: GateView, editFile: string): Promise<boolean> {
+/** A decision made at the prompt, with the proposal it queued. */
+interface Decided {
+  readonly proposal: PendingProposal | undefined;
+}
+
+/** The prompt until a decision is made, or null when the user quits. */
+async function askAtGate(
+  ctx: CliContext,
+  view: GateView,
+  editFile: string,
+): Promise<Decided | null> {
   for (;;) {
     const answer = await ctx.io.ask(GATE_PROMPT);
-    if (answer === null) return false;
+    if (answer === null) return null;
     const reply = parseGateReply(answer, view.gate);
     try {
       switch (reply.kind) {
         case 'quit':
-          return false;
+          return null;
         case 'invalid':
           ctx.io.err(reply.message);
           continue;
-        case 'edit':
+        case 'edit': {
           await ctx.io.edit(editFile);
-          applyDecision(ctx, view.runId, view.gate, { action: 'edit', file: editFile });
-          return true;
-        case 'decide':
-          applyDecision(ctx, view.runId, view.gate, reply.decision);
-          return true;
+          const notes = reply.notes ? { notes: reply.notes } : {};
+          const action = await withProposal(ctx, { action: 'edit', file: editFile, ...notes });
+          return { proposal: applyDecision(ctx, view.runId, view.gate, action) };
+        }
+        case 'decide': {
+          const action = await withProposal(ctx, reply.decision);
+          return { proposal: applyDecision(ctx, view.runId, view.gate, action) };
+        }
       }
     } catch (error) {
       if (!isDecisionError(error)) throw error;
@@ -64,13 +87,24 @@ async function askAtGate(ctx: CliContext, view: GateView, editFile: string): Pro
   }
 }
 
-/** One decision at the gate the run waits at, through the same service as the API. */
+/** A decision with text: asks whether the Analyst should propose a style rule from it (P1C.10). */
+async function withProposal(ctx: CliContext, action: GateAction): Promise<GateAction> {
+  const text = action.action === 'regenerate' ? action.feedback : action.notes;
+  if (!text?.trim() || action.proposeRule) return action;
+  const answer = await ctx.io.ask('Propose a style rule from this note? [y/N] ');
+  return /^y(es)?$/i.test(answer?.trim() ?? '') ? { ...action, proposeRule: true } : action;
+}
+
+/**
+ * One decision at the gate the run waits at, through the same service as the API. Returns the
+ * style-rule proposal it queued (`proposeRule`), if any.
+ */
 export function applyDecision(
   ctx: CliContext,
   runId: number,
   gate: GateId,
   action: GateAction,
-): void {
+): PendingProposal | undefined {
   const view = readGate(ctx.db, ctx.config.dataDir, runId, gate);
   const result = decideAtGate(
     ctx.db,
@@ -92,20 +126,35 @@ export function applyDecision(
       `${action.action} at gate ${gate}: the run is ${result.run.status} at ${result.run.step}.`,
     );
   }
+  if (result.proposalJobId === null) return undefined;
+  ctx.io.out(`The Analyst will propose a style rule from your note (job ${result.proposalJobId}).`);
+  return { jobId: result.proposalJobId, eventId: result.eventId };
 }
 
 function decisionOf(ctx: CliContext, view: GateView, action: GateAction): GateDecision {
   const subjectId = view.subject?.id;
+  const propose = action.proposeRule ? { proposeRule: true } : {};
   switch (action.action) {
     case 'approve':
       if (subjectId === undefined)
         throw new CliError(`Gate ${view.gate} has nothing to approve yet.`);
-      return { action: 'approve', subjectId, ...(action.notes ? { notes: action.notes } : {}) };
+      return {
+        action: 'approve',
+        subjectId,
+        ...(action.notes ? { notes: action.notes } : {}),
+        ...propose,
+      };
     case 'reject':
-      return { action: 'reject', ...(action.notes ? { notes: action.notes } : {}) };
+      return { action: 'reject', ...(action.notes ? { notes: action.notes } : {}), ...propose };
     case 'edit':
       if (subjectId === undefined) throw new CliError(`Gate ${view.gate} has nothing to edit yet.`);
-      return { action: 'edit', subjectId, content: readJson(ctx, action.file) };
+      return {
+        action: 'edit',
+        subjectId,
+        content: readJson(ctx, action.file),
+        ...(action.notes ? { notes: action.notes } : {}),
+        ...propose,
+      };
     case 'regenerate': {
       const { target, beatId, fields, sourceId, feedback } = action;
       return {
@@ -115,6 +164,7 @@ function decisionOf(ctx: CliContext, view: GateView, action: GateAction): GateDe
         ...(fields ? { fields: [...fields] } : {}),
         ...(sourceId !== undefined ? { sourceId } : {}),
         ...(feedback !== undefined ? { feedback } : {}),
+        ...propose,
       };
     }
   }
@@ -147,6 +197,7 @@ export function isDecisionError(error: unknown): error is Error {
   return (
     error instanceof ConflictError ||
     error instanceof InvalidEditError ||
+    error instanceof InvalidProposalError ||
     error instanceof RegenerateNotAllowedError ||
     error instanceof CliError
   );

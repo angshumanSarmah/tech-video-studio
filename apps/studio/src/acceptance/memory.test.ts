@@ -7,7 +7,6 @@ import { getGate } from '#core/db/repositories/gates.ts';
 import { latestDoneStep } from '#core/db/repositories/run-steps.ts';
 import { createRun, getRun, setActiveRunStatus } from '#core/db/repositories/runs.ts';
 import { listSeries } from '#core/db/repositories/series.ts';
-import { listTopicSources } from '#core/db/repositories/sources.ts';
 import { getLatestSpecVersion } from '#core/db/repositories/spec-versions.ts';
 import { createTopic } from '#core/db/repositories/topics.ts';
 import { usageOfRuns } from '#core/db/repositories/usage-history.ts';
@@ -45,21 +44,6 @@ function stepInput<T>(runId: number, stage: 'direct' | 'curate', schema: { parse
 const usageRows = (runId: number) =>
   usageOfRuns(t().db, [runId]).map(({ kind, value }) => ({ kind, value }));
 
-/**
- * The topic's recorded Researcher answers for a run whose sources got later ids in this DB (the
- * recordings cite `source-1#…` onwards): each citation moved to the run's own source ids.
- */
-function researcherFor(runId: number) {
-  const ids = listTopicSources(t().db, getRun(t().db, runId)!.topicId).map((s) => s.id);
-  const offset = Math.min(...ids) - 1;
-  return h.recording('researcher').map((r) => ({
-    ...r,
-    content:
-      r.content?.replace(/source-(\d+)#/g, (_, n: string) => `source-${Number(n) + offset}#`) ??
-      null,
-  }));
-}
-
 /** An exported video of an earlier topic, with this usage (as `render_final` records it). */
 function earlierVideo(title: string, usage: [UsageKind, string][]): number {
   const run = createRun(t().db, {
@@ -91,7 +75,7 @@ describe('usage history: two dry runs in a row', () => {
     h.useTopic('rate-limiter');
     const second = h.start({ autoApprove: ALL_AUTO });
     h.drop('researcher');
-    await h.drain({ ...curateRound('rate-limiter'), researcher: researcherFor(second) });
+    await h.drain({ ...curateRound('rate-limiter'), researcher: h.researcherFor(second) });
     expect(getRun(t().db, second)!.status, h.logs(second).join('\n')).toBe('done');
 
     const tokenizer = fixtureGeneratedSpec('tokenizer');

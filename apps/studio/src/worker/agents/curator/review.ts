@@ -44,6 +44,8 @@ export interface ReviewDeps {
   readonly registries: Registries;
   readonly runId: number;
   readonly stepId: number;
+  /** The Curator's style rules section (P1C.10), last in the system message both passes share. */
+  readonly styleRules?: string | undefined;
   readonly signal?: AbortSignal;
   readonly log?: (level: LogLevel, message: string) => void;
 }
@@ -124,6 +126,7 @@ async function runPass<S extends z.ZodType>(
   const prompt = buildPrompt(deps.prompts, {
     role: 'curator',
     variables: deps.variables,
+    ...(deps.styleRules ? { styleRules: deps.styleRules } : {}),
     input: curatorUserMessage({
       spec: request.spec,
       notes: request.notes,

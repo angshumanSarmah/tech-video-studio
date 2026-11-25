@@ -5,17 +5,19 @@ import type { GateAction } from './args.ts';
  * What the user typed at a gate prompt (P1C.9b), pure:
  * `a` approve · `r <feedback>` regenerate (G1 the Researcher, G2 the Director) · at G3 and G4
  * `r <beat>[:<fields>] <feedback>` one beat (fields default narration,board) or
- * `r scriptwriter|generator [<feedback>]` · `e` edit in $EDITOR · `x [<notes>]` reject · `q` quit.
+ * `r scriptwriter|generator [<feedback>]` · `e [<notes>]` edit in $EDITOR · `x [<notes>]` reject
+ * · `q` quit; `a [<notes>]` approves with a note. A decision with text may then propose a style
+ * rule (P1C.10).
  */
 
 export type GateReply =
   | { readonly kind: 'decide'; readonly decision: Exclude<GateAction, { action: 'edit' }> }
-  | { readonly kind: 'edit' }
+  | { readonly kind: 'edit'; readonly notes?: string }
   | { readonly kind: 'quit' }
   | { readonly kind: 'invalid'; readonly message: string };
 
 export const GATE_PROMPT =
-  '[a]pprove / [r]egenerate <beat> "<feedback>" / [e]dit / [x] reject / [q]uit > ';
+  '[a]pprove ["<note>"] / [r]egenerate <beat> "<feedback>" / [e]dit ["<note>"] / [x] reject ["<note>"] / [q]uit > ';
 
 export function parseGateReply(line: string, gate: GateId): GateReply {
   const text = line.trim();
@@ -23,16 +25,20 @@ export function parseGateReply(line: string, gate: GateId): GateReply {
   const tail = text.slice(word.length).trim();
   switch (word.toLowerCase()) {
     case 'a':
-    case 'approve':
-      return { kind: 'decide', decision: { action: 'approve' } };
+    case 'approve': {
+      const notes = unquote(tail);
+      return { kind: 'decide', decision: { action: 'approve', ...(notes ? { notes } : {}) } };
+    }
     case 'x':
     case 'reject': {
       const notes = unquote(tail);
       return { kind: 'decide', decision: { action: 'reject', ...(notes ? { notes } : {}) } };
     }
     case 'e':
-    case 'edit':
-      return { kind: 'edit' };
+    case 'edit': {
+      const notes = unquote(tail);
+      return { kind: 'edit', ...(notes ? { notes } : {}) };
+    }
     case 'q':
     case 'quit':
       return { kind: 'quit' };

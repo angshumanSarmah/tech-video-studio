@@ -1,5 +1,6 @@
 import type {
   DecidedBy,
+  GateDecisionRecord,
   GateId,
   GateStatus,
   PipelineStepId,
@@ -225,6 +226,7 @@ function approve(tx: Executor, run: Run, gate: GateId): void {
 }
 
 /** A gate opened or decided: the `gate` event. */
+/** A `gate` event; `decision` when it records a person's decision (P1C.10). Returns its id. */
 export function gateEvent(
   tx: Executor,
   run: Pick<Run, 'id'>,
@@ -232,12 +234,19 @@ export function gateEvent(
   status: GateStatus,
   decidedBy: DecidedBy | undefined,
   blocking: readonly string[],
-): void {
-  appendEvent(tx, {
+  decision?: GateDecisionRecord,
+): number {
+  return appendEvent(tx, {
     runId: run.id,
     type: 'gate',
-    payload: { gate, status, ...(decidedBy ? { decidedBy } : {}), blocking: [...blocking] },
-  });
+    payload: {
+      gate,
+      status,
+      ...(decidedBy ? { decidedBy } : {}),
+      blocking: [...blocking],
+      ...(decision ? { decision } : {}),
+    },
+  }).id;
 }
 
 function setStatus(tx: Executor, run: Run, status: RunStatus): void {

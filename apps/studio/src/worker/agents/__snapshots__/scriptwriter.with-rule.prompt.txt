@@ -1,0 +1,20 @@
+===== system (its last lines: the output schema ends, then the style rules) =====
+  ],
+  "additionalProperties": false
+}
+
+## STYLE RULES (your reviewer's standing preferences, oldest first. Follow them; where one conflicts with a rule above, the rule above wins.)
+- Keep every headline to a few words.
+===== user (its first lines) =====
+Write the script for this plan: one entry per beat, in the same order. The research notes below are the only facts; every number you write or say is one of their number values. Keep each narration within its word budget.
+
+{
+  "topic": "How an LLM tokenizer works",
+  "angle": "How text becomes tokens: subword merges, the vocabulary, and why counts differ.",
+  "series": "AI",
+  "explanationLevel": "beginner",
+  "format": "full",
+  "title": "Same word, three token counts",
+  "hook": {
+    "kind": "puzzle"
+  },

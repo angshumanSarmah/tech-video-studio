@@ -4,6 +4,14 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 
 ## Open
 
+- [ ] **P1C.10 — Analyst: a factual slip is one-off.** In the first live `analyst:fixture`
+      (5 invented notes, 4 as expected), the note "The outage date in the first beat is wrong"
+      became a Scriptwriter rule, "Verify every date, number and name against the source notes
+      before writing it", which code already checks (`number_not_in_notes` and the claims
+      audit). Next Analyst prompt change (doc first, then `analyst.v2` and re-record): add to
+      DO NOT "- Propose a rule for something the app already checks (facts, numbers, dates and
+      sources against the notes, lengths): a wrong fact in this video is one_off.", and to
+      the common mistakes "7. Turning one wrong fact into a 'check your facts' rule."
 - [ ] **P1C.10 — Series numbers and scratch renders.** `nextSeriesNumber` counts every exported
       run, so a `studio render --final` scratch export takes a number in its series. The usage
       history already leaves those runs out (no `direct` step, no usage rows); count series

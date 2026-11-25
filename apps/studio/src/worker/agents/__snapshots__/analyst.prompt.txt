@@ -56,6 +56,93 @@ Common mistakes to avoid
 5. One complaint turned into a ban (a weak example becomes "never use examples").
 6. Restating the note instead of the preference behind it.
 
+## OUTPUT SHAPE (JSON Schema: return one JSON object that matches it)
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "rule": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "description": "One imperative sentence of at most 20 words, on one line, that names nothing of this video."
+            },
+            "scope": {
+              "type": "string",
+              "enum": [
+                "director",
+                "scriptwriter",
+                "generator",
+                "curator",
+                "all"
+              ],
+              "description": "The one scope whose output the note is about."
+            },
+            "why": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 300,
+              "description": "One line: the preference in the note this rule generalises."
+            }
+          },
+          "required": [
+            "text",
+            "scope",
+            "why"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The proposed rule, or null when the note gives none (then set noRule)."
+    },
+    "noRule": {
+      "description": "Set only when rule is null.",
+      "type": "object",
+      "properties": {
+        "reason": {
+          "type": "string",
+          "enum": [
+            "one_off",
+            "duplicate",
+            "unsafe",
+            "unclear"
+          ],
+          "description": "one_off: only about this video; duplicate: an existing rule already says it (or contradicts it); unsafe: it would hide errors, skip checks or lower accuracy; unclear: the note does not say what to change."
+        },
+        "detail": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300,
+          "description": "One line: why, in plain words."
+        },
+        "duplicateOf": {
+          "description": "The id of the EXISTING RULES rule it repeats or contradicts.",
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "reason",
+        "detail"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "rule"
+  ],
+  "additionalProperties": false
+}
+
 ## ALLOWED PATTERNS (exhaustive: use only these ids)
 - <example-pattern-id>: <example description>
 

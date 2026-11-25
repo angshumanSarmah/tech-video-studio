@@ -22,7 +22,7 @@ export async function gateCommand(ctx: CliContext, cmd: GateCommand): Promise<nu
   const root = run.parentRunId ?? run.id;
   return withWorker(ctx, cmd.dryRun, async () => {
     const after = latestEventId(ctx.db);
-    applyDecision(ctx, run.id, step.gate, cmd.decision);
-    return driveRun(ctx, root, after);
+    const proposal = applyDecision(ctx, run.id, step.gate, cmd.decision);
+    return driveRun(ctx, root, after, proposal ? [proposal] : []);
   });
 }

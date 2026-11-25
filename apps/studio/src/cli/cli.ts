@@ -4,6 +4,7 @@ import { renderCommand } from './commands/render.ts';
 import { resumeCommand } from './commands/resume.ts';
 import { runCommand } from './commands/run.ts';
 import { costCommand, statusCommand } from './commands/status.ts';
+import { rulesCommand } from './commands/rules.ts';
 import { usageCommand } from './commands/usage.ts';
 import { CliError, EXIT, type CliContext } from './context.ts';
 import { decisionErrorText, isDecisionError } from './session.ts';
@@ -32,6 +33,8 @@ export async function runCli(argv: readonly string[], ctx: CliContext): Promise<
         return costCommand(ctx, cmd.runId);
       case 'usage':
         return usageCommand(ctx, cmd.videos);
+      case 'rules':
+        return await rulesCommand(ctx, cmd);
       case 'render':
         return await renderCommand(ctx, cmd);
     }

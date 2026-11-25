@@ -48,25 +48,35 @@ export interface EditOutcome {
   readonly issues: GateIssue[];
 }
 
+/** Called with what an edit saved, before the run moves on (the decision event, P1C.10). */
+export type OnSaved = (saved: GateSubjectDto) => void;
+
 export function editAtGate(
   tx: Executor,
   dataDir: string,
   run: Run,
   gate: GateId,
   content: unknown,
+  onSaved: OnSaved = () => {},
 ): EditOutcome {
   switch (gate) {
     case 'research':
-      return editResearch(tx, dataDir, run, content);
+      return editResearch(tx, dataDir, run, content, onSaved);
     case 'beat_sheet':
-      return editPlan(tx, dataDir, run, content);
+      return editPlan(tx, dataDir, run, content, onSaved);
     case 'scenes':
     case 'draft':
-      return editSpec(tx, dataDir, run, gate, content);
+      return editSpec(tx, dataDir, run, gate, content, onSaved);
   }
 }
 
-function editResearch(tx: Executor, dataDir: string, run: Run, content: unknown): EditOutcome {
+function editResearch(
+  tx: Executor,
+  dataDir: string,
+  run: Run,
+  content: unknown,
+  onSaved: OnSaved,
+): EditOutcome {
   const notes = parseOrThrow(ResearchNotesSchema, content, 'research notes');
   const current = latestResearch(tx, dataDir, run.id);
   if (!current) throw new OrchestratorStateError(`Run ${run.id} has no research to edit.`);
@@ -74,6 +84,7 @@ function editResearch(tx: Executor, dataDir: string, run: Run, content: unknown)
   const step = userStep(tx, run, 'research', current.step, (id) =>
     writeDataJson(dataDir, researchNotesPath(run.id, id), notes),
   );
+  onSaved({ kind: 'step', id: step.id });
   advanceRun(tx, dataDir, run.id);
   return {
     saved: { kind: 'step', id: step.id },
@@ -81,7 +92,13 @@ function editResearch(tx: Executor, dataDir: string, run: Run, content: unknown)
   };
 }
 
-function editPlan(tx: Executor, dataDir: string, run: Run, content: unknown): EditOutcome {
+function editPlan(
+  tx: Executor,
+  dataDir: string,
+  run: Run,
+  content: unknown,
+  onSaved: OnSaved,
+): EditOutcome {
   const plan = parseOrThrow(DirectorPlanSchema, content, 'beat sheet');
   const current = latestDirection(tx, dataDir, run.id);
   if (!current) throw new OrchestratorStateError(`Run ${run.id} has no beat sheet to edit.`);
@@ -90,6 +107,7 @@ function editPlan(tx: Executor, dataDir: string, run: Run, content: unknown): Ed
     writeDataJson(dataDir, directPlanPath(run.id, id), plan),
   );
   const issues = planIssues(plan, planDeps(tx, dataDir, run, current.input));
+  onSaved({ kind: 'step', id: step.id });
   advanceRun(tx, dataDir, run.id);
   return { saved: { kind: 'step', id: step.id }, issues };
 }
@@ -116,6 +134,7 @@ function editSpec(
   run: Run,
   gate: 'scenes' | 'draft',
   content: unknown,
+  onSaved: OnSaved,
 ): EditOutcome {
   const subject = currentSubject(tx, dataDir, run, gate);
   const before = subject?.specVersionId && readSpecVersion(tx, dataDir, subject.specVersionId);
@@ -128,10 +147,12 @@ function editSpec(
     note: `Edited at the ${gate} gate.`,
   });
   if (!saved.created) return { saved: null, issues: edit.issues };
+  const dto = subjectDto(tx, { specVersionId: saved.version.id });
+  onSaved(dto);
   if (gate === 'draft') markCarried(tx, run.id, 'scenes', 'draft');
   moveTo(tx, run, edit.retime ? 'edit_retime' : 'edit_curate');
   advanceRun(tx, dataDir, run.id);
-  return { saved: subjectDto(tx, { specVersionId: saved.version.id }), issues: edit.issues };
+  return { saved: dto, issues: edit.issues };
 }
 
 export interface SpecEdit {

@@ -350,7 +350,12 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   - `POST` (`decideAtGate`, one transaction with `advanceRun`): only on a gate the run waits at
     (else 409, `ConflictError`). `approve` and `edit` name the `subjectId` they were made on: not
     the gate's current subject (and, for scenes and draft, the run's latest version) is a 409.
-    `reject` cancels the run. Gate events record user decisions (`decidedBy: user`).
+    `reject` cancels the run. Each user decision (approve, reject, edit, regenerate) writes one
+    `gate` event with `decidedBy: user` and `decision` (`GateDecisionRecord`: action, `note`
+    (notes or a regenerate's feedback), `subjectId`, an edit's `savedId`, a regenerate's
+    target, beat, fields; an edit's is written before the run moves on, `editAtGate`'s
+    `onSaved`); an edit or regenerate leaves it `pending`. `edit` takes `notes`; any decision
+    takes `proposeRule` (see "Memory"). The response carries `eventId` and `proposalJobId`.
   - **Regenerate** (`regenerateAtGate`, `gate-regenerate.ts`; step 5): the run goes back to
     `regenerateRoute(...).from`, reopening the deciding gate and every later one (`reopenGate`);
     an earlier approved gate the rerun passes is marked `carried_from` the deciding gate
@@ -1278,7 +1283,7 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   the cost. Nothing is recorded. Tests: `repair/repair-beats.test.ts` (dry run, `fixtureTts`:
   the timing fixture's words for known narration, 0.4 s a word for new text).
 
-### Memory (P1C.10: usage and topic history; style rules come in M2)
+### Memory (P1C.10: usage and topic history, style rules)
 
 - **Usage history** (`usage_history`, kinds `USAGE_KINDS`): `render_final` records what the
   exported spec used (`usageOfSpec`, renderer `catalog/usage.ts`, pure: devices, each new
@@ -1321,6 +1326,51 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   structure (an edit adding a pattern blocks)), `director-memory.test.ts`,
   `usage-history.test.ts`, `topic-history.test.ts`, renderer `usage.test.ts`, shared
   `memory/*.test.ts` and the Director's history checks.
+- **Style rules** (`memory_rules`; `#core/services/style-rules.ts`, shared `memory/rules.ts`):
+  scopes `director`, `scriptwriter`, `generator`, `curator`, `all` (the three writers, never
+  the Curator: `agentsReached`, `scopesReaching`). `activeStyleRules(db, agent)` gives an agent
+  its active rules, oldest first. Statuses: `proposed` → `active` (accept, optionally with an
+  edited text or scope) or `rejected`; `active` ↔ `inactive`; a rejected rule is not edited;
+  a wrong move is a `ConflictError`. At most `MAX_RULES_PER_AGENT` (12) active rules reach an
+  agent (409 past it, naming the agent); a rule is one line of at most `MAX_RULE_CHARS` (160,
+  `RuleTextSchema`). A proposal keeps its `note`, the Analyst's `reason` and its source run,
+  gate and event (`source_event_id`, set null when the run goes). Code checks never read rules.
+- **In prompts:** `styleRulesSection` (`agents/sections.ts`, `STYLE_RULES_HEADING`: the
+  reviewer's standing preferences; a rule above wins over them) is last in the system message,
+  after the catalogue, so the cached prefix holds and a new rule only appends (the Generator's
+  prefix test checks it with rules). Each job reads the rules once and records them in its step
+  input: Director (`memory.styleRules`), Scriptwriter, Generator, Curator
+  (`CurateInput.styleRules`, both passes), a repair (`RepairInput.styleRules`: its Scriptwriter
+  and Generator). `__snapshots__/scriptwriter.with-rule.prompt.txt` shows where one sits.
+- **Proposals** (opt-in per note; `#core/services/rule-proposals.ts`): a decision with
+  `proposeRule` (or `POST /api/memory/rules/propose { eventId }` later, 202) queues a
+  `propose_rule` job for its event (`requestRuleProposal`: a gate decision with a note, else
+  `InvalidProposalError` 400; one rule or queued job per event, else 409). The job has no run
+  (`run_id` null, `failsRun: false`): no video's cost or cap, a cancel or pause never touches
+  it. `jobs/propose-rule.ts`: the Analyst (`analyst.v1`, `ROLE_OUTPUT_SCHEMAS.analyst` =
+  `AnalystOutputSchema`: a `rule` (text, scope, why) or `noRule` (`one_off`, `duplicate`,
+  `unsafe`, `unclear`); the closed scope list `ruleScopesSection()` in the catalogue slot)
+  reads `analystUserMessage` (`agents/analyst/input.ts`; `context.ts` reads it from the run:
+  topic, gate, decision, note, an edit's changes as `editDiff` leaves (spec timing left out),
+  the beat a regenerate names with its board as the Curator describes it, the rules there are)
+  and is checked by `analystProblems` (`rule_too_long` past `MAX_RULE_WORDS` (20),
+  `rule_multi_sentence`, `rule_names_video`: a beat id, a research id or the topic title;
+  `rule_and_no_rule`, `no_rule_reason_missing`, `unknown_rule`). `settleProposal` turns a
+  word-for-word repeat of a rule into `duplicate`. A rule is stored `proposed`; no rule is a
+  `No rule (<reason>): …` log line on the job. A rerun finds the rule and calls nothing.
+- **Rules API:** `GET /api/memory/rules?status&scope`, `POST /api/memory/rules` (by hand,
+  active), `PATCH /api/memory/rules/:id` (`{ action?, text?, scope? }`), `DELETE` (204).
+- **Analyst fixture:** `analyst:fixture [--replay] [--record]` runs `FIXTURE_NOTES`
+  (`agents/analyst/testing.ts`: five invented notes on the rate limiter's recorded plan and
+  spec, each as its decision event) through the job, live, in order, and prints each outcome
+  against the expected one; `--record` writes `agents/analyst/fixtures/responses/analyst.json`.
+- **Tests (rules):** `acceptance/memory-rules.test.ts` (decision events for an edit and a
+  reject, a proposal from `proposeRule` and later from the API with its refusals; a reject
+  note proposed, accepted and in the next run's Scriptwriter prompt, not its Director's, with
+  the snapshot; every scope against every agent's prompts in a full run, curate and repair
+  inputs included), `jobs/propose-rule.test.ts` (the recording, a repair, a duplicate, one
+  proposal per event), `style-rules.test.ts`, the CLI (`cli.test.ts`: a terminal note to an
+  active rule, then `rules`), shared `memory/*.test.ts`.
 
 API conventions: routes under `/api`, inputs validated with the `validate()` helper against schemas
 from `packages/shared/src/api`, list responses wrapped as `{ items }`, and every error is
@@ -1361,16 +1411,23 @@ pbpaste | pnpm studio run "Consistent hashing" --series system-design --text "Te
 - **At a gate** it prints a summary (`summaries.ts`: G1 notes counts, each source's length and
   chunks, failures and the blocking reasons; G2 a beat table; G3 each beat's narration and
   badges, the stills; G4 the draft path) and writes the subject to `runs/<id>/cli/<gate>-<id>.json`
-  for editing. In a terminal it asks (`gate-reply.ts`): `a` · `r "<feedback>"` (G1 Researcher,
-  G2 Director) or `r <beat>[:<fields>] "<feedback>"` / `r scriptwriter|generator` (G3, G4) · `e`
-  ($EDITOR on that file) · `x [notes]` · `q`. Without one it prints the exact commands and exits 0.
+  for editing. In a terminal it asks (`gate-reply.ts`): `a [notes]` · `r "<feedback>"` (G1
+  Researcher, G2 Director) or `r <beat>[:<fields>] "<feedback>"` / `r scriptwriter|generator`
+  (G3, G4) · `e [notes]` ($EDITOR on that file) · `x [notes]` · `q`; a decision with text then
+  asks "Propose a style rule from this note? [y/N]". Proposals queued with a decision are
+  settled when the run stops next (`proposals.ts`: the job awaited, the rule or its reason
+  printed, then `[a]ccept / [e]dit "<text>" / [x] reject / [l]ater`). Without a terminal it
+  prints the exact commands and exits 0.
 - **`gate <run> approve|reject|edit <file>|regenerate (--beat <id> [--fields] | --target <role>
-[--source-id]) [--feedback]`**, **`resume <run> [--from|--only <step>] [--cap <usd>]`** (a
+[--source-id]) [--feedback]`** (`--notes`, `--propose-rule`), **`resume <run> [--from|--only <step>] [--cap <usd>]`** (a
   failed run resumes; `--cap` raises the cap and resumes a paused run; see "Rerun"),
   **`status [<run>]`** (recent runs, or one with its gates, parts and the worker lock),
   **`cost <run>`** (per role over the run and its parts, and the cap),
   **`usage [--videos <n>]`** (the last exported videos' hooks, endings and main patterns, then
-  counts per kind; see "Memory"),
+  counts per kind; see "Memory"), **`rules [--status] [--scope]`**, **`rules add --scope <s>
+"<text>"`**, **`rules accept|reject|edit|on|off|rm <id>`** (accept and edit take `--text`,
+  `--scope`) and **`rules propose (--event <id> | --run <id> --gate <gate>)`** (the newest
+  note at that gate; follows the job and asks as at a gate),
   **`render <spec.json> [--draft|--final]`** (`startRenderRun`: a scratch run, the spec as its
   `external` version 1, its scenes gate approved; the draft, and with `--final` gate 4 approves
   itself when nothing blocks and the final exports; no LLM calls).

@@ -43,6 +43,13 @@
       "when": 1795600340718,
       "tag": "0005_worker_lock_hold_gate",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1795614167209,
+      "tag": "0006_memory_rule_sources",
+      "breakpoints": true
     }
   ]
 }

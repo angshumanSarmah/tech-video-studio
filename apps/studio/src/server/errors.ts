@@ -11,6 +11,7 @@ import { RunHasExportsError } from '#core/db/repositories/runs.ts';
 import {
   ConflictError,
   InvalidEditError,
+  InvalidProposalError,
   InvalidSourceError,
   NotFoundError,
 } from '#core/errors.ts';
@@ -47,6 +48,7 @@ export function handleError(err: Error, c: Context): Response {
     return apiError(c, 400, 'bad_request', err.message, [...err.issues]);
   }
   if (err instanceof InvalidSourceError) return apiError(c, 400, 'bad_request', err.message);
+  if (err instanceof InvalidProposalError) return apiError(c, 400, 'bad_request', err.message);
   if (err instanceof RegenerateNotAllowedError) {
     return apiError(c, 400, 'bad_request', err.message);
   }

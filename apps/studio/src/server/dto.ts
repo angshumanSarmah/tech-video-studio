@@ -2,6 +2,7 @@ import type {
   EventDto,
   GateDto,
   JobDto,
+  MemoryRuleDto,
   RunDetailDto,
   RunDto,
   SeriesDto,
@@ -16,6 +17,7 @@ import type { Series } from '#core/db/repositories/series.ts';
 import type { Source } from '#core/db/repositories/sources.ts';
 import type { Topic } from '#core/db/repositories/topics.ts';
 import type { GateView } from '#core/services/gates.ts';
+import type { MemoryRule } from '#core/services/style-rules.ts';
 import type { RunDetail } from '#core/services/runs.ts';
 
 /** DB rows -> wire shapes (`Date` -> ISO string, internal columns dropped). */
@@ -78,5 +80,21 @@ export function toSourceDto(s: Source): SourceDto {
     errorCode: s.errorCode,
     extractedAt: s.extractedAt?.toISOString() ?? null,
     createdAt: s.createdAt.toISOString(),
+  };
+}
+
+export function toMemoryRuleDto(r: MemoryRule): MemoryRuleDto {
+  return {
+    id: r.id,
+    scope: r.scope,
+    text: r.text,
+    status: r.status,
+    note: r.note,
+    reason: r.reason,
+    sourceRunId: r.sourceRunId,
+    sourceGate: r.sourceGate,
+    sourceEventId: r.sourceEventId,
+    createdAt: r.createdAt.toISOString(),
+    updatedAt: r.updatedAt.toISOString(),
   };
 }

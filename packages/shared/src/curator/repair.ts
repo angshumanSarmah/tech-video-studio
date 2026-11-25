@@ -29,6 +29,13 @@ export const RepairInputSchema = z.strictObject({
   specVersionId: z.number().int().positive(),
   version: z.number().int().positive(),
   requests: z.array(RepairRequestSchema).min(1),
+  /**
+   * The active style rules the repair's agents read (P1C.10), once for the whole repair. Absent
+   * in steps from before rules reached repairs.
+   */
+  styleRules: z
+    .strictObject({ scriptwriter: z.array(z.string()), generator: z.array(z.string()) })
+    .optional(),
 });
 export type RepairInput = z.infer<typeof RepairInputSchema>;
 

@@ -17,8 +17,17 @@ export const ASSET_STATUSES = ['draft', 'approved', 'rejected'] as const;
 export const AssetStatusSchema = z.enum(ASSET_STATUSES);
 export type AssetStatus = z.infer<typeof AssetStatusSchema>;
 
-/** Which agents a style rule is injected into. */
-export const MEMORY_RULE_SCOPES = ['director', 'scriptwriter', 'generator', 'all'] as const;
+/**
+ * Which agents a style rule is injected into: one agent, or `all` (the three writers: the
+ * Director, the Scriptwriter and the Generator; never the Curator, P1C.10).
+ */
+export const MEMORY_RULE_SCOPES = [
+  'director',
+  'scriptwriter',
+  'generator',
+  'curator',
+  'all',
+] as const;
 export const MemoryRuleScopeSchema = z.enum(MEMORY_RULE_SCOPES);
 export type MemoryRuleScope = z.infer<typeof MemoryRuleScopeSchema>;
 

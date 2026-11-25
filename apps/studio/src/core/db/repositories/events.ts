@@ -31,6 +31,11 @@ export function appendEvent(db: Executor, event: NewEvent): StoredEvent {
   return toStoredEvent(row);
 }
 
+export function getEvent(db: Executor, id: number): StoredEvent | undefined {
+  const row = db.select().from(events).where(eq(events.id, id)).get();
+  return row ? toStoredEvent(row) : undefined;
+}
+
 /** Restricts events to one run or one job. Omitted means every event. */
 export interface EventFilter {
   readonly runId?: number | undefined;

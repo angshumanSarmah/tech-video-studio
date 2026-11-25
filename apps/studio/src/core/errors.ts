@@ -67,3 +67,11 @@ export class InvalidSourceError extends Error {
 export class OrchestratorStateError extends Error {
   override readonly name = 'OrchestratorStateError';
 }
+
+/**
+ * A style-rule proposal that cannot be made (P1C.10): the event is not a person's gate decision
+ * with a note. The server maps it to 400.
+ */
+export class InvalidProposalError extends Error {
+  override readonly name = 'InvalidProposalError';
+}

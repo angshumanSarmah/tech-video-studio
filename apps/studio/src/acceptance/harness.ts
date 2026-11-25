@@ -17,6 +17,8 @@ import { readDataJson } from '#core/data-files.ts';
 import type { Executor } from '#core/db/client.ts';
 import { listEventsSince } from '#core/db/repositories/events.ts';
 import { listRunJobs } from '#core/db/repositories/jobs.ts';
+import { getRun } from '#core/db/repositories/runs.ts';
+import { listTopicSources } from '#core/db/repositories/sources.ts';
 import { getSpecVersion } from '#core/db/repositories/spec-versions.ts';
 import { createTestDb, type TestDb } from '#core/db/testing.ts';
 import { advanceRun, sweepRuns } from '#core/orchestrator/advance.ts';
@@ -62,6 +64,8 @@ export interface Answers {
   /** Per beat (the Generator's replay key). */
   readonly generator?: Readonly<Record<string, readonly DryRunResponse[]>>;
   readonly curator?: readonly DryRunResponse[];
+  /** Style-rule proposals (P1C.10): never recorded per topic, only what a test gives. */
+  readonly analyst?: readonly DryRunResponse[];
 }
 
 export class Harness {
@@ -110,7 +114,7 @@ export class Harness {
     if (this.queues.size === 0) this.loadRecordings();
     const push = (key: string, list: readonly DryRunResponse[] = []) =>
       this.queues.set(key, [...(this.queues.get(key) ?? []), ...list]);
-    for (const role of ['researcher', 'director', 'scriptwriter', 'curator'] as const) {
+    for (const role of ['researcher', 'director', 'scriptwriter', 'curator', 'analyst'] as const) {
       push(role, answers[role]);
     }
     for (const [beat, list] of Object.entries(answers.generator ?? {})) {
@@ -127,6 +131,22 @@ export class Harness {
   /** The topic's recorded answers for a role (to replay a rerun of it). */
   recording(role: 'researcher' | 'director' | 'scriptwriter'): DryRunResponse[] {
     return [...recordedInOrder(fixtureResponsesDir(role, this.topic), role)];
+  }
+
+  /**
+   * The topic's recorded Researcher answers for a run whose sources got later ids in this DB
+   * (a second run in one test: the recordings cite `source-1#…` onwards), each citation moved to
+   * the run's own source ids.
+   */
+  researcherFor(runId: number): DryRunResponse[] {
+    const ids = listTopicSources(this.t.db, getRun(this.t.db, runId)!.topicId).map((s) => s.id);
+    const offset = Math.min(...ids) - 1;
+    return this.recording('researcher').map((r) => ({
+      ...r,
+      content:
+        r.content?.replace(/source-(\d+)#/g, (_, n: string) => `source-${Number(n) + offset}#`) ??
+        null,
+    }));
   }
 
   /** The Generator's recorded boards, per beat. */

@@ -421,11 +421,13 @@ export function generatorStepContext(
     readonly settings: ResolvedRunSettings;
     readonly notes: ResearchNotes;
     readonly registries: Registries;
+    /** The Generator's active style rules, as the caller read them (else read now). */
+    readonly styleRules?: readonly string[];
     readonly signal: AbortSignal;
     readonly log: (level: LogLevel, message: string) => void;
   },
 ): BeatStepContext {
-  const styleRules = styleRulesSection(activeStyleRules(deps.db, 'generator'));
+  const styleRules = styleRulesSection(args.styleRules ?? activeStyleRules(deps.db, 'generator'));
   return {
     db: deps.db,
     dataDir: deps.dataDir,

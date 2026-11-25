@@ -23,11 +23,14 @@ export function eventLine(event: StoredEvent, ctx: LineContext): string | null {
     case 'job_status':
       return jobLine(event.payload, ctx);
     case 'gate': {
-      const { gate, status, decidedBy, blocking } = event.payload;
+      const { gate, status, decidedBy, blocking, decision } = event.payload;
       const by = decidedBy ? ` (${decidedBy})` : '';
       const blocked =
         status === 'pending' && blocking.length > 0 ? ` · ${blocking.length} blocking` : '';
-      return `${ctx.label} ◆ gate ${gate}: ${status}${by}${blocked}`;
+      // An edit or regenerate leaves the gate pending: say what the person did instead.
+      const what =
+        status === 'pending' && decision ? (PENDING_DECISION[decision.action] ?? status) : status;
+      return `${ctx.label} ◆ gate ${gate}: ${what}${by}${blocked}`;
     }
     case 'log':
       if (event.payload.level === 'info') return null;
@@ -36,6 +39,11 @@ export function eventLine(event: StoredEvent, ctx: LineContext): string | null {
       return null;
   }
 }
+
+const PENDING_DECISION: Readonly<Record<string, string>> = {
+  edit: 'edited',
+  regenerate: 'regenerate requested',
+};
 
 function statusNote(status: string): string {
   return status === 'running' || status === 'queued' ? '' : ` (${status})`;

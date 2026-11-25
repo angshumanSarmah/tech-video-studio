@@ -446,7 +446,8 @@ function boardNumbers(board: BoardDescription | undefined): Shown[] {
 
 // --- BOARD --------------------------------------------------------------------------------------------
 
-function boardLines(board: BoardDescription): string[] {
+/** A board as text (the Curator's BOARD lines; the Analyst reads them too). */
+export function boardLines(board: BoardDescription): string[] {
   const kind = board.continues
     ? `continues ${board.continues}'s board`
     : `new board${board.transitionIn ? ` (${board.transitionIn} in)` : ''}`;

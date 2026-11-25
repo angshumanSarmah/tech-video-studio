@@ -71,9 +71,9 @@ describe('buildPrompt', () => {
     );
     expect(order.every((i) => i >= 0)).toBe(true);
     expect(order).toEqual([...order].sort((a, b) => a - b));
-    // A role without a registered schema (its step comes later) gets no output section.
+    // The Analyst's shape (P1C.10) is registered too.
     const analyst = buildPrompt(templates, parts('analyst')).messages[0]!.content;
-    expect(analyst).not.toContain('## OUTPUT SHAPE');
+    expect(analyst.indexOf('## OUTPUT SHAPE')).toBeGreaterThan(analyst.indexOf('Role: Analyst.'));
     // The Curator gives each pass's output shape in its user message instead (two passes).
     const curator = buildPrompt(templates, parts('curator')).messages[0]!.content;
     expect(curator).not.toContain('## OUTPUT SHAPE');
@@ -122,7 +122,7 @@ describe('buildPrompt', () => {
   it('leaves out empty optional sections', () => {
     const prompt = buildPrompt(templates, { role: 'analyst', variables, input: 'note' });
     expect(prompt.messages[0]!.content).not.toContain('\n\n\n');
-    expect(prompt.messages[0]!.content.endsWith('instead of the preference behind it.')).toBe(true);
+    expect(prompt.messages[0]!.content.endsWith('"additionalProperties": false\n}')).toBe(true);
   });
 
   it('refuses reference breakdowns outside the director, and empty input', () => {

@@ -32,6 +32,8 @@ export const CurateInputSchema = z.strictObject({
    * What the variety checks read from the usage history (P1C.10): the recent videos' combos,
    * patterns and structures. Absent in steps from before usage history.
    */
+  /** The Curator's active style rules (P1C.10), as its review prompts carry them. */
+  styleRules: z.array(z.string()).optional(),
   recent: z
     .strictObject({
       videos: z.number().int().min(0),

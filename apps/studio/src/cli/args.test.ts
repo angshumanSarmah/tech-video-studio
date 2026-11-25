@@ -119,6 +119,14 @@ describe('parseCommand', () => {
     });
     expect(parseCommand(['status'])).toEqual({ kind: 'status' });
     expect(parseCommand(['cost', '9'])).toEqual({ kind: 'cost', runId: 9 });
+    expect(parseCommand(['gate', '2', 'reject', '--notes', 'n', '--propose-rule'])).toEqual({
+      kind: 'gate',
+      runId: 2,
+      decision: { action: 'reject', notes: 'n', proposeRule: true },
+    });
+    expect(parseCommand(['gate', '2', 'edit', 'p.json', '--notes', 'why'])).toMatchObject({
+      decision: { action: 'edit', file: 'p.json', notes: 'why' },
+    });
     expect(parseCommand(['usage'])).toEqual({ kind: 'usage', videos: DEFAULT_USAGE_VIDEOS });
     expect(parseCommand(['usage', '--videos', '3'])).toEqual({ kind: 'usage', videos: 3 });
     expect(() => parseCommand(['usage', '--videos', '2.5'])).toThrow(/whole number/);
@@ -134,12 +142,77 @@ describe('parseCommand', () => {
   });
 });
 
+describe('rules', () => {
+  it('reads every rules command', () => {
+    expect(parseCommand(['rules'])).toEqual({ kind: 'rules', action: 'list' });
+    expect(parseCommand(['rules', '--status', 'proposed', '--scope', 'all'])).toEqual({
+      kind: 'rules',
+      action: 'list',
+      status: 'proposed',
+      scope: 'all',
+    });
+    expect(parseCommand(['rules', 'add', '--scope', 'curator', ' Do not flag it. '])).toEqual({
+      kind: 'rules',
+      action: 'add',
+      scope: 'curator',
+      text: 'Do not flag it.',
+    });
+    expect(parseCommand(['rules', 'accept', '4', '--text', 'Edited.'])).toEqual({
+      kind: 'rules',
+      action: 'update',
+      id: 4,
+      change: 'accept',
+      text: 'Edited.',
+    });
+    expect(parseCommand(['rules', 'off', '4'])).toMatchObject({ change: 'deactivate' });
+    expect(parseCommand(['rules', 'on', '4'])).toMatchObject({ change: 'activate' });
+    expect(parseCommand(['rules', 'edit', '4', '--scope', 'all'])).toEqual({
+      kind: 'rules',
+      action: 'update',
+      id: 4,
+      scope: 'all',
+    });
+    expect(parseCommand(['rules', 'rm', '4'])).toEqual({ kind: 'rules', action: 'delete', id: 4 });
+    expect(parseCommand(['rules', 'propose', '--event', '9'])).toEqual({
+      kind: 'rules',
+      action: 'propose',
+      from: { eventId: 9 },
+    });
+    expect(parseCommand(['rules', 'propose', '--run', '3', '--gate', 'scenes'])).toEqual({
+      kind: 'rules',
+      action: 'propose',
+      from: { runId: 3, gate: 'scenes' },
+    });
+  });
+
+  it('refuses what it cannot do', () => {
+    const fails = (argv: string[], message: RegExp) =>
+      expect(() => parseCommand(argv)).toThrow(message);
+    fails(['rules', 'add', 'no scope'], /rules add --scope/);
+    fails(['rules', 'add', '--scope', 'all', 'x'.repeat(161)], /one line of 1 to 160/);
+    fails(['rules', 'edit', '4'], /rules edit <id>/);
+    fails(['rules', 'accept'], /rules accept <id>/);
+    fails(['rules', 'propose', '--run', '3'], /--event <id> \| --run <id> --gate/);
+    fails(['rules', 'frob'], /Unknown rules command/);
+    fails(['rules', '--scope', 'researcher'], /--scope takes one of/);
+  });
+});
+
 describe('parseGateReply', () => {
   it('reads each answer by gate', () => {
     expect(parseGateReply('a', 'research')).toEqual({
       kind: 'decide',
       decision: { action: 'approve' },
     });
+    expect(parseGateReply('a "fine, but shorter"', 'research')).toEqual({
+      kind: 'decide',
+      decision: { action: 'approve', notes: 'fine, but shorter' },
+    });
+    expect(parseGateReply('e "the hook was vague"', 'beat_sheet')).toEqual({
+      kind: 'edit',
+      notes: 'the hook was vague',
+    });
+    expect(parseGateReply('e', 'beat_sheet')).toEqual({ kind: 'edit' });
     expect(parseGateReply('r "more on the incident"', 'research')).toEqual({
       kind: 'decide',
       decision: { action: 'regenerate', target: 'researcher', feedback: 'more on the incident' },

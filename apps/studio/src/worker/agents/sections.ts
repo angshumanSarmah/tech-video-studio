@@ -14,12 +14,18 @@ export function notesWithoutChunks(notes: ResearchNotes): unknown {
   );
 }
 
-/** The person's accepted rules (P1C.10), as prompt section 5; undefined when there are none. */
+/** The heading of prompt section 5: what the rules are and what wins over them. */
+export const STYLE_RULES_HEADING =
+  "## STYLE RULES (your reviewer's standing preferences, oldest first. Follow them; where one " +
+  'conflicts with a rule above, the rule above wins.)';
+
+/**
+ * The person's accepted rules (P1C.10), as prompt section 5: last in the system message, after
+ * the cached catalogue, oldest first. Undefined when there are none.
+ */
 export function styleRulesSection(rules: readonly string[]): string | undefined {
   if (rules.length === 0) return undefined;
-  return ['## STYLE RULES (from your reviews; follow them)', ...rules.map((r) => `- ${r}`)].join(
-    '\n',
-  );
+  return [STYLE_RULES_HEADING, ...rules.map((r) => `- ${r}`)].join('\n');
 }
 
 /**

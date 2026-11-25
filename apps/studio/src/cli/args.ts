@@ -2,6 +2,14 @@ import { parseArgs, type ParseArgsOptionsConfig } from 'node:util';
 import {
   DEFAULT_USAGE_VIDEOS,
   DISAGREEMENT_BLOCKS,
+  GATE_IDS,
+  MEMORY_RULE_SCOPES,
+  MEMORY_RULE_STATUSES,
+  RuleTextSchema,
+  type GateId,
+  type MemoryRuleAction,
+  type MemoryRuleScope,
+  type MemoryRuleStatus,
   EXPLANATION_LEVELS,
   FIX_FIELDS,
   MAX_USAGE_VIDEOS,
@@ -50,10 +58,11 @@ export interface RunCommand {
   readonly dryRun?: string;
 }
 
-export type GateAction =
+/** `proposeRule`: the Analyst proposes a style rule from the decision's text (P1C.10). */
+export type GateAction = (
   | { readonly action: 'approve'; readonly notes?: string }
   | { readonly action: 'reject'; readonly notes?: string }
-  | { readonly action: 'edit'; readonly file: string }
+  | { readonly action: 'edit'; readonly file: string; readonly notes?: string }
   | {
       readonly action: 'regenerate';
       readonly target: RegenerateTarget;
@@ -61,7 +70,32 @@ export type GateAction =
       readonly fields?: readonly FixField[];
       readonly sourceId?: number;
       readonly feedback?: string;
-    };
+    }
+) & { readonly proposeRule?: boolean };
+
+/** `studio rules …` (P1C.10): style rules before the UI exists. */
+export type RulesCommand = { readonly kind: 'rules' } & (
+  | {
+      readonly action: 'list';
+      readonly status?: MemoryRuleStatus;
+      readonly scope?: MemoryRuleScope;
+    }
+  | { readonly action: 'add'; readonly scope: MemoryRuleScope; readonly text: string }
+  | {
+      readonly action: 'update';
+      readonly id: number;
+      readonly change?: MemoryRuleAction;
+      readonly text?: string;
+      readonly scope?: MemoryRuleScope;
+    }
+  | { readonly action: 'delete'; readonly id: number }
+  | {
+      readonly action: 'propose';
+      readonly from:
+        { readonly eventId: number } | { readonly runId: number; readonly gate: GateId };
+      readonly dryRun?: string;
+    }
+);
 
 export type Command =
   | { readonly kind: 'help' }
@@ -83,6 +117,7 @@ export type Command =
   | { readonly kind: 'status'; readonly runId?: number }
   | { readonly kind: 'cost'; readonly runId: number }
   | { readonly kind: 'usage'; readonly videos: number }
+  | RulesCommand
   | {
       readonly kind: 'render';
       readonly file: string;
@@ -100,17 +135,25 @@ export const USAGE = `Usage: pnpm studio <command> [options]
         Start a run and follow it. --auto approves gates 1-3 when nothing blocks; gate 4 needs
         --auto-final. --disagreements: which source disagreements stop gate 1 (default: those
         involving a number). Files: .md .markdown .txt .pdf .docx .csv .json.
-  gate <run> approve [--notes <text>]
-  gate <run> reject [--notes <text>]
-  gate <run> edit <file.json>
-  gate <run> regenerate (--beat <id> [--fields a,b] | --target <role> [--source-id <n>]) [--feedback <text>]
-        Decide at the gate the run waits at, then follow it.
+  gate <run> approve [--notes <text>] [--propose-rule]
+  gate <run> reject [--notes <text>] [--propose-rule]
+  gate <run> edit <file.json> [--notes <text>] [--propose-rule]
+  gate <run> regenerate (--beat <id> [--fields a,b] | --target <role> [--source-id <n>]) [--feedback <text>] [--propose-rule]
+        Decide at the gate the run waits at, then follow it. --propose-rule: the Analyst
+        proposes a style rule from the notes (or feedback); you accept it or not.
   resume <run> [--from <step> | --only <step>] [--cap <usd>] [--dry-run <dir>]
         Follow a run again: a failed run goes on from its failed step, a paused one after --cap.
         --from reruns a step and everything after it; --only reruns one step and stops at the
         gate it feeds. Steps: ${RERUN_STEPS.join(', ')}.
   status [<run>]          Recent runs, or one run with its gates, parts and the worker lock.
   cost <run>              The run's LLM cost per role (a multi-part video: every part).
+  rules [--status <s>] [--scope <s>]      Style rules (statuses: ${MEMORY_RULE_STATUSES.join(', ')}).
+  rules add --scope <scope> "<text>"      A rule written by hand, active at once.
+  rules accept <id> [--text "<t>"] [--scope <s>] · rules reject <id> · rules edit <id> [--text] [--scope]
+  rules on <id> · rules off <id> · rules rm <id>
+  rules propose (--event <id> | --run <id> --gate <gate>) [--dry-run <dir>]
+        The Analyst proposes a style rule from a gate decision's note (--run/--gate: the newest
+        note at that gate). Scopes: ${MEMORY_RULE_SCOPES.join(', ')} (all: the three writers).
   usage [--videos <n>]    What the last n exported videos used (default ${DEFAULT_USAGE_VIDEOS}): each
                           video's hook, ending and main patterns, then counts per kind.
   render <spec.json> [--draft|--final] [--series ai|system-design] [--dry-run <dir>]
@@ -143,6 +186,8 @@ export function parseCommand(argv: readonly string[]): Command {
       return { kind: 'cost', runId: runIdOf(positionals(rest, 1, 'cost <run>')[0]) };
     case 'usage':
       return parseUsage(rest);
+    case 'rules':
+      return parseRules(rest);
     case 'render':
       return parseRender(rest);
     default:
@@ -230,12 +275,14 @@ function parseGate(args: readonly string[]): Command {
     target: { type: 'string' },
     'source-id': { type: 'string' },
     feedback: { type: 'string' },
+    'propose-rule': { type: 'boolean' },
     'dry-run': { type: 'string' },
   });
   const [run, action, file, ...extra] = found;
   const runId = runIdOf(run);
   const dryRun = optional('dryRun', text(values['dry-run']));
   const notes = optional('notes', text(values.notes));
+  const propose = values['propose-rule'] === true ? { proposeRule: true } : {};
   const only = (allowed: number) => {
     if (extra.length > 0 || (allowed === 0 && file !== undefined)) {
       throw new UsageError(`Too many arguments for gate ${action ?? ''}.`);
@@ -245,14 +292,14 @@ function parseGate(args: readonly string[]): Command {
     case 'approve':
     case 'reject':
       only(0);
-      return { kind: 'gate', runId, decision: { action, ...notes }, ...dryRun };
+      return { kind: 'gate', runId, decision: { action, ...notes, ...propose }, ...dryRun };
     case 'edit':
       only(1);
       if (!file) throw new UsageError('Expected: gate <run> edit <file.json>');
-      return { kind: 'gate', runId, decision: { action, file }, ...dryRun };
+      return { kind: 'gate', runId, decision: { action, file, ...notes, ...propose }, ...dryRun };
     case 'regenerate':
       only(0);
-      return { kind: 'gate', runId, decision: regenerate(values), ...dryRun };
+      return { kind: 'gate', runId, decision: { ...regenerate(values), ...propose }, ...dryRun };
     default:
       throw new UsageError('Expected: gate <run> approve|reject|edit|regenerate');
   }
@@ -302,6 +349,114 @@ function parseStatus(args: readonly string[]): Command {
   const { positionals: found } = parse(args, {});
   if (found.length > 1) throw new UsageError('Expected: status [<run>]');
   return found[0] === undefined ? { kind: 'status' } : { kind: 'status', runId: runIdOf(found[0]) };
+}
+
+const RULE_CHANGES: Readonly<Record<string, MemoryRuleAction | undefined>> = {
+  accept: 'accept',
+  reject: 'reject',
+  on: 'activate',
+  off: 'deactivate',
+  edit: undefined,
+};
+
+function parseRules(args: readonly string[]): RulesCommand {
+  const { values, positionals: found } = parse(args, {
+    status: { type: 'string' },
+    scope: { type: 'string' },
+    text: { type: 'string' },
+    event: { type: 'string' },
+    run: { type: 'string' },
+    gate: { type: 'string' },
+    'dry-run': { type: 'string' },
+  });
+  const [sub = 'list', ...rest] = found;
+  const scope = optional('scope', oneOf('--scope', values.scope, MEMORY_RULE_SCOPES));
+  const ruleId = () => {
+    if (rest.length !== 1) throw new UsageError(`Expected: rules ${sub} <id>`);
+    return idOf('rule', rest[0]);
+  };
+  switch (sub) {
+    case 'list':
+      if (rest.length > 0) throw new UsageError('Expected: rules [--status <s>] [--scope <s>]');
+      return {
+        kind: 'rules',
+        action: 'list',
+        ...optional('status', oneOf('--status', values.status, MEMORY_RULE_STATUSES)),
+        ...scope,
+      };
+    case 'add': {
+      if (rest.length !== 1 || !scope.scope) {
+        throw new UsageError('Expected: rules add --scope <scope> "<text>"');
+      }
+      return { kind: 'rules', action: 'add', scope: scope.scope, text: ruleText(rest[0]) };
+    }
+    case 'accept':
+    case 'reject':
+    case 'on':
+    case 'off':
+    case 'edit': {
+      const id = ruleId();
+      const change = RULE_CHANGES[sub];
+      const newText = text(values.text);
+      if (sub === 'edit' && newText === undefined && !scope.scope) {
+        throw new UsageError('Expected: rules edit <id> [--text "<text>"] [--scope <scope>]');
+      }
+      return {
+        kind: 'rules',
+        action: 'update',
+        id,
+        ...(change ? { change } : {}),
+        ...(newText !== undefined ? { text: ruleText(newText) } : {}),
+        ...scope,
+      };
+    }
+    case 'rm':
+      return { kind: 'rules', action: 'delete', id: ruleId() };
+    case 'propose':
+      return {
+        kind: 'rules',
+        action: 'propose',
+        from: proposeFrom(values, rest),
+        ...optional('dryRun', text(values['dry-run'])),
+      };
+    default:
+      throw new UsageError(
+        `Unknown rules command "${sub}": list, add, accept, reject, edit, on, off, rm or propose.`,
+      );
+  }
+}
+
+function proposeFrom(
+  values: Record<string, unknown>,
+  rest: readonly string[],
+): Extract<RulesCommand, { action: 'propose' }>['from'] {
+  const form = 'rules propose (--event <id> | --run <id> --gate <gate>)';
+  if (rest.length > 0) throw new UsageError(`Expected: ${form}`);
+  if (values.event !== undefined) {
+    if (values.run !== undefined || values.gate !== undefined)
+      throw new UsageError(`Expected: ${form}`);
+    return { eventId: idOf('event', text(values.event)) };
+  }
+  if (values.run === undefined || values.gate === undefined)
+    throw new UsageError(`Expected: ${form}`);
+  return { runId: runIdOf(text(values.run)), gate: oneOf('--gate', values.gate, GATE_IDS, true) };
+}
+
+/** A rule's text from the command line: one line of at most 160 characters. */
+function ruleText(value: string | undefined): string {
+  const parsed = RuleTextSchema.safeParse(value ?? '');
+  if (!parsed.success) {
+    throw new UsageError(
+      `A rule is one line of 1 to 160 characters: ${parsed.error.issues[0]?.message}`,
+    );
+  }
+  return parsed.data;
+}
+
+function idOf(what: string, value: string | undefined): number {
+  const id = Number(value);
+  if (!Number.isInteger(id) || id <= 0) throw new UsageError(`Not a ${what} id: "${value ?? ''}".`);
+  return id;
 }
 
 function parseUsage(args: readonly string[]): Command {

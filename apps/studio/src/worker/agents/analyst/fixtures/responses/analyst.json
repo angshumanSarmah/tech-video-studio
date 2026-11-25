@@ -1,0 +1,92 @@
+[
+  {
+    "content": "{\"rule\":{\"text\":\"Write every headline as a short phrase of a few words, never a full sentence.\",\"scope\":\"scriptwriter\",\"why\":\"The reviewer wants headlines kept to short phrases rather than sentence-length statements.\"}}",
+    "servedModel": "deepseek-flash",
+    "finishReason": "stop",
+    "usage": {
+      "prompt_tokens": 1801,
+      "completion_tokens": 125,
+      "prompt_cache_hit_tokens": 256,
+      "prompt_cache_miss_tokens": 1545,
+      "prompt_tokens_details": {
+        "cached_tokens": 256
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 79
+      },
+      "total_tokens": 1926
+    }
+  },
+  {
+    "content": "{\"rule\":{\"text\":\"Keep each board to the few elements needed to follow the one tracked subject.\",\"scope\":\"generator\",\"why\":\"The reviewer loses the through-line when a board shows many elements at once; boards should stay sparse around the subject being followed.\"}}",
+    "servedModel": "deepseek-flash",
+    "finishReason": "stop",
+    "usage": {
+      "prompt_tokens": 2228,
+      "completion_tokens": 202,
+      "prompt_cache_hit_tokens": 1536,
+      "prompt_cache_miss_tokens": 692,
+      "prompt_tokens_details": {
+        "cached_tokens": 1536
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 147
+      },
+      "total_tokens": 2430
+    }
+  },
+  {
+    "content": "{\"rule\":{\"text\":\"Vary the opening device across videos; do not always start on an incident.\",\"scope\":\"director\",\"why\":\"The reviewer wants openings to vary from video to video instead of defaulting to an incident hook each time.\"}}",
+    "servedModel": "deepseek-flash",
+    "finishReason": "stop",
+    "usage": {
+      "prompt_tokens": 1783,
+      "completion_tokens": 265,
+      "prompt_cache_hit_tokens": 1408,
+      "prompt_cache_miss_tokens": 375,
+      "prompt_tokens_details": {
+        "cached_tokens": 1408
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 213
+      },
+      "total_tokens": 2048
+    }
+  },
+  {
+    "content": "{\"rule\":{\"text\":\"Verify every date, number and name against the source notes before writing it.\",\"scope\":\"scriptwriter\",\"why\":\"A factual detail that disagreed with the source slipped into the words; the reviewer wants facts checked against sources, not recalled.\"}}",
+    "servedModel": "deepseek-flash",
+    "finishReason": "stop",
+    "usage": {
+      "prompt_tokens": 1798,
+      "completion_tokens": 579,
+      "prompt_cache_hit_tokens": 1408,
+      "prompt_cache_miss_tokens": 390,
+      "prompt_tokens_details": {
+        "cached_tokens": 1408
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 525
+      },
+      "total_tokens": 2377
+    }
+  },
+  {
+    "content": "{\"rule\":{\"text\":\"Do not flag contractions in narration as informal; treat the conversational voice as intended.\",\"scope\":\"curator\",\"why\":\"The note shows the reviewer treats conversational contractions as a deliberate house voice, so flagging them as a tone defect is a recurring false positive.\"}}",
+    "servedModel": "deepseek-flash",
+    "finishReason": "stop",
+    "usage": {
+      "prompt_tokens": 1836,
+      "completion_tokens": 315,
+      "prompt_cache_hit_tokens": 1536,
+      "prompt_cache_miss_tokens": 300,
+      "prompt_tokens_details": {
+        "cached_tokens": 1536
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 256
+      },
+      "total_tokens": 2151
+    }
+  }
+]

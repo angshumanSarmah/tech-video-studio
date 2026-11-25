@@ -45,6 +45,8 @@ import { getSeries, seriesChannelHandle } from '#core/db/repositories/series.ts'
 import { getTopic } from '#core/db/repositories/topics.ts';
 import { NotFoundError } from '#core/errors.ts';
 import { recentUsage } from '#core/services/director-memory.ts';
+import { activeStyleRules } from '#core/services/style-rules.ts';
+import { styleRulesSection } from '../agents/sections.ts';
 import { latestDirection } from '#core/services/direction.ts';
 import { latestCuration } from '#core/services/curation.ts';
 import { researchOfStep } from '#core/services/research-notes.ts';
@@ -176,6 +178,7 @@ async function curateLoop(
         registries: job.checks.registries ?? DEFAULT_REGISTRIES,
         runId,
         stepId,
+        styleRules: styleRulesSection(job.input.styleRules ?? []),
         signal: ctx.signal,
         log: ctx.log,
       },
@@ -448,6 +451,7 @@ function prepare(deps: CurateJobDeps, run: Run, ctx: Ctx): CurateJob {
       researchStepId,
       model: run.resolvedSettings.llm.models.curator,
       explanationLevel: variables.explanationLevel,
+      styleRules: activeStyleRules(deps.db, 'curator'),
       recent,
     },
     checks: checkContext(deps, run, research.notes, research.input.sources, variables, ctx, recent),

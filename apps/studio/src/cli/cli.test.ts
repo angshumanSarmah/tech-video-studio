@@ -1,4 +1,4 @@
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -143,6 +143,43 @@ describe('studio CLI, dry run', PIPELINE_TIMEOUT, () => {
       pipelineStep: 'gate_draft',
     });
     expect(io.lines.at(-1)).toBe('  pnpm studio gate 1 reject [--notes "<why>"]');
+  });
+});
+
+describe('studio CLI, style rules (P1C.10)', PIPELINE_TIMEOUT, () => {
+  const RULE = 'Keep every headline to a few words.';
+
+  it('turns a gate note into a rule in a terminal, then manages rules with `rules`', async () => {
+    writeFileSync(
+      join(dryRun, 'analyst.json'),
+      JSON.stringify([
+        { content: JSON.stringify({ rule: { text: RULE, scope: 'scriptwriter', why: '<why>' } }) },
+      ]),
+    );
+    const io = fakeIo(['x "Headlines read like whole sentences."', 'y', 'a']);
+    expect(await cli(io, runArgs('--auto'))).toBe(1); // rejected: the run is cancelled
+    expect(io.transcript).toContain('Propose a style rule from this note? [y/N] ');
+    expect(io.lines).toContain('The Analyst will propose a style rule from your note (job 3).');
+    expect(io.lines).toContain(`Style rule 1 proposed (scriptwriter): ${RULE}`);
+    expect(io.lines).toContain(`Style rule 1 is active (scriptwriter): ${RULE}`);
+
+    const list = fakeIo();
+    expect(await cli(list, ['rules'])).toBe(0);
+    expect(list.lines).toEqual([`  rule 1 [scriptwriter, active]: ${RULE}`]);
+    const off = fakeIo();
+    expect(await cli(off, ['rules', 'off', '1'])).toBe(0);
+    expect(off.lines).toEqual([`rule 1 [scriptwriter, inactive]: ${RULE}`]);
+    const added = fakeIo();
+    expect(
+      await cli(added, ['rules', 'add', '--scope', 'curator', 'Do not flag contractions.']),
+    ).toBe(0);
+    expect(added.lines).toEqual(['Added: rule 2 [curator, active]: Do not flag contractions.']);
+
+    // One proposal per note: asked again from the same gate, the CLI says why not.
+    const again = fakeIo();
+    const args = ['rules', 'propose', '--run', '1', '--gate', 'research', '--dry-run', dryRun];
+    expect(await cli(again, args)).toBe(1);
+    expect(again.errors.at(-1)).toMatch(/^Rule 1 was already proposed from event \d+\.$/);
   });
 });
 

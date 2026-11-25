@@ -35,6 +35,7 @@
     "repair:fixture": "tsx scripts/repair-fixture.ts",
     "draft:fixture": "tsx scripts/draft-fixture.ts",
     "curate-round:fixture": "tsx scripts/curate-round-fixture.ts",
+    "analyst:fixture": "tsx scripts/analyst-fixture.ts",
     "studio": "tsx src/core/db/migrate-cli.ts --quiet && tsx src/cli/main.ts",
     "dry-run:dir": "tsx scripts/dry-run-dir.ts"
   },

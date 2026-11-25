@@ -114,21 +114,37 @@ const NotesSchema = z.string().trim().min(1).max(4_000);
  * the subject they were made on (`subjectId`, from `GET`): one that is no longer the gate's
  * subject is a 409.
  */
+/**
+ * Asks the Analyst for a style rule from this decision's text (P1C.10, opt-in per note): a
+ * `propose_rule` job is queued with the decision. Only with text (a 400 otherwise).
+ */
+const ProposeRuleFlagSchema = z
+  .boolean()
+  .optional()
+  .describe('Queue a style-rule proposal from this decision’s note.');
+
 export const GateDecisionRequestSchema = z.discriminatedUnion('action', [
   z.strictObject({
     action: z.literal('approve'),
     subjectId: z.number().int().positive(),
     notes: NotesSchema.optional(),
+    proposeRule: ProposeRuleFlagSchema,
   }),
-  z.strictObject({ action: z.literal('reject'), notes: NotesSchema.optional() }),
+  z.strictObject({
+    action: z.literal('reject'),
+    notes: NotesSchema.optional(),
+    proposeRule: ProposeRuleFlagSchema,
+  }),
   /**
    * `content`: the whole edited subject (research notes, beat sheet, or spec), saved as the user's
-   * new step or spec version once it passes its schema (a 400 lists what fails).
+   * new step or spec version once it passes its schema (a 400 lists what fails). `notes`: why.
    */
   z.strictObject({
     action: z.literal('edit'),
     subjectId: z.number().int().positive(),
     content: z.unknown(),
+    notes: NotesSchema.optional(),
+    proposeRule: ProposeRuleFlagSchema,
   }),
   /**
    * What reruns (`target`, which the gate must allow) with the reviewer's `feedback` (the jobs'
@@ -143,6 +159,7 @@ export const GateDecisionRequestSchema = z.discriminatedUnion('action', [
     beatId: z.string().trim().min(1).optional(),
     fields: z.array(FixFieldSchema).min(1).optional(),
     sourceId: z.number().int().positive().optional(),
+    proposeRule: ProposeRuleFlagSchema,
   }),
 ]);
 export type GateDecisionRequest = z.input<typeof GateDecisionRequestSchema>;
@@ -154,5 +171,9 @@ export const GateDecisionResponseSchema = z.object({
   saved: GateSubjectDtoSchema.nullable(),
   /** An edit's warnings and check findings (it was saved anyway). */
   issues: z.array(GateIssueSchema),
+  /** The `gate` event recording the decision: what a style-rule proposal reads. */
+  eventId: z.number().int().positive(),
+  /** The `propose_rule` job queued with it (`proposeRule`), else null. */
+  proposalJobId: z.number().int().positive().nullable(),
 });
 export type GateDecisionResponse = z.infer<typeof GateDecisionResponseSchema>;

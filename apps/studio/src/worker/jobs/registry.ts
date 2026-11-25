@@ -4,6 +4,7 @@ import { generateJobHandler, type GenerateJobDeps } from './generate.ts';
 import type { JobHandler } from './handler.ts';
 import { ingestJobHandler, type IngestJobDeps } from './ingest.ts';
 import { noopJob } from './noop.ts';
+import { proposeRuleJobHandler, type ProposeRuleJobDeps } from './propose-rule.ts';
 import { renderJobHandlers, type RenderJobDeps } from './render.ts';
 import { repairJobHandler } from './repair.ts';
 import { researchJobHandler, type ResearchJobDeps } from './research.ts';
@@ -36,7 +37,8 @@ export type WorkerDeps = RenderJobDeps &
   DirectJobDeps &
   ScriptJobDeps &
   GenerateJobDeps &
-  CurateJobDeps;
+  CurateJobDeps &
+  ProposeRuleJobDeps;
 
 /** Every job type the worker runs. Add a handler here; nothing else changes. */
 export function createJobHandlers(deps: WorkerDeps): JobHandler[] {
@@ -51,5 +53,6 @@ export function createJobHandlers(deps: WorkerDeps): JobHandler[] {
     repairJobHandler(deps),
     ...renderJobHandlers(deps),
     ttsJobHandler(deps),
+    proposeRuleJobHandler(deps),
   ];
 }

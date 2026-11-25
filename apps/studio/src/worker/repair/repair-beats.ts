@@ -125,6 +125,8 @@ interface RepairContext {
   readonly topic: { readonly title: string; readonly notes: string | null };
   readonly series: { readonly name: string; readonly label: string; readonly tag: string };
   readonly channelHandle: string | null;
+  /** The active style rules of the repair's two agents, read once (P1C.10). */
+  readonly styleRules: { readonly scriptwriter: string[]; readonly generator: string[] };
 }
 
 export async function repairBeats(deps: RepairDeps, args: RepairArgs): Promise<RepairResult> {
@@ -143,6 +145,7 @@ export async function repairBeats(deps: RepairDeps, args: RepairArgs): Promise<R
         specVersionId: args.specVersionId,
         version: ctx.version,
         requests: args.requests,
+        styleRules: ctx.styleRules,
       }),
     );
     const output = await repair(deps, args, ctx, parent.id);
@@ -186,6 +189,10 @@ function prepare(deps: RepairDeps, run: Run, args: RepairArgs): RepairContext {
     topic: { title: topic.title, notes: topic.notes },
     series: { name: series.name, label: series.label, tag: series.tag },
     channelHandle: seriesChannelHandle(deps.db, series.id),
+    styleRules: {
+      scriptwriter: activeStyleRules(deps.db, 'scriptwriter'),
+      generator: activeStyleRules(deps.db, 'generator'),
+    },
   };
 }
 
@@ -257,7 +264,7 @@ async function revise(
     ...part,
   };
   const measured = measuredBeatLengths(ctx.spec).find((b) => b.beatId === req.beatId);
-  const styleRules = styleRulesSection(activeStyleRules(deps.db, 'scriptwriter'));
+  const styleRules = styleRulesSection(ctx.styleRules.scriptwriter);
   const prompt = buildPrompt(deps.prompts, {
     role: 'scriptwriter',
     variables: ctx.variables,
@@ -450,6 +457,7 @@ async function redrawBoards(
     settings: ctx.run.resolvedSettings,
     notes: ctx.notes,
     registries: ctx.registries,
+    styleRules: ctx.styleRules.generator,
     signal: args.signal,
     log: args.log,
   });

@@ -1,6 +1,7 @@
 import { z } from 'zod';
+import { FixFieldSchema } from '../curator/review.ts';
 import { JobStatusSchema } from './job.ts';
-import { PipelineStepIdSchema } from './pipeline.ts';
+import { PipelineStepIdSchema, RegenerateTargetSchema } from './pipeline.ts';
 import { DecidedBySchema, GateIdSchema, GateStatusSchema, RunStatusSchema } from './run.ts';
 
 /**
@@ -18,13 +19,37 @@ export const RunStatusPayloadSchema = z.strictObject({
   step: PipelineStepIdSchema.optional(),
 });
 
-/** A review gate opened (pending, with what blocks auto-approval) or decided. */
+/** What a person did at a gate (P1C.10): the decision a style-rule proposal is made from. */
+export const GATE_DECISION_ACTIONS = ['approve', 'reject', 'edit', 'regenerate'] as const;
+
+export const GateDecisionRecordSchema = z.strictObject({
+  action: z.enum(GATE_DECISION_ACTIONS),
+  /** The person's text: approve / reject / edit notes, or a regenerate's feedback. */
+  note: z.string().optional(),
+  /** What the decision was made on: the gate's subject (a step or a spec version id). */
+  subjectId: z.number().int().positive().optional(),
+  /** An edit's saved step or version (absent when the edit changed nothing). */
+  savedId: z.number().int().positive().optional(),
+  /** A regenerate's target, beat, fields and source. */
+  target: RegenerateTargetSchema.optional(),
+  beatId: z.string().optional(),
+  fields: z.array(FixFieldSchema).optional(),
+  sourceId: z.number().int().positive().optional(),
+});
+export type GateDecisionRecord = z.infer<typeof GateDecisionRecordSchema>;
+
+/**
+ * A review gate opened (pending, with what blocks auto-approval) or decided. A person's decision
+ * (approve, reject, edit, regenerate) writes one event carrying `decision`: an edit or
+ * regenerate leaves the gate pending.
+ */
 export const GatePayloadSchema = z.strictObject({
   gate: GateIdSchema,
   status: GateStatusSchema,
   decidedBy: DecidedBySchema.optional(),
   /** Why it cannot be auto-approved (empty: nothing blocks). */
   blocking: z.array(z.string()),
+  decision: GateDecisionRecordSchema.optional(),
 });
 
 export const JobStatusPayloadSchema = z.strictObject({

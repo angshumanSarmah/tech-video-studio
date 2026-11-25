@@ -34,6 +34,7 @@ import { dryRunTransport, recordedInOrder, type DryRunResponse } from '../llm/dr
 import { runNextJob } from '../runner.ts';
 import { DIRECT_JOB_TYPE, directJobHandler, summarize } from './direct.ts';
 import { ingestJobHandler } from './ingest.ts';
+import { STYLE_RULES_HEADING } from '../agents/sections.ts';
 import { createJobRegistry, type JobRegistry } from './registry.ts';
 import { RESEARCH_JOB_TYPE, researchJobHandler } from './research.ts';
 
@@ -315,9 +316,7 @@ describe('direct job (rate-limiter fixture, dry run)', () => {
     });
     const calls = directorCalls(runId);
     const [system, user] = promptOf(calls[0]!.promptPath).messages;
-    expect(system!.content).toContain(
-      '## STYLE RULES (from your reviews; follow them)\n- <example-rule>',
-    );
+    expect(system!.content).toContain(`${STYLE_RULES_HEADING}\n- <example-rule>`);
     expect(user!.content).toContain(`Fixed by this run: exactly ${length} s`);
     expect(user!.content).toContain('Fixed by this run: \\"card\\"');
     expect(user!.content).toContain(`"${recent[1]}"`);

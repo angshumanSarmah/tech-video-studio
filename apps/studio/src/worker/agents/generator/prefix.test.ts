@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { findWorkspaceRoot } from '#core/workspace-root.ts';
 import { FIXTURE_TOPIC_IDS, type FixtureTopicId } from '../fixture-topics.ts';
 import { buildPrompt } from '../prompt-builder.ts';
+import { styleRulesSection } from '../sections.ts';
 import { loadPromptTemplates, PROMPTS_DIR } from '../prompts/templates.ts';
 import { generatorUserMessage } from './input.ts';
 import { fixtureScriptedSpec, recordedNotes } from './testing.ts';
@@ -66,5 +67,27 @@ describe('the Generator prompt prefix', () => {
 
   it('puts each beat in its own user message', () => {
     expect(new Set(prompts.map(user)).size).toBe(prompts.length);
+  });
+  it('stays byte-identical with active style rules, which come last, after the catalogue', () => {
+    const styleRules = styleRulesSection(['<example-rule-a>', '<example-rule-b>'])!;
+    const withRules = FIXTURE_TOPIC_IDS.flatMap((topic) => {
+      const spec = specOf(topic);
+      const notes = recordedNotes(topic);
+      return spec.story.beats.map(
+        (_, beatIndex) =>
+          buildPrompt(templates, {
+            role: 'generator',
+            variables,
+            catalogue,
+            styleRules,
+            input: generatorUserMessage({ spec, scenes: [], beatIndex, notes }),
+          }).messages[0]!.content,
+      );
+    });
+    expect(new Set(withRules).size).toBe(1);
+    const prefix = withRules[0]!;
+    // The rules only extend the cached prefix: everything before them is the prompt without.
+    expect(prefix).toBe(`${system(prompts[0]!)}\n\n${styleRules}`);
+    expect(prefix.indexOf(styleRules)).toBeGreaterThan(prefix.indexOf(catalogue));
   });
 });
