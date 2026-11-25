@@ -122,7 +122,7 @@ describe('buildPrompt', () => {
   it('leaves out empty optional sections', () => {
     const prompt = buildPrompt(templates, { role: 'analyst', variables, input: 'note' });
     expect(prompt.messages[0]!.content).not.toContain('\n\n\n');
-    expect(prompt.messages[0]!.content.endsWith('or rejects every rule.')).toBe(true);
+    expect(prompt.messages[0]!.content.endsWith('instead of the preference behind it.')).toBe(true);
   });
 
   it('refuses reference breakdowns outside the director, and empty input', () => {

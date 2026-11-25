@@ -1,6 +1,7 @@
 import {
   CreateRunRequestSchema,
   UpdateRunSettingsRequestSchema,
+  type CreateRunResponse,
   type RunSettingsSource,
   IdParamSchema,
   type RunDetailDto,
@@ -27,8 +28,8 @@ export function createRunsRoute(db: Db, dataDir: string, appSettings: () => RunS
       return c.json<RunDetailDto>(toRunDetailDto(getRunDetail(db, id)));
     })
     .post('/', validate('json', CreateRunRequestSchema), (c) => {
-      const { run } = startRun(db, { ...c.req.valid('json'), app: appSettings() });
-      return c.json<RunDto>(toRunDto({ ...run, lastError: null }), 201);
+      const { run, warnings } = startRun(db, { ...c.req.valid('json'), app: appSettings() });
+      return c.json<CreateRunResponse>({ ...toRunDto({ ...run, lastError: null }), warnings }, 201);
     })
     .post('/:id/cancel', validate('param', RunParamsSchema), (c) => {
       const { id } = c.req.valid('param');

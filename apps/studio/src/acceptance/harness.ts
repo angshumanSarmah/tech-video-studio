@@ -80,7 +80,21 @@ export class Harness {
    */
   approveDisputed = true;
 
-  constructor(readonly topic: FixtureTopicId) {}
+  constructor(private current: FixtureTopicId) {}
+
+  /** The fixture topic the next runs and drains use. */
+  get topic(): FixtureTopicId {
+    return this.current;
+  }
+
+  /**
+   * Switches to another fixture topic in the same DB (P1C.10: a second video sees the first's
+   * usage): the replay queues start again from that topic's recordings.
+   */
+  useTopic(topic: FixtureTopicId): void {
+    this.current = topic;
+    this.queues.clear();
+  }
 
   cleanup(): void {
     this.t.cleanup();

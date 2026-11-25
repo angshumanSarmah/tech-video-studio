@@ -19,6 +19,7 @@ import {
   type StoryBeat,
   MAX_SCENES_PER_LAYOUT_MODE,
 } from '../spec/story.ts';
+import { beatsFingerprint, type RecentStructure } from '../memory/fingerprint.ts';
 import type { DirectorPlan } from './plan.ts';
 import { exampleNumberIds, incidentSourceIds } from './systems.ts';
 
@@ -26,7 +27,8 @@ import { exampleNumberIds, incidentSourceIds } from './systems.ts';
  * Deterministic checks on a Director plan (P1C.5), beyond its schema and the spec's own
  * validation: research ids and glossary terms exist, lengths fit the settings, parts are well
  * formed, devices get what they need, the house structure holds (failure or rejected alternative,
- * a hook with a number, the ending) and the plan does not repeat recent device/layout combos.
+ * a hook with a number, the ending) and the plan does not repeat recent videos: their
+ * device/layout combos, their structure (hook and main patterns) or the previous one's hook.
  * Pure; the worker runs it with the spec and registry checks, and gate edits can reuse it.
  */
 
@@ -79,6 +81,8 @@ export const DIRECTOR_PROBLEM_CODES = [
   'cliffhanger_missing',
   'recap_missing',
   'recent_combo_reused',
+  'structure_repeated',
+  'hook_repeated',
   'continues_without_previous',
   'scene_too_long',
   'layout_mode_overused',
@@ -102,6 +106,8 @@ export interface DirectorCheckContext {
   readonly lengthOverrideSec?: number;
   /** `<device>/<layout>` combos used in recent videos (`device_layout` usage). */
   readonly recentCombos: readonly string[];
+  /** Recent videos' hooks and main pattern sequences, newest first (`directorMemory`). */
+  readonly recentStructures?: readonly RecentStructure[];
   /** The run's series: its name and label may not appear in the CTA (code adds them). */
   readonly series: { readonly name: string; readonly label: string };
   /** Site and library names of the run's sources (`bareSourceNames`), bare as a source line. */
@@ -141,6 +147,19 @@ export const MAX_NUMBERS_PER_BEAT: Readonly<Record<ExplanationLevel, number>> = 
   intermediate: Number.POSITIVE_INFINITY,
   expert: Number.POSITIVE_INFINITY,
 };
+
+/**
+ * Plan problems that never block (P1C.10): the beat sheet shows them as warnings, and the
+ * Director's repair turn lists them without asking for one because of them.
+ */
+export const DIRECTOR_ADVISORY_CODES: readonly DirectorProblemCode[] = ['hook_repeated'];
+
+const ADVISORY: ReadonlySet<string> = new Set(DIRECTOR_ADVISORY_CODES);
+
+/** Whether a plan issue's code is advisory (`DIRECTOR_ADVISORY_CODES`). */
+export function isAdvisoryPlanCode(code: string): boolean {
+  return ADVISORY.has(code);
+}
 
 /** Beats per plan that may reuse a recent device/layout combo before it is a problem. */
 export const MAX_RECENT_COMBO_REUSE = 1;
@@ -211,6 +230,7 @@ export function directorPlanProblems(
     ...ctaProblems(plan, ctx.series),
     ...proseNumberProblems(plan, ctx.notes),
     ...varietyProblems(plan, ctx.recentCombos),
+    ...videos.flatMap((video) => historyProblems(plan, video, ctx.recentStructures ?? [])),
     ...videos.flatMap((video) => sceneVarietyProblems(plan, video)),
   ];
 }
@@ -1155,6 +1175,52 @@ function varietyProblems(plan: DirectorPlan, recentCombos: readonly string[]): D
     ),
   );
 }
+
+/**
+ * A video (or part) against the usage history: the same hook and main pattern sequence as any
+ * recent video is `structure_repeated`; else the previous video's hook is `hook_repeated`
+ * (advisory). Endings are never compared: the house ending is meant to repeat.
+ */
+function historyProblems(
+  plan: DirectorPlan,
+  video: PlannedVideo,
+  recent: readonly RecentStructure[],
+): DirectorProblem[] {
+  const hookIndex = hookIndexOf(plan, video);
+  if (recent.length === 0 || hookIndex === undefined) return [];
+  const beats = video.beats.flatMap((i) => plan.story.beats[i] ?? []);
+  const { hook, patternSequence } = beatsFingerprint(beats, plan.story.hook.kind);
+  if (!hook) return [];
+  const path: Path = ['story', 'beats', hookIndex];
+  const same = patternSequence
+    ? recent.find((r) => r.hooks.includes(hook) && r.sequences.includes(patternSequence))
+    : undefined;
+  if (same) {
+    return [
+      problem(
+        path,
+        'structure_repeated',
+        `${video.label} has the structure of the recent video ${videoName(same)}: the same hook ` +
+          `(${hook}, hook.kind and this beat's device) and the same main patterns ` +
+          `(${patternSequence}). Open with another device or hook kind, or show the mechanism ` +
+          'with other patterns.',
+      ),
+    ];
+  }
+  const previous = recent[0];
+  if (!previous?.hooks.includes(hook)) return [];
+  return [
+    problem(
+      path,
+      'hook_repeated',
+      `${video.label} opens with the hook of the previous video ${videoName(previous)} ` +
+        `(${hook}, hook.kind and this beat's device). Prefer another device or hook kind.`,
+    ),
+  ];
+}
+
+const videoName = (video: RecentStructure): string =>
+  video.title ? `"${video.title}"` : '(untitled)';
 
 /** One scene of a video: a beat that starts a board and the beats that continue it. */
 interface PlannedScene {

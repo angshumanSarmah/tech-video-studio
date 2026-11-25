@@ -1,4 +1,10 @@
-import type { RunSettingsInput, RunSettingsSource, Stage } from '@explainer-studio/shared';
+import {
+  topicMatchMessage,
+  type RunSettingsInput,
+  type RunSettingsSource,
+  type Stage,
+  type TopicMatch,
+} from '@explainer-studio/shared';
 import type { Db, Executor } from '../db/client.ts';
 import { enqueueJob, type Job } from '../db/repositories/jobs.ts';
 import { appendEvent, latestEventId } from '../db/repositories/events.ts';
@@ -13,6 +19,7 @@ import {
 import { getSeries } from '../db/repositories/series.ts';
 import { getTopic } from '../db/repositories/topics.ts';
 import { NotFoundError } from '../errors.ts';
+import { similarTopics } from './topic-history.ts';
 
 /** Job type that starts a run's pipeline: source ingestion (`#worker/jobs/ingest.ts`). */
 export const FIRST_RUN_JOB_TYPE = 'ingest' satisfies Stage;
@@ -28,11 +35,14 @@ export interface StartRunInput {
 export interface StartedRun {
   readonly run: Run;
   readonly job: Job;
+  /** Earlier topics close to this one (P1C.10, topic history): warnings, also logged on the run. */
+  readonly warnings: TopicMatch[];
 }
 
 /**
  * Creates a run, queues its first job and records a `run_status` event, all in one transaction, so a
- * run never exists without the job that drives it.
+ * run never exists without the job that drives it. A topic close to an earlier one is a `warn`
+ * log event on the run and comes back in `warnings`; it never stops the run.
  */
 export function startRun(db: Db, input: StartRunInput): StartedRun {
   return db.transaction((tx) => {
@@ -46,7 +56,15 @@ export function startRun(db: Db, input: StartRunInput): StartedRun {
       type: 'run_status',
       payload: { status: run.status, step: 'ingest' },
     });
-    return { run: getRun(tx, run.id)!, job };
+    const warnings = similarTopics(tx, run.id);
+    for (const match of warnings) {
+      appendEvent(tx, {
+        runId: run.id,
+        type: 'log',
+        payload: { level: 'warn', message: topicMatchMessage(match) },
+      });
+    }
+    return { run: getRun(tx, run.id)!, job, warnings };
   });
 }
 

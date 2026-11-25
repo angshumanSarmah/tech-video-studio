@@ -5,6 +5,7 @@ import {
   RunStatusSchema,
   StageSchema,
 } from '../domain/run.ts';
+import { TopicMatchSchema } from '../memory/topic-similarity.ts';
 import { listOf } from './common.ts';
 
 export const CreateRunRequestSchema = z.strictObject({
@@ -27,6 +28,15 @@ export const RunDtoSchema = z.object({
   updatedAt: z.iso.datetime(),
 });
 export type RunDto = z.infer<typeof RunDtoSchema>;
+
+/**
+ * `POST /api/runs`: the new run, and earlier topics close to its topic (P1C.10, topic history),
+ * closest first: a warning, never a refusal.
+ */
+export const CreateRunResponseSchema = RunDtoSchema.extend({
+  warnings: z.array(TopicMatchSchema),
+});
+export type CreateRunResponse = z.infer<typeof CreateRunResponseSchema>;
 
 /** `GET /api/runs/:id`. `lastEventId` is the SSE cursor for this snapshot (0 when no events). */
 export const RunDetailDtoSchema = RunDtoSchema.extend({

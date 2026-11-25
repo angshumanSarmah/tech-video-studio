@@ -1,3 +1,4 @@
+import { usageOfSpec } from '@explainer-studio/renderer/catalog';
 import { PROGRESS_DONE_PCT, SpecIdSchema } from '@explainer-studio/shared';
 import { z } from 'zod';
 import { recordMissingAssets } from '#core/assets/render-assets.ts';
@@ -14,6 +15,7 @@ import {
 import type { Db } from '#core/db/client.ts';
 import { recordExport } from '#core/db/repositories/exports.ts';
 import type { Job } from '#core/db/repositories/jobs.ts';
+import { latestDoneStep } from '#core/db/repositories/run-steps.ts';
 import { getRun } from '#core/db/repositories/runs.ts';
 import { NotFoundError } from '#core/errors.ts';
 import { writeFinalCheck } from '#core/services/final-check.ts';
@@ -109,7 +111,7 @@ function finalJob(deps: RenderJobDeps) {
   return defineJobHandler({
     type: RENDER_JOB_TYPES.final,
     description:
-      'Renders the whole video at the final preset, muxes the narration, writes the SRT and records the export.',
+      'Renders the whole video at the final preset, muxes the narration, writes the SRT and records the export and its usage history.',
     payloadSchema: RunPayloadSchema,
     async run(ctx) {
       const { runId, input, tools } = load(deps, ctx);
@@ -127,13 +129,16 @@ function finalJob(deps: RenderJobDeps) {
         video: abs(rel.video),
         subtitles: abs(rel.subtitles),
       });
-      // Only now that both files exist: the row makes the run undeletable.
+      // Only now that both files exist: the row makes the run undeletable. A video of the
+      // pipeline records its usage history with it (P1C.10); a scratch render run does not.
+      const pipelineVideo = latestDoneStep(deps.db, runId, 'direct') !== undefined;
       recordExport(deps.db, {
         runId,
         mp4Path: rel.video,
         srtPath: rel.subtitles,
         durationMs: Math.round(result.durationSec * 1000),
         title: input.target.spec.meta.title,
+        ...(pipelineVideo ? { usage: usageOfSpec(input.target.spec) } : {}),
       });
       ctx.log(
         'info',

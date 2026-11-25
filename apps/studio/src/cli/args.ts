@@ -1,8 +1,10 @@
 import { parseArgs, type ParseArgsOptionsConfig } from 'node:util';
 import {
+  DEFAULT_USAGE_VIDEOS,
   DISAGREEMENT_BLOCKS,
   EXPLANATION_LEVELS,
   FIX_FIELDS,
+  MAX_USAGE_VIDEOS,
   REGENERATE_TARGETS,
   VIDEO_FORMATS,
   type DisagreementBlocks,
@@ -80,6 +82,7 @@ export type Command =
     }
   | { readonly kind: 'status'; readonly runId?: number }
   | { readonly kind: 'cost'; readonly runId: number }
+  | { readonly kind: 'usage'; readonly videos: number }
   | {
       readonly kind: 'render';
       readonly file: string;
@@ -108,6 +111,8 @@ export const USAGE = `Usage: pnpm studio <command> [options]
         gate it feeds. Steps: ${RERUN_STEPS.join(', ')}.
   status [<run>]          Recent runs, or one run with its gates, parts and the worker lock.
   cost <run>              The run's LLM cost per role (a multi-part video: every part).
+  usage [--videos <n>]    What the last n exported videos used (default ${DEFAULT_USAGE_VIDEOS}): each
+                          video's hook, ending and main patterns, then counts per kind.
   render <spec.json> [--draft|--final] [--series ai|system-design] [--dry-run <dir>]
         Render a saved spec (no LLM calls): the draft, or the final as well.
 
@@ -136,6 +141,8 @@ export function parseCommand(argv: readonly string[]): Command {
       return parseStatus(rest);
     case 'cost':
       return { kind: 'cost', runId: runIdOf(positionals(rest, 1, 'cost <run>')[0]) };
+    case 'usage':
+      return parseUsage(rest);
     case 'render':
       return parseRender(rest);
     default:
@@ -295,6 +302,16 @@ function parseStatus(args: readonly string[]): Command {
   const { positionals: found } = parse(args, {});
   if (found.length > 1) throw new UsageError('Expected: status [<run>]');
   return found[0] === undefined ? { kind: 'status' } : { kind: 'status', runId: runIdOf(found[0]) };
+}
+
+function parseUsage(args: readonly string[]): Command {
+  const { values, positionals: found } = parse(args, { videos: { type: 'string' } });
+  if (found.length > 0) throw new UsageError('Expected: usage [--videos <n>]');
+  const videos = positiveNumber('--videos', values.videos) ?? DEFAULT_USAGE_VIDEOS;
+  if (!Number.isInteger(videos) || videos > MAX_USAGE_VIDEOS) {
+    throw new UsageError(`--videos takes a whole number from 1 to ${MAX_USAGE_VIDEOS}.`);
+  }
+  return { kind: 'usage', videos };
 }
 
 function parseRender(args: readonly string[]): Command {

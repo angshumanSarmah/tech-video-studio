@@ -3,11 +3,13 @@ import {
   researchGateFindings,
   researchNotesProblems,
   SourceChunksFileSchema,
+  topicMatchMessage,
+  type DirectorInput,
   type ResearchInput,
   type ResearchSourceStat,
   type SpecError,
 } from '@explainer-studio/shared';
-import { planCheckDeps, planIssues } from '../checks/plan.ts';
+import { planCheckDeps, planIssues, splitPlanIssues } from '../checks/plan.ts';
 import { readDataJson, sourceChunksPath } from '../data-files.ts';
 import type { Executor } from '../db/client.ts';
 import type { Run } from '../db/repositories/runs.ts';
@@ -27,8 +29,9 @@ import { latestResearch, researchOfStep, type RunResearch } from './research-not
  * auto-approve) and the gate view (what it shows). Research: the notes' own checks, then thin
  * research and sources that disagree, as the run's `research.disagreementBlocks` says
  * (`researchGateFindings`). Beat sheet: the Director's checks
- * (`planIssues`). An agent's answer passes its own checks to finish its step, so these block
- * mostly a user's edit, and research that is thin or disputed.
+ * (`planIssues`), the advisory ones as warnings with the earlier topics close to this one. An
+ * agent's answer passes its own checks to finish its step, so these block mostly a user's
+ * edit, and research that is thin or disputed.
  */
 
 export interface ResearchReview {
@@ -107,7 +110,15 @@ function describe(source: Source | undefined, sourceId: number, origin: string) 
 
 export interface BeatSheetReview {
   readonly direction: NonNullable<ReturnType<typeof latestDirection>>;
+  /** Every plan issue. */
   readonly issues: SpecError[];
+  /** The plan issues that keep the gate from approving itself. */
+  readonly blocking: SpecError[];
+  /**
+   * Never blocking (P1C.10): advisory plan issues (`hook_repeated`), then earlier topics close
+   * to this run's, as the Director read them (`topic_similar`).
+   */
+  readonly warnings: SpecError[];
 }
 
 export function beatSheetReview(
@@ -117,10 +128,23 @@ export function beatSheetReview(
 ): BeatSheetReview | undefined {
   const direction = latestDirection(db, dataDir, run.id);
   if (!direction) return undefined;
+  const issues = planIssues(direction.plan, planDeps(db, dataDir, run, direction.input));
+  const { blocking, warnings } = splitPlanIssues(issues);
   return {
     direction,
-    issues: planIssues(direction.plan, planDeps(db, dataDir, run, direction.input)),
+    issues,
+    blocking,
+    warnings: [...warnings, ...similarTopicWarnings(direction.input)],
   };
+}
+
+/** `topic_similar`: one per earlier topic the Director's memory found close to this one. */
+function similarTopicWarnings(input: DirectorInput): SpecError[] {
+  return (input.memory.similarTopics ?? []).map((match) => ({
+    path: '$.meta.title',
+    code: 'topic_similar',
+    message: topicMatchMessage(match),
+  }));
 }
 
 /** The beat-sheet checks' context, from the Director step's input (as the Director had it). */

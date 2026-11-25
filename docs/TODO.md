@@ -4,6 +4,19 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 
 ## Open
 
+- [ ] **P1C.10 — Series numbers and scratch renders.** `nextSeriesNumber` counts every exported
+      run, so a `studio render --final` scratch export takes a number in its series. The usage
+      history already leaves those runs out (no `direct` step, no usage rows); count series
+      numbers the same way (`exportedVideos`) once the first real video exists.
+- [ ] **P1C.10 — Structure at G3 from the drawn patterns.** The Curator runs the Director's
+      `structure_repeated` on `planOfSpec`, so it compares the plan's suggested patterns, while
+      history stores what boards drew. Drawn reuse is covered per pattern
+      (`pattern_recently_used`); pass the drawn sequence to the check if a Generator ever
+      rebuilds a recent structure from different suggestions.
+- [ ] **P1C.10 — In-progress scratch runs in topic history.** A `studio render` run still
+      rendering counts as a topic in progress ("render: <file>"). Harmless (its title rarely
+      matches), but leave such runs out if one ever shows up as a `topic_similar` warning.
+
 - [ ] **P1C.7 — Next Generator prompt change: entrances.** Add to the Generator's DO list:
       "Everything a beat adds enters on the word that names it; only the starting focus may be
       there from the start." `element_without_enter` enforces it, but today the model learns it

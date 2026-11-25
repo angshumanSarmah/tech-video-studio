@@ -37,6 +37,12 @@ export const USAGE_KINDS = [
   'topic_class',
   /** A beat's narrative device with its layout mode, as `<device>/<layout>` (variety penalty). */
   'device_layout',
+  /** The video's hook: `<hook kind>/<device of its hook beat>` (`hookKey`). */
+  'hook',
+  /** `story.ending.kind`. Recorded for the usage history, never checked (the house ending repeats). */
+  'ending',
+  /** Its first few distinct patterns in board order, `a>b>c` (`mainPatternSequence`). */
+  'pattern_sequence',
 ] as const;
 export const UsageKindSchema = z.enum(USAGE_KINDS);
 export type UsageKind = z.infer<typeof UsageKindSchema>;

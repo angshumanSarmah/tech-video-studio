@@ -91,7 +91,7 @@ function requireStep(db: Executor, run: Run, stage: 'research' | 'direct'): numb
 /**
  * Why a gate cannot be auto-approved (P1C.9 step 9). Research: the notes' check findings, thin
  * research and sources that disagree. Beat sheet: the Director's checks (an edited plan's
- * findings). Scenes: the Curator's blocking issues. Draft: what would stop the final.
+ * findings), less the advisory ones. Scenes: the Curator's blocking issues. Draft: what would stop the final.
  */
 export function gateBlocking(
   db: Executor,
@@ -104,7 +104,7 @@ export function gateBlocking(
     case 'research':
       return (researchReview(db, dataDir, run)?.blocking ?? []).map(issueLine);
     case 'beat_sheet':
-      return (beatSheetReview(db, dataDir, run)?.issues ?? []).map(issueLine);
+      return (beatSheetReview(db, dataDir, run)?.blocking ?? []).map(issueLine);
     case 'scenes': {
       const report = latestCuration(db, dataDir, run.id)?.report;
       return (report?.badges ?? [])

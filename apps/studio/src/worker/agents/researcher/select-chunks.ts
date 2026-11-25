@@ -1,4 +1,12 @@
-import { SOURCE_CHARS_PER_TOKEN, type OmittedChunk } from '@explainer-studio/shared';
+import {
+  queryTerms,
+  SOURCE_CHARS_PER_TOKEN,
+  termWords,
+  type OmittedChunk,
+} from '@explainer-studio/shared';
+
+/** Content words of the topic and angle (shared `text/terms.ts`). */
+export { queryTerms };
 
 /**
  * Source token budget (pure, deterministic). When the pinned chunks exceed the budget, each
@@ -109,38 +117,13 @@ function pickChunks(
   return keep;
 }
 
-/** Words that say nothing about a topic. */
-const STOPWORDS = new Set(
-  (
-    'the and for with how what why when where which who does doing done that this these those ' +
-    'from into onto over under are was were been being its it’s their there they them then ' +
-    'than about your you our not but can could should would will all any use used using uses ' +
-    'work works working make makes made get gets via per each more most less also just only ' +
-    'really very explain explained explainer video short shorts focus angle'
-  ).split(' '),
-);
-
-/** Lowercase word tokens, plurals folded ("limiters" → "limiter"). */
-function words(text: string): string[] {
-  return text
-    .toLowerCase()
-    .split(/[^\p{L}\p{N}]+/u)
-    .filter((w) => w.length >= 3)
-    .map((w) => (w.length > 4 && w.endsWith('s') && !w.endsWith('ss') ? w.slice(0, -1) : w));
-}
-
-/** Distinct content words of the topic and angle. */
-export function queryTerms(query: string): string[] {
-  return [...new Set(words(query).filter((w) => !STOPWORDS.has(w)))];
-}
-
 /** How many query terms a chunk mentions, then how densely (hits per word). */
 export function relevance(
   text: string,
   terms: readonly string[],
 ): { matched: number; density: number } {
   const counts = new Map<string, number>();
-  const tokens = words(text);
+  const tokens = termWords(text);
   for (const w of tokens) counts.set(w, (counts.get(w) ?? 0) + 1);
   const hits = terms.map((t) => counts.get(t) ?? 0);
   return {

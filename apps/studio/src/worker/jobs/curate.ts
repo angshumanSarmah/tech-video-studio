@@ -44,7 +44,7 @@ import { getRun, type Run } from '#core/db/repositories/runs.ts';
 import { getSeries, seriesChannelHandle } from '#core/db/repositories/series.ts';
 import { getTopic } from '#core/db/repositories/topics.ts';
 import { NotFoundError } from '#core/errors.ts';
-import { directorMemory } from '#core/services/director-memory.ts';
+import { recentUsage } from '#core/services/director-memory.ts';
 import { latestDirection } from '#core/services/direction.ts';
 import { latestCuration } from '#core/services/curation.ts';
 import { researchOfStep } from '#core/services/research-notes.ts';
@@ -435,6 +435,8 @@ function prepare(deps: CurateJobDeps, run: Run, ctx: Ctx): CurateJob {
     throw new Error(`The plan's research step ${researchStepId} has no finished notes.`);
   }
   const variables = run.resolvedSettings.video;
+  const { videos, combos, patterns, structures } = recentUsage(deps.db, run.id);
+  const recent = { videos, combos, patterns, structures };
   return {
     spec,
     valid: validated.ok,
@@ -446,8 +448,9 @@ function prepare(deps: CurateJobDeps, run: Run, ctx: Ctx): CurateJob {
       researchStepId,
       model: run.resolvedSettings.llm.models.curator,
       explanationLevel: variables.explanationLevel,
+      recent,
     },
-    checks: checkContext(deps, run, research.notes, research.input.sources, variables, ctx),
+    checks: checkContext(deps, run, research.notes, research.input.sources, variables, ctx, recent),
   };
 }
 
@@ -458,13 +461,13 @@ function checkContext(
   sources: Parameters<typeof bareSourceNames>[0] & CuratorCheckContext['sources'],
   video: VideoSettings,
   ctx: Ctx,
+  recent: CuratorCheckContext['recent'],
 ): CuratorCheckContext {
   const topic = getTopic(deps.db, run.topicId);
   if (!topic) throw new NotFoundError('topic', run.topicId);
   const series = getSeries(deps.db, run.seriesId);
   if (!series) throw new NotFoundError('series', run.seriesId);
   const { beatGapSec, landingSec } = run.resolvedSettings.timing;
-  const { recent } = directorMemory(deps.db, run.id);
   return {
     theme: getTheme(),
     registries: libraryRegistries(deps, ctx),
@@ -477,7 +480,7 @@ function checkContext(
       ? { lengthOverrideSec: run.settings.lengthOverrideSec }
       : {}),
     pauses: { beatGapSec, landingSec },
-    recent: { combos: recent.combos, patterns: recent.patterns },
+    recent,
     sourceNames: bareSourceNames(sources),
     sources,
   };

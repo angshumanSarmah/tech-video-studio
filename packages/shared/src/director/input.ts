@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { ExplanationLevelSchema, VideoLengthSecSchema } from '../config/video.ts';
+import { RecentStructureSchema } from '../memory/fingerprint.ts';
+import { TopicMatchSchema } from '../memory/topic-similarity.ts';
 import { VideoFormatSchema } from '../spec/meta.ts';
 
 /**
@@ -18,9 +20,19 @@ export const DirectorMemorySchema = z.strictObject({
     patterns: z.array(z.string()),
     /** `<device>/<layout>` combos (`deviceLayoutCombo`). */
     combos: z.array(z.string()),
+    /**
+     * Each recent video's hooks and main pattern sequences, newest first (P1C.10). Absent in
+     * steps from before usage history.
+     */
+    structures: z.array(RecentStructureSchema).optional(),
   }),
   /** Topics of earlier exported videos, newest first: not to repeat. */
   pastTopics: z.array(z.strictObject({ title: z.string(), notes: z.string().nullable() })),
+  /**
+   * Earlier topics close to this run's (exported or in progress), closest first: the beat
+   * sheet's `topic_similar` warnings. Absent in steps from before topic history.
+   */
+  similarTopics: z.array(TopicMatchSchema).optional(),
 });
 export type DirectorMemory = z.infer<typeof DirectorMemorySchema>;
 

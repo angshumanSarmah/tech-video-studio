@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { DEFAULT_USAGE_VIDEOS } from '@explainer-studio/shared';
 import { parseCommand, textSource, UsageError } from './args.ts';
 import { runSettings } from './commands/run.ts';
 import { parseGateReply } from './gate-reply.ts';
@@ -118,6 +119,11 @@ describe('parseCommand', () => {
     });
     expect(parseCommand(['status'])).toEqual({ kind: 'status' });
     expect(parseCommand(['cost', '9'])).toEqual({ kind: 'cost', runId: 9 });
+    expect(parseCommand(['usage'])).toEqual({ kind: 'usage', videos: DEFAULT_USAGE_VIDEOS });
+    expect(parseCommand(['usage', '--videos', '3'])).toEqual({ kind: 'usage', videos: 3 });
+    expect(() => parseCommand(['usage', '--videos', '2.5'])).toThrow(/whole number/);
+    expect(() => parseCommand(['usage', '--videos', '999'])).toThrow(/whole number/);
+    expect(() => parseCommand(['usage', '3'])).toThrow(/usage \[--videos <n>\]/);
     expect(parseCommand(['render', 'spec.json', '--final'])).toEqual({
       kind: 'render',
       file: 'spec.json',

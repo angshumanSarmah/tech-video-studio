@@ -21,9 +21,12 @@ import {
 import { listEventsSince } from '#core/db/repositories/events.ts';
 import { enqueueJob, getJob } from '#core/db/repositories/jobs.ts';
 import { listRunExports } from '#core/db/repositories/exports.ts';
+import { finishRunStep, startRunStep } from '#core/db/repositories/run-steps.ts';
+import { usageOfRuns } from '#core/db/repositories/usage-history.ts';
 import { createRun, deleteRun, getRun, RunHasExportsError } from '#core/db/repositories/runs.ts';
 import { createSpecVersion } from '#core/db/repositories/spec-versions.ts';
 import { createTopic } from '#core/db/repositories/topics.ts';
+import { usageOfSpec } from '@explainer-studio/renderer/catalog';
 import { series } from '#core/db/schema.ts';
 import { createTestDb, TEST_APP_SETTINGS, type TestDb } from '#core/db/testing.ts';
 import { DraftClipMetaSchema } from '../render/draft-cache.ts';
@@ -190,6 +193,26 @@ describe('render jobs', () => {
     // At-least-once delivery: a rerun refreshes the row instead of adding one.
     await runJob(RENDER_JOB_TYPES.final, { specVersionId });
     expect(listRunExports(t.db, runId)).toHaveLength(1);
+  });
+
+  it('render_final records the usage history of a pipeline video with its export, once', async () => {
+    const usage = () => usageOfRuns(t.db, [runId]).map(({ kind, value }) => ({ kind, value }));
+    const spec = timedSpec();
+    const specVersionId = saveSpec(spec);
+    // A scratch `studio render` run has no plan: no usage.
+    await runJob(RENDER_JOB_TYPES.final, { specVersionId });
+    expect(listRunExports(t.db, runId)).toHaveLength(1);
+    expect(usage()).toEqual([]);
+
+    const step = startRunStep(t.db, { runId, stage: 'direct' });
+    finishRunStep(t.db, step.id, `runs/${runId}/direct/plan-${step.id}.json`);
+    await runJob(RENDER_JOB_TYPES.final, { specVersionId });
+    expect(usage()).toEqual(usageOfSpec(spec));
+    expect(usage().map((r) => r.kind)).toEqual(expect.arrayContaining(['ending', 'topic_class']));
+
+    // Re-exported (a rerun, or a newer version): its rows are replaced, never added to.
+    await runJob(RENDER_JOB_TYPES.final, { specVersionId });
+    expect(usage()).toEqual(usageOfSpec(spec));
   });
 
   it('render_final records no export when the render fails', async () => {

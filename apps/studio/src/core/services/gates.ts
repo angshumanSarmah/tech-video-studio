@@ -170,9 +170,9 @@ function beatSheetGateReview(db: Executor, dataDir: string, run: Run): Review | 
   if (!review) return undefined;
   return {
     content: { gate: 'beat_sheet', plan: review.direction.plan },
-    checks: review.issues.map(plainIssue),
+    checks: review.blocking.map(plainIssue),
     badges: [],
-    warnings: [],
+    warnings: review.warnings.map(plainIssue),
   };
 }
 

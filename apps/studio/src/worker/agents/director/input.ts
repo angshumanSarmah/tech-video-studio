@@ -1,4 +1,4 @@
-import type { DirectorInput, ResearchNotes } from '@explainer-studio/shared';
+import type { DirectorInput, RecentStructure, ResearchNotes } from '@explainer-studio/shared';
 import { notesWithoutChunks } from '../sections.ts';
 
 /**
@@ -9,7 +9,8 @@ import { notesWithoutChunks } from '../sections.ts';
 const INTRO =
   'Plan the video for this topic. The research notes below are the only facts you may use; ' +
   'cite their ids ("fact-<n>", "num-<n>") per beat. The recently used combinations are to ' +
-  'avoid, and the past topics are not to repeat.';
+  "avoid, and so is a recent video's structure (its hook and main patterns, newest first); " +
+  'the past topics are not to repeat, and a similar topic needs a clearly different angle.';
 
 export function directorUserMessage(input: DirectorInput, notes: ResearchNotes): string {
   const { recent } = input.memory;
@@ -27,11 +28,24 @@ export function directorUserMessage(input: DirectorInput, notes: ResearchNotes):
       layoutModes: recent.layouts,
       patterns: recent.patterns,
       deviceLayoutCombos: recent.combos,
+      ...(recent.structures?.length ? { structures: recent.structures.map(structureLine) } : {}),
     },
     pastTopics: input.memory.pastTopics,
+    ...(input.memory.similarTopics?.length
+      ? { similarTopics: input.memory.similarTopics.map(({ title, angle }) => ({ title, angle })) }
+      : {}),
     researchNotes: notesWithoutChunks(notes),
   };
   return `${INTRO}\n\n${JSON.stringify(payload, null, 2)}`;
+}
+
+/** A recent video's structure in the Director's words: `hook.kind/device`, then its patterns. */
+function structureLine(structure: RecentStructure): Record<string, unknown> {
+  return {
+    title: structure.title,
+    hooks: structure.hooks,
+    ...(structure.sequences.length > 0 ? { mainPatterns: structure.sequences } : {}),
+  };
 }
 
 function titleInstruction({ titleMaxChars }: DirectorInput): string {

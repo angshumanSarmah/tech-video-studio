@@ -93,7 +93,11 @@ export const GateDtoSchema = z.object({
    * Research: thin research, sources that disagree, and the notes' own check findings.
    */
   blocking: z.array(z.string()),
-  /** Findings shown with the blocking ones that never block (research: many sources). */
+  /**
+   * Findings shown with the blocking ones that never block. Research: many sources, and
+   * disagreements the run's rule leaves advisory. Beat sheet: advisory plan issues
+   * (`hook_repeated`) and earlier topics close to this one (`topic_similar`).
+   */
   warnings: z.array(GateIssueSchema),
   /** A still per beat of the subject version (data-dir relative); empty when none shows it. */
   stills: z.array(z.object({ beatId: z.string(), path: z.string() })),

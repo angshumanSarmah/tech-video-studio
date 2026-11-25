@@ -340,9 +340,10 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
     its content (research: the notes and `sources`, one `ResearchSourceStat` per source read,
     its characters, chunks and chunks sent, then each failed source with its error), `checks`
     (research: `researchNotesProblems`; beat sheet: `planIssues`, `#core/checks/plan.ts`, the
-    Director's own check list; scenes and draft: the Curator's code issues, when its report's
-    `final` is that version), `badges` (part runs add `recap_stale`), `blocking` (lines
-    `<code> at <path>: <message>` for gates 1 and 2), `warnings` (research: `sources_many`), the
+    Director's own check list less its advisory codes; scenes and draft: the Curator's code
+    issues, when its report's `final` is that version), `badges` (part runs add `recap_stale`),
+    `blocking` (lines `<code> at <path>: <message>` for gates 1 and 2), `warnings` (research:
+    `sources_many`; beat sheet: `hook_repeated` and `topic_similar`, see "Memory"), the
     stills and
     draft of that version (data-dir paths, from their manifests, `#core/render-manifests.ts`),
     and the run's cost in total and per role (`runCostByRole`).
@@ -739,8 +740,9 @@ stepId?, aliases?, check?, signal?, log? })`** is the only way to call a model (
 - **`direct` job** (payload `{ feedback? }`: a gate's regenerate note, recorded in the step
   input and sent as the user message's last section, `withFeedback`, `agents/sections.ts`): reads the run's latest research notes (`latestResearch`; none
   fails the job), its memory (`directorMemory`, `#core/services/director-memory.ts`: active style
-  rules scoped `director` or `all`, usage of the last `RECENT_VIDEOS` (5) exported videos, past
-  exported topics) and the run's length / parts / level / format settings, then calls
+  rules scoped `director` or `all`, usage and structures of the last `RECENT_VIDEOS` (5)
+  exported videos, past exported topics, similar topics; see "Memory") and the run's length /
+  parts / level / format settings, then calls
   `callJson` with `DirectorPlanSchema` and `check: directorCheck(...)`. The prompt carries the
   summaries-only catalogue (`directorCatalogueBlock()`, renderer: ids, family, summary, when /
   when not; patterns also layout mode, formats and anchor names; no props or params, ~10k
@@ -810,7 +812,10 @@ seriesNumber })` makes the spec; with parts its `targetLengthSec` is the parts' 
   `cliffhanger_ending` and its `ENDING_REQUIREMENTS` (spec card: `specCard` and `cta`; callback
   and real-world closure: `cta`); earlier parts end on a `cliffhanger_ending` beat, parts 2+ open
   on a `recap_opening` beat; more than `MAX_RECENT_COMBO_REUSE` (1) beats reusing a recent
-  `<device>/<layout>` combo (usage kind `device_layout`) flags each. Per video (or part), with a
+  `<device>/<layout>` combo (usage kind `device_layout`) flags each; a video (or part) with a
+  recent video's hook and main pattern sequence is `structure_repeated`, with only the previous
+  video's hook `hook_repeated` (advisory, `DIRECTOR_ADVISORY_CODES`: soft in the Director's
+  repair turn, a G2 warning; see "Memory"). Per video (or part), with a
   `continuesPrevious` chain counted as one scene (its mode is its first beat's): a layout mode
   lays out at most `MAX_SCENES_PER_LAYOUT_MODE` (2) scenes (`layout_mode_overused`), two scenes
   in a row never share a mode (`layout_mode_repeated`), a pattern is suggested on at most
@@ -1273,6 +1278,50 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   the cost. Nothing is recorded. Tests: `repair/repair-beats.test.ts` (dry run, `fixtureTts`:
   the timing fixture's words for known narration, 0.4 s a word for new text).
 
+### Memory (P1C.10: usage and topic history; style rules come in M2)
+
+- **Usage history** (`usage_history`, kinds `USAGE_KINDS`): `render_final` records what the
+  exported spec used (`usageOfSpec`, renderer `catalog/usage.ts`, pure: devices, each new
+  board's layout mode, each beat's `<device>/<layout>` as the Director's combo check reads it,
+  drawn patterns, primitives placed directly, metaphor world, topic class, `hook`, `ending`,
+  `pattern_sequence`) in the transaction of its exports row (`recordExport({ usage })`, which
+  replaces the run's rows: a re-export refreshes them). Only a run with a finished `direct` step
+  records usage, so a scratch `studio render` run never becomes a video. Each part records its
+  own at its export; the parent records nothing.
+- **Structure** (shared `memory/fingerprint.ts`): `hookKey` is `<hook.kind>/<device>` of the
+  first beat after any recap; `mainPatternSequence` the first `MAIN_SEQUENCE_PATTERNS` (3)
+  distinct patterns in order, `a>b>c`, none under 2. A plan's comes from `suggestedPatternIds`
+  (`planFingerprint`, one per part), an export's from what its boards draw.
+- **Video window** (`#core/services/usage-history.ts`): `exportedVideos` groups exports by
+  `videoKey` (`parent_run_id ?? id`: a multi-part video is one video), newest export first,
+  only runs with usage rows, without the asking run's own video (itself, its parent and sibling
+  parts). `directorMemory` / `recentUsage` read the last `RECENT_VIDEOS` (5): values per kind
+  and `structures` (per video: title, hooks, sequences). The curate step input records what its
+  variety checks read (`CurateInput.recent`).
+- **Repeats:** combo reuse past `MAX_RECENT_COMBO_REUSE` blocks; `structure_repeated` (same
+  hook and sequence as any recent video) blocks; `hook_repeated` (the previous video's hook,
+  either series) is advisory; endings are recorded, never compared (the house ending repeats).
+  At G3 all of them are advisory (Curator policy; owner director). `splitPlanIssues`
+  (`#core/checks/plan.ts`) gives the beat sheet's `blocking` and `warnings`.
+- **Topic history** (`#core/services/topic-history.ts`, shared `memory/topic-similarity.ts`):
+  `topicSimilarity` on titles only (stemmed content words: the highest of Jaccard,
+  containment when the shorter title has 2+ words, character-trigram Dice); at or above
+  `TOPIC_SIMILARITY_WARN` (0.6) an exported topic (its newest export) or one still in progress
+  is a `TopicMatch` (at most 3, closest first, exported ones first on a tie). `startRun` returns
+  them as `warnings` (`POST /api/runs`: `CreateRunResponseSchema`; the CLI prints them) and logs
+  each as a `warn` event; the Director's input records them (`memory.similarTopics`, also in
+  its user message) and G2 shows them as `topic_similar`. Never blocking.
+- **Usage API:** `GET /api/memory/usage?videos=N` (`UsageSummarySchema`, default 10, at most
+  50: each video's hooks, endings and sequences, and per kind how many videos used each
+  value) and `pnpm studio usage [--videos N]`.
+- **Tests:** `acceptance/memory.test.ts` (the tokenizer to its export, then the rate limiter in
+  the same DB, `Harness.useTopic`, with the Researcher's recorded citations moved to the new
+  source ids: the second Director and Curator read the first's usage, and a third tokenizer run
+  is warned about; G2 with a seeded previous hook (warning, auto-approves) and a seeded
+  structure (an edit adding a pattern blocks)), `director-memory.test.ts`,
+  `usage-history.test.ts`, `topic-history.test.ts`, renderer `usage.test.ts`, shared
+  `memory/*.test.ts` and the Director's history checks.
+
 API conventions: routes under `/api`, inputs validated with the `validate()` helper against schemas
 from `packages/shared/src/api`, list responses wrapped as `{ items }`, and every error is
 `ApiErrorSchema` (`{ error: { code, message, issues? } }`). Domain errors from core
@@ -1320,6 +1369,8 @@ pbpaste | pnpm studio run "Consistent hashing" --series system-design --text "Te
   failed run resumes; `--cap` raises the cap and resumes a paused run; see "Rerun"),
   **`status [<run>]`** (recent runs, or one with its gates, parts and the worker lock),
   **`cost <run>`** (per role over the run and its parts, and the cap),
+  **`usage [--videos <n>]`** (the last exported videos' hooks, endings and main patterns, then
+  counts per kind; see "Memory"),
   **`render <spec.json> [--draft|--final]`** (`startRenderRun`: a scratch run, the spec as its
   `external` version 1, its scenes gate approved; the draft, and with `--final` gate 4 approves
   itself when nothing blocks and the final exports; no LLM calls).

@@ -1003,11 +1003,34 @@ Common mistakes to avoid
 **Analyst (memory rules)**
 
 ```text
-Role: Analyst. When the person edits or rejects something at a gate and leaves a note, propose at most
-one short reusable rule that would have prevented it ("Headlines stay under 6 words"), with its
-scope: director, scriptwriter, generator or all. Propose nothing when the note only concerns this
-video. Never propose a rule that hides errors, skips checks or lowers accuracy. The person accepts
-or rejects every rule.
+Role: Analyst. The person reviewing a video left a note at a review gate: with a rejection, an
+edit, a regenerate request or an approval. Decide whether the note shows a standing preference
+that would have prevented the problem in other videos too. If it does, propose exactly one short
+rule for one agent, with the scope whose output the note is about (the scopes are listed below).
+Nothing you propose applies until the person accepts it; they may edit or reject it.
+
+DO
+- Propose a rule only when it would apply to a different topic too.
+- Write the rule as one imperative sentence of at most 20 words that an agent can follow and a
+  reviewer can check ("Keep each board label under four words").
+- Generalise the note to the preference behind it.
+- Use "all" only when the note concerns more than one writing agent's output.
+- Return no rule, with the reason, when the note concerns only this video, repeats or
+  contradicts a rule under EXISTING RULES, or would need a rule this prompt forbids.
+DO NOT
+- Propose a rule that hides errors, skips or weakens checks, drops sources or lowers accuracy.
+- Name this video's topic, beats, numbers, sources or wording in the rule.
+- Propose a rule about colours, fonts, positions or timing: code decides those.
+- Propose more than one rule.
+
+Common mistakes to avoid
+1. A rule that only fits this topic.
+2. A vague rule no agent can act on ("Make it clearer").
+3. The wrong scope: board labels are the generator's, narration and headlines the scriptwriter's,
+   beats, devices and patterns the director's, what gets flagged the curator's.
+4. An existing rule restated in other words.
+5. One complaint turned into a ban (a weak example becomes "never use examples").
+6. Restating the note instead of the preference behind it.
 ```
 
 The asset drafter's rules live in `docs/asset-style.md` (P1C.12).
@@ -1264,15 +1287,30 @@ the Generator on an existing run.
 
 ```text
 Implement memory services:
-- style rules: when you edit or reject at a gate with a note, the analyst model proposes a short
-  reusable rule ("Never use more than 6 elements on a board"); rules are stored only after you accept
-  them in the UI; active rules are injected into relevant agents' prompts by scope (director,
-  scriptwriter, generator, all).
-- usage history: after export, record devices, layouts, patterns, primitives, metaphor world, topic.
-- topic history for repeat detection.
+- Usage history: recorded at export (in the export transaction, refreshed on re-export; each part
+  records its own; scratch render runs record nothing), from the exported spec: devices, layouts,
+  device/layout combos, patterns, primitives, metaphor world, topic class, plus the hook
+  (kind/device), the ending and the main pattern sequence. "Recent" means the last 5 videos (a
+  multi-part video counts once), excluding the run's own video family.
+- Repeats: a recent device/layout combo reused in more than one beat, or the same hook and main
+  pattern sequence as a recent video, blocks gate 2 (one Director repair; you can still approve by
+  hand). The same hook as the previous video is advisory. Endings are recorded but never flagged.
+  Nothing history-based blocks gate 3.
+- Topic history: a title close to a past or in-progress topic gives a warning when the run starts
+  and at gate 2, never a block (a new angle is legitimate).
+- Style rules: any gate decision with text (reject, approve, edit or regenerate note) becomes a
+  proposal only when you opt in for that note; the Analyst proposes at most one rule or says why
+  not (one-off, duplicate, unsafe, unclear). Rules are stored as proposed and applied only after
+  you accept them (optionally edited). Scopes: director, scriptwriter, generator, curator, and all
+  (the three writers, never the Curator). At most 12 active rules reach any one agent, each one
+  line of at most 160 characters. Active rules go last in the system message, oldest first, after
+  the cached catalogue; code checks are never affected by rules. API and CLI manage rules before
+  the UI exists.
 Expose memory context builders used by P1C.5–P1C.7. The analyst uses the shared preamble + the
 Analyst prompt from "Agent system prompts (v1)".
-Acceptance: tests for rule scoping and usage-based variety penalties.
+Acceptance: two dry runs in a row where the second sees the first's usage; repeat checks with
+seeded history; the topic-similarity table; rule scoping; note -> proposal -> accept -> the next
+run's prompt contains the rule.
 ```
 
 **P1C.11 Reference library analyst**

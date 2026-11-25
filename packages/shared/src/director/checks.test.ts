@@ -11,6 +11,7 @@ import {
 import { validateVideoSpec } from '../spec/validate.ts';
 import {
   directorPlanProblems,
+  isAdvisoryPlanCode,
   MAX_BEATS_PER_DEVICE,
   MAX_RECENT_COMBO_REUSE,
   MIN_PAYOFF_GAP_BEATS,
@@ -992,6 +993,50 @@ describe('directorPlanProblems', () => {
         ['$.story.beats[0]', 'recent_combo_reused'],
         ['$.story.beats[1]', 'recent_combo_reused'],
       ]);
+    });
+
+    /** Two suggested patterns, so the plan has a main sequence: `<a>><b>`. */
+    const withPatterns = (p: DirectorPlan) => {
+      p.story.beats[1]!.suggestedPatternIds = ['example-pattern-a'];
+      p.story.beats[3]!.suggestedPatternIds = ['example-pattern-b'];
+    };
+    const recent = (title: string, hooks: string[], sequences: string[] = []) => ({
+      title,
+      hooks,
+      sequences,
+    });
+
+    it('flags the structure of any recent video: the same hook and main pattern sequence', () => {
+      const recentStructures = [
+        recent('Newest', ['puzzle/planted_question']),
+        recent('Older', ['problem/contention_hook'], ['example-pattern-a>example-pattern-b']),
+      ];
+      const found = problemsAfter(withPatterns, ctx({ recentStructures }));
+      expect(found).toEqual([['$.story.beats[0]', 'structure_repeated']]);
+      expect(isAdvisoryPlanCode('structure_repeated')).toBe(false);
+      // Another sequence (or none) is not the same structure.
+      expect(problemsAfter(() => {}, ctx({ recentStructures }))).toEqual([]);
+    });
+
+    it("warns when the hook is the previous video's, whatever its patterns", () => {
+      const recentStructures = [recent('Newest', ['problem/contention_hook'])];
+      expect(problemsAfter(() => {}, ctx({ recentStructures }))).toEqual([
+        ['$.story.beats[0]', 'hook_repeated'],
+      ]);
+      expect(isAdvisoryPlanCode('hook_repeated')).toBe(true);
+      // Only the previous video's hook counts; a puzzle hook is another hook.
+      const older = [recent('Newest', ['puzzle/x']), recent('Older', ['problem/contention_hook'])];
+      expect(problemsAfter(() => {}, ctx({ recentStructures: older }))).toEqual([]);
+      expect(
+        problemsAfter((p) => (p.story.hook = { kind: 'puzzle' }), ctx({ recentStructures })),
+      ).not.toContainEqual(['$.story.beats[0]', 'hook_repeated']);
+    });
+
+    it('checks each part on its own hook', () => {
+      const recentStructures = [recent('Newest', ['problem/failure_before_fix'])];
+      const found = problemsAfter(twoParts, ctx({ recentStructures }));
+      expect(found).toContainEqual(['$.story.beats[3]', 'hook_repeated']);
+      expect(found.filter(([, code]) => code === 'hook_repeated')).toHaveLength(1);
     });
   });
 });

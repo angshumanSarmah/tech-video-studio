@@ -10,6 +10,7 @@ import {
 } from './routes/events.ts';
 import { createGatesRoute } from './routes/gates.ts';
 import { createHealthRoute } from './routes/health.ts';
+import { createMemoryRoute } from './routes/memory.ts';
 import { createRunsRoute } from './routes/runs.ts';
 import { createSeriesRoute } from './routes/series.ts';
 import { createTopicsRoute } from './routes/topics.ts';
@@ -36,6 +37,7 @@ function createApi(deps: AppDeps) {
     .route('/topics', createTopicsRoute(deps.db, deps.dataDir))
     .route('/runs', createRunsRoute(deps.db, deps.dataDir, deps.appSettings))
     .route('/runs', createGatesRoute(deps.db, deps.dataDir))
+    .route('/memory', createMemoryRoute(deps.db))
     .route('/events', createEventsRoute(deps.db, deps.events ?? DEFAULT_EVENT_STREAM_OPTIONS));
   if (deps.enableDevRoutes) api.route('/dev', createDevRoute(deps.db));
   return api;

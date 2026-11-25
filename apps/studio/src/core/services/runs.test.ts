@@ -39,6 +39,34 @@ describe('startRun', () => {
     ]);
   });
 
+  it('warns, and logs on the run, when the topic is close to one still in progress', () => {
+    const first = startRun(t.db, { app: TEST_APP_SETTINGS, topicId, seriesId });
+    expect(first.warnings).toEqual([]);
+    const again = createTopic(t.db, { title: 'Rate limiters', notes: 'the fail-open choice' }).id;
+    const { run, warnings } = startRun(t.db, { app: TEST_APP_SETTINGS, topicId: again, seriesId });
+    expect(warnings).toEqual([
+      {
+        topicId,
+        title: 'Rate limiting',
+        angle: null,
+        runId: first.run.id,
+        exportedAt: null,
+        score: 1,
+      },
+    ]);
+    const logs = listEventsSince(t.db, { runId: run.id, afterId: 0, limit: 10 }).filter(
+      (e) => e.type === 'log',
+    );
+    expect(logs).toMatchObject([
+      {
+        payload: {
+          level: 'warn',
+          message: `Close to an earlier topic: "Rate limiting" (run ${first.run.id}, still in progress; similarity 1.00).`,
+        },
+      },
+    ]);
+  });
+
   it.each([
     ['Topic', () => ({ topicId: 999, seriesId })],
     ['Series', () => ({ topicId, seriesId: 999 })],

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { basename, isAbsolute, resolve } from 'node:path';
 import {
+  topicMatchMessage,
   UPLOAD_EXTENSIONS,
   uploadExtension,
   type AddSourceRequest,
@@ -33,7 +34,7 @@ export async function runCommand(ctx: CliContext, cmd: RunCommand): Promise<numb
         uploadSource(ctx.db, ctx.config.dataDir, topic.id, source.upload);
       else addSource(ctx.db, ctx.config.dataDir, topic.id, source.request);
     }
-    const { run } = startRun(ctx.db, {
+    const { run, warnings } = startRun(ctx.db, {
       topicId: topic.id,
       seriesId,
       settings: runSettings(cmd),
@@ -42,6 +43,7 @@ export async function runCommand(ctx: CliContext, cmd: RunCommand): Promise<numb
     ctx.io.out(
       `Run ${run.id} started: "${cmd.topic}" (topic ${topic.id}, ${sources.length} sources).`,
     );
+    for (const match of warnings) ctx.io.out(`Warning: ${topicMatchMessage(match)}`);
     return driveRun(ctx, run.id, 0);
   });
 }

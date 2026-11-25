@@ -1,4 +1,9 @@
-import { RunDetailDtoSchema, RunDtoSchema, RunListResponseSchema } from '@explainer-studio/shared';
+import {
+  CreateRunResponseSchema,
+  RunDetailDtoSchema,
+  RunDtoSchema,
+  RunListResponseSchema,
+} from '@explainer-studio/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { latestEventId } from '#core/db/repositories/events.ts';
 import { listRunJobs } from '#core/db/repositories/jobs.ts';
@@ -34,6 +39,21 @@ describe('POST /api/runs', () => {
     expect(run.settings.autoApprove.research).toBe(false);
     expect(listRunJobs(s.db, run.id)).toMatchObject([
       { type: FIRST_RUN_JOB_TYPE, status: 'queued' },
+    ]);
+  });
+
+  it('returns earlier topics close to the new one as warnings', async () => {
+    const create = async (title: string) => {
+      const body = { topicId: createTopic(s.db, { title }).id, seriesId };
+      const res = await postJson(s.app, '/api/runs', body);
+      expect(res.status).toBe(201);
+      return CreateRunResponseSchema.parse(await res.json());
+    };
+    const first = await create('Database sharding');
+    expect(first.warnings).toEqual([]);
+    const second = await create('Sharding a database');
+    expect(second.warnings).toMatchObject([
+      { topicId: first.topicId, title: 'Database sharding', runId: first.id, exportedAt: null },
     ]);
   });
 

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { ExplanationLevelSchema } from '../config/video.ts';
+import { RecentStructureSchema } from '../memory/fingerprint.ts';
 import { CuratorOwnerSchema, IssueSeveritySchema } from './issue.ts';
 import { RepairOutputSchema, RepairRequestSchema } from './repair.ts';
 import { LlmUsageSchema } from './usage.ts';
@@ -27,6 +28,18 @@ export const CurateInputSchema = z.strictObject({
   researchStepId: z.number().int().positive(),
   model: z.string(),
   explanationLevel: ExplanationLevelSchema,
+  /**
+   * What the variety checks read from the usage history (P1C.10): the recent videos' combos,
+   * patterns and structures. Absent in steps from before usage history.
+   */
+  recent: z
+    .strictObject({
+      videos: z.number().int().min(0),
+      combos: z.array(z.string()),
+      patterns: z.array(z.string()),
+      structures: z.array(RecentStructureSchema),
+    })
+    .optional(),
 });
 export type CurateInput = z.infer<typeof CurateInputSchema>;
 

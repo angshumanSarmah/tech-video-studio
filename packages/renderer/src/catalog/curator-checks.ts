@@ -18,6 +18,7 @@ import {
   type IssueSeverity,
   type RenderableVideoSpec,
   type ResearchNotes,
+  type RecentStructure,
   type ScriptProblemCode,
   type SpecError,
   type VideoSettings,
@@ -67,8 +68,12 @@ export type CuratorCheckContext = {
   lengthOverrideSec?: number;
   /** The run's resolved pauses (`beatGapSec`, `landingSec`), as the Scriptwriter's budgets use. */
   pauses: BeatPauses;
-  /** What the last exported videos used (`directorMemory`). */
-  recent: { combos: readonly string[]; patterns: readonly string[] };
+  /** What the last exported videos used (`directorMemory`); structures for the history checks. */
+  recent: {
+    combos: readonly string[];
+    patterns: readonly string[];
+    structures?: readonly RecentStructure[];
+  };
   sourceNames?: readonly string[];
   sources?: readonly IncidentSource[];
 };
@@ -267,6 +272,7 @@ function storyWarnings(spec: RenderableVideoSpec, ctx: CuratorCheckContext): Spe
     video,
     ...(ctx.lengthOverrideSec !== undefined ? { lengthOverrideSec: ctx.lengthOverrideSec } : {}),
     recentCombos: ctx.recent.combos,
+    ...(ctx.recent.structures ? { recentStructures: ctx.recent.structures } : {}),
     series: ctx.series,
     ...(sourceNames ? { sourceNames } : {}),
     ...(sources ? { sources } : {}),

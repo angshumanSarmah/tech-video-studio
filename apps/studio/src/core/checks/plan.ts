@@ -7,6 +7,7 @@ import { getTheme } from '@explainer-studio/renderer/theme';
 import {
   bareSourceNames,
   directorPlanProblems,
+  isAdvisoryPlanCode,
   previewSpec,
   specFromPlan,
   validateVideoSpec,
@@ -54,6 +55,7 @@ export function planCheckDeps(s: PlanCheckSources): PlanCheckDeps {
       ? {}
       : { lengthOverrideSec: input.length.overrideSec }),
     recentCombos: input.memory.recent.combos,
+    ...(input.memory.recent.structures ? { recentStructures: input.memory.recent.structures } : {}),
     series: { name: s.series.name, label: s.series.label },
     sourceNames: bareSourceNames(s.sources),
     sources: s.sources,
@@ -108,4 +110,17 @@ function hudIssues(spec: VideoSpec | undefined, hud: HudContext): SpecError[] {
   } catch {
     return [];
   }
+}
+
+/**
+ * A plan's issues by weight (P1C.10): advisory ones (`DIRECTOR_ADVISORY_CODES`) never block the
+ * beat sheet and are never the reason for a Director repair; the rest block.
+ */
+export function splitPlanIssues<T extends { readonly code: string }>(
+  issues: readonly T[],
+): { blocking: T[]; warnings: T[] } {
+  return {
+    blocking: issues.filter((i) => !isAdvisoryPlanCode(i.code)),
+    warnings: issues.filter((i) => isAdvisoryPlanCode(i.code)),
+  };
 }

@@ -31,7 +31,8 @@ export function gateSummary(view: GateView, dataDir: string): string[] {
   const lines = [
     `── Gate ${gateNumber(view.gate)}: ${GATE_TITLES[view.gate]} · run ${view.runId} ──`,
   ];
-  // Advisory notes first (gate 1: disagreements that do not block, many sources).
+  // Advisory notes first (gate 1: disagreements that do not block, many sources; gate 2: the
+  // previous video's hook, topics close to earlier ones).
   lines.push(...view.warnings.map((w) => `  ! ${clip(w.message, WIDTH)}`));
   lines.push(...contentLines(view, dataDir));
   if (view.blocking.length > 0) {
