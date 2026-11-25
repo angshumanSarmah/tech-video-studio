@@ -41,6 +41,7 @@ import { getSeries, seriesChannelHandle } from '#core/db/repositories/series.ts'
 import { getTopic } from '#core/db/repositories/topics.ts';
 import { NotFoundError } from '#core/errors.ts';
 import { latestDirection } from '#core/services/direction.ts';
+import { runPart, type RunPart } from '#core/services/parts.ts';
 import { researchOfStep } from '#core/services/research-notes.ts';
 import { pinnedSpecVersion, saveSpecVersion } from '#core/services/spec-versions.ts';
 import { activeStyleRules } from '#core/services/style-rules.ts';
@@ -252,6 +253,7 @@ async function revise(
     notes: ctx.notes,
     research: ctx.research,
     budgets,
+    ...partOf(deps, ctx),
   };
   const measured = measuredBeatLengths(ctx.spec).find((b) => b.beatId === req.beatId);
   const styleRules = styleRulesSection(activeStyleRules(deps.db, 'scriptwriter'));
@@ -287,6 +289,12 @@ async function revise(
   return spliceRevision(script, req, revised);
 }
 
+/** A part run's revisions see the part context its script was written with. */
+function partOf(deps: RepairDeps, ctx: RepairContext): { part?: RunPart } {
+  const part = runPart(deps.db, deps.dataDir, ctx.run);
+  return part ? { part } : {};
+}
+
 function checkDeps(ctx: RepairContext): ScriptwriterCheckDeps {
   return {
     plan: ctx.plan,
@@ -304,6 +312,7 @@ function checkDeps(ctx: RepairContext): ScriptwriterCheckDeps {
       ...(ctx.spec.story.ending.seriesNumber !== undefined
         ? { seriesNumber: ctx.spec.story.ending.seriesNumber }
         : {}),
+      ...(ctx.spec.meta.part ? { part: ctx.spec.meta.part } : {}),
     },
     hud: { seriesLabel: ctx.series.label, channelHandle: ctx.channelHandle },
   };

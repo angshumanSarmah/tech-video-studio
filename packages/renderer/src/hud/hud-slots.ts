@@ -4,7 +4,13 @@ import { formatAreas } from '../layout/format.ts';
 import type { Theme } from '../theme/index.ts';
 import { hudLayout } from './hud-layout.ts';
 import { formatClockValue, visibleHudParts, type ChapterSpan } from './hud-state.ts';
-import { titleBlockLayout, type TitleBlockVariant } from './title-block.ts';
+import {
+  sheetLabel,
+  titleBlockCells,
+  titleBlockLayout,
+  type TitleBlockCellId,
+  type TitleBlockVariant,
+} from './title-block.ts';
 
 /**
  * Pure slot widths for HUD text that is cut off when too long (ellipsis or a two-line clamp).
@@ -109,6 +115,65 @@ export function titleBlockSlots(
 export function titleCellWidth(theme: Theme, variant: TitleBlockVariant): number {
   const { space, stroke } = theme;
   return titleBlockLayout(theme, variant).block.width - 2 * stroke.thin - 2 * space.sm;
+}
+
+/**
+ * The revision cell's text room (REV A, or PART n/N for a part) in the title block's bottom row:
+ * the row less the other cells at their widest (the header's series label, SHEET n/N while the
+ * step tracker shows, the handle), each with its padding and rule, less its own. The cell is
+ * drawn at its text's width, so a longer text would squeeze the cell that grows.
+ */
+export function revisionSlot(
+  theme: Theme,
+  variant: TitleBlockVariant,
+  spec: RenderableVideoSpec,
+  ctx: HudContext,
+): { room: number; shares: RowShare[] } {
+  const { space, stroke } = theme;
+  const count = shownChapterCount(spec);
+  const sheet = visibleHudParts(spec).stepTracker && count > 0;
+  const cells = titleBlockCells({ variant, sheet, channelHandle: ctx.channelHandle });
+  const chrome = (id: TitleBlockCellId) =>
+    2 * space.sm + (cells.indexOf(id) === 0 ? 0 : stroke.hairline);
+  const shares = cells.flatMap((id): RowShare[] => {
+    const text = cellText(theme, id, count, ctx);
+    return text ? [{ what: text.what, px: text.width + chrome(id) }] : [];
+  });
+  const row = titleBlockLayout(theme, variant).block.width - 2 * stroke.thin;
+  return { room: row - used(shares) - chrome('revision'), shares };
+}
+
+/** What a bottom-row cell other than the revision shows at its widest. */
+function cellText(
+  theme: Theme,
+  id: TitleBlockCellId,
+  chapters: number,
+  ctx: HudContext,
+): { what: string; width: number } | undefined {
+  switch (id) {
+    case 'series':
+      return {
+        what: `the series label "${ctx.seriesLabel}"`,
+        width: textWidth(theme, 'hud', ctx.seriesLabel),
+      };
+    case 'sheet': {
+      const widest = Math.max(
+        ...Array.from({ length: chapters }, (_, i) =>
+          textWidth(theme, 'hud', sheetLabel(i, chapters)),
+        ),
+      );
+      return { what: `the sheet cell "${sheetLabel(chapters - 1, chapters)}"`, width: widest };
+    }
+    case 'handle':
+      return ctx.channelHandle
+        ? {
+            what: `the channel handle "${ctx.channelHandle}"`,
+            width: handleWidth(theme, ctx.channelHandle),
+          }
+        : undefined;
+    case 'revision':
+      return undefined;
+  }
 }
 
 function used(shares: readonly RowShare[]): number {

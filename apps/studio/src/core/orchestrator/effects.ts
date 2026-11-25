@@ -14,6 +14,7 @@ import { createRun, type Run } from '../db/repositories/runs.ts';
 import { getSeries } from '../db/repositories/series.ts';
 import { getLatestSpecVersion } from '../db/repositories/spec-versions.ts';
 import { latestDirection, type RunDirection } from '../services/direction.ts';
+import { partRefOf } from '../services/parts.ts';
 import { latestScript } from '../services/script.ts';
 import { saveSpecVersionIn } from '../services/spec-versions.ts';
 import { OrchestratorStateError } from './snapshot.ts';
@@ -104,6 +105,7 @@ function spec(ctx: EffectContext, then: PipelineStepId): PipelineStepId {
       series: series.tag,
       seriesNumber: seriesNumber(direction, run),
       ...(run.settings.format ? { formatOverride: run.settings.format } : {}),
+      ...partField(run),
     }),
   );
   if (!assembled.ok) {
@@ -112,6 +114,12 @@ function spec(ctx: EffectContext, then: PipelineStepId): PipelineStepId {
   }
   saveSpecVersionIn(tx, dataDir, { runId: run.id, spec: assembled.spec, createdBy: 'agent' });
   return then;
+}
+
+/** A part run's spec carries its part (`meta.part`: PART n/N, the part-aware checks). */
+function partField(run: Run) {
+  const part = partRefOf(run);
+  return part ? { part } : {};
 }
 
 /** The series number the Director was given, plus the part's offset. */

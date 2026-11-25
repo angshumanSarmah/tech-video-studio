@@ -41,10 +41,16 @@ export class RunBudgetReachedError extends Error {
     readonly runId: number,
     readonly spentUsd: number,
     readonly capUsd: number,
+    /** The run whose cap it is: `runId`, or a part's parent (the cap covers the whole video). */
+    readonly capRunId: number = runId,
   ) {
     super(
-      `Run ${runId} has spent $${spentUsd.toFixed(4)} of its $${capUsd.toFixed(2)} cap ` +
-        '(budget.maxRunUsd): raise the cap to resume it.',
+      capRunId === runId
+        ? `Run ${runId} has spent $${spentUsd.toFixed(4)} of its $${capUsd.toFixed(2)} cap ` +
+            '(budget.maxRunUsd): raise the cap to resume it.'
+        : `Run ${runId} is a part of run ${capRunId}'s video, which has spent ` +
+            `$${spentUsd.toFixed(4)} of its $${capUsd.toFixed(2)} cap (budget.maxRunUsd on run ` +
+            `${capRunId}): raise the cap on run ${capRunId} to resume it.`,
     );
   }
 }

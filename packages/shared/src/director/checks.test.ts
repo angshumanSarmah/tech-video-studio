@@ -16,6 +16,7 @@ import {
   MIN_PAYOFF_GAP_BEATS,
   type DirectorCheckContext,
 } from './checks.ts';
+import { partPlan } from './part-plan.ts';
 import { DirectorPlanSchema, type DirectorPlan } from './plan.ts';
 import { specFromPlan } from './spec.ts';
 
@@ -529,6 +530,52 @@ describe('directorPlanProblems', () => {
         ['$.story.beats[1].device', 'cliffhanger_missing'],
         ['$.story.beats[2].device', 'recap_missing'],
       ]);
+    });
+
+    describe('a part run’s plan (part context)', () => {
+      const split = () => {
+        const p = plan();
+        twoParts(p);
+        return p;
+      };
+      const codes = (p: DirectorPlan, part?: { index: number; count: number }) =>
+        directorPlanProblems(p, ctx(part ? { part } : {})).map((x) => [x.path, x.code]);
+
+      it('checks each part as that part of the video: no problems', () => {
+        expect(codes(partPlan(split(), 1), { index: 1, count: 2 })).toEqual([]);
+        expect(codes(partPlan(split(), 2), { index: 2, count: 2 })).toEqual([]);
+      });
+
+      it('without it, part 1 is a whole video that never closes', () => {
+        expect(codes(partPlan(split(), 1))).toEqual([
+          ['$.story', 'no_failure_or_alternative'],
+          ['$.story.ending.kind', 'ending_kind'],
+        ]);
+      });
+
+      it('still needs the part’s own cliffhanger and recap', () => {
+        const first = partPlan(split(), 1);
+        first.story.beats[1]!.device = undefined;
+        const second = partPlan(split(), 2);
+        second.story.beats[0]!.device = undefined;
+        second.story.devices = ['failure_before_fix'];
+        expect(codes(first, { index: 1, count: 2 })).toEqual([
+          ['$.story.beats[1].device', 'cliffhanger_missing'],
+        ]);
+        // Without its recap, the part's first beat is its hook, too.
+        expect(codes(second, { index: 2, count: 2 })).toContainEqual([
+          '$.story.beats[0].device',
+          'recap_missing',
+        ]);
+      });
+
+      it('closes the topic only in the last part', () => {
+        const last = partPlan(split(), 2);
+        last.story.ending = { kind: 'cliffhanger_ending' };
+        expect(codes(last, { index: 2, count: 2 })).toEqual([
+          ['$.story.ending.kind', 'ending_kind'],
+        ]);
+      });
     });
   });
 

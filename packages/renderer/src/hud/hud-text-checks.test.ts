@@ -12,7 +12,13 @@ import {
 import { TEXT_TRUNCATED } from '../layout/text-fit.ts';
 import { getTheme, listThemes } from '../theme/index.ts';
 import { hudLayout } from './hud-layout.ts';
-import { barSlots, storyClockWidth, titleBlockSlots, type HudContext } from './hud-slots.ts';
+import {
+  barSlots,
+  revisionSlot,
+  storyClockWidth,
+  titleBlockSlots,
+  type HudContext,
+} from './hud-slots.ts';
 import { titleBlockLayout } from './title-block.ts';
 import { hudTextWarnings } from './hud-text-checks.ts';
 
@@ -165,6 +171,43 @@ describe('hudTextWarnings', () => {
     expect(paths(spec)).toEqual(['$.story.chapters[1].title']);
     expect(hudTextWarnings(spec, paper, contextFor(spec))[0]?.message).toMatch(
       /^Chapter "count": the card viewport label/,
+    );
+  });
+});
+
+describe('hudTextWarnings: a part’s PART n/N cell', () => {
+  const part = (spec: RenderableVideoSpec): RenderableVideoSpec => ({
+    ...spec,
+    meta: { ...spec.meta, part: { index: 2, count: 2 } },
+  });
+
+  it('fits PART 2/2 beside the sheet cell and the handle in both variants', () => {
+    for (const format of FORMATS) {
+      const spec = part(withFormat(goldenRateLimiterSpec, format));
+      expect(paths(spec)).toEqual([]);
+      const variant = format === 'card' ? 'header' : 'strip';
+      const slot = revisionSlot(paper, variant, spec, contextFor(spec));
+      expect(slot.room).toBeGreaterThan(0);
+      expect(slot.shares.map((s) => s.what)).toContain(
+        `the channel handle "${fixtureChannelHandle}"`,
+      );
+    }
+  });
+
+  it('warns at $.meta.part when the row cannot hold it, naming what shares the row', () => {
+    const spec = part(goldenRateLimiterSpec);
+    const context = { ...contextFor(spec), channelHandle: `@${'x'.repeat(90)}` };
+    const warnings = hudTextWarnings(spec, paper, context);
+    expect(warnings.map((w) => w.path)).toEqual(['$.meta.part']);
+    expect(warnings[0]?.message).toMatch(
+      /^The title block's part cell "PART 2\/2" is \d+ px wide, but its slot has .*the channel handle/,
+    );
+  });
+
+  it('checks nothing for a single video (REV A is fixed text)', () => {
+    const context = { ...contextFor(goldenRateLimiterSpec), channelHandle: `@${'x'.repeat(90)}` };
+    expect(hudTextWarnings(goldenRateLimiterSpec, paper, context).map((w) => w.path)).not.toContain(
+      '$.meta.part',
     );
   });
 });

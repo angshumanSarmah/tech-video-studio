@@ -9,8 +9,9 @@ import {
 import type { z } from 'zod';
 import { llmCallPaths, writeDataJson } from '#core/data-files.ts';
 import type { Db } from '#core/db/client.ts';
-import { insertLlmCall, runCostUsd, type LlmCallRow } from '#core/db/repositories/llm-calls.ts';
+import { insertLlmCall, type LlmCallRow } from '#core/db/repositories/llm-calls.ts';
 import { getRun } from '#core/db/repositories/runs.ts';
+import { videoBudget } from '#core/services/budget.ts';
 import { RunBudgetReachedError } from '#core/errors.ts';
 import { callCostUsd } from './cost.ts';
 import { normalizeJsonText, type FieldAlias } from './normalize.ts';
@@ -227,14 +228,15 @@ export function createLlmClient(deps: LlmClientDeps): LlmClient {
     return run.resolvedSettings.llm;
   }
 
-  /** A run's spend before a request: at its cap, nothing more is sent (`RunBudgetReachedError`). */
+  /**
+   * The video's spend before a request (a part's parent and every part together): at its cap,
+   * nothing more is sent (`RunBudgetReachedError`), whichever run is about to call.
+   */
   function checkBudget(runId: number | null | undefined): void {
     if (runId === undefined || runId === null) return;
-    const run = getRun(deps.db, runId);
-    if (!run) return;
-    const cap = run.resolvedSettings.budget.maxRunUsd;
-    const spent = runCostUsd(deps.db, runId);
-    if (spent >= cap) throw new RunBudgetReachedError(runId, spent, cap);
+    const budget = videoBudget(deps.db, runId);
+    if (!budget || budget.spentUsd < budget.capUsd) return;
+    throw new RunBudgetReachedError(runId, budget.spentUsd, budget.capUsd, budget.capRunId);
   }
 
   async function attempt<S extends z.ZodType>(

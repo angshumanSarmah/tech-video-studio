@@ -28,10 +28,11 @@ import {
   subjectText,
   titleBlockSlots,
   pillText,
+  revisionSlot,
   type HudContext,
   type RowShare,
 } from './hud-slots.ts';
-import { TITLE_LINES, viewportLabel } from './title-block.ts';
+import { partLabel, TITLE_LINES, viewportLabel } from './title-block.ts';
 
 /**
  * `text_truncated` for HUD text: every line the HUD would cut off (ellipsis or line clamp) in the
@@ -130,7 +131,25 @@ function titleBlockChecks(
           ),
         )
       : [];
-  return [...top, ...meta, ...viewport];
+  const block = parts.topBar || variant === 'header';
+  return [...top, ...(block ? partCheck(spec, theme, context, variant) : []), ...meta, ...viewport];
+}
+
+/** A part's PART n/N in the title block's revision cell (`revisionSlot`). */
+function partCheck(
+  spec: RenderableVideoSpec,
+  theme: Theme,
+  context: HudContext,
+  variant: 'strip' | 'header',
+): SpecError[] {
+  const part = spec.meta.part;
+  if (!part) return [];
+  const { room, shares } = revisionSlot(theme, variant, spec, context);
+  return lineCheck(theme, 'hud', partLabel(part), room, {
+    path: toJsonPath(['meta', 'part']),
+    what: "The title block's part cell",
+    shares,
+  });
 }
 
 function subjectCheck(

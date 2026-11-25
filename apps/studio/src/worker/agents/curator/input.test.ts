@@ -9,7 +9,7 @@ import {
 import { describe, expect, it } from 'vitest';
 import { FIXTURE_WORDS_PER_SEC, fixtureTopic, type FixtureTopicId } from '../fixture-topics.ts';
 import { fixtureGeneratedSpec, recordedNotes } from '../generator/testing.ts';
-import { curatorUserMessage, reviewBeatTexts } from './input.ts';
+import { curatorUserMessage, partLine, reviewBeatTexts } from './input.ts';
 
 const SERIES = {
   'rate-limiter': { name: 'System Design', label: 'SYSTEM DESIGN' },
@@ -101,6 +101,20 @@ describe('curatorUserMessage', () => {
         'Evidence: label latency "round trip per request"; number num-6. Fix asked: <example-fix>',
     );
     expect(text.indexOf('## CHANGED BEATS')).toBeLessThan(text.indexOf('## PASS claims'));
+  });
+});
+
+describe('curatorUserMessage: a part of a multi-part video', () => {
+  it('says how the part opens and ends, only for a part', () => {
+    expect(partLine({ index: 1, count: 2 })).toBe(
+      'part: 1 of 2, each its own video · it opens the topic and ends on a cliffhanger into ' +
+        'part 2 (no spec card; it does not close the topic)',
+    );
+    expect(partLine({ index: 2, count: 2 })).toBe(
+      'part: 2 of 2, each its own video · it opens with a recap of part 1 and closes the topic ' +
+        'with the ending',
+    );
+    expect(message('tokenizer')).not.toContain('\npart: ');
   });
 });
 

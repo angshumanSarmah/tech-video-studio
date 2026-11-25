@@ -8,8 +8,13 @@ import { DimensionMetric } from './DimensionMetric.tsx';
 import { StepMarker, StepName } from './StepTracker.tsx';
 import { Headline } from './Headline.tsx';
 import { StoryClock } from './HeroMetric.tsx';
-import { titleBlockSlots } from './hud-slots.ts';
-import { titleBlockLayout, viewportLabel, type TitleBlockVariant } from './title-block.ts';
+import { revisionSlot, titleBlockSlots } from './hud-slots.ts';
+import {
+  revisionLabel,
+  titleBlockLayout,
+  viewportLabel,
+  type TitleBlockVariant,
+} from './title-block.ts';
 import { TitleBlock } from './TitleBlock.tsx';
 import { useHudModel, type HudProps } from './use-hud-model.ts';
 
@@ -17,7 +22,7 @@ type Props = HudProps & { variant: TitleBlockVariant };
 
 /**
  * `hud.style: 'title-block'`. The strip variant draws the title block (topic, SHEET for the step
- * tracker, REV, handle), then the step dots beside the hero metric dimension, then the chapter
+ * tracker, REV or a part's PART n/N, handle), then the step dots beside the hero metric dimension, then the chapter
  * header (or the current step's name) beside the story clock. The header variant (card format) draws the title
  * block with the title in display type, the same rows under it, and the diagram window as a ruled
  * viewport (`CardViewport`); its headline goes under the window (`formatAreas`).
@@ -29,6 +34,14 @@ export function TitleBlockHud({ variant, ...props }: Props) {
   const layout = useMemo(() => titleBlockLayout(theme, variant), [theme, variant]);
   const areas = useMemo(() => formatAreas(theme, spec.meta.format), [theme, spec.meta.format]);
   const slots = useMemo(() => titleBlockSlots(theme, variant, spec), [theme, variant, spec]);
+  const revision = useMemo(
+    () => ({
+      label: revisionLabel(spec.meta.part),
+      part: spec.meta.part !== undefined,
+      room: revisionSlot(theme, variant, spec, { seriesLabel, channelHandle }).room,
+    }),
+    [theme, variant, spec, seriesLabel, channelHandle],
+  );
   const headlineBand = areas.headlineBand;
   const row = { display: 'flex', alignItems: 'center', gap: theme.space.md } as const;
   const showSheet = parts.stepTracker && chapter !== undefined;
@@ -60,6 +73,7 @@ export function TitleBlockHud({ variant, ...props }: Props) {
           sheet={showSheet ? { chapters, current: chapter } : null}
           from={start}
           slots={slots}
+          revision={revision}
         />
       ) : null}
       <div style={{ ...rectCss(layout.metaRow), ...row, justifyContent: 'space-between' }}>

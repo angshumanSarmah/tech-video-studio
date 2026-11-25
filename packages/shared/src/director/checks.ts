@@ -1,6 +1,7 @@
 import { ENDING_DEVICES, type EndingDevice } from '../catalogues/devices.ts';
 import type { ExplanationLevel, VideoSettings } from '../config/video.ts';
 import type { ResearchNotes } from '../research/notes.ts';
+import type { PartRef } from '../spec/meta.ts';
 import { normalizeNumber, quantityTokens } from '../research/numbers.ts';
 import { bareSourceMessage, isBareSourceLine } from '../research/source-names.ts';
 import { containsPhrase } from '../text/phrase.ts';
@@ -111,6 +112,13 @@ export interface DirectorCheckContext {
     readonly title: string | null;
     readonly origin: string;
   }[];
+  /**
+   * The plan is one part of a multi-part video (a part run's plan, `partPlan`, or its spec seen
+   * as a plan): it is checked as that part, so an earlier part ends on its cliffhanger instead
+   * of closing the topic, a later part opens with its recap, and what the whole topic needs (a
+   * failure or rejected alternative) was checked on the parent's plan.
+   */
+  readonly part?: PartRef;
 }
 
 /** Distinct new glossary terms a whole video (or plan) may introduce, per explanation level. */
@@ -179,7 +187,7 @@ export function directorPlanProblems(
   plan: DirectorPlan,
   ctx: DirectorCheckContext,
 ): DirectorProblem[] {
-  const videos = plannedVideos(plan);
+  const videos = plannedVideos(plan, ctx.part);
   return [
     ...factIdProblems(plan, ctx.notes),
     ...factCountProblems(plan, ctx.video.explanationLevel),
@@ -196,10 +204,10 @@ export function directorPlanProblems(
     ...payoffGapProblems(plan),
     ...deviceReuseProblems(plan),
     ...unusedDeviceProblems(plan),
-    ...failureOrAlternativeProblems(plan),
+    ...(ctx.part ? [] : failureOrAlternativeProblems(plan)),
     ...videos.flatMap((video) => hookProblems(plan, video, ctx.notes)),
     ...strayHookNumberProblems(plan, videos),
-    ...endingProblems(plan, videos),
+    ...endingProblems(plan, videos, ctx.part),
     ...ctaProblems(plan, ctx.series),
     ...proseNumberProblems(plan, ctx.notes),
     ...varietyProblems(plan, ctx.recentCombos),
@@ -207,17 +215,18 @@ export function directorPlanProblems(
   ];
 }
 
-function plannedVideos(plan: DirectorPlan): PlannedVideo[] {
+/** The plan's videos: its parts, else the one video (a part of a bigger video when `part`). */
+function plannedVideos(plan: DirectorPlan, part?: PartRef): PlannedVideo[] {
   const { beats } = plan.story;
   if (!plan.parts) {
     return [
       {
-        index: 0,
-        count: 1,
+        index: (part?.index ?? 1) - 1,
+        count: part?.count ?? 1,
         beats: beats.map((_, i) => i),
         targetSec: plan.meta.targetLengthSec,
         targetPath: ['meta', 'targetLengthSec'],
-        label: 'The video',
+        label: part ? `Part ${part.index}` : 'The video',
       },
     ];
   }
@@ -950,8 +959,17 @@ function deviceReuseProblems(plan: DirectorPlan): DirectorProblem[] {
 const isEndingDevice = (kind: string): kind is EndingDevice =>
   (ENDING_DEVICES as readonly string[]).includes(kind);
 
-function endingProblems(plan: DirectorPlan, videos: readonly PlannedVideo[]): DirectorProblem[] {
-  return [...closingEndingProblems(plan), ...partEdgeProblems(plan, videos)];
+function endingProblems(
+  plan: DirectorPlan,
+  videos: readonly PlannedVideo[],
+  part: PartRef | undefined,
+): DirectorProblem[] {
+  // An earlier part ends on its cliffhanger (`partPlan`): only the last part closes the topic.
+  const closes = !part || part.index === part.count;
+  return [
+    ...(closes ? closingEndingProblems(plan) : []),
+    ...(plan.parts || part ? partEdgeProblems(plan, videos) : []),
+  ];
 }
 
 /** The single video, or the last part, closes with a closing ending and what it needs. */
@@ -994,7 +1012,6 @@ function closingEndingProblems(plan: DirectorPlan): DirectorProblem[] {
 
 /** Earlier parts end on cliffhanger_ending; parts 2+ open with recap_opening. */
 function partEdgeProblems(plan: DirectorPlan, videos: readonly PlannedVideo[]): DirectorProblem[] {
-  if (!plan.parts) return [];
   const { beats } = plan.story;
   return videos.flatMap((video) => {
     const first = video.beats[0];

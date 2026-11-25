@@ -26,6 +26,8 @@ export function partPlan(plan: DirectorPlan, part: number): DirectorPlan {
     story: {
       ...story,
       beats,
+      // Each part lists only the devices on its own beats (every listed device is on a beat).
+      devices: story.devices.filter((d) => beats.some((b) => b.device === d)),
       chapters: plan.story.chapters.filter((c) => chapterIds.has(c.id)),
       ...(plantedQuestion && within(plantedQuestion.beatId, plantedQuestion.payoffBeatId)
         ? { plantedQuestion }

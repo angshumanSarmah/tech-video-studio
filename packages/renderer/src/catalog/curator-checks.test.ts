@@ -94,8 +94,6 @@ describe('CURATOR_CODE_POLICY', () => {
       'chapter_spans_parts',
       'payoff_in_other_part',
       'chosen_in_other_part',
-      'cliffhanger_missing',
-      'recap_missing',
     ]);
     const known = [
       ...SPEC_WARNING_CODES,
@@ -116,6 +114,33 @@ describe('CURATOR_CODE_POLICY', () => {
         .map((issue) => `${spec.meta.id} ${issue.code}`),
     );
     expect(unrated).toEqual([]);
+  });
+});
+
+describe('curatorCodeChecks: a part of a multi-part video (meta.part)', () => {
+  /** The golden rate limiter as part `index` of 2: part 1 ends on its cliffhanger. */
+  function asPart(index: number | undefined, cliffhanger: boolean): RenderableVideoSpec {
+    const spec = structuredClone(goldenRateLimiterSpec);
+    if (index !== undefined) spec.meta.part = { index, count: 2 };
+    if (cliffhanger) {
+      spec.story.ending = { kind: 'cliffhanger_ending' };
+      spec.story.beats.at(-1)!.device = 'cliffhanger_ending';
+    }
+    return spec;
+  }
+  const codes = (spec: RenderableVideoSpec) =>
+    curatorCodeChecks(spec, context([])).map((i) => i.code);
+
+  it('takes part 1’s cliffhanger as its ending, not as a video that never closes', () => {
+    expect(codes(asPart(undefined, true))).toContain('ending_kind');
+    expect(codes(asPart(1, true))).not.toContain('ending_kind');
+    expect(codes(asPart(1, true))).not.toContain('cliffhanger_missing');
+  });
+
+  it('checks a part’s own edges: part 1 ends on a cliffhanger, part 2 opens with a recap', () => {
+    expect(codes(asPart(1, false))).toContain('cliffhanger_missing');
+    expect(codes(asPart(2, false))).toContain('recap_missing');
+    expect(codes(asPart(2, false))).not.toContain('ending_kind');
   });
 });
 

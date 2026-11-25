@@ -1,3 +1,4 @@
+import type { PartRef } from '@explainer-studio/shared';
 import { safeAreas, type Rect, type Theme } from '../theme/index.ts';
 import { lineHeightPx } from './hud-layout.ts';
 
@@ -9,6 +10,7 @@ import { lineHeightPx } from './hud-layout.ts';
  *           ├───────────────────────────────────────────┬───────┬────────┤
  *           │ SHEET 2/3                                 │ REV A │ @handle│
  *           └───────────────────────────────────────────┴───────┴────────┘
+ *           (a part of a multi-part video shows PART n/N in the REV cell)
  *           metaRow    ● ● ○ (step dots)              LABEL ├── VALUE ──┤
  *           chapterRow — 2 · CHAPTER QUESTION?             FROM → TO · 1:52
  *                      (or, with the chapter header off, the current step's name)
@@ -32,8 +34,18 @@ export type TitleBlockVariant = (typeof TITLE_BLOCK_VARIANTS)[number];
 /** Lines the header variant's title cell always holds room for (it never grows or jumps). */
 export const TITLE_LINES = 2;
 
-/** Constant until runs carry an episode number (docs/TODO.md). */
+/** A single video's revision cell; a part of a multi-part video shows PART n/N there instead. */
 export const REVISION_LABEL = 'REV A';
+
+/** "PART 2/3" for a part of a multi-part video (`meta.part`). */
+export function partLabel(part: PartRef): string {
+  return `PART ${part.index}/${part.count}`;
+}
+
+/** The revision cell's text: PART n/N for a part, else `REVISION_LABEL`. */
+export function revisionLabel(part: PartRef | undefined): string {
+  return part ? partLabel(part) : REVISION_LABEL;
+}
 
 export type TitleBlockLayout = {
   /** The ruled box, outer border included. */

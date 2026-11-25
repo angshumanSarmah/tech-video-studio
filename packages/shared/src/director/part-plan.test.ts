@@ -88,6 +88,24 @@ describe('partPlan', () => {
     expect(partPlan(plan, 1).story.plantedQuestion?.payoffBeatId).toBe('plant');
   });
 
+  it('lists only the devices on its own beats', () => {
+    const plan = twoParts();
+    plan.story.beats[1]!.device = 'cliffhanger_ending';
+    plan.story.beats[2]!.device = 'recap_opening';
+    expect(partPlan(plan, 1).story.devices).toEqual(['cliffhanger_ending']);
+    expect(partPlan(plan, 2).story.devices).toEqual(['recap_opening']);
+  });
+
+  it('carries the part into the spec (meta.part) when asked', () => {
+    const spec = specFromPlan(partPlan(twoParts(), 2), {
+      id: 'part',
+      series: 'system-design',
+      part: { index: 2, count: 2 },
+    });
+    expect(spec.meta.part).toEqual({ index: 2, count: 2 });
+    expect(validateVideoSpec(spec).errors).toEqual([]);
+  });
+
   it('refuses a part the plan does not have', () => {
     expect(() => partPlan(twoParts(), 3)).toThrow('no part 3');
   });

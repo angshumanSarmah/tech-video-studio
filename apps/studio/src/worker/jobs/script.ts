@@ -26,6 +26,7 @@ import { getSeries, seriesChannelHandle, type Series } from '#core/db/repositori
 import { getTopic } from '#core/db/repositories/topics.ts';
 import { NotFoundError } from '#core/errors.ts';
 import { latestDirection } from '#core/services/direction.ts';
+import { runPart, type RunPart } from '#core/services/parts.ts';
 import { researchOfStep } from '#core/services/research-notes.ts';
 import { activeStyleRules } from '#core/services/style-rules.ts';
 import { buildPrompt } from '../agents/prompt-builder.ts';
@@ -61,6 +62,7 @@ interface ScriptContext {
   readonly notes: ResearchNotes;
   readonly research: ResearchInput;
   readonly variables: PromptVariables;
+  readonly part: RunPart | undefined;
 }
 
 /**
@@ -124,6 +126,7 @@ function prepare(deps: ScriptJobDeps, run: Run, feedback: string | undefined) {
     throw new Error(`The plan's research step ${researchStepId} has no finished notes.`);
   }
   const variables = run.resolvedSettings.video;
+  const part = runPart(deps.db, deps.dataDir, run);
   const { beatGapSec, landingSec } = run.resolvedSettings.timing;
   const pauses = { beatGapSec, landingSec };
   const input: ScriptwriterInput = {
@@ -135,6 +138,7 @@ function prepare(deps: ScriptJobDeps, run: Run, feedback: string | undefined) {
     budgets: wordBudgets(direction.plan, variables.wordsPerSec, pauses),
     styleRules: activeStyleRules(deps.db, 'scriptwriter'),
     ...(feedback ? { feedback } : {}),
+    ...(part ? { part: partStepInput(part) } : {}),
   };
   const context: ScriptContext = {
     run,
@@ -144,8 +148,17 @@ function prepare(deps: ScriptJobDeps, run: Run, feedback: string | undefined) {
     notes: research.notes,
     research: research.input,
     variables,
+    part,
   };
   return { input, context };
+}
+
+function partStepInput(part: RunPart): NonNullable<ScriptwriterInput['part']> {
+  return {
+    index: part.index,
+    count: part.count,
+    ...(part.previous ? { previousSpecVersionId: part.previous.specVersionId } : {}),
+  };
 }
 
 async function writeScript(
@@ -153,7 +166,7 @@ async function writeScript(
   ctx: Ctx,
   stepId: number,
   input: ScriptwriterInput,
-  { run, series, topic, plan, notes, research, variables }: ScriptContext,
+  { run, series, topic, plan, notes, research, variables, part }: ScriptContext,
 ): Promise<ScriptwriterOutput> {
   const format = run.settings.format ?? plan.meta.format;
   const prompt = buildPrompt(deps.prompts, {
@@ -170,6 +183,7 @@ async function writeScript(
         notes,
         research,
         budgets: input.budgets,
+        ...(part ? { part } : {}),
       }),
       input.feedback,
     ),
@@ -187,6 +201,7 @@ async function writeScript(
       id: `run-${run.id}`,
       series: series.tag,
       ...(run.settings.format ? { formatOverride: run.settings.format } : {}),
+      ...(part ? { part: { index: part.index, count: part.count } } : {}),
     },
     hud: { seriesLabel: series.label, channelHandle: seriesChannelHandle(deps.db, series.id) },
   });

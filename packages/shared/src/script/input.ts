@@ -31,5 +31,16 @@ export const ScriptwriterInputSchema = z.strictObject({
   styleRules: z.array(z.string()),
   /** A reviewer's note from a gate's regenerate (the user message's FEEDBACK section). */
   feedback: z.string().min(1).optional(),
+  /**
+   * A part of a multi-part video: its number, the count, and the spec version of the part
+   * before whose narration the recap was written from.
+   */
+  part: z
+    .strictObject({
+      index: z.number().int().min(1),
+      count: z.number().int().min(2),
+      previousSpecVersionId: z.number().int().positive().optional(),
+    })
+    .optional(),
 });
 export type ScriptwriterInput = z.infer<typeof ScriptwriterInputSchema>;

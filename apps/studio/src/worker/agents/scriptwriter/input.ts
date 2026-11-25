@@ -9,6 +9,7 @@ import {
   type VideoFormat,
   type WordBudget,
 } from '@explainer-studio/shared';
+import type { RunPart } from '#core/services/parts.ts';
 import { notesWithoutChunks } from '../sections.ts';
 
 /**
@@ -33,6 +34,8 @@ export interface ScriptwriterMessage {
   /** The research step's input: where each number's source title comes from. */
   readonly research: ResearchInput;
   readonly budgets: readonly WordBudget[];
+  /** A part of a multi-part video: which, the part before (to recap) and the part after. */
+  readonly part?: RunPart;
 }
 
 /** `intro` replaces the opening instruction (the Curator's repairs revise one beat). */
@@ -55,6 +58,7 @@ export function scriptwriterUserMessage(
     heroMetric: story.heroMetric ?? null,
     plantedQuestion: story.plantedQuestion ?? null,
     rejectedAlternative: story.rejectedAlternative ?? null,
+    ...(input.part ? { part: partInput(input.part) } : {}),
     ...(plan.parts
       ? {
           parts: plan.parts.map(({ part, title, mainIdea, beatIds }) => ({
@@ -70,6 +74,29 @@ export function scriptwriterUserMessage(
     researchNotes: notesWithSources(input.notes, sources),
   };
   return `${options.intro ?? INTRO}\n\n${JSON.stringify(payload, null, 2)}`;
+}
+
+/**
+ * This part of the video: the part before's narration as it stands (its recap's material) and
+ * the part after's title and idea (its cliffhanger's question).
+ */
+function partInput(part: RunPart) {
+  return {
+    part: part.index,
+    of: part.count,
+    title: part.title,
+    mainIdea: part.mainIdea,
+    previousPart: part.previous
+      ? {
+          part: part.previous.index,
+          title: part.previous.title,
+          narration: part.previous.narration,
+        }
+      : null,
+    nextPart: part.next
+      ? { part: part.next.index, title: part.next.title, mainIdea: part.next.mainIdea }
+      : null,
+  };
 }
 
 function beatInput(beat: StoryBeat, input: ScriptwriterMessage, sources: Map<string, string>) {

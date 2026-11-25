@@ -20,10 +20,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       1 token" tag in `focus` beside its focused counter: `focus_colour_off_focus` (advisory,
       pinned in `colour-checks.test.ts`). Make it `concept` and refresh the golden images
       (`UPDATE_GOLDEN=1`), or keep it if two focus marks read well there.
-- [ ] **P1C.9 — Part runs in the Curator.** `planOfSpec` treats a spec as one video, so a
-      part run that ends on its cliffhanger would get `ending_kind` and its recap beat no
-      part context. When runs carry their part index, pass it to `curatorCodeChecks` and check
-      the part's ending and recap as the Director does.
 - [ ] **Generator — Text size after the camera.** `generatorCheck` still warns `text_too_small`
       at chain scale; `onScreenTextWarnings` would spare boards whose cameras lift each beat.
       Switch only if live runs show the Generator shrinking boards it did not need to.
@@ -54,9 +50,9 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **P1C.11 — Director references.** `directJobHandler` takes an optional `references`
       provider (prompt section 4); wire retrieval to it.
 - [ ] **P1C.6 — Story fields for the Scriptwriter.** Copy `beats[].source` into
-      `script[].source`; use `newTerms` (gloss each the first time) and `runningExample`; write
-      the recap on `recap_opening` beats and the next part's question on `cliffhanger_ending`
-      beats.
+      `script[].source`; use `newTerms` (gloss each the first time) and `runningExample`. (The
+      recap and the cliffhanger now get the parts' context: see "Recap and cliffhanger lines
+      unchecked".)
 - [ ] **P1C.5 — CTA room hint.** `story.ending.cta` has no length hint in its schema description;
       `hudTextWarnings` reports an over-long CTA with its room. Add a hint (like
       `CHAPTER_TITLE_MAX_CHARS`) if the Director keeps writing CTAs past three lines.
@@ -158,12 +154,17 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       (headline, title, chapter, metric) by the display advance ratio. Mono and sans styles keep
       blueprint-dark's sizes (Plex Mono matches JetBrains Mono's 0.6 em; Plex Sans is slightly
       narrower than Inter). Scale them too if a future font differs.
-- [ ] **P1C.9 step 8 — Parts end to end.** The orchestrator splits a plan with parts into child
-      runs (`partPlan`), but nothing has run a part past its script yet. A part is checked as a
-      single video: the Scriptwriter, `validateVideoSpec` and the Curator (`planOfSpec`) see part
-      1's `cliffhanger_ending` and part 2's recap with no part context (`ending_kind`, the recap
-      device), and the title block has no PART n/N cell. Part n+1's script waits for part n's,
-      but the Scriptwriter's input does not yet include part n's narration for the recap.
+- [ ] **P1C.9 — Recap and cliffhanger lines unchecked.** A part's recap and cliffhanger are
+      prompt rules only: no check that the recap stays within 2 sentences and draws on the part
+      before's narration, or that the cliffhanger line names the next part's question. Add
+      Scriptwriter checks (the part context is in its input) if live parts drift.
+- [ ] **P1C.9 — Part 2 reads part 1 as it stood.** Part n+1's Scriptwriter reads part n's latest
+      spec when its script starts (right after part n's `spec`). A later repair or gate edit of
+      part n's narration does not update part n+1's recap; a regenerate of part n+1's script
+      reads the newer narration.
+- [ ] **HUD — PART n/N in the bar style.** Only the title block (drafting-paper, and the card
+      header in any theme) shows a part's PART n/N. The parked `blueprint-dark` bar HUD shows
+      nothing; add it to the top bar if that theme comes back.
 - [ ] **P1C.9 — Backlog fallback.** `missing_primitive_requests` has no `fallback_used` column;
       the orchestrator appends "(fallback used: …)" to the description. Add the column (an
       appended migration) when the backlog UI needs to filter by it.
@@ -173,10 +174,9 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **P1C.9 step 9 — Edited notes and plans block.** A gate 1 or gate 2 edit is saved when its
       schema passes; its check findings are returned and shown, but blocking for those gates is
       empty until step 9 decides which findings block auto-approve.
-- [ ] **P1C.9 — Cost cap per video.** The cap is per run: a multi-part video's parts each have
-      their own `budget.maxRunUsd` (the parent's snapshot), so the whole video can spend up to
-      the cap times the parts plus the parent's research and plan. Sum a parent's and its parts'
-      spend if that matters. Calls already in flight when the cap is reached still finish.
+- [ ] **P1C.9 — Cost cap overshoot.** Calls already in flight when the cap is reached still
+      finish (each LLM client checks before a request), so a video can end slightly over its
+      cap. A reservation per request (its expected cost) would bound it.
 - [ ] **P1B.1 — Pronunciation editing.** `readPronunciations` only reads. Settings (GET/PUT
       `/api/pronunciations`) needs a `savePronunciations` (atomic, validated) in core. Keys are
       single tokens; multi-word keys ("Kafka Streams") and misaki's inline IPA override
@@ -284,9 +284,9 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       the card's headline band (drafting-paper: y 1183, 720 px wide), but `DevSubtitles` (not to
       be extended) still draws at the full format's band. The real subtitle layer must read the
       band from `formatAreas(theme, spec.meta.format)`.
-- [ ] **Runs — Episode number in the title block.** The title block's REV cell is the constant
-      `REVISION_LABEL` ("REV A"). Replace it with the episode number ("NO. 12") once runs
-      carry one.
+- [ ] **Runs — Episode number in the title block.** A single video's REV cell is the constant
+      `REVISION_LABEL` ("REV A"); a part's shows PART n/N. Replace REV A with the episode
+      number ("NO. 12") once runs carry one.
 - [ ] **Layout — Inset, bracket and route geometry.** `inset_panel` zooms from its own centre;
       `enter` should zoom out of its `anchor` element's placed box (transform origin from the
       layout). Its children are a plain stack (no pins or connectors between children). `bracket`

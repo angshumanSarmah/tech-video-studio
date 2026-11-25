@@ -5,6 +5,9 @@ import { draftingPaper } from '../theme/themes/drafting-paper.ts';
 import { lineHeightPx } from './hud-layout.ts';
 import {
   cellHeight,
+  partLabel,
+  REVISION_LABEL,
+  revisionLabel,
   sheetLabel,
   TITLE_BLOCK_VARIANTS,
   TITLE_LINES,
@@ -114,5 +117,13 @@ describe('sheetLabel', () => {
   it('counts sheets from 1', () => {
     expect(sheetLabel(0, 3)).toBe('SHEET 1/3');
     expect(sheetLabel(2, 3)).toBe('SHEET 3/3');
+  });
+});
+
+describe('revisionLabel', () => {
+  it('reads REV A for a single video and PART n/N for a part', () => {
+    expect(revisionLabel(undefined)).toBe(REVISION_LABEL);
+    expect(revisionLabel({ index: 2, count: 3 })).toBe('PART 2/3');
+    expect(partLabel({ index: 1, count: 2 })).toBe('PART 1/2');
   });
 });

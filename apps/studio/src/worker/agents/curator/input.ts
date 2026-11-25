@@ -21,6 +21,7 @@ import {
   readability,
   type BeatScript,
   type CodeIssue,
+  type PartRef,
   type Evidence,
   type ExplanationLevel,
   type PreviousIssue,
@@ -210,6 +211,7 @@ function videoLines(
   const rejected = story.rejectedAlternative;
   return [
     `title: ${quoted(meta.title)}`,
+    ...(meta.part ? [partLine(meta.part)] : []),
     `level: ${level} · format: ${meta.format} · planned ${meta.targetLengthSec} s` +
       (lengths.length > 0 ? ` · the beats run ${runs.toFixed(1)} s` : ''),
     `hook (${story.hook?.kind ?? 'problem'}): ${hook?.id ?? 'none'}` +
@@ -226,6 +228,19 @@ function videoLines(
     'terms, each introduced in its beat:',
     ...termLines(story.beats, notes),
   ];
+}
+
+/**
+ * A part of a multi-part video: how it opens and ends, so the review does not take a recap of
+ * the part before or a cliffhanger into the next part for a story fault.
+ */
+export function partLine(part: PartRef): string {
+  const opens = part.index > 1 ? `opens with a recap of part ${part.index - 1}` : 'opens the topic';
+  const ends =
+    part.index < part.count
+      ? `ends on a cliffhanger into part ${part.index + 1} (no spec card; it does not close the topic)`
+      : 'closes the topic with the ending';
+  return `part: ${part.index} of ${part.count}, each its own video · it ${opens} and ${ends}`;
 }
 
 function termLines(beats: readonly StoryBeat[], notes: ResearchNotes): string[] {

@@ -1,7 +1,7 @@
 import { VIDEO_LENGTH_LIMITS_SEC } from '../config/video.ts';
 import type { BeatScriptInput } from '../spec/script.ts';
 import { VIDEO_SPEC_SCHEMA_VERSION, type VideoSpecInput } from '../spec/shape.ts';
-import type { VideoFormat } from '../spec/meta.ts';
+import type { PartRef, VideoFormat } from '../spec/meta.ts';
 import type { DirectorPlan } from './plan.ts';
 
 /** What code adds to a plan to make it a spec: values the model never chooses. */
@@ -14,6 +14,8 @@ export interface PlanSpecContext {
   readonly formatOverride?: VideoFormat;
   /** Shown with the spec card ("System Design #12"). */
   readonly seriesNumber?: number;
+  /** A part run's place in its video (`meta.part`: the title block's PART n/N). */
+  readonly part?: PartRef;
 }
 
 /**
@@ -33,6 +35,7 @@ export function specFromPlan(plan: DirectorPlan, ctx: PlanSpecContext): VideoSpe
       topicClass: plan.meta.topicClass,
       targetLengthSec: planTargetLengthSec(plan),
       format: ctx.formatOverride ?? plan.meta.format,
+      ...(ctx.part ? { part: ctx.part } : {}),
     },
     story: {
       ...story,

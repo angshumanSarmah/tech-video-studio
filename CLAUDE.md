@@ -126,6 +126,10 @@ Dev ports: the UI is on http://localhost:4310 (`WEB_PORT`, Vite, `strictPort`) a
 - `meta.format` is `full` (default) or `card` (title header, 16:9 diagram window, headline,
   subtitles). The Director recommends it (`plan.meta.format`); a run's `settings.format` wins.
   The LLM `meta` spec part (`llmJsonSchema('meta')`) leaves it out.
+- `meta.part` (`PartRefSchema`: `{ index, count }`, optional) marks a part run's spec as part n
+  of N of a multi-part video. Code sets it (the `spec` transition, from `runs.part_index` and
+  `part_count`); the LLM `meta` part leaves it out. The title block shows it (PART n/N) and the
+  checks read it (below: Director checks' `part` context, the Curator).
 - A scene's `transitionIn` (cut, fade, slide, zoom-in, zoom-out) applies only to a beat that
   starts a new board; on a `continuesPrevious` beat it is ignored and warned
   (`transition_on_continuing_beat`). `zoomFrom` (with `zoom-in` only, never on a continuing or
@@ -290,8 +294,17 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   parent's, so it reads the same research) starting at `script`; the parent waits at `children`
   and finishes when every part has (`done` only if all are). Part n+1's script waits until part
   n is past `spec`. `spec` assembles plan + script (`assembleScriptedSpec`, the run's format
-  override, series number = the Director's `nextNumber` + part offset) as the next version
-  (`saveSpecVersionIn`). `board_backlog` records the Generator's requests.
+  override, series number = the Director's `nextNumber` + part offset, a part's `meta.part`,
+  `partRefOf`) as the next version (`saveSpecVersionIn`). `board_backlog` records the
+  Generator's requests. `partPlan` keeps each part's own devices (only those on its beats), its
+  chapters and length; earlier parts end on `cliffhanger_ending` (no spec card or CTA, so no
+  ending card), only the last part gets the plan's ending.
+- **Parts end to end** (step 8): each part runs from `script` to its own export. `runPart`
+  (`#core/services/parts.ts`) gives a part's agents its place: part n of N, its title and main
+  idea from the parent's parts plan, the part before (its latest spec's narration, per beat: the
+  recap's material) and the part after (title and idea: the cliffhanger's question). The
+  Scriptwriter's user message carries it as `part` (`previousPart`, `nextPart`; the step input
+  records `part.previousSpecVersionId`), and so do the Curator's Scriptwriter repairs.
 - **Gate API** (step 4; `#core/services/gates.ts`, `gate-decisions.ts`, `gate-edits.ts`,
   `run-settings.ts`; routes `server/routes/gates.ts`; shapes `shared/api/gates.ts`):
   - `GET /api/runs/:id/gates/:gate` (`readGate`): the row, `waiting` (the run is
@@ -343,11 +356,15 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   step's job again (resumable jobs reuse what they finished: the Generator's beat steps, a
   repair's steps); a resumed part reopens its failed parent at `children`; a parent itself, or a
   run that is not failed, is a 409.
-- **Cost cap** (step 7): the LLM client stops a run at `budget.maxRunUsd` (see "LLM client") and
-  the worker pauses it. Raising the cap with `PUT /api/runs/:id/settings` (allowed while paused,
-  its requeued job in the queue) resumes it when the new cap is above what it has spent
-  (`resumeUnderCap`: a `run_status` event and a log line either way). Gate payloads show the
-  cost per role.
+- **Cost cap** (steps 7-8): the cap is per video (`videoBudget`, `#core/services/budget.ts`): a
+  single run's `budget.maxRunUsd`, or a multi-part video's parent's, over the parent's and every
+  part's spend (`videoCostUsd`). The LLM client stops whichever run is about to call at the cap
+  (see "LLM client") and the worker pauses that run. Raising the cap with `PUT
+/api/runs/:id/settings` (allowed while paused, its requeued job in the queue, and on a parent
+  waiting at `children` for a `budget`-only patch) resumes every paused run of the video when the
+  new cap is above what the video has spent (`resumeUnderCap`: a `run_status` event and a log
+  line on each, either way). A part's own `budget` patch is a 400 (set it on the parent). Gate
+  payloads show the cost per role.
 - **Dry run:** `LLM_DRY_RUN_DIR` (env) makes the worker replay `<role>.json` recordings from that
   directory (`workerTransport`) instead of calling the API.
 - **Tests:** `decide.test.ts` (every transition, regenerate routes, parts, paused and cancelled);
@@ -372,7 +389,15 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   (`Harness.restart`: stale jobs requeued, runs swept) paying each beat once, a cancel during
   generate ends the run within 2 s with nothing queued after, a failed run resumes, and a cost
   cap below the Director's cost pauses at `direct` until raised. `Harness.hangAfter` holds a
-  role's calls in the next worker (abortable, or for good: a killed process).
+  role's calls in the next worker (abortable, or for good: a killed process). `parts.test.ts`
+  (step 8): a hand-written two-part tokenizer plan (part 1: b1-b4 ending on a cliffhanger; part
+  2: a recap beat with a hand-written board, then b5-b7), saved as a gate-2 edit, gives two part
+  runs that reach their drafts (each spec's `meta.part`, the cliffhanger and the ending card's
+  spec card only on part 2, no part-edge findings, HUD text checks clean, part 2's Scriptwriter
+  prompt holding part 1's narration and its recap quoting it); a cap set between part 1's spend
+  and the parts' combined spend, on the parent while it waits for its parts, pauses part 2 at
+  `curate` (part 1 at its draft), and raising it resumes part 2. Jobs run one at a time there so
+  each `curate` gets a quiet review of the spec it pins (`runParts`).
 
 ### Source ingestion (`src/worker/ingest`, job in `jobs/ingest.ts`)
 
@@ -536,9 +561,10 @@ stepId?, aliases?, check?, signal?, log? })`** is the only way to call a model (
   file; HTTP ignores it), so calls made in parallel replay deterministically; `recordedInOrder`
   reads a role recorded in call order, `recordKeyedResponses` (fixture scripts) records per key.
 - **Cost cap:** before each request (and again once a semaphore slot is free) a run's call
-  compares `runCostUsd` with the snapshot's `budget.maxRunUsd`; at or over it, nothing is sent and
-  `RunBudgetReachedError` is thrown (no `llm_calls` row). Calls already in flight finish, so a
-  run can end slightly over its cap.
+  compares its video's spend with the video's cap (`videoBudget`: the run's, or for a part its
+  parent's cap over the parent and every part); at or over it, nothing is sent and
+  `RunBudgetReachedError` is thrown (no `llm_calls` row; `capRunId` names the run to raise it
+  on). Calls already in flight finish, so a video can end slightly over its cap.
 - **Concurrency:** at most `llm.maxConcurrent` (default 3) requests in flight, across every role:
   one FIFO semaphore per client (`llm/semaphore.ts`) around each HTTP request (the wait is not
   part of `durationMs`; an abort while waiting leaves the queue).
@@ -736,7 +762,9 @@ researchStepId)`, not the newest research), the run's level and pace (`resolvedS
   `ScriptwriterOutputSchema` and `check: scriptwriterCheck(...)`. No catalogue section. The user
   message (`scriptwriterUserMessage`) resolves everything per beat: word budget, new terms with
   their glossary `plainMeaning`, hook numbers, facts and numbers, `source`; every number carries
-  its source title (for source lines). Notes go without chunk ids (`agents/sections.ts`).
+  its source title (for source lines). Notes go without chunk ids (`agents/sections.ts`). A
+  part run's message adds `part` (`runPart`: part n of N, `previousPart` with its narration for
+  the recap, `nextPart` for the cliffhanger), and its checks build the spec with `meta.part`.
 - **Steps and files** like the Director: stage `script`, `runs/<id>/script/input-<step>.json`
   (`ScriptwriterInputSchema`: the direct and research step ids, level, pace, pauses, budgets,
   style rules) and `script-<step>.json`. `latestScript(db, dataDir, runId)`
@@ -971,7 +999,11 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   spec after the Generator, or a gate edit), each finding a `CodeIssue` (shared
   `curator/issue.ts`): the `SpecError` plus `severity` (`blocking` | `advisory`) and `owner`
   (`scriptwriter` | `generator` | `director` | `researcher`; only the first two are ever
-  auto-repaired, `REPAIRABLE_OWNERS`). `ctx` (`CuratorCheckContext`): theme, notes, topic title,
+  auto-repaired, `REPAIRABLE_OWNERS`). A part's spec is checked as that part (`meta.part`, passed
+  as the Director checks' `part`): `ending_kind` only on the last part, `cliffhanger_missing` and
+  `recap_missing` on its own edges (advisory), no `no_failure_or_alternative` (the parent's plan
+  had it); the review's VIDEO section says how the part opens and ends (`partLine`).
+  `ctx` (`CuratorCheckContext`): theme, notes, topic title,
   series name and label, handle, resolved `settings.video`, `lengthOverrideSec`, pauses, recent
   usage (`directorMemory`: combos, patterns), source names and sources.
 - **What runs:** validation errors (always blocking; then nothing else runs) and warnings
@@ -1255,7 +1287,7 @@ in both formats at four moments (default theme unless ids are given).
   studio can import it.
 - **Theme selection:** `VideoFromSpec`/`BeatFromSpec` take an optional `themeId` (unknown ids
   fail in `calculateMetadata`); `PrimitiveSheet` and `ThemeSwatchBoard` take `themeId`.
-  `still:compare [themeIds…] [--only swatch,rate-limiter,<primitive>…]` renders `docs/themes/<theme>.png` and, in `docs/themes/compare/`,
+  `still:compare [themeIds…] [--only swatch,rate-limiter,rate-limiter-card,rate-limiter-part,<primitive>…]` renders `docs/themes/<theme>.png` and, in `docs/themes/compare/`,
   every primitive sheet plus a mid-video rate-limiter frame per theme.
 - **`blueprint-dark` is parked.** It stays registered, selectable via `themeId`, and must keep
   passing typecheck and tests (the per-theme contrast and font-coverage tests run for every
@@ -1371,7 +1403,9 @@ in both formats at four moments (default theme unless ids are given).
   name and the story clock.
   The theme's `hud.style` picks how the same data is drawn (`Hud` dispatches; `useHudModel` is
   shared): `bar` (blueprint-dark, `BarHud`) or `title-block` (drafting-paper, `TitleBlockHud`):
-  a ruled title block (`SERIES · TOPIC` over `SHEET n/N | REV A | handle`; SHEET is the step
+  a ruled title block (`SERIES · TOPIC` over `SHEET n/N | REV A | handle`; a part's spec shows
+  PART n/N in the REV cell, `revisionLabel(meta.part)`, cut at `revisionSlot` (the row less the
+  other cells at their widest) and checked by `hudTextWarnings` at `$.meta.part`; SHEET is the step
   tracker's label), the step dots beside the hero metric as a dimension (`DimensionMetric`), then
   the chapter header (or the step name) beside the story clock; rows `xs` apart so they fit the
   HUD band. Its slots come from `titleBlockLayout(theme, variant)`. `TitleBlock` has a

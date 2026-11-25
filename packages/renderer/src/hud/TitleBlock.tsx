@@ -14,7 +14,6 @@ import { enterProgress, enterStyle } from './motion.ts';
 import type { TitleBlockSlots } from './hud-slots.ts';
 import { ellipsis } from './styles.ts';
 import {
-  REVISION_LABEL,
   sheetLabel,
   TITLE_LINES,
   titleBlockCells,
@@ -40,6 +39,11 @@ export type TitleBlockProps = {
   from: number;
   /** Widths the subject line and the title are cut at (`titleBlockSlots`). */
   slots: Pick<TitleBlockSlots, 'subject' | 'title'>;
+  /**
+   * The revision cell: REV A, or PART n/N for a part (`revisionLabel`), and the width it is cut
+   * at (`revisionSlot`; `hudTextWarnings` reports a part label past it).
+   */
+  revision: { label: string; part: boolean; room: number };
 };
 
 /**
@@ -199,7 +203,7 @@ function Cell({ theme, grow, first, draw, children }: CellProps) {
 }
 
 function CellContent(props: TitleBlockProps & { id: TitleBlockCellId }) {
-  const { theme, id, seriesLabel, accent, channelHandle, sheet } = props;
+  const { theme, id, seriesLabel, accent, channelHandle, sheet, revision } = props;
   const { ink } = theme.colours;
   switch (id) {
     case 'series':
@@ -207,7 +211,18 @@ function CellContent(props: TitleBlockProps & { id: TitleBlockCellId }) {
     case 'sheet':
       return sheet ? <SheetValue theme={theme} sheet={sheet} /> : null;
     case 'revision':
-      return <span style={{ color: ink.muted }}>{REVISION_LABEL}</span>;
+      return (
+        <span
+          style={{
+            ...ellipsis,
+            maxWidth: revision.room,
+            color: revision.part ? ink.primary : ink.muted,
+            fontVariantNumeric: 'tabular-nums',
+          }}
+        >
+          {revision.label}
+        </span>
+      );
     case 'handle':
       return <span style={{ color: ink.muted, textTransform: 'none' }}>{channelHandle}</span>;
   }

@@ -47,8 +47,8 @@ import { patternVarietyWarnings } from './variety-checks.ts';
  *   replaced by what each beat shows after its camera (`text_too_small_on_screen`); HUD text,
  *   subtitles; the Generator's beat, screen-text and cross-board checks; colour meaning; a source
  *   line for numbers on screen; pattern variety against recent videos;
- * - the plan checks on the spec seen as a plan (`planOfSpec`), less what only a plan has (its
- *   planned length, its parts); the script checks, less the word budgets once the spec is timed
+ * - the plan checks on the spec seen as a plan (`planOfSpec`), as the part it is when it is
+ *   one (`meta.part`), less what only a plan has (its planned length, a parts plan); the script checks, less the word budgets once the spec is timed
  *   (the measured length replaces them);
  * - the measured length after TTS, the hook's numbers said again, and reading ease.
  * Findings are de-duplicated by path and code. Pure.
@@ -73,7 +73,10 @@ export type CuratorCheckContext = {
   sources?: readonly IncidentSource[];
 };
 
-/** Plan checks about what a spec does not have: its planned length (measured instead), parts. */
+/**
+ * Plan checks about what a spec does not have: its planned length (measured instead), a parts
+ * plan. A part run's spec knows its part (`meta.part`), so its recap and cliffhanger are checked.
+ */
 const PLAN_ONLY_CODES: readonly DirectorProblemCode[] = [
   'target_length_missing',
   'target_length_override',
@@ -88,8 +91,6 @@ const PLAN_ONLY_CODES: readonly DirectorProblemCode[] = [
   'chapter_spans_parts',
   'payoff_in_other_part',
   'chosen_in_other_part',
-  'cliffhanger_missing',
-  'recap_missing',
 ];
 
 /** Word budgets: estimates the measured length replaces once the spec is timed. */
@@ -269,6 +270,7 @@ function storyWarnings(spec: RenderableVideoSpec, ctx: CuratorCheckContext): Spe
     series: ctx.series,
     ...(sourceNames ? { sourceNames } : {}),
     ...(sources ? { sources } : {}),
+    ...(spec.meta.part ? { part: spec.meta.part } : {}),
   }).filter((p) => !PLAN_ONLY_CODES.includes(p.code));
   const measured = spec.timing !== undefined;
   const scripted = scriptProblems(

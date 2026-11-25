@@ -9,13 +9,15 @@ import { listThemes } from '../src/theme/index.ts';
 
 /**
  * Renders theme comparison stills for every registered theme (or the theme ids given as
- * arguments). `--only <targets>` (comma-separated: `swatch`, `rate-limiter`, `rate-limiter-card`
- * or primitive ids)
+ * arguments). `--only <targets>` (comma-separated: `swatch`, `rate-limiter`, `rate-limiter-card`,
+ * `rate-limiter-part` or primitive ids)
  * limits what is rendered; without it, everything is:
  *   docs/themes/<theme>.png                          swatch board
  *   docs/themes/compare/<primitive>-<theme>.png      one primitive sheet per primitive
  *   docs/themes/compare/rate-limiter-<theme>.png     middle frame of the rate-limiter fixture
  *   docs/themes/compare/rate-limiter-card-<theme>.png    the same frame in the card format
+ *   docs/themes/compare/rate-limiter-part-<theme>.png    the same frame as part 2 of 2 (the
+ *                                                        title block's PART 2/2 cell)
  * The rate-limiter frame uses the fixture series accent, adapted to each theme (`seriesAccent`).
  */
 
@@ -28,6 +30,7 @@ type Serve = { serveUrl: string };
 const SWATCH = 'swatch';
 const RATE_LIMITER = 'rate-limiter';
 const RATE_LIMITER_CARD = 'rate-limiter-card';
+const RATE_LIMITER_PART = 'rate-limiter-part';
 
 type Plan = { themeIds: string[]; targets: Set<string> };
 
@@ -47,6 +50,7 @@ function parseArgs(argv: string[]): Plan {
     ...listPrimitives().map((p) => p.id),
     RATE_LIMITER,
     RATE_LIMITER_CARD,
+    RATE_LIMITER_PART,
   ];
   return {
     themeIds: pick(
@@ -90,6 +94,12 @@ async function renderTheme(serve: Serve, themeId: string, targets: Set<string>):
     const output = resolve(compareDir, `${RATE_LIMITER_CARD}-${themeId}.png`);
     const card = { ...props, spec: withFormat(rateLimiterSpec, 'card') };
     await still(serve, 'VideoFromSpec', card, output, middle);
+  }
+  if (targets.has(RATE_LIMITER_PART)) {
+    const output = resolve(compareDir, `${RATE_LIMITER_PART}-${themeId}.png`);
+    const meta = { ...rateLimiterSpec.meta, part: { index: 2, count: 2 } };
+    const part = { ...props, spec: { ...rateLimiterSpec, meta } };
+    await still(serve, 'VideoFromSpec', part, output, middle);
   }
 }
 
