@@ -1,3 +1,4 @@
+import { MAX_SOURCE_BYTES } from '@explainer-studio/shared';
 import { isRetryableStatus, MAX_HTTP_RETRIES, retryDelayMs } from '../http/retry.ts';
 import { sleep as abortableSleep } from '../sleep.ts';
 import { httpFailure, SourceIngestError } from './errors.ts';
@@ -6,11 +7,18 @@ import type { SourceRequest } from './github.ts';
 /** Per attempt, from the request to the last byte of the body. */
 export const FETCH_TIMEOUT_MS = 20_000;
 /** Largest body read (PDFs are the big ones). Checked on Content-Length and while streaming. */
-export const MAX_SOURCE_BYTES = 15 * 1024 * 1024;
+export { MAX_SOURCE_BYTES };
 
-const USER_AGENT = 'ExplainerStudio/0.1 (single-user source ingestion; fetches only given URLs)';
+/**
+ * A generic desktop-browser User-Agent: it names no app or person, and pages that refuse unknown
+ * clients serve it the same HTML a reader gets. Only the given URL is fetched, never crawled.
+ */
+export const USER_AGENT =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) ' +
+  'Chrome/131.0.0.0 Safari/537.36';
 const ACCEPT =
-  'text/html,application/xhtml+xml,text/markdown,text/plain;q=0.9,application/pdf;q=0.9,*/*;q=0.5';
+  'text/html,application/xhtml+xml,text/markdown,text/plain;q=0.9,application/pdf;q=0.9,' +
+  'text/csv;q=0.8,application/json;q=0.8,*/*;q=0.5';
 
 export interface FetchDeps {
   readonly fetch?: typeof fetch;
@@ -158,7 +166,7 @@ function timeoutFailure(timeoutMs: number, attempts: number): SourceIngestError 
   return new SourceIngestError(
     'timeout',
     `No complete response within ${timeoutMs / 1000} s (${attempts} attempts). Retry later, or ` +
-      'upload the page as a file instead.',
+      'paste its text as a source instead.',
   );
 }
 
@@ -172,7 +180,7 @@ function networkFailure(error: unknown): SourceIngestError {
         : (error as Error).message;
   return new SourceIngestError(
     'network',
-    `Could not connect (${detail}). Check the URL, or upload the page as a file instead.`,
+    `Could not connect (${detail}). Check the URL, or paste its text as a source instead.`,
     { cause: error },
   );
 }

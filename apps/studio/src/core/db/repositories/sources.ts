@@ -1,4 +1,5 @@
 import type { SourceFailureCode } from '@explainer-studio/shared';
+import { posix } from 'node:path';
 import { asc, eq } from 'drizzle-orm';
 import type { Executor } from '../client.ts';
 import { sources } from '../schema.ts';
@@ -7,7 +8,14 @@ export type Source = typeof sources.$inferSelect;
 
 export type NewSource =
   | { readonly topicId: number; readonly kind: 'url'; readonly url: string }
-  | { readonly topicId: number; readonly kind: 'file'; readonly filePath: string };
+  | { readonly topicId: number; readonly kind: 'file'; readonly filePath: string }
+  | {
+      readonly topicId: number;
+      readonly kind: 'text';
+      /** The stored pasted text. */
+      readonly filePath: string;
+      readonly title: string;
+    };
 
 export function createSource(db: Executor, input: NewSource): Source {
   return db
@@ -16,10 +24,17 @@ export function createSource(db: Executor, input: NewSource): Source {
       topicId: input.topicId,
       kind: input.kind,
       url: input.kind === 'url' ? input.url : null,
-      filePath: input.kind === 'file' ? input.filePath : null,
+      filePath: input.kind === 'url' ? null : input.filePath,
+      title: input.kind === 'text' ? input.title : null,
     })
     .returning()
     .get();
+}
+
+/** The URL, the uploaded file's name, or the pasted text's title. */
+export function sourceOrigin(source: Source): string {
+  if (source.kind === 'text') return source.title ?? `Pasted text ${source.id}`;
+  return source.url ?? posix.basename(source.filePath ?? `source-${source.id}`);
 }
 
 export function getSource(db: Executor, id: number): Source | undefined {

@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, posix, relative, resolve } from 'node:path';
 
 /**
@@ -238,6 +238,20 @@ export function writeDataText(dataDir: string, relPath: string, text: string): s
   const abs = resolveDataPath(dataDir, relPath);
   mkdirSync(dirname(abs), { recursive: true });
   writeFileSync(abs, text, 'utf8');
+  return relPath;
+}
+
+/**
+ * Writes bytes to a content-addressed path once: an existing file already holds them. Written to
+ * a `.partial` file and renamed, so a crash never leaves a half-written file that is then kept.
+ */
+export function writeDataFileOnce(dataDir: string, relPath: string, bytes: Uint8Array): string {
+  const abs = resolveDataPath(dataDir, relPath);
+  if (existsSync(abs)) return relPath;
+  mkdirSync(dirname(abs), { recursive: true });
+  const partial = `${abs}.partial`;
+  writeFileSync(partial, bytes);
+  renameSync(partial, abs);
   return relPath;
 }
 

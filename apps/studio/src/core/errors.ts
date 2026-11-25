@@ -54,3 +54,16 @@ export class RunBudgetReachedError extends Error {
     );
   }
 }
+
+/** A source that cannot be added (an unread file type, a file too large). The server maps it to 400. */
+export class InvalidSourceError extends Error {
+  override readonly name = 'InvalidSourceError';
+}
+
+/**
+ * A run's rows or files are not in a state the orchestrator can work from (no spec version, no
+ * curation to review). The orchestrator fails the run with it; the server maps it to 409.
+ */
+export class OrchestratorStateError extends Error {
+  override readonly name = 'OrchestratorStateError';
+}

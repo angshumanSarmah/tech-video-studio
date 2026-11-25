@@ -1,7 +1,10 @@
 import { z } from 'zod';
 
-/** Where a topic source comes from. */
-export const SOURCE_KINDS = ['url', 'file'] as const;
+/**
+ * Where a topic source comes from: a URL, an uploaded file, or text pasted with a title (stored
+ * as a file and read like an uploaded `.txt`).
+ */
+export const SOURCE_KINDS = ['url', 'file', 'text'] as const;
 export const SourceKindSchema = z.enum(SOURCE_KINDS);
 export type SourceKind = z.infer<typeof SourceKindSchema>;
 

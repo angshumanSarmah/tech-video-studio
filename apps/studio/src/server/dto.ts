@@ -5,12 +5,15 @@ import type {
   RunDetailDto,
   RunDto,
   SeriesDto,
+  SourceDto,
   TopicDto,
 } from '@explainer-studio/shared';
+import { posix } from 'node:path';
 import type { StoredEvent } from '#core/db/repositories/events.ts';
 import type { Job } from '#core/db/repositories/jobs.ts';
 import type { RunSummary } from '#core/db/repositories/runs.ts';
 import type { Series } from '#core/db/repositories/series.ts';
+import type { Source } from '#core/db/repositories/sources.ts';
 import type { Topic } from '#core/db/repositories/topics.ts';
 import type { GateView } from '#core/services/gates.ts';
 import type { RunDetail } from '#core/services/runs.ts';
@@ -60,4 +63,20 @@ export function toJobDto(j: Job): JobDto {
 
 export function toGateDto(g: GateView): GateDto {
   return { ...g, decidedAt: g.decidedAt?.toISOString() ?? null };
+}
+
+export function toSourceDto(s: Source): SourceDto {
+  return {
+    id: s.id,
+    topicId: s.topicId,
+    kind: s.kind,
+    url: s.url,
+    fileName: s.kind === 'file' && s.filePath ? posix.basename(s.filePath) : null,
+    title: s.title,
+    status: s.status,
+    error: s.error,
+    errorCode: s.errorCode,
+    extractedAt: s.extractedAt?.toISOString() ?? null,
+    createdAt: s.createdAt.toISOString(),
+  };
 }

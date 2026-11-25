@@ -30,6 +30,7 @@ import {
   type FixtureTopicId,
 } from '#worker/agents/fixture-topics.ts';
 import { loadPromptTemplates, PROMPTS_DIR } from '#worker/agents/prompts/templates.ts';
+import { approveDisputedResearch } from '#core/orchestrator/testing.ts';
 import { seedRunWithUploads } from '#worker/agents/researcher/testing.ts';
 import { createJobHandlers, createJobRegistry, type JobRegistry } from '#worker/jobs/registry.ts';
 import { createLlmClient } from '#worker/llm/client.ts';
@@ -73,6 +74,11 @@ export class Harness {
   });
   /** The last drain's fake renderer requests. */
   renders = fakeTools().engine;
+  /**
+   * Drains approve gate 1 as the user when it waits only on the sources' disagreement and the
+   * run has research on auto (both recorded topics' notes report one). Off: the run stays there.
+   */
+  approveDisputed = true;
 
   constructor(readonly topic: FixtureTopicId) {}
 
@@ -200,7 +206,7 @@ export class Harness {
   async drain(answers: Answers = {}, limit = Infinity): Promise<void> {
     const registry = this.worker(answers);
     const signal = new AbortController().signal;
-    for (let i = 0; i < limit; i += 1) {
+    for (let jobs = 0; jobs < limit;) {
       const ran = await runNextJob({
         db: this.t.db,
         registry,
@@ -208,7 +214,9 @@ export class Harness {
         signal,
         advance: this.advance,
       });
-      if (!ran) return;
+      if (ran) jobs += 1;
+      // Gate 1 waits on the recorded notes' disagreement: the user approves it (no job).
+      else if (!this.approveDisputed || !approveDisputedResearch(this.t.db, this.t.dataDir)) return;
     }
   }
 

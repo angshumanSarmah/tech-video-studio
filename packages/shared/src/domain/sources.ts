@@ -57,3 +57,36 @@ export const SOURCE_FAILURE_CODES = [
 ] as const;
 export const SourceFailureCodeSchema = z.enum(SOURCE_FAILURE_CODES);
 export type SourceFailureCode = z.infer<typeof SourceFailureCodeSchema>;
+
+/** Largest source read: a fetched body (checked on Content-Length and while streaming) or an upload. */
+export const MAX_SOURCE_BYTES = 15 * 1024 * 1024;
+
+/**
+ * Less extracted text than this is not a usable source (a page built by JavaScript, a scanned
+ * PDF, an error page): the source fails as `empty` and the run carries on with the others.
+ */
+export const MIN_TEXT_CHARS = 200;
+
+/** File types read from uploads, by extension (lower case). */
+export const UPLOAD_EXTENSIONS = [
+  '.md',
+  '.markdown',
+  '.txt',
+  '.pdf',
+  '.docx',
+  '.csv',
+  '.json',
+] as const;
+export type UploadExtension = (typeof UPLOAD_EXTENSIONS)[number];
+
+/** The upload's extension when it is one that is read, else undefined. */
+export function uploadExtension(fileName: string): UploadExtension | undefined {
+  const match = /\.[^./\\]+$/.exec(fileName.trim().toLowerCase());
+  return UPLOAD_EXTENSIONS.find((ext) => ext === match?.[0]);
+}
+
+/** Longest pasted-text source, in characters (about a 100-page document). */
+export const PASTED_TEXT_MAX_CHARS = 300_000;
+
+/** The file name a pasted-text source is stored under (`sources.file_path`). */
+export const PASTED_TEXT_FILE_NAME = 'pasted.txt';

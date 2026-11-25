@@ -28,7 +28,10 @@ export interface RunSnapshot {
   /** At a gate step: why it cannot be auto-approved (empty: nothing blocks). */
   readonly blocking: readonly string[];
   readonly autoApprove: Readonly<Record<GateId, boolean>>;
-  /** A part of a multi-part video: its number, and whether the part before it has its spec. */
+  /**
+   * A part of a multi-part video: its number, and whether the part before it is ready for this
+   * part's script (done, or its scenes gate approved: the recap reads approved narration).
+   */
   readonly part: { readonly index: number; readonly previousReady: boolean } | null;
   /** At `children`: the statuses of the parts. */
   readonly parts: readonly RunStatus[] | null;
@@ -75,7 +78,7 @@ export function decide(s: RunSnapshot): Action {
 function decideJob(s: RunSnapshot, mayFail: boolean): Action {
   if (!s.stepJob) {
     if (s.part && s.step === 'script' && !s.part.previousReady) {
-      return idle(`part ${s.part.index} waits for part ${s.part.index - 1}'s script`);
+      return idle(`part ${s.part.index} waits for part ${s.part.index - 1}'s scenes approval`);
     }
     if (s.otherActiveJobs > 0) return idle('other jobs of the run are still active');
     return { kind: 'enqueue', step: s.step };

@@ -5,6 +5,7 @@ import { FixFieldSchema } from '../curator/review.ts';
 import { DirectorPlanSchema } from '../director/plan.ts';
 import { PipelineStepIdSchema, RegenerateTargetSchema } from '../domain/pipeline.ts';
 import { DecidedBySchema, GateIdSchema, GateStatusSchema, RunStatusSchema } from '../domain/run.ts';
+import { ResearchSourceStatSchema } from '../research/gate.ts';
 import { ResearchNotesSchema } from '../research/notes.ts';
 import { VideoSpecShapeSchema } from '../spec/shape.ts';
 import { IdParamSchema } from './common.ts';
@@ -36,7 +37,12 @@ export type GateIssue = z.infer<typeof GateIssueSchema>;
 
 /** The subject itself, by gate. */
 export const GateContentSchema = z.discriminatedUnion('gate', [
-  z.object({ gate: z.literal('research'), notes: ResearchNotesSchema }),
+  z.object({
+    gate: z.literal('research'),
+    notes: ResearchNotesSchema,
+    /** Each source the Researcher read (length, chunks, chunks sent) and each that failed. */
+    sources: z.array(ResearchSourceStatSchema),
+  }),
   z.object({ gate: z.literal('beat_sheet'), plan: DirectorPlanSchema }),
   z.object({ gate: z.literal('scenes'), spec: VideoSpecShapeSchema }),
   z.object({ gate: z.literal('draft'), spec: VideoSpecShapeSchema }),
@@ -82,8 +88,13 @@ export const GateDtoSchema = z.object({
   checks: z.array(GateIssueSchema),
   /** Scenes and draft: what the Curator left on each beat. */
   badges: z.array(GateBadgeSchema),
-  /** Why it cannot be auto-approved (empty: nothing blocks). */
+  /**
+   * Why it cannot be auto-approved (empty: nothing blocks); shown at the top of the gate.
+   * Research: thin research, sources that disagree, and the notes' own check findings.
+   */
   blocking: z.array(z.string()),
+  /** Findings shown with the blocking ones that never block (research: many sources). */
+  warnings: z.array(GateIssueSchema),
   /** A still per beat of the subject version (data-dir relative); empty when none shows it. */
   stills: z.array(z.object({ beatId: z.string(), path: z.string() })),
   /** The joined draft of the subject version (data-dir relative), when it exists. */

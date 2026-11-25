@@ -1,7 +1,10 @@
+import { labelledRows } from './tables.ts';
+
 /**
  * Turns an (already cleaned) DOM subtree into plain text that keeps the structure the chunker
  * and the Researcher need: one paragraph per block, headings as `#` lines, list items as `- `,
- * table rows as `a | b`, preformatted text in fences. Inline markup is flattened.
+ * table rows as `a | b` (or, with `tables: 'labelled'`, as `labelledRows` under the first row's
+ * names), preformatted text in fences. Inline markup is flattened.
  */
 
 const BLOCKS = new Set([
@@ -31,8 +34,13 @@ const BLOCKS = new Set([
 ]);
 const HEADING = /^H([1-6])$/;
 
-export function domToText(root: Node): string {
-  const writer = new BlockWriter();
+export interface DomTextOptions {
+  /** `rows` (default): `a | b` per row. `labelled`: the first row names the columns. */
+  readonly tables?: 'rows' | 'labelled';
+}
+
+export function domToText(root: Node, options: DomTextOptions = {}): string {
+  const writer = new BlockWriter(options.tables ?? 'rows');
   walk(root, writer);
   writer.flush();
   return writer.blocks.join('\n\n');
@@ -40,6 +48,7 @@ export function domToText(root: Node): string {
 
 class BlockWriter {
   readonly blocks: string[] = [];
+  constructor(readonly tables: 'rows' | 'labelled') {}
   private inline = '';
   private prefix = '';
 
@@ -98,7 +107,7 @@ function element(el: Element, out: BlockWriter): void {
     walk(el, out);
     out.flush();
   } else if (tag === 'TABLE') {
-    out.raw(tableText(el));
+    out.raw(tableText(el, out.tables));
   } else if (BLOCKS.has(tag)) {
     out.flush();
     walk(el, out);
@@ -115,13 +124,14 @@ function listMarker(li: Element): string {
   return `${items.indexOf(li) + 1}. `;
 }
 
-function tableText(table: Element): string {
-  return Array.from(table.querySelectorAll('tr'))
-    .map((row) =>
-      Array.from(row.children)
-        .map((cell) => (cell.textContent ?? '').replace(/\s+/g, ' ').trim())
-        .join(' | '),
-    )
+function tableText(table: Element, style: 'rows' | 'labelled'): string {
+  const rows = Array.from(table.querySelectorAll('tr')).map((row) =>
+    Array.from(row.children).map((cell) => (cell.textContent ?? '').replace(/\s+/g, ' ').trim()),
+  );
+  const [header, ...body] = rows;
+  if (style === 'labelled' && header && body.length > 0) return labelledRows(header, body);
+  return rows
+    .map((cells) => cells.join(' | '))
     .filter((line) => line.replace(/[\s|]/g, '') !== '')
     .join('\n');
 }

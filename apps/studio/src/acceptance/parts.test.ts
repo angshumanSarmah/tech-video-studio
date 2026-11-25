@@ -134,8 +134,10 @@ const RECAP_BOARD = answer({
 });
 
 /** The parent at gate 2 with the two-part plan saved as the user's edit, then approved. */
-async function splitIntoParts(): Promise<{ parent: number; parts: [Run, Run] }> {
-  const parent = h.start({ autoApprove: AUTO, video: VIDEO });
+async function splitIntoParts(
+  autoApprove: typeof AUTO = AUTO,
+): Promise<{ parent: number; parts: [Run, Run] }> {
+  const parent = h.start({ autoApprove, video: VIDEO });
   await h.drain();
   const recorded = latestDirection(h.t.db, h.t.dataDir, parent)!;
   const edit = await decided(
@@ -251,6 +253,102 @@ describe('parts end to end', () => {
   });
 });
 
+describe('the recap and part 1’s approved narration', () => {
+  it('part 2 writes its script once part 1’s scenes are approved; a G4 edit of part 1 marks the recap stale until it is regenerated', async () => {
+    const { parts } = await splitIntoParts({ ...AUTO, scenes: false });
+    const [one, two] = parts;
+    const [scriptOne, scriptTwo] = partScripts();
+    await h.drain({ scriptwriter: [scriptOne, scriptTwo], generator: { recap: [RECAP_BOARD] } }, 0);
+    await runParts([one.id, two.id]);
+
+    // Part 1 waits at its scenes gate; part 2 has not started its script.
+    expect(getRun(h.t.db, one.id)).toMatchObject({
+      status: 'awaiting_review',
+      pipelineStep: 'gate_scenes',
+    });
+    expect(getRun(h.t.db, two.id)!.pipelineStep).toBe('script');
+    expect(h.jobs(two.id)).toEqual([]);
+    const scenesOne = await h.gate(one.id, 'scenes');
+    await decided(
+      await h.post(one.id, 'scenes', { action: 'approve', subjectId: scenesOne.subject!.id }),
+    );
+    expect(h.jobs(two.id)).toEqual(['script']);
+    await runParts([one.id, two.id]);
+    const scenesTwo = await h.gate(two.id, 'scenes');
+    await decided(
+      await h.post(two.id, 'scenes', { action: 'approve', subjectId: scenesTwo.subject!.id }),
+    );
+    await runParts([one.id, two.id]);
+    for (const part of [one, two]) {
+      expect(getRun(h.t.db, part.id)).toMatchObject({ pipelineStep: 'gate_draft' });
+    }
+    // The recap was written from the version part 1's scenes gate approved.
+    const input = ScriptwriterInputSchema.parse(
+      readDataJson(h.t.dataDir, latestDoneStep(h.t.db, two.id, 'script')!.inputPath!),
+    );
+    expect(input.part?.previousSpecVersionId).toBe(scenesOne.subject!.id);
+    expect(staleBadges(await h.gate(two.id, 'draft'))).toEqual([]);
+
+    // A G4 edit of part 1's narration: re-timed, curated, the scenes gate carried to it.
+    const draftOne = await h.gate(one.id, 'draft');
+    const edited = structuredClone(latestSpec(one.id));
+    const b2 = edited.script.find((b) => b.beatId === 'b2')!;
+    b2.narration = `${b2.narration} That is the whole trick.`;
+    await decided(
+      await h.post(one.id, 'draft', {
+        action: 'edit',
+        subjectId: draftOne.subject!.id,
+        content: edited,
+      }),
+    );
+    await runParts([one.id, two.id]);
+    expect(getRun(h.t.db, one.id)).toMatchObject({ pipelineStep: 'gate_draft' });
+
+    // Part 2's recap is stale: advisory, on the recap beat, with the fix.
+    const stale = staleBadges(await h.gate(two.id, 'draft'));
+    expect(stale).toEqual([
+      {
+        beatId: 'recap',
+        source: 'code',
+        code: 'recap_stale',
+        severity: 'advisory',
+        owner: 'scriptwriter',
+        message:
+          "Part 1's narration changed after this recap was written (b2): the recap may be " +
+          'stale. Regenerate beat recap (narration) so it recaps part 1 as it is now.',
+        needsPlanChange: false,
+      },
+    ]);
+    expect((await h.gate(two.id, 'draft')).blocking).toEqual([]);
+
+    // Regenerating the recap beat reads part 1 as it is now: the badge is gone.
+    const draftTwo = await h.gate(two.id, 'draft');
+    await decided(
+      await h.post(two.id, 'draft', {
+        action: 'regenerate',
+        target: 'beat',
+        beatId: 'recap',
+        fields: ['narration'],
+        feedback: 'Recap part 1 as it reads now.',
+      }),
+    );
+    const recapEntry = latestSpec(two.id).script.find((b) => b.beatId === 'recap')!;
+    const revised = { ...recapEntry, narration: `${RECAP} Ready?` };
+    await h.drain({ scriptwriter: [answer({ script: [revised] })] }, 0);
+    await runParts([one.id, two.id]);
+    expect(getRun(h.t.db, two.id)).toMatchObject({ pipelineStep: 'gate_draft' });
+    expect(latestSpec(two.id).script.find((b) => b.beatId === 'recap')!.narration).toBe(
+      revised.narration,
+    );
+    expect(scriptwriterPrompts(two.id).at(-1)).toContain('That is the whole trick.');
+    expect(draftTwo.subject!.id).not.toBe((await h.gate(two.id, 'draft')).subject!.id);
+    expect(staleBadges(await h.gate(two.id, 'draft'))).toEqual([]);
+  });
+});
+
+const staleBadges = (gate: { badges: { code: string }[] }) =>
+  gate.badges.filter((b) => b.code === 'recap_stale');
+
 describe('the cost cap per video', () => {
   it('a cap between one part’s spend and the parts’ combined spend pauses part 2; raising it on the parent resumes it', async () => {
     const { parent, parts } = await splitIntoParts();
@@ -306,13 +404,19 @@ describe('the cost cap per video', () => {
 
 /** The user message of the run's first Scriptwriter call. */
 function scriptwriterPrompt(runId: number): string {
-  const call = listRunLlmCalls(h.t.db, runId).find((c) => c.role === 'scriptwriter')!;
-  const prompt = JSON.parse(
-    readFileSync(resolveDataPath(h.t.dataDir, call.promptPath), 'utf8'),
-  ) as {
-    messages: { role: string; content: string }[];
-  };
-  return prompt.messages.find((m) => m.role === 'user')!.content;
+  return scriptwriterPrompts(runId)[0]!;
+}
+
+/** The user message of each of the run's Scriptwriter calls, in order. */
+function scriptwriterPrompts(runId: number): string[] {
+  return listRunLlmCalls(h.t.db, runId)
+    .filter((c) => c.role === 'scriptwriter')
+    .map((call) => {
+      const prompt = JSON.parse(
+        readFileSync(resolveDataPath(h.t.dataDir, call.promptPath), 'utf8'),
+      ) as { messages: { role: string; content: string }[] };
+      return prompt.messages.find((m) => m.role === 'user')!.content;
+    });
 }
 
 /** A dry-run answer billed like a recorded review call. */

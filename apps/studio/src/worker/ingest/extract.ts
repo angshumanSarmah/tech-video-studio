@@ -1,18 +1,25 @@
 import { posix } from 'node:path';
+import { UPLOAD_EXTENSIONS, type UploadExtension } from '@explainer-studio/shared';
+import { extractCsv } from './csv.ts';
+import { extractDocx } from './docx.ts';
 import { SourceIngestError } from './errors.ts';
 import { decodeHtml, decodeText, extractHtml, type ExtractedDocument } from './html.ts';
+import { extractJson } from './json.ts';
 import { extractMarkdown, extractPlainText } from './markdown.ts';
 import { extractPdf } from './pdf.ts';
 
-export const DOCUMENT_FORMATS = ['html', 'markdown', 'text', 'pdf'] as const;
+export const DOCUMENT_FORMATS = ['html', 'markdown', 'text', 'pdf', 'docx', 'csv', 'json'] as const;
 export type DocumentFormat = (typeof DOCUMENT_FORMATS)[number];
 
-/** Extensions read from uploads (`kind: 'file'`). Anything else is refused. */
-export const UPLOAD_FORMATS: Readonly<Record<string, DocumentFormat>> = {
+/** Extensions read from uploads (`kind: 'file'`; `UPLOAD_EXTENSIONS`). Anything else is refused. */
+export const UPLOAD_FORMATS: Readonly<Record<UploadExtension, DocumentFormat>> = {
   '.md': 'markdown',
   '.markdown': 'markdown',
   '.txt': 'text',
   '.pdf': 'pdf',
+  '.docx': 'docx',
+  '.csv': 'csv',
+  '.json': 'json',
 };
 
 const BY_EXTENSION: Readonly<Record<string, DocumentFormat>> = {
@@ -27,6 +34,9 @@ const BY_MIME: Readonly<Record<string, DocumentFormat>> = {
   'text/markdown': 'markdown',
   'text/x-markdown': 'markdown',
   'application/pdf': 'pdf',
+  'text/csv': 'csv',
+  'application/json': 'json',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
 };
 
 /**
@@ -51,17 +61,19 @@ export function detectFormat(
   }
   throw new SourceIngestError(
     'unsupported_type',
-    `Unsupported content type ${mime}: only HTML, Markdown, plain text and PDF are read.`,
+    `Unsupported content type ${mime}: only HTML, Markdown, plain text, PDF, Word (.docx), CSV ` +
+      'and JSON are read.',
   );
 }
 
 /** The format of an upload, from its extension only. */
 export function uploadFormat(fileName: string): DocumentFormat {
-  const format = UPLOAD_FORMATS[posix.extname(fileName).toLowerCase()];
+  const ext = posix.extname(fileName).toLowerCase();
+  const format = (UPLOAD_FORMATS as Readonly<Record<string, DocumentFormat>>)[ext];
   if (format) return format;
   throw new SourceIngestError(
     'unsupported_type',
-    `Unsupported file type: only .md, .txt and .pdf uploads are read.`,
+    `Unsupported file type: only ${UPLOAD_EXTENSIONS.join(', ')} uploads are read.`,
   );
 }
 
@@ -83,6 +95,12 @@ export async function extractDocument(input: ExtractInput): Promise<ExtractedDoc
       return extractMarkdown(decodeText(input.bytes, input.contentType));
     case 'text':
       return extractPlainText(decodeText(input.bytes, input.contentType));
+    case 'docx':
+      return extractDocx(input.bytes);
+    case 'csv':
+      return extractCsv(decodeText(input.bytes, input.contentType));
+    case 'json':
+      return extractJson(decodeText(input.bytes, input.contentType));
   }
 }
 

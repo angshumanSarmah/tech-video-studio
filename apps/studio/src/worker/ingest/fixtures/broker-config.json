@@ -1,0 +1,8 @@
+{
+  "cluster": "quillmark-events",
+  "retention": { "hours": 72, "maxBytes": "1.5 GB" },
+  "brokers": [
+    { "id": "north-1", "partitions": 48, "limits": { "inflight": 5 } },
+    { "id": "south-1", "partitions": 32, "limits": { "inflight": 3 }, "tags": ["edge", "ssd"] }
+  ]
+}

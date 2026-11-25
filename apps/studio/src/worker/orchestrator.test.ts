@@ -4,9 +4,11 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Executor } from '#core/db/client.ts';
 import { listEventsSince } from '#core/db/repositories/events.ts';
 import { listRunExports } from '#core/db/repositories/exports.ts';
+import { approveDisputedResearch } from '#core/orchestrator/testing.ts';
 import { listRunBacklog } from '#core/db/repositories/backlog.ts';
 import { writeDataJson } from '#core/data-files.ts';
-import { decideGate, getGate, listRunGates } from '#core/db/repositories/gates.ts';
+import { decideGate, getGate, listRunGates, openGate } from '#core/db/repositories/gates.ts';
+import { latestDoneStep } from '#core/db/repositories/run-steps.ts';
 import { listRunJobs } from '#core/db/repositories/jobs.ts';
 import {
   getRun,
@@ -108,8 +110,11 @@ function worker(round?: CurateRound, topic: FixtureTopicId = TOPIC): JobRegistry
 async function drain(registry: JobRegistry): Promise<void> {
   const signal = new AbortController().signal;
   const advance = (tx: Executor, runId: number) => advanceRun(tx, t.dataDir, runId);
-  while (await runNextJob({ db: t.db, registry, workerId: 't', signal, advance })) {
-    // the orchestrator queued the next job, if any
+  while (
+    (await runNextJob({ db: t.db, registry, workerId: 't', signal, advance })) ||
+    approveDisputedResearch(t.db, t.dataDir)
+  ) {
+    // the orchestrator queued the next job, if any (gate 1's disagreement approved by the user)
   }
 }
 
@@ -138,7 +143,7 @@ function eventLines(events: readonly EventDto[]): string[] {
 }
 
 describe.each(FIXTURE_TOPIC_IDS)('the orchestrator, dry run: %s', (topicId) => {
-  it('takes a run from topic to the end with every gate on auto, the real Curator included', async () => {
+  it('takes a run from topic to the end with every gate on auto (gate 1 waits for the sources’ disagreement), the real Curator included', async () => {
     const runId = startTopic(topicId);
     await drain(worker(curateRound(topicId), topicId));
 
@@ -190,7 +195,7 @@ describe.each(FIXTURE_TOPIC_IDS)('the orchestrator, dry run: %s', (topicId) => {
 
     const gates = listRunGates(t.db, runId);
     expect(gates.map((g) => [g.gate, g.status, g.decidedBy])).toEqual([
-      ['research', 'approved', 'auto'],
+      ['research', 'approved', 'user'],
       ['beat_sheet', 'approved', 'auto'],
       ['scenes', 'approved', 'auto'],
       ['draft', 'approved', 'auto'],
@@ -207,7 +212,8 @@ describe.each(FIXTURE_TOPIC_IDS)('the orchestrator, dry run: %s', (topicId) => {
       'run running research',
       'run running gate_research',
       'gate research pending',
-      'gate research approved auto',
+      'run awaiting_review gate_research',
+      'gate research approved user',
       'run running direct',
       'run running gate_beat_sheet',
       'gate beat_sheet pending',
@@ -339,14 +345,19 @@ describe('the orchestrator: parts', () => {
     expect(partPlans[1]!.input.researchStepId).toBe(
       latestDirection(t.db, t.dataDir, parentId)!.input.researchStepId,
     );
-    // Part 1 writes its script; part 2 waits for it.
+    // Part 1 writes its script; part 2 waits until part 1's scenes are approved, not just
+    // written, so its recap reads approved narration.
     expect(jobTypes(one.id)).toEqual(['script']);
     expect(jobTypes(two.id)).toEqual([]);
     expect(readRunSnapshot(t.db, t.dataDir, two.id).part).toEqual({
       index: 2,
       previousReady: false,
     });
-    setPipelineStep(t.db, one.id, 'tts', null);
+    setPipelineStep(t.db, one.id, 'gate_scenes', null);
+    const subject = { subjectStepId: latestDoneStep(t.db, one.id, 'direct')!.id };
+    openGate(t.db, one.id, 'scenes', subject);
+    expect(readRunSnapshot(t.db, t.dataDir, two.id).part?.previousReady).toBe(false);
+    decideGate(t.db, one.id, 'scenes', { status: 'approved', decidedBy: 'user' });
     expect(readRunSnapshot(t.db, t.dataDir, two.id).part?.previousReady).toBe(true);
 
     // The parent finishes when both parts have.

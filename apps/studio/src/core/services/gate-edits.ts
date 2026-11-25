@@ -30,7 +30,8 @@ import { InvalidEditError } from '../errors.ts';
 import { advanceRun, moveTo } from '../orchestrator/advance.ts';
 import { OrchestratorStateError } from '../orchestrator/snapshot.ts';
 import { latestDirection } from './direction.ts';
-import { currentSubject, planDeps, readSpecVersion, subjectDto } from './gates.ts';
+import { planDeps } from './gate-checks.ts';
+import { currentSubject, readSpecVersion, subjectDto } from './gates.ts';
 import { latestResearch } from './research-notes.ts';
 import { saveSpecVersionIn } from './spec-versions.ts';
 

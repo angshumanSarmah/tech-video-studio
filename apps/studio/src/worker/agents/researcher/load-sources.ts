@@ -1,9 +1,8 @@
-import { posix } from 'node:path';
 import { SourceChunksFileSchema, type ResearchSource } from '@explainer-studio/shared';
 import { readDataJson, sourceChunksPath } from '#core/data-files.ts';
 import type { Db } from '#core/db/client.ts';
 import { listRunSources } from '#core/db/repositories/runs.ts';
-import { getSource } from '#core/db/repositories/sources.ts';
+import { getSource, sourceOrigin } from '#core/db/repositories/sources.ts';
 
 /**
  * Every source version pinned to the run (`run_sources`), with all its chunks, in source order.
@@ -25,7 +24,7 @@ export function loadRunSources(
     return {
       sourceId: pin.sourceId,
       title: source.title,
-      origin: source.url ?? posix.basename(source.filePath ?? `source-${pin.sourceId}`),
+      origin: sourceOrigin(source),
       fetchedAt: source.extractedAt?.toISOString() ?? null,
       contentHash: pin.contentHash,
       chunks: file.chunks.map(({ id, text }) => ({ id, text })),

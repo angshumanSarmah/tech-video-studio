@@ -33,7 +33,7 @@ function createApi(deps: AppDeps) {
   const api = new Hono()
     .route('/health', createHealthRoute(deps.uptimeSeconds ?? (() => process.uptime())))
     .route('/series', createSeriesRoute(deps.db))
-    .route('/topics', createTopicsRoute(deps.db))
+    .route('/topics', createTopicsRoute(deps.db, deps.dataDir))
     .route('/runs', createRunsRoute(deps.db, deps.dataDir, deps.appSettings))
     .route('/runs', createGatesRoute(deps.db, deps.dataDir))
     .route('/events', createEventsRoute(deps.db, deps.events ?? DEFAULT_EVENT_STREAM_OPTIONS));

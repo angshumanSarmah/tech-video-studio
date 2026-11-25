@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { SourceIngestError } from './errors.ts';
-import { fetchSource, type FetchDeps } from './fetch.ts';
+import { fetchSource, USER_AGENT, type FetchDeps } from './fetch.ts';
 import type { SourceRequest } from './github.ts';
 import { body, fakeWeb, hang, status, type Reply } from './testing.ts';
 
@@ -24,13 +24,16 @@ async function failure(promise: Promise<unknown>): Promise<SourceIngestError> {
 }
 
 describe('fetchSource', () => {
-  it('returns the body, content type and final URL, with a UA and Accept header', async () => {
+  it('returns the body, content type and final URL, with a generic UA and Accept header', async () => {
     const { web, run } = setup(body('<p>hello</p>', 'text/html; charset=utf-8'));
     const fetched = await run();
     expect(new TextDecoder().decode(fetched.bytes)).toBe('<p>hello</p>');
     expect(fetched.contentType).toBe('text/html; charset=utf-8');
     expect(fetched.url).toBe(URL_);
-    expect(web.requests[0]!.headers['user-agent']).toMatch(/^ExplainerStudio\//);
+    const ua = web.requests[0]!.headers['user-agent'];
+    expect(ua).toBe(USER_AGENT);
+    expect(ua).toMatch(/^Mozilla\/5\.0 /);
+    expect(ua).not.toMatch(/studio|explainer/i);
     expect(web.requests[0]!.headers.accept).toContain('application/pdf');
   });
 
@@ -60,14 +63,14 @@ describe('fetchSource', () => {
     expect(error.message).toMatch(/asked to wait too long/);
   });
 
-  it('does not retry a 403 and says to upload the page instead', async () => {
+  it('does not retry a 403 and says to paste or upload the page instead', async () => {
     const { web, run } = setup(status(403));
     const error = await failure(run());
     expect(web.requests).toHaveLength(1);
     expect(error.code).toBe('blocked');
     expect(error.message).toBe(
-      'HTTP 403: the site blocks automated access, so upload the page as a file instead ' +
-        '(.pdf, or its text as .md or .txt).',
+      'HTTP 403: the site blocks automated access, so paste its text as a source instead, or ' +
+        'upload the page as a file (.pdf, .md or .txt).',
     );
   });
 

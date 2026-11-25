@@ -31,6 +31,8 @@ catalog:
   # source ingestion (P1C.2): article extraction on jsdom, PDF text via pdf.js
   '@mozilla/readability': ^0.6.0
   unpdf: ^2.2.1
+  # .docx uploads (P1C.2): document body as HTML, then the same text writer as web pages
+  mammoth: ^1.13.0
   '@types/jsdom': ^30.0.0
   # fonts: subsetting script + glyph coverage test (fontkit 3 is younger than minimumReleaseAge)
   subset-font: ^2.9.0

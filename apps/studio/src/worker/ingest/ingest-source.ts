@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { posix } from 'node:path';
-import type { SourceChunksFile } from '@explainer-studio/shared';
+import { MIN_TEXT_CHARS, type SourceChunksFile } from '@explainer-studio/shared';
 import {
   contentHash,
   resolveDataPath,
@@ -16,8 +16,7 @@ import { githubRawRequest, type SourceRequest } from './github.ts';
 import { cleanTitle, normalizeText } from './normalize.ts';
 import { writeAtomically } from '../render/target.ts';
 
-/** Less text than this is not a usable source (a JavaScript shell, a scanned PDF, an error page). */
-export const MIN_TEXT_CHARS = 200;
+export { MIN_TEXT_CHARS };
 
 export interface IngestSourceDeps {
   readonly dataDir: string;
@@ -36,10 +35,12 @@ interface Loaded {
   readonly format: DocumentFormat;
   readonly url: string;
   readonly fallbackTitle: string;
+  /** A pasted text's own title: kept whatever the text says. */
+  readonly title?: string;
 }
 
 /**
- * Fetches (URL) or reads (upload) one source, extracts and normalizes its text, and writes the
+ * Fetches (URL) or reads (upload, pasted text) one source, extracts and normalizes its text, and writes the
  * text and its chunks under the text's hash (content-addressed: a rerun rewrites nothing). Throws
  * `SourceIngestError` with a reason the user can act on; rethrows the abort reason on `signal`.
  */
@@ -51,7 +52,9 @@ export async function ingestSource(
   const loaded =
     source.kind === 'url'
       ? await loadUrl(source.url ?? '', signal, deps.fetch)
-      : loadUpload(deps.dataDir, source.filePath ?? '');
+      : source.kind === 'text'
+        ? loadPasted(deps.dataDir, source)
+        : loadUpload(deps.dataDir, source.filePath ?? '');
   const extractedAt = (deps.now ?? (() => new Date()))();
   const doc = await extractDocument(loaded);
   const text = normalizeText(doc.text);
@@ -66,7 +69,7 @@ export async function ingestSource(
   return {
     textPath,
     contentHash: hash,
-    title: cleanTitle(doc.title) ?? cleanTitle(loaded.fallbackTitle),
+    title: cleanTitle(loaded.title) ?? cleanTitle(doc.title) ?? cleanTitle(loaded.fallbackTitle),
     extractedAt,
     chunkCount: chunks.length,
     format: loaded.format,
@@ -112,18 +115,35 @@ function safeDecode(segment: string): string {
 function loadUpload(dataDir: string, filePath: string): Loaded {
   const name = posix.basename(filePath);
   const format = uploadFormat(name);
-  let bytes: Uint8Array;
+  const bytes = readStored(dataDir, filePath, 'uploaded file', 'Upload it again.');
+  const fallbackTitle = name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ');
+  return { bytes, contentType: null, format, url: 'file:///upload', fallbackTitle };
+}
+
+/** Pasted text is read as plain text under the title it was given. */
+function loadPasted(dataDir: string, source: Source): Loaded {
+  const bytes = readStored(dataDir, source.filePath ?? '', 'pasted text', 'Paste it again.');
+  const title = source.title ?? 'Pasted text';
+  return {
+    bytes,
+    contentType: null,
+    format: 'text',
+    url: 'file:///pasted',
+    fallbackTitle: title,
+    title,
+  };
+}
+
+function readStored(dataDir: string, filePath: string, what: string, retry: string): Uint8Array {
   try {
-    bytes = readFileSync(resolveDataPath(dataDir, filePath));
+    return readFileSync(resolveDataPath(dataDir, filePath));
   } catch (error) {
     throw new SourceIngestError(
       'unreadable',
-      `The uploaded file could not be read (${(error as NodeJS.ErrnoException).code ?? 'error'}). Upload it again.`,
+      `The ${what} could not be read (${(error as NodeJS.ErrnoException).code ?? 'error'}). ${retry}`,
       { cause: error },
     );
   }
-  const fallbackTitle = name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ');
-  return { bytes, contentType: null, format, url: 'file:///upload', fallbackTitle };
 }
 
 function parseHttpUrl(raw: string): URL {
@@ -148,8 +168,9 @@ function emptyFailure(format: DocumentFormat): SourceIngestError {
       ? 'The PDF has almost no text layer (it is probably scanned). Upload its text as .txt instead.'
       : format === 'html'
         ? 'The page has almost no readable text (it is probably built by JavaScript, or behind a ' +
-          'login). Upload the page as a file instead (.pdf, or its text as .md or .txt).'
-        : 'The source has almost no text.';
+          'login). Paste its text as a source instead, or upload the page as a file (.pdf, .md ' +
+          'or .txt).'
+        : `The source has almost no text (under ${MIN_TEXT_CHARS} characters).`;
   return new SourceIngestError('empty', what);
 }
 

@@ -1,13 +1,16 @@
-import { existsSync, mkdtempSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { DATA_SUBDIRS } from '../data-dirs.ts';
 import { closeDatabase, openDatabase, type Db } from './client.ts';
 import { prepareDatabase } from './prepare.ts';
-import { channels, series } from './schema.ts';
+import { createRun } from './repositories/runs.ts';
+import { createSource } from './repositories/sources.ts';
+import { createTopic } from './repositories/topics.ts';
+import { channels, runSources, series, sources } from './schema.ts';
 import { DEFAULT_SERIES } from './seed.ts';
-import { TEST_MIGRATIONS_DIR } from './testing.ts';
+import { TEST_APP_SETTINGS, TEST_MIGRATIONS_DIR } from './testing.ts';
 
 const EXPECTED_TABLES = [
   'assets',
@@ -84,5 +87,61 @@ describe('prepareDatabase on a fresh data dir', () => {
     db = openDatabase(join(dataDir, 'studio.db'));
     expect(db.$client.pragma('foreign_keys', { simple: true })).toBe(1);
     expect(db.$client.pragma('journal_mode', { simple: true })).toBe('wal');
+  });
+});
+
+describe('migrations on a database with data', () => {
+  const root = mkdtempSync(join(tmpdir(), 'studio-migrate-'));
+  let db: Db | undefined;
+
+  afterEach(() => {
+    if (db) closeDatabase(db);
+    db = undefined;
+  });
+
+  /** The migrations folder as it stood after its first `count` migrations. */
+  function migrationsUpTo(count: number): string {
+    const dir = join(root, `migrations-${count}`);
+    cpSync(TEST_MIGRATIONS_DIR, dir, { recursive: true });
+    const journalPath = join(dir, 'meta', '_journal.json');
+    const journal = JSON.parse(readFileSync(journalPath, 'utf8')) as { entries: unknown[] };
+    writeFileSync(
+      journalPath,
+      JSON.stringify({ ...journal, entries: journal.entries.slice(0, count) }),
+    );
+    return dir;
+  }
+
+  it('rebuilds `sources` (0004) under a pinned source, keeping its rows and references', () => {
+    const dataDir = join(root, 'data');
+    const { dbPath } = prepareDatabase(dataDir, migrationsUpTo(4));
+    db = openDatabase(dbPath);
+    const topic = createTopic(db, { title: 'Write-ahead logs' });
+    const source = createSource(db, {
+      topicId: topic.id,
+      kind: 'url',
+      url: 'https://example.com/a',
+    });
+    const seriesId = db.select().from(series).all()[0]!.id;
+    const run = createRun(db, { topicId: topic.id, seriesId, app: TEST_APP_SETTINGS });
+    db.insert(runSources)
+      .values({ runId: run.id, sourceId: source.id, contentHash: 'a'.repeat(64) })
+      .run();
+    closeDatabase(db);
+
+    prepareDatabase(dataDir, TEST_MIGRATIONS_DIR);
+
+    db = openDatabase(dbPath);
+    expect(db.select().from(sources).all()).toMatchObject([{ id: source.id, kind: 'url' }]);
+    expect(db.select().from(runSources).all()).toHaveLength(1);
+    expect(db.$client.pragma('foreign_keys', { simple: true })).toBe(1);
+    expect(() => db!.delete(sources).run()).toThrow(/FOREIGN KEY/);
+    const pasted = createSource(db, {
+      topicId: topic.id,
+      kind: 'text',
+      filePath: 'topics/1/uploads/abc/pasted.txt',
+      title: 'My notes',
+    });
+    expect(pasted).toMatchObject({ kind: 'text', title: 'My notes', url: null });
   });
 });

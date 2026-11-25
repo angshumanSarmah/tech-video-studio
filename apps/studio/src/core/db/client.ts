@@ -38,9 +38,28 @@ export function openDatabase(dbPath: string): Db {
   return drizzle({ client: sqlite, schema });
 }
 
-/** Applies pending migrations. Run from one process only (see `migrate-cli.ts`). */
+/**
+ * Applies pending migrations. Run from one process only (see `migrate-cli.ts`).
+ *
+ * Foreign keys are off while they run: SQLite rebuilds a table to change a constraint (copy,
+ * drop, rename), and dropping a table that rows elsewhere reference (`run_sources` → `sources`,
+ * `restrict`) fails while they are on. A generated `PRAGMA foreign_keys=OFF` cannot do it, since
+ * the migrator runs in a transaction, where that pragma does nothing. Every reference is checked
+ * once the migrations are in.
+ */
 export function migrateDatabase(db: Db, migrationsDir: string): void {
-  migrate(db, { migrationsFolder: migrationsDir });
+  db.$client.pragma('foreign_keys = OFF');
+  try {
+    migrate(db, { migrationsFolder: migrationsDir });
+    const broken = db.$client.pragma('foreign_key_check') as unknown[];
+    if (broken.length > 0) {
+      throw new Error(
+        `Migrations left ${broken.length} broken references: ${JSON.stringify(broken)}`,
+      );
+    }
+  } finally {
+    db.$client.pragma('foreign_keys = ON');
+  }
 }
 
 export function closeDatabase(db: Db): void {

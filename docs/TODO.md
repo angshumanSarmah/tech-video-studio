@@ -158,10 +158,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       prompt rules only: no check that the recap stays within 2 sentences and draws on the part
       before's narration, or that the cliffhanger line names the next part's question. Add
       Scriptwriter checks (the part context is in its input) if live parts drift.
-- [ ] **P1C.9 — Part 2 reads part 1 as it stood.** Part n+1's Scriptwriter reads part n's latest
-      spec when its script starts (right after part n's `spec`). A later repair or gate edit of
-      part n's narration does not update part n+1's recap; a regenerate of part n+1's script
-      reads the newer narration.
 - [ ] **HUD — PART n/N in the bar style.** Only the title block (drafting-paper, and the card
       header in any theme) shows a part's PART n/N. The parked `blueprint-dark` bar HUD shows
       nothing; add it to the top bar if that theme comes back.
@@ -171,9 +167,19 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **P1D — Gate previews over HTTP.** `GET …/gates/:gate` lists stills and the draft as
       data-dir paths; nothing serves those files yet. The gate views (P1D.3–P1D.5) need a file
       route (or signed paths) and the beat-level actions they list.
-- [ ] **P1C.9 step 9 — Edited notes and plans block.** A gate 1 or gate 2 edit is saved when its
-      schema passes; its check findings are returned and shown, but blocking for those gates is
-      empty until step 9 decides which findings block auto-approve.
+- [ ] **P1C.9b — Sources from the CLI.** The dev CLI does not exist yet. Its `run` should add
+      sources through `#core/services/sources.ts` like the API: `--source <url|file>` (a file by
+      its extension, `UPLOAD_EXTENSIONS`) and `--paste "<title>=<file or ->"` for pasted text.
+- [ ] **P1C.9 step 9 — Gate 1 thresholds.** `THIN_RESEARCH` (6 facts, 1 number, 3,000
+      characters) and `MANY_SOURCES` (5) are first guesses. Tune them once real runs show what
+      thin research looks like; a topic that is small on purpose can always be approved by hand.
+- [ ] **P1D.3 — Structured blocking reasons.** `GateDto.blocking` is a list of strings
+      (`<code> at <path>: <message>` for gates 1 and 2). If the gate views need to link a reason
+      to the item it names, send `{ path, code, message }` like `checks` and `warnings`.
+- [ ] **P1C.2 — Hidden text in Word files.** `.docx` goes through mammoth, whose handling of
+      hidden runs (`w:vanish`), comments and tracked deletions is not checked. Uploads are the
+      user's own files, so the risk is low; add a fixture and strip them if one ever reaches the
+      Researcher.
 - [ ] **P1C.9 — Cost cap overshoot.** Calls already in flight when the cap is reached still
       finish (each LLM client checks before a request), so a video can end slightly over its
       cap. A reservation per request (its expected cost) would bound it.

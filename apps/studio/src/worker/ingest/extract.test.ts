@@ -184,6 +184,6 @@ describe('detectFormat', () => {
   it('reads uploads by extension only', () => {
     expect(uploadFormat('notes.MD')).toBe('markdown');
     expect(uploadFormat('paper.pdf')).toBe('pdf');
-    expect(() => uploadFormat('page.html')).toThrow(/only \.md, \.txt and \.pdf/);
+    expect(() => uploadFormat('page.html')).toThrow(/only \.md, .*\.docx, \.csv, \.json uploads/);
   });
 });

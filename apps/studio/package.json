@@ -48,6 +48,7 @@
     "fast-xml-parser": "catalog:",
     "hono": "catalog:",
     "jsdom": "catalog:",
+    "mammoth": "catalog:",
     "pinia": "catalog:",
     "vue": "catalog:",
     "vue-router": "catalog:",

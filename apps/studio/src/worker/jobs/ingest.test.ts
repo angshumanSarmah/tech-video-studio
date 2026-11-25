@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { copyFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { SourceChunksFileSchema } from '@explainer-studio/shared';
+import { MANY_SOURCES, SourceChunksFileSchema } from '@explainer-studio/shared';
 import { eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -19,6 +19,7 @@ import { createTopic } from '#core/db/repositories/topics.ts';
 import { series } from '#core/db/schema.ts';
 import { createTestDb, TEST_APP_SETTINGS, type TestDb } from '#core/db/testing.ts';
 import { startRun } from '#core/services/runs.ts';
+import { addSource as addTopicSource } from '#core/services/sources.ts';
 import { buildPdf } from '../ingest/fixtures/pdf-builder.ts';
 import { body, fakeWeb, status, type FakeWeb } from '../ingest/testing.ts';
 import { runNextJob } from '../runner.ts';
@@ -52,7 +53,8 @@ function web(): FakeWeb {
   });
 }
 
-type SourceInput = { url: string } | { upload: string };
+type SourceInput =
+  { url: string } | { upload: string } | { pasted: { title: string; text: string } };
 
 /** A topic with the given sources and a started run (its `ingest` job queued). */
 function startRunWith(inputs: readonly SourceInput[]) {
@@ -65,6 +67,9 @@ function startRunWith(inputs: readonly SourceInput[]) {
 
 function addSource(topicId: number, input: SourceInput): number {
   if ('url' in input) return createSource(t.db, { topicId, kind: 'url', url: input.url }).id;
+  if ('pasted' in input) {
+    return addTopicSource(t.db, t.dataDir, topicId, { kind: 'text', ...input.pasted }).id;
+  }
   const hash = createHash('sha256')
     .update(readFileSync(fixture(input.upload)))
     .digest('hex');
@@ -114,7 +119,7 @@ describe('ingest job', () => {
     const failed = getSource(t.db, blocked)!;
     expect(failed.status).toBe('failed');
     expect(failed.errorCode).toBe('blocked');
-    expect(failed.error).toMatch(/^HTTP 403: the site blocks automated access, so upload/);
+    expect(failed.error).toMatch(/^HTTP 403: the site blocks automated access, so paste its text/);
 
     const extracted = [article, repo, pdf].map((id) => getSource(t.db, id)!);
     expect(extracted.map((s) => s.status)).toEqual(['extracted', 'extracted', 'extracted']);
@@ -175,20 +180,56 @@ describe('ingest job', () => {
     expect(getJob(t.db, jobId)!.error).toContain('The topic has no sources');
   });
 
-  it('marks a page with almost no text as empty, with what to do instead', async () => {
+  it('marks a JavaScript-only page empty, says to paste it instead, and goes on with the rest', async () => {
     const shell = 'https://app.example.com/dashboard';
     const fake = fakeWeb({
-      [shell]: body(
-        '<html><body><div id="root"></div><script>render()</script></body></html>',
-        'text/html',
-      ),
+      [shell]: body(readFileSync(fixture('js-shell.html')), 'text/html; charset=utf-8'),
       [ARTICLE]: body(readFileSync(fixture('wal-article.html')), 'text/html'),
     });
-    const { sourceIds } = startRunWith([{ url: shell }, { url: ARTICLE }]);
+    const { runId, jobId, sourceIds } = startRunWith([{ url: shell }, { url: ARTICLE }]);
     await runIngest(fake);
     const source = getSource(t.db, sourceIds[0]!)!;
-    expect(source.errorCode).toBe('empty');
-    expect(source.error).toMatch(/probably built by JavaScript/);
+    expect(source).toMatchObject({ status: 'failed', errorCode: 'empty' });
+    expect(source.error).toBe(
+      'The page has almost no readable text (it is probably built by JavaScript, or behind a ' +
+        'login). Paste its text as a source instead, or upload the page as a file (.pdf, .md ' +
+        'or .txt).',
+    );
+    expect(getJob(t.db, jobId)!.status).toBe('done');
+    expect(listRunSources(t.db, runId).map((s) => s.sourceId)).toEqual([sourceIds[1]]);
+  });
+
+  it('reads pasted text as plain text under the title it was given', async () => {
+    const text = `Notes from our own load test.\n\n${'Each worker drained 1,200 jobs a minute at steady state. '.repeat(6)}`;
+    const { topicId, runId, sourceIds } = startRunWith([
+      { pasted: { title: 'Load test, week 3', text } },
+    ]);
+    await runIngest(fakeWeb({}));
+    const source = getSource(t.db, sourceIds[0]!)!;
+    expect(source).toMatchObject({ kind: 'text', status: 'extracted', title: 'Load test, week 3' });
+    const chunks = SourceChunksFileSchema.parse(
+      readDataJson(t.dataDir, sourceChunksPath(topicId, source.id, source.contentHash!)),
+    );
+    expect(chunks.chunks[0]!.text).toContain('drained 1,200 jobs a minute');
+    expect(listRunSources(t.db, runId)).toHaveLength(1);
+    expect(logs(runId)).toContainEqual({
+      level: 'info',
+      message: expect.stringContaining('(pasted: Load test, week 3): text, 1 chunk(s)') as string,
+    });
+  });
+
+  it(`warns when more than ${MANY_SOURCES} sources share the research budget`, async () => {
+    const note = (n: number) => ({
+      pasted: { title: `Note ${n}`, text: `Note ${n}. ${'A queue drains in order. '.repeat(12)}` },
+    });
+    const { runId } = startRunWith(Array.from({ length: MANY_SOURCES + 1 }, (_, i) => note(i + 1)));
+    await runIngest(fakeWeb({}));
+    expect(logs(runId)).toContainEqual({
+      level: 'warn',
+      message: expect.stringMatching(
+        /^6 sources share one research budget \(more than 5\)/,
+      ) as string,
+    });
   });
 
   it('titles a PDF with no title and no text on page 1 by its URL file name', async () => {

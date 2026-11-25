@@ -15,7 +15,8 @@ export class SourceIngestError extends Error {
   }
 }
 
-const UPLOAD_INSTEAD = 'upload the page as a file instead (.pdf, or its text as .md or .txt)';
+const UPLOAD_INSTEAD =
+  'paste its text as a source instead, or upload the page as a file (.pdf, .md or .txt)';
 
 export interface HttpFailureContext {
   readonly status: number;

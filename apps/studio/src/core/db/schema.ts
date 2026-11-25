@@ -118,14 +118,17 @@ export const sources = sqliteTable(
       .references(() => topics.id, { onDelete: 'cascade' }),
     kind: text('kind', { enum: SOURCE_KINDS }).notNull(),
     url: text('url'),
-    /** Uploaded original, relative to the data dir. */
+    /** Uploaded original, or the pasted text (`kind: 'text'`), relative to the data dir. */
     filePath: text('file_path'),
     status: text('status', { enum: SOURCE_STATUSES }).notNull().default('pending'),
     /** Latest extracted text, relative to the data dir. */
     textPath: text('text_path'),
     /** sha256 (hex) of the latest extracted text. */
     contentHash: text('content_hash'),
-    /** Page or document title (HTML title, PDF title, first heading, else the file name). */
+    /**
+     * Page or document title (HTML title, PDF title, first heading, else the file name); a
+     * pasted text's title is given with it and kept.
+     */
     title: text('title'),
     /** Why the latest ingestion failed, written for the user (what to do instead). */
     error: text('error'),
@@ -138,7 +141,7 @@ export const sources = sqliteTable(
     index('sources_topic_idx').on(t.topicId),
     check(
       'sources_kind_ck',
-      sql`(${t.kind} = 'url' and ${t.url} is not null and ${t.filePath} is null) or (${t.kind} = 'file' and ${t.filePath} is not null and ${t.url} is null)`,
+      sql`(${t.kind} = 'url' and ${t.url} is not null and ${t.filePath} is null) or (${t.kind} in ('file', 'text') and ${t.filePath} is not null and ${t.url} is null)`,
     ),
   ],
 );

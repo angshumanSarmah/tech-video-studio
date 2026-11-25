@@ -1,0 +1,5 @@
+Broker,Region,Partitions,"p99 latency (ms)",Note
+north-1,eu-north,48,12,"steady, after the March resize"
+north-2,eu-north,64,19,
+south-1,ap-south,32,41,"queue depth peaks at 9,500 messages"
+south-2,ap-south,32,38,"replica lag ""spiky"" at night"

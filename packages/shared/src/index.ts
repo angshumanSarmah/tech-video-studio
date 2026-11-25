@@ -7,6 +7,7 @@ export * from './api/health.ts';
 export * from './api/jobs.ts';
 export * from './api/runs.ts';
 export * from './api/series.ts';
+export * from './api/sources.ts';
 export * from './api/topics.ts';
 export * from './config/env.ts';
 export * from './config/llm.ts';

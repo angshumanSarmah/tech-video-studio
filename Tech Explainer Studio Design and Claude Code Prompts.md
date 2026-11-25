@@ -1057,7 +1057,10 @@ Acceptance: unit tests with a mocked HTTP layer for validation, repair and cost 
 Add source ingestion as a worker job: for each source on a topic,
 - URL: fetch; GitHub repo/file URLs fetch raw markdown; HTML pages go through readability-style
   extraction to clean text; PDFs through a PDF text extractor;
-- uploaded files: .md, .txt, .pdf;
+- uploaded files: .md, .txt, .pdf, .docx, .csv, .json (tables kept as readable rows under their
+  header, so each row can be cited);
+- pasted text with a title you give (your own notes or data), stored and chunked like an uploaded
+  file. The run's angle/notes field steers the story but is not a citable source;
 - store extracted text, title, URL, fetch date; split into chunks with ids (source-id#chunk-n).
 No crawling beyond the given URLs. Fetches have a timeout and a size limit, and retry timeouts,
 429 and 5xx up to 2 times with backoff (honour Retry-After). Failures are shown per source with
@@ -1384,7 +1387,7 @@ Goal: you can start a run, watch it, review and edit at every gate, preview, and
 
 ```text
 Build the New Run page: topic title, series (System Design | AI), free-text angle/notes, source URLs
-(multi-line) and file uploads (.md .txt .pdf), target length (auto, or a range within the configured limits), "allow parts" (default from
+(multi-line) and file uploads (.md .txt .pdf .docx .csv .json), pasted-text sources, target length (auto, or a range within the configured limits), "allow parts" (default from
 settings), an optional pace override
 (TTS speed, beat gap), explanation level (default from settings), per-gate
 auto-approve checkboxes with an "auto-approve all" toggle, and an estimated cost range from recent

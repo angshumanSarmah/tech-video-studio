@@ -1,4 +1,4 @@
-import { PROGRESS_DONE_PCT } from '@explainer-studio/shared';
+import { MANY_SOURCES, PROGRESS_DONE_PCT } from '@explainer-studio/shared';
 import { z } from 'zod';
 import type { Db } from '#core/db/client.ts';
 import { getRun, recordRunSources } from '#core/db/repositories/runs.ts';
@@ -59,7 +59,9 @@ async function ingest(deps: IngestJobDeps, ctx: Ctx): Promise<void> {
   if (!run) throw new NotFoundError('run', runId);
   const sources = listTopicSources(deps.db, run.topicId);
   if (sources.length === 0) {
-    throw new Error('The topic has no sources: add URLs or files, then start a new run.');
+    throw new Error(
+      'The topic has no sources: add URLs, files or pasted text, then start a new run.',
+    );
   }
 
   const failures: string[] = [];
@@ -83,6 +85,13 @@ async function ingest(deps: IngestJobDeps, ctx: Ctx): Promise<void> {
   }
   const failed = failures.length > 0 ? ` (${failures.length} failed)` : '';
   ctx.log('info', `Using ${pinned.length} of ${sources.length} sources${failed}.`);
+  if (pinned.length > MANY_SOURCES) {
+    ctx.log(
+      'warn',
+      `${pinned.length} sources share one research budget (more than ${MANY_SOURCES}): each gets ` +
+        'less of its text read. Gate 1 lists the chunks left out.',
+    );
+  }
   ctx.progress(PROGRESS_DONE_PCT, 'Sources ingested');
 }
 
@@ -131,5 +140,7 @@ function asFailure(error: unknown): SourceIngestError {
 }
 
 function describe(source: Source): string {
-  return `Source ${source.id} (${source.url ?? source.filePath ?? '?'})`;
+  const origin =
+    source.kind === 'text' ? `pasted: ${source.title ?? ''}` : (source.url ?? source.filePath);
+  return `Source ${source.id} (${origin ?? '?'})`;
 }

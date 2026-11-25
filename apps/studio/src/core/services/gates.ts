@@ -1,7 +1,5 @@
 import { existsSync } from 'node:fs';
 import {
-  citableChunks,
-  researchNotesProblems,
   VideoSpecShapeSchema,
   type DecidedBy,
   type GateBadge,
@@ -13,7 +11,6 @@ import {
   type ModelRole,
   type VideoSpec,
 } from '@explainer-studio/shared';
-import { planCheckDeps, planIssues } from '../checks/plan.ts';
 import {
   beatStillPath,
   readDataJson,
@@ -25,7 +22,6 @@ import type { Executor } from '../db/client.ts';
 import { getGate, type GateSubject } from '../db/repositories/gates.ts';
 import { runCostByRole, runCostUsd } from '../db/repositories/llm-calls.ts';
 import type { Run } from '../db/repositories/runs.ts';
-import { getSeries, seriesChannelHandle } from '../db/repositories/series.ts';
 import { getSpecVersion } from '../db/repositories/spec-versions.ts';
 import { GATE_STEPS } from '../orchestrator/pipeline.ts';
 import {
@@ -36,8 +32,8 @@ import {
 } from '../orchestrator/snapshot.ts';
 import { DraftManifestSchema, manifestPathFor, StillsManifestSchema } from '../render-manifests.ts';
 import { latestCuration } from './curation.ts';
-import { latestDirection } from './direction.ts';
-import { latestResearch, researchOfStep } from './research-notes.ts';
+import { beatSheetReview, researchReview } from './gate-checks.ts';
+import { staleRecapBadge } from './parts.ts';
 
 /**
  * A gate's review payload (P1C.9 step 4): what it reviews and its checks, what blocks it, the
@@ -59,6 +55,7 @@ export interface GateView {
   readonly checks: GateIssue[];
   readonly badges: GateBadge[];
   readonly blocking: string[];
+  readonly warnings: GateIssue[];
   readonly stills: { beatId: string; path: string }[];
   readonly draftPath: string | null;
   readonly cost: RunCost;
@@ -92,6 +89,7 @@ export function readGate(db: Executor, dataDir: string, runId: number, gate: Gat
     checks: review?.checks ?? [],
     badges: review?.badges ?? [],
     blocking: subject ? gateBlocking(db, dataDir, run, gate, subject) : [],
+    warnings: review?.warnings ?? [],
     stills: subject?.specVersionId ? stillsOf(dataDir, run.id, subject.specVersionId) : [],
     draftPath: subject?.specVersionId ? draftOf(dataDir, run.id, subject.specVersionId) : null,
     cost: runCost(db, run.id),
@@ -135,6 +133,7 @@ interface Review {
   readonly content: GateContent;
   readonly checks: GateIssue[];
   readonly badges: GateBadge[];
+  readonly warnings: GateIssue[];
 }
 
 function reviewOf(
@@ -146,57 +145,35 @@ function reviewOf(
 ): Review | undefined {
   switch (gate) {
     case 'research':
-      return researchReview(db, dataDir, run);
+      return researchGateReview(db, dataDir, run);
     case 'beat_sheet':
-      return beatSheetReview(db, dataDir, run);
+      return beatSheetGateReview(db, dataDir, run);
     case 'scenes':
     case 'draft':
       return specReview(db, dataDir, run, gate, subject.specVersionId!);
   }
 }
 
-function researchReview(db: Executor, dataDir: string, run: Run): Review | undefined {
-  const research = latestResearch(db, dataDir, run.id);
-  if (!research) return undefined;
+function researchGateReview(db: Executor, dataDir: string, run: Run): Review | undefined {
+  const review = researchReview(db, dataDir, run);
+  if (!review) return undefined;
   return {
-    content: { gate: 'research', notes: research.notes },
-    checks: researchNotesProblems(research.notes, citableChunks(research.input)).map(plainIssue),
+    content: { gate: 'research', notes: review.research.notes, sources: review.sources },
+    checks: review.checks.map(plainIssue),
     badges: [],
+    warnings: review.warnings.map(plainIssue),
   };
 }
 
-function beatSheetReview(db: Executor, dataDir: string, run: Run): Review | undefined {
-  const direction = latestDirection(db, dataDir, run.id);
-  if (!direction) return undefined;
+function beatSheetGateReview(db: Executor, dataDir: string, run: Run): Review | undefined {
+  const review = beatSheetReview(db, dataDir, run);
+  if (!review) return undefined;
   return {
-    content: { gate: 'beat_sheet', plan: direction.plan },
-    checks: planIssues(direction.plan, planDeps(db, dataDir, run, direction.input)),
+    content: { gate: 'beat_sheet', plan: review.direction.plan },
+    checks: review.issues.map(plainIssue),
     badges: [],
+    warnings: [],
   };
-}
-
-/** The beat-sheet checks' context, from the Director step's input (as the Director had it). */
-export function planDeps(
-  db: Executor,
-  dataDir: string,
-  run: Run,
-  input: NonNullable<ReturnType<typeof latestDirection>>['input'],
-) {
-  const research = researchOfStep(db, dataDir, input.researchStepId);
-  if (!research) {
-    throw new OrchestratorStateError(`Research step ${input.researchStepId} is not finished.`);
-  }
-  const series = getSeries(db, run.seriesId);
-  if (!series) throw new OrchestratorStateError(`Run ${run.id} has no series.`);
-  return planCheckDeps({
-    runId: run.id,
-    input,
-    notes: research.notes,
-    sources: research.input.sources,
-    video: run.resolvedSettings.video,
-    series,
-    channelHandle: seriesChannelHandle(db, series.id),
-  });
 }
 
 /** Scenes and draft: the spec, and the Curator's findings when it reviewed this very version. */
@@ -211,10 +188,12 @@ function specReview(
   if (!spec) return undefined;
   const report = latestCuration(db, dataDir, run.id)?.report;
   const curated = report?.final.specVersionId === specVersionId ? report : undefined;
+  const stale = staleRecapBadge(db, dataDir, run, spec);
   return {
     content: { gate, spec },
     checks: (curated?.codeIssues ?? []).map(plainIssue),
-    badges: curated?.badges ?? [],
+    badges: [...(curated?.badges ?? []), ...(stale ? [stale] : [])],
+    warnings: [],
   };
 }
 

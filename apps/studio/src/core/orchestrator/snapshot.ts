@@ -4,20 +4,19 @@ import { getGate, type GateSubject } from '../db/repositories/gates.ts';
 import { getJob, listRunJobs } from '../db/repositories/jobs.ts';
 import { latestDoneStep } from '../db/repositories/run-steps.ts';
 import { getRun, listPartRuns, type Run } from '../db/repositories/runs.ts';
-import { NotFoundError } from '../errors.ts';
+import { NotFoundError, OrchestratorStateError } from '../errors.ts';
 import { latestCuration } from '../services/curation.ts';
 import { finalBlockers } from '../services/final-check.ts';
+import { beatSheetReview, researchReview } from '../services/gate-checks.ts';
 import type { RunSnapshot } from './decide.ts';
-import { isAfter, PIPELINE } from './pipeline.ts';
+import { PIPELINE } from './pipeline.ts';
 
 /**
  * Reads what `decide` needs from a run's rows (and, at a gate, the files that say what it
  * reviews and what blocks it). Read-only.
  */
 
-export class OrchestratorStateError extends Error {
-  override readonly name = 'OrchestratorStateError';
-}
+export { OrchestratorStateError };
 
 export function requireRun(db: Executor, runId: number): Run {
   const run = getRun(db, runId);
@@ -89,10 +88,9 @@ function requireStep(db: Executor, run: Run, stage: 'research' | 'direct'): numb
 }
 
 /**
- * Why a gate cannot be auto-approved. Research and beat sheet: nothing yet (an agent's answer
- * that fails its checks never finishes its step; the research rules for thin and contradictory
- * sources come in P1C.9 step 9). Scenes: the Curator's blocking issues. Draft: what would stop
- * the final.
+ * Why a gate cannot be auto-approved (P1C.9 step 9). Research: the notes' check findings, thin
+ * research and sources that disagree. Beat sheet: the Director's checks (an edited plan's
+ * findings). Scenes: the Curator's blocking issues. Draft: what would stop the final.
  */
 export function gateBlocking(
   db: Executor,
@@ -103,8 +101,9 @@ export function gateBlocking(
 ): string[] {
   switch (gate) {
     case 'research':
+      return (researchReview(db, dataDir, run)?.blocking ?? []).map(issueLine);
     case 'beat_sheet':
-      return [];
+      return (beatSheetReview(db, dataDir, run)?.issues ?? []).map(issueLine);
     case 'scenes': {
       const report = latestCuration(db, dataDir, run.id)?.report;
       return (report?.badges ?? [])
@@ -116,7 +115,13 @@ export function gateBlocking(
   }
 }
 
-/** A part's number, and whether the part before it is past its spec (its script is final). */
+const issueLine = (issue: { path: string; code: string; message: string }): string =>
+  `${issue.code} at ${issue.path}: ${issue.message}`;
+
+/**
+ * A part's number, and whether the part before it is ready for this part's script: done, or its
+ * scenes gate approved, so a recap always reads narration a person (or auto-approve) passed.
+ */
 function partState(db: Executor, run: Run): RunSnapshot['part'] {
   if (run.parentRunId === null || run.partIndex === null) return null;
   if (run.partIndex === 1) return { index: 1, previousReady: true };
@@ -125,6 +130,6 @@ function partState(db: Executor, run: Run): RunSnapshot['part'] {
   );
   const previousReady =
     previous !== undefined &&
-    (previous.status === 'done' || isAfter(previous.pipelineStep, 'spec'));
+    (previous.status === 'done' || getGate(db, previous.id, 'scenes')?.status === 'approved');
   return { index: run.partIndex, previousReady };
 }

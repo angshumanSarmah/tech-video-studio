@@ -159,7 +159,7 @@ describe('decide: parts', () => {
     );
     expect(decide(snap({ step: 'script', part: { index: 2, previousReady: false } }))).toEqual({
       kind: 'idle',
-      reason: "part 2 waits for part 1's script",
+      reason: "part 2 waits for part 1's scenes approval",
     });
     expect(decide(snap({ step: 'script', part: { index: 2, previousReady: true } })).kind).toBe(
       'enqueue',

@@ -129,6 +129,44 @@ describe('the beat-sheet gate, through the API', () => {
     expect(error.issues?.map((i) => i.path)).toContain('$.story');
   });
 
+  it('an edited plan with check findings does not approve itself; a clean one does', async () => {
+    const runId = await h.runUntilWaiting({ research: true });
+    const before = latestDirection(t().db, t().dataDir, runId)!;
+    const plan = structuredClone(before.plan);
+    plan.story.ending.cta = 'Follow for part 2 of this';
+    const res = await decided(
+      await h.post(runId, 'beat_sheet', {
+        action: 'edit',
+        subjectId: before.step.id,
+        content: plan,
+      }),
+    );
+    // Beat-sheet auto-approve switched on: the edit's finding keeps the gate waiting.
+    const on = await h.putSettings(runId, { autoApprove: { beat_sheet: true } });
+    expect(on.status, await on.clone().text()).toBe(200);
+    expect(getRun(t().db, runId)).toMatchObject({
+      status: 'awaiting_review',
+      pipelineStep: 'gate_beat_sheet',
+    });
+    const gate = await h.gate(runId, 'beat_sheet');
+    expect(gate.blocking).toEqual([
+      expect.stringMatching(/^cta_has_number at \$\.story\.ending\.cta: /),
+    ]);
+
+    const clean = await decided(
+      await h.post(runId, 'beat_sheet', {
+        action: 'edit',
+        subjectId: res.saved!.id,
+        content: { ...plan, story: { ...plan.story, ending: before.plan.story.ending } },
+      }),
+    );
+    expect(clean.run).toEqual({ status: 'running', step: 'script' });
+    expect(await h.gate(runId, 'beat_sheet')).toMatchObject({
+      status: 'approved',
+      decidedBy: 'auto',
+    });
+  });
+
   it('regenerates the beat sheet: the run goes back to the Director', async () => {
     const runId = await h.runUntilWaiting({ research: true });
     const res = await decided(

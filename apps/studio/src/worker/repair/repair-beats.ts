@@ -244,6 +244,7 @@ async function revise(
   script: BeatScript[],
 ): Promise<BeatScript[]> {
   const budgets = wordBudgets(ctx.plan, ctx.variables.wordsPerSec, ctx.pauses);
+  const part = partOf(deps, ctx);
   const base: ScriptwriterMessage = {
     topic: ctx.topic,
     series: { name: ctx.series.name },
@@ -253,7 +254,7 @@ async function revise(
     notes: ctx.notes,
     research: ctx.research,
     budgets,
-    ...partOf(deps, ctx),
+    ...part,
   };
   const measured = measuredBeatLengths(ctx.spec).find((b) => b.beatId === req.beatId);
   const styleRules = styleRulesSection(activeStyleRules(deps.db, 'scriptwriter'));
@@ -267,7 +268,14 @@ async function revise(
   const hash = inputHash({ model, versions: prompt.versions, messages: prompt.messages, req });
   const step = await subStep(
     scope,
-    { beatId: req.beatId, kind: 'script', hash, input: req, output: ScriptwriterOutputSchema },
+    {
+      beatId: req.beatId,
+      kind: 'script',
+      hash,
+      // The part-before version it read: a recap revised from it is no longer stale.
+      input: { ...req, ...previousVersion(part.part) },
+      output: ScriptwriterOutputSchema,
+    },
     async (stepId) =>
       (
         await deps.llm.callJson({
@@ -293,6 +301,10 @@ async function revise(
 function partOf(deps: RepairDeps, ctx: RepairContext): { part?: RunPart } {
   const part = runPart(deps.db, deps.dataDir, ctx.run);
   return part ? { part } : {};
+}
+
+function previousVersion(part: RunPart | undefined): { previousSpecVersionId?: number } {
+  return part?.previous ? { previousSpecVersionId: part.previous.specVersionId } : {};
 }
 
 function checkDeps(ctx: RepairContext): ScriptwriterCheckDeps {

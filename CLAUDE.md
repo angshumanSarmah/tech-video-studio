@@ -179,6 +179,9 @@ narrative devices: `DEVICE_IDS`, `DeviceId`), `layout-modes` (ids, zones, `maxUn
 - After changing the schema, run `pnpm --filter @explainer-studio/studio db:generate`.
 - Migrations are applied only by `db:migrate`, which `dev` and `start` run before the server and
   worker start. Neither process migrates itself, so they never race on the shared file.
+  `migrateDatabase` turns foreign keys off while they run (a table rebuild drops a table that
+  `restrict` references point at; the generated `PRAGMA foreign_keys=OFF` does nothing inside
+  the migrator's transaction) and runs `foreign_key_check` after.
 - **Until the first real video exists**, migrations may be regenerated from scratch (delete
   `apps/studio/drizzle/` and regenerate) instead of stacking new ones; wipe local `data/` when you
   do. P1C.9 step 1 was the last such regeneration: **after the first real run, migrations are
@@ -283,9 +286,14 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   `running`.
 - **Gates:** each row stores what it reviews (`gateSubject`): research and beat sheet the
   newest finished step (`subject_step_id`), scenes the curated version (`report.final`), draft the
-  version the scenes gate approved (`spec_version_id`). Blocking: research and beat sheet nothing
-  yet (step 9 adds thin and contradictory sources), scenes the Curator's blocking badges, draft
-  the final's blockers (`render_draft` writes them to `runs/<id>/final-check.json`,
+  version the scenes gate approved (`spec_version_id`). Blocking (`gateBlocking`, step 9; gates 1
+  and 2 through `#core/services/gate-checks.ts`, which the gate view shares): research the notes'
+  check findings plus thin research and sources that disagree (`researchGateFindings`, shared
+  `research/gate.ts`: fewer than `THIN_RESEARCH.minFacts` (6) facts, no numbers, under
+  `minSourceChars` (3,000) characters across the sources read, one `sources_disagree` per
+  `disagreement` open question; more than `MANY_SOURCES` (5) sources read only warns), beat sheet
+  `planIssues` (an agent's plan passes them to finish its step, so they block a user's edit),
+  scenes the Curator's blocking badges, draft the final's blockers (`render_draft` writes them to `runs/<id>/final-check.json`,
   `#core/services/final-check.ts`, since only the worker can compute `finalRenderBlockers`).
 - **Transitions** (`effects.ts`): `split` records the plan's missing-primitive requests in the
   backlog (`recordMissingPrimitives`, once per run and name) and, for a plan with parts, creates a
@@ -293,7 +301,7 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   snapshot; a finished `direct` step whose plan is `partPlan(plan, n)` and whose input is the
   parent's, so it reads the same research) starting at `script`; the parent waits at `children`
   and finishes when every part has (`done` only if all are). Part n+1's script waits until part
-  n is past `spec`. `spec` assembles plan + script (`assembleScriptedSpec`, the run's format
+  n is done or its scenes gate is approved (step 9), so a recap reads approved narration. `spec` assembles plan + script (`assembleScriptedSpec`, the run's format
   override, series number = the Director's `nextNumber` + part offset, a part's `meta.part`,
   `partRefOf`) as the next version (`saveSpecVersionIn`). `board_backlog` records the
   Generator's requests. `partPlan` keeps each part's own devices (only those on its beats), its
@@ -301,17 +309,28 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   ending card), only the last part gets the plan's ending.
 - **Parts end to end** (step 8): each part runs from `script` to its own export. `runPart`
   (`#core/services/parts.ts`) gives a part's agents its place: part n of N, its title and main
-  idea from the parent's parts plan, the part before (its latest spec's narration, per beat: the
+  idea from the parent's parts plan, the part before (the narration of `recapSourceVersion`: the
+  version its scenes gate approved, carried approvals included, else its latest; per beat: the
   recap's material) and the part after (title and idea: the cliffhanger's question). The
   Scriptwriter's user message carries it as `part` (`previousPart`, `nextPart`; the step input
-  records `part.previousSpecVersionId`), and so do the Curator's Scriptwriter repairs.
+  records `part.previousSpecVersionId`), and so do the Curator's Scriptwriter repairs (each
+  `script` sub-step's input records the `previousSpecVersionId` it read).
+  **Stale recap** (step 9, `staleRecapBadge`): when part n's approved narration later differs
+  from the version part n+1's recap beat (`recap_opening`, else the first) was last written from
+  (the newest of the script step's and a recap revision's `previousSpecVersionId`), part n+1's
+  scenes and draft gates show an advisory `recap_stale` badge on that beat naming the changed
+  beats; the fix is a beat regenerate of its narration, which reads part n as it is now.
 - **Gate API** (step 4; `#core/services/gates.ts`, `gate-decisions.ts`, `gate-edits.ts`,
   `run-settings.ts`; routes `server/routes/gates.ts`; shapes `shared/api/gates.ts`):
   - `GET /api/runs/:id/gates/:gate` (`readGate`): the row, `waiting` (the run is
     `awaiting_review` at that gate step), the subject (`{ kind: step | spec_version, id }`) and
-    its content, `checks` (research: `researchNotesProblems`; beat sheet: `planIssues`,
-    `#core/checks/plan.ts`, the Director's own check list; scenes and draft: the Curator's code
-    issues, when its report's `final` is that version), `badges`, `blocking`, the stills and
+    its content (research: the notes and `sources`, one `ResearchSourceStat` per source read,
+    its characters, chunks and chunks sent, then each failed source with its error), `checks`
+    (research: `researchNotesProblems`; beat sheet: `planIssues`, `#core/checks/plan.ts`, the
+    Director's own check list; scenes and draft: the Curator's code issues, when its report's
+    `final` is that version), `badges` (part runs add `recap_stale`), `blocking` (lines
+    `<code> at <path>: <message>` for gates 1 and 2), `warnings` (research: `sources_many`), the
+    stills and
     draft of that version (data-dir paths, from their manifests, `#core/render-manifests.ts`),
     and the run's cost in total and per role (`runCostByRole`).
   - `POST` (`decideAtGate`, one transaction with `advanceRun`): only on a gate the run waits at
@@ -369,7 +388,9 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   directory (`workerTransport`) instead of calling the API.
 - **Tests:** `decide.test.ts` (every transition, regenerate routes, parts, paused and cancelled);
   `worker/orchestrator.test.ts`: the tokenizer from topic to export with every gate on auto (the
-  stage sequence and events pinned), a gate that waits and resumes on approval, the parts split,
+  stage sequence and events pinned; both recorded topics' notes report a sources disagreement, so
+  gate 1 waits and the drain approves it as the user, `approveDisputedResearch` in
+  `#core/orchestrator/testing.ts`, as `Harness.drain` does unless `approveDisputed` is off), a gate that waits and resumes on approval, the parts split,
   the startup sweep, a state problem, the pipeline's job types against the registry, the dry-run
   switch. The all-auto run replays the topic's recorded Curator round (`curateRound`,
   `agents/curator/fixtures/<topic>/round/`: the review, its repairs' Scriptwriter and Generator
@@ -380,7 +401,8 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   only when it passed gate 3 with nothing blocking.
   `src/acceptance/` (it may import server and worker; `Harness`: the API over a dry-run worker
   whose replay queues persist across drains, each drain appending the answers a test gives it):
-  `gates.test.ts`: a run paused at the beat sheet resumes on approve, reject, a plan edit, a
+  `gates.test.ts`: a run paused at the beat sheet resumes on approve, reject, a plan edit (one
+  with a check finding stays blocked with auto-approve on, a clean one approves itself), a
   regenerate, a scenes edit re-timed and curated again, stale approves (409), and a settings
   update at a gate that changes only the named model; `regenerate.test.ts`: every regenerate
   path (feedback in the rerun's prompts; one beat at the scenes and draft gates with every other
@@ -396,29 +418,47 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   spec card only on part 2, no part-edge findings, HUD text checks clean, part 2's Scriptwriter
   prompt holding part 1's narration and its recap quoting it); a cap set between part 1's spend
   and the parts' combined spend, on the parent while it waits for its parts, pauses part 2 at
-  `curate` (part 1 at its draft), and raising it resumes part 2. Jobs run one at a time there so
-  each `curate` gets a quiet review of the spec it pins (`runParts`).
+  `curate` (part 1 at its draft), and raising it resumes part 2; with the scenes gate off, part 2
+  writes no script until part 1's scenes are approved, a G4 narration edit of part 1 gives part
+  2's gates a `recap_stale` badge, and regenerating the recap beat (its prompt holding the edited
+  narration) clears it. Jobs run one at a time there so each `curate` gets a quiet review of the
+  spec it pins (`runParts`). `sources.test.ts` (step 9): pasted text and a CSV added through
+  the API, other files and non-http URLs refused; the Researcher reads the pasted text under its
+  title and the CSV as labelled rows, its notes cite the pasted chunk and a CSV row's value as a
+  research number, and the thin research waits at gate 1 with the reasons and each source's
+  length and chunks; a recorded topic's disagreement keeps gate 1 from approving itself.
 
 ### Source ingestion (`src/worker/ingest`, job in `jobs/ingest.ts`)
 
 - **`ingest` job** (the run's first job, payload `{ refetchSourceIds? }`: sources a gate's
   re-fetch names are fetched again even though extracted, and only those repin their new text to
   the run (`recordRunSources(..., repin)`); a failed re-fetch keeps the earlier text): extracts
-  every source of the run's topic
+  every source of the run's topic (a URL, an upload, or pasted text: `SOURCE_KINDS`)
   that is `pending` or `failed`, one at a time; `extracted` ones are reused, never re-fetched
   (re-fetching is the explicit retry, P1D.2). A source that fails gets `status: failed`, `error`
-  (what happened and what to do, e.g. "HTTP 403: the site blocks automated access, so upload the
-  page as a file instead …") and `error_code` (`SOURCE_FAILURE_CODES`), plus a `warn` log event;
-  the job carries on. Then `recordRunSources` pins the extracted versions to the run
-  (`run_sources`): the set the Researcher reads. The job fails (and the run) only when no source
-  is usable, or the topic has none.
+  (what happened and what to do, e.g. "HTTP 403: the site blocks automated access, so paste its
+  text as a source instead, or upload the page as a file …") and `error_code`
+  (`SOURCE_FAILURE_CODES`), plus a `warn` log event; the job carries on. Then `recordRunSources`
+  pins the extracted versions to the run (`run_sources`): the set the Researcher reads, with a
+  `warn` above `MANY_SOURCES` (5). The job fails (and the run) only when no source is usable, or
+  the topic has none.
+- **Adding sources** (`#core/services/sources.ts`; `GET|POST /api/topics/:id/sources`): JSON
+  `AddSourceRequestSchema` (`url`, http(s) only; or `text` with a `title`, at most
+  `PASTED_TEXT_MAX_CHARS`), or multipart form data (field `file`, an `UPLOAD_EXTENSIONS` name,
+  at most `MAX_SOURCE_BYTES`; anything else is `InvalidSourceError`, a 400). Pasted text and
+  uploads are written content-addressed under the topic (`writeDataFileOnce`) before the row;
+  pasted text is a `kind: 'text'` row whose `file_path` is `PASTED_TEXT_FILE_NAME` and whose
+  `title` is the one given, kept by ingestion. Its origin (`sourceOrigin`) is that title. The
+  run's angle / notes steer the story but are never a citable source. The CLI (P1C.9b) is not
+  built yet.
 - **Outputs** (content-addressed by the normalized text's sha256, written atomically, skipped when
   present): `topics/<t>/sources/<s>/<hash>.txt` and `<hash>.chunks.json`
   (`SourceChunksFileSchema`). The row gets `text_path`, `content_hash`, `title` and `extracted_at`
   (the fetch date). Uploads live at `sourceUploadPath(topic, fileHash, name)`, written before the
-  row is inserted; only `.md`, `.txt` and `.pdf` are read.
+  row is inserted; only `UPLOAD_EXTENSIONS` are read (.md, .markdown, .txt, .pdf, .docx, .csv,
+  .json).
 - **Fetching** (`fetch.ts`): http(s) only, the given URL only (redirects followed, nothing
-  crawled), `FETCH_TIMEOUT_MS` (20 s) per attempt including the body, `MAX_SOURCE_BYTES` (15 MB)
+  crawled), a generic desktop-browser `USER_AGENT` (names no app or person), `FETCH_TIMEOUT_MS` (20 s) per attempt including the body, `MAX_SOURCE_BYTES` (15 MB)
   checked on Content-Length and while streaming. Timeouts, 429 and 5xx are retried up to 2 times
   with the shared rules in `src/worker/http/retry.ts` (backoff 1 s, 2 s; Retry-After honoured up
   to 60 s), the same ones the LLM transport uses. GitHub repo, `tree`, `blob` and `raw` URLs are
@@ -430,17 +470,28 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   embeds, `[hidden]`, `aria-hidden="true"`, and `display: none` / `visibility: hidden|collapse` /
   `content-visibility: hidden` from inline styles and the page's own `<style>` rules), so hidden
   text never reaches the Researcher; then Readability and `domToText` (`#` headings, `- ` items,
-  `a | b` rows, fenced `pre`). Markdown is kept minus HTML comments (`markdown.ts`). PDF: the text
+  `a | b` rows, fenced `pre`). Markdown is kept minus HTML comments (`markdown.ts`). Tables in
+  `.docx`, `.csv` and `.json` become **labelled rows** (`tables.ts`, `labelledRows`): `Columns:
+a; b`, then one paragraph per row, `- a: 1; b: 2`, so a row is citable alone and a chunk never
+  splits one. Word (`docx.ts`): mammoth's HTML (images dropped) through `domToText` with
+  `tables: 'labelled'`; title the first `h1`. CSV (`csv.ts`): RFC 4180 quoting, the delimiter
+  the header uses most of `,` `;` tab; the first non-empty row is the header. JSON (`json.ts`):
+  a list of records becomes labelled rows under `# <path>` (nested fields `a.b`, value lists
+  joined), an object's plain values `key: value` lines; a file that does not parse is
+  `unreadable`. Pasted text is plain text under its given title. PDF: the text
   layer via `unpdf` (`pdf.ts`); its title is the Info title, else the first run of the largest
   upright text on page 1 (`pdf-title.ts`, ≤ 120 chars; rotated margin stamps are skipped), else
   the URL's file name (`urlFallbackTitle`) or the upload's name. Every format then goes through `normalizeText` (NFC, invisible
-  and control characters removed, whitespace canonical); under `MIN_TEXT_CHARS` (200) is `empty`.
+  and control characters removed, whitespace canonical); under `MIN_TEXT_CHARS` (200, shared) is
+  `empty` (a JavaScript-only page: "probably built by JavaScript … paste its text as a source
+  instead"), and the run carries on with the other sources.
 - **Chunks** (`chunk.ts`, pure): whole paragraphs packed to about 1,200 characters (max 2,000;
   longer paragraphs split at sentence ends), a `#` heading never ends a chunk, a short tail joins
   the chunk before. Ids are `source-<id>#chunk-<n>` from 1 (`sourceChunkId` in shared); each
   chunk is `text.slice(start, end)`.
 - Tests use saved fixtures in `ingest/fixtures/` (an article with planted hidden instructions, a
-  README with HTML comments, and a PDF built by `fixtures/pdf-builder.ts`; all text invented) and
+  README with HTML comments, a PDF built by `fixtures/pdf-builder.ts`, a JavaScript-only page, a
+  CSV and a JSON file, and `.docx` files built by `fixtures/docx-builder.ts`; all text invented) and
   `ingest/testing.ts` (`fakeWeb`: a URL-routed fake `fetch` and a recording `sleep`).
 
 ### Render service (`src/worker/render`, jobs in `jobs/render.ts`)
@@ -1201,7 +1252,8 @@ API conventions: routes under `/api`, inputs validated with the `validate()` hel
 from `packages/shared/src/api`, list responses wrapped as `{ items }`, and every error is
 `ApiErrorSchema` (`{ error: { code, message, issues? } }`). Domain errors from core
 (`NotFoundError` 404, `RunHasExportsError` / `ConflictError` / `OrchestratorStateError` 409,
-`InvalidEditError` / `RegenerateNotAllowedError` / `RunSettingsConflictError` 400) map to statuses
+`InvalidEditError` / `InvalidSourceError` / `RegenerateNotAllowedError` /
+`RunSettingsConflictError` 400) map to statuses
 in `src/server/errors.ts`. `AppDeps` carries the `dataDir` (gates read and write run files). Services that
 compose repositories live in `src/core/services`; handlers call them or a repository directly.
 Demo and debug endpoints live under `/api/dev` (`src/server/routes/dev.ts`), mounted only outside
