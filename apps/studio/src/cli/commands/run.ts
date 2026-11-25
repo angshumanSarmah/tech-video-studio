@@ -62,6 +62,7 @@ export function runSettings(cmd: RunCommand): RunSettingsInput {
     ...(cmd.lengthSec ? { lengthOverrideSec: cmd.lengthSec } : {}),
     ...(cmd.format ? { format: cmd.format } : {}),
     ...(cmd.capUsd ? { budget: { maxRunUsd: cmd.capUsd } } : {}),
+    ...(cmd.disagreements ? { research: { disagreementBlocks: cmd.disagreements } } : {}),
     ...(Object.keys(video).length > 0 ? { video } : {}),
   };
 }

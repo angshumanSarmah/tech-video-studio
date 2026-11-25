@@ -1,12 +1,15 @@
 import { z } from 'zod';
+import type { DisagreementBlocks } from '../config/settings.ts';
 import { SourceKindSchema, SourceStatusSchema } from '../domain/library.ts';
 import { SourceFailureCodeSchema } from '../domain/sources.ts';
 import type { SpecError } from '../spec/validate.ts';
 import type { ResearchNotes } from './notes.ts';
+import { numberWordTokens, quantityTokens } from './numbers.ts';
 
 /**
  * Gate 1's own rules (P1C.9 step 9), on top of the notes' checks: thin research and sources that
- * disagree stop the gate from approving itself, so a person reads the notes first. Many sources
+ * disagree (by default only on a number: `settings.research.disagreementBlocks`) stop the gate
+ * from approving itself, so a person reads the notes first. Other disagreements and many sources
  * only warn. Pure: the orchestrator (auto-approve) and the gate view (shown at the top) share it.
  */
 
@@ -60,13 +63,20 @@ export interface ResearchGateFindings {
   readonly warnings: SpecError[];
 }
 
+export interface ResearchGateOptions {
+  /** Which disagreements block (`settings.research.disagreementBlocks`). */
+  readonly disagreementBlocks: DisagreementBlocks;
+}
+
 export function researchGateFindings(
   notes: ResearchNotes,
   sources: readonly ResearchSourceStat[],
+  options: ResearchGateOptions,
 ): ResearchGateFindings {
+  const disputes = disagreements(notes, options.disagreementBlocks);
   return {
-    blocking: [...thinResearch(notes, sources), ...disagreements(notes)],
-    warnings: manySources(sources),
+    blocking: [...thinResearch(notes, sources), ...disputes.blocking],
+    warnings: [...disputes.advisory, ...manySources(sources)],
   };
 }
 
@@ -104,18 +114,48 @@ export function sourceChars(sources: readonly ResearchSourceStat[]): number {
   return sources.reduce((sum, s) => sum + (s.read?.chars ?? 0), 0);
 }
 
-function disagreements(notes: ResearchNotes): SpecError[] {
-  return notes.openQuestions.flatMap((q, i) =>
-    q.reason === 'disagreement'
-      ? [
-          {
-            path: `$.openQuestions[${i}]`,
-            code: 'sources_disagree',
-            message: `The sources disagree: ${q.question}${citing(q.sourceChunkIds)}. Decide which side the video takes (edit the notes or leave a note), then approve.`,
-          },
-        ]
-      : [],
-  );
+type OpenQuestion = ResearchNotes['openQuestions'][number];
+
+/** Each disagreement between sources, blocking or advisory as `mode` says. */
+function disagreements(
+  notes: ResearchNotes,
+  mode: DisagreementBlocks,
+): { blocking: SpecError[]; advisory: SpecError[] } {
+  const blocking: SpecError[] = [];
+  const advisory: SpecError[] = [];
+  notes.openQuestions.forEach((q, i) => {
+    if (q.reason !== 'disagreement') return;
+    const numbers = disputedNumbers(q, notes);
+    const blocks = mode === 'all' || (mode === 'numbers' && numbers.length > 0);
+    const issue = { path: `$.openQuestions[${i}]`, code: 'sources_disagree' };
+    if (blocks) blocking.push({ ...issue, message: blockingMessage(q, numbers) });
+    else advisory.push({ ...issue, message: advisoryMessage(q, numbers) });
+  });
+  return { blocking, advisory };
+}
+
+/**
+ * What makes a disagreement one about numbers: the quantities its question states (identifiers
+ * and everyday "one" to "three" aside, as in the Researcher's check), then the research numbers
+ * (`num-<n> = <value>`) that come from a chunk it cites. Empty when it involves none.
+ */
+export function disputedNumbers(question: OpenQuestion, notes: ResearchNotes): string[] {
+  const stated = [...quantityTokens(question.question), ...numberWordTokens(question.question)];
+  const cited = new Set(question.sourceChunkIds);
+  const behind = notes.numbers
+    .filter((n) => cited.has(n.sourceChunkId))
+    .map((n) => `${n.id} = ${n.value}`);
+  return [...stated.map((t) => `"${t}"`), ...behind];
+}
+
+function blockingMessage(q: OpenQuestion, numbers: readonly string[]): string {
+  const involves = numbers.length > 0 ? ` It involves ${numbers.join(', ')}.` : '';
+  return `The sources disagree: ${q.question}${citing(q.sourceChunkIds)}.${involves} Decide which side the video takes (edit the notes or leave a note), then approve.`;
+}
+
+function advisoryMessage(q: OpenQuestion, numbers: readonly string[]): string {
+  const why = numbers.length > 0 ? '' : ' (no number involved, so it does not block)';
+  return `The sources disagree${why}: ${q.question}${citing(q.sourceChunkIds)}. Check which side the notes take.`;
 }
 
 const citing = (ids: readonly string[]) => (ids.length > 0 ? ` (${ids.join(', ')})` : '');

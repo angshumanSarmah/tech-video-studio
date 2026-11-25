@@ -25,7 +25,7 @@ describe('resolveRunSettings', () => {
     expect(resolved.timing).toEqual({ beatGapSec: 0, landingSec: 0, endTailSec: 0.5 });
     expect(resolved.tts).toEqual({ voice: 'af_heart', speed: 1 });
     expect(resolved.budget).toEqual({ maxRunUsd: 0.75 });
-    expect(resolved.research.sourceTokenBudget).toBe(60_000);
+    expect(resolved.research).toEqual({ sourceTokenBudget: 60_000, disagreementBlocks: 'numbers' });
     expect(resolved.render.presets.draft).toEqual({ width: 540, height: 960, fps: 15 });
   });
 
@@ -54,6 +54,20 @@ describe('resolveRunSettings', () => {
     expect(resolved.timing).toEqual({ beatGapSec: 0.2, landingSec: 0.6, endTailSec: 0.5 });
     expect(resolved.tts).toEqual({ voice: 'bf_emma', speed: 0.9 });
     expect(resolved.budget.maxRunUsd).toBe(2);
+  });
+
+  it('takes the disagreement rule from the run, else the app, else "numbers"', () => {
+    expect(resolve({}, { research: { disagreementBlocks: 'all' } }).research).toEqual({
+      sourceTokenBudget: 60_000,
+      disagreementBlocks: 'all',
+    });
+    expect(
+      resolve(
+        { research: { disagreementBlocks: 'none' } },
+        { research: { disagreementBlocks: 'all', sourceTokenBudget: 9_000 } },
+      ).research,
+    ).toEqual({ sourceTokenBudget: 9_000, disagreementBlocks: 'none' });
+    expect(() => resolve({ research: { sourceTokenBudget: 9_000 } } as never)).toThrow();
   });
 
   it("falls back to the app's speed, then to 1.0", () => {
@@ -124,6 +138,15 @@ describe('patchRunSettings', () => {
     expect(next.snapshot.video).toEqual({ ...snapshot.video, maxParts: 2 });
     expect(next.settings.autoApprove).toEqual({ ...settings.autoApprove, scenes: true });
     expect(next.settings.lengthOverrideSec).toBe(60);
+  });
+
+  it('changes the disagreement rule in the overrides and the snapshot, and nothing else', () => {
+    const next = patch({ research: { disagreementBlocks: 'none' } });
+    expect(next.snapshot).toEqual({
+      ...snapshot,
+      research: { ...snapshot.research, disagreementBlocks: 'none' },
+    });
+    expect(next.settings).toEqual({ ...settings, research: { disagreementBlocks: 'none' } });
   });
 
   it('refuses a model with no price and a merge that breaks the rules', () => {

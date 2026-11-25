@@ -54,7 +54,7 @@ export function resolveRunSettings(run: RunSettings, app: RunSettingsSource): Re
     video: { ...app.video, ...run.video },
     timing: { ...app.timing, ...run.timing },
     tts: { voice: app.tts.voice, speed: run.tts?.speed ?? app.tts.speed },
-    research: app.research,
+    research: { ...app.research, ...run.research },
     llm: { models: { ...app.llm.models, ...run.llm?.models }, prices: app.llm.prices },
     render: { presets: app.render.presets },
     budget: { maxRunUsd: run.budget?.maxRunUsd ?? app.budget.maxRunUsd },
@@ -92,6 +92,7 @@ export function patchRunSettings(
     ...mergedObject('timing', settings.timing, patch.timing),
     ...mergedObject('video', settings.video, patch.video),
     ...mergedObject('budget', settings.budget, patch.budget),
+    ...mergedObject('research', settings.research, patch.research),
     ...(patch.llm
       ? { llm: { models: { ...settings.llm?.models, ...withoutUndefined(patch.llm.models) } } }
       : settings.llm
@@ -105,6 +106,7 @@ export function patchRunSettings(
     timing: { ...snapshot.timing, ...withoutUndefined(patch.timing ?? {}) },
     tts: { ...snapshot.tts, ...withoutUndefined(patch.tts ?? {}) },
     budget: { ...snapshot.budget, ...withoutUndefined(patch.budget ?? {}) },
+    research: { ...snapshot.research, ...withoutUndefined(patch.research ?? {}) },
     llm: { models, prices: pricesFor(snapshot.llm.prices, Object.values(models), priceOf) },
   });
   if (!result.success) {

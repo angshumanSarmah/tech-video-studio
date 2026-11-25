@@ -1,9 +1,11 @@
 import { parseArgs, type ParseArgsOptionsConfig } from 'node:util';
 import {
+  DISAGREEMENT_BLOCKS,
   EXPLANATION_LEVELS,
   FIX_FIELDS,
   REGENERATE_TARGETS,
   VIDEO_FORMATS,
+  type DisagreementBlocks,
   type ExplanationLevel,
   type FixField,
   type RegenerateTarget,
@@ -37,6 +39,8 @@ export interface RunCommand {
   readonly format?: VideoFormat;
   readonly capUsd?: number;
   readonly wordsPerSec?: number;
+  /** Which source disagreements block gate 1 (`research.disagreementBlocks`). */
+  readonly disagreements?: DisagreementBlocks;
   /** Gates 1-3 approve themselves when nothing blocks. */
   readonly auto: boolean;
   /** Gate 4 too. */
@@ -88,9 +92,11 @@ export const USAGE = `Usage: pnpm studio <command> [options]
 
   run "<topic>" --series ai|system-design [--source <url|file>]... [--text "<title>=<file|->"]...
       [--angle <text>] [--level beginner|intermediate|expert] [--length <sec>] [--format full|card]
-      [--cap <usd>] [--words-per-sec <n>] [--auto] [--auto-final] [--dry-run <dir>]
+      [--cap <usd>] [--words-per-sec <n>] [--disagreements numbers|all|none] [--auto]
+      [--auto-final] [--dry-run <dir>]
         Start a run and follow it. --auto approves gates 1-3 when nothing blocks; gate 4 needs
-        --auto-final. Files: .md .markdown .txt .pdf .docx .csv .json.
+        --auto-final. --disagreements: which source disagreements stop gate 1 (default: those
+        involving a number). Files: .md .markdown .txt .pdf .docx .csv .json.
   gate <run> approve [--notes <text>]
   gate <run> reject [--notes <text>]
   gate <run> edit <file.json>
@@ -162,6 +168,7 @@ function parseRun(args: readonly string[]): RunCommand {
     format: { type: 'string' },
     cap: { type: 'string' },
     'words-per-sec': { type: 'string' },
+    disagreements: { type: 'string' },
     auto: { type: 'boolean' },
     'auto-final': { type: 'boolean' },
     'dry-run': { type: 'string' },
@@ -187,6 +194,10 @@ function parseRun(args: readonly string[]): RunCommand {
     ...optional('format', oneOf('--format', values.format, VIDEO_FORMATS)),
     ...optional('capUsd', positiveNumber('--cap', values.cap)),
     ...optional('wordsPerSec', positiveNumber('--words-per-sec', values['words-per-sec'])),
+    ...optional(
+      'disagreements',
+      oneOf('--disagreements', values.disagreements, DISAGREEMENT_BLOCKS),
+    ),
     auto: values.auto === true,
     autoFinal: values['auto-final'] === true,
     ...optional('dryRun', text(values['dry-run'])),

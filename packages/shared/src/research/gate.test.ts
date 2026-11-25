@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import type { DisagreementBlocks } from '../config/settings.ts';
 import {
   MANY_SOURCES,
-  researchGateFindings,
+  researchGateFindings as findingsWith,
   THIN_RESEARCH,
   type ResearchSourceStat,
 } from './gate.ts';
@@ -54,6 +55,13 @@ const source = (sourceId: number, chars: number | null): ResearchSourceStat => (
   read: chars === null ? null : { chars, chunks: 2, sentChunks: 2 },
 });
 
+/** The default rule: only disagreements that involve a number block. */
+const researchGateFindings = (
+  n: ResearchNotes,
+  sources: readonly ResearchSourceStat[],
+  disagreementBlocks: DisagreementBlocks = 'numbers',
+) => findingsWith(n, sources, { disagreementBlocks });
+
 const codes = (issues: readonly { code: string }[]) => issues.map((i) => i.code);
 
 describe('researchGateFindings', () => {
@@ -79,26 +87,77 @@ describe('researchGateFindings', () => {
     );
   });
 
-  it('blocks each disagreement between sources, quoting it with its chunks; silence does not block', () => {
-    const { blocking } = researchGateFindings(
-      notes({
-        openQuestions: [
-          { question: 'Who covers the gap?', reason: 'not_covered', sourceChunkIds: [] },
-          {
-            question: 'Should the queue drop or block when full?',
-            reason: 'disagreement',
-            sourceChunkIds: [C1, C2],
-          },
-        ],
-      }),
+  const C3 = 'source-3#chunk-1';
+  const disputed = (question: string, sourceChunkIds: string[]) =>
+    notes({
+      openQuestions: [
+        { question: 'Who covers the gap?', reason: 'not_covered', sourceChunkIds: [] },
+        { question, reason: 'disagreement', sourceChunkIds },
+      ],
+    });
+
+  it('blocks a disagreement that cites a chunk behind a research number, naming the number', () => {
+    const { blocking, warnings } = researchGateFindings(
+      disputed('Should the queue drop or block when full?', [C1, C2]),
       [source(1, 4_000)],
     );
+    expect(warnings).toEqual([]);
     expect(blocking).toEqual([
       {
         path: '$.openQuestions[1]',
         code: 'sources_disagree',
-        message: `The sources disagree: Should the queue drop or block when full? (${C1}, ${C2}). Decide which side the video takes (edit the notes or leave a note), then approve.`,
+        message: `The sources disagree: Should the queue drop or block when full? (${C1}, ${C2}). It involves num-1 = 40. Decide which side the video takes (edit the notes or leave a note), then approve.`,
       },
+    ]);
+  });
+
+  it('blocks a disagreement whose question states a quantity, in digits or in words', () => {
+    for (const question of [
+      'Is the wait 40 ms or more?',
+      'Do workers take twenty items or fewer?',
+    ]) {
+      const { blocking } = researchGateFindings(disputed(question, [C3]), [source(1, 4_000)]);
+      expect(codes(blocking)).toEqual(['sources_disagree']);
+    }
+    const { blocking } = researchGateFindings(disputed('Is the wait 40 ms or more?', []), [
+      source(1, 4_000),
+    ]);
+    expect(blocking[0]!.message).toContain('It involves "40".');
+  });
+
+  it('leaves a disagreement with no number in its text or its chunks as an advisory note', () => {
+    for (const question of [
+      'Should the queue drop or block when full?',
+      'Do two or three workers share it?',
+      'Is HTTP 429 or p99 the signal?',
+    ]) {
+      const { blocking, warnings } = researchGateFindings(disputed(question, [C3]), [
+        source(1, 4_000),
+      ]);
+      expect(blocking).toEqual([]);
+      expect(warnings).toEqual([
+        {
+          path: '$.openQuestions[1]',
+          code: 'sources_disagree',
+          message: `The sources disagree (no number involved, so it does not block): ${question} (${C3}). Check which side the notes take.`,
+        },
+      ]);
+    }
+  });
+
+  it('blocks every disagreement with "all" and none with "none"; silence never blocks', () => {
+    const plain = disputed('Should the queue drop or block when full?', [C3]);
+    const numeric = disputed('Should the queue drop or block when full?', [C1]);
+    expect(codes(researchGateFindings(plain, [source(1, 4_000)], 'all').blocking)).toEqual([
+      'sources_disagree',
+    ]);
+    const none = researchGateFindings(numeric, [source(1, 4_000)], 'none');
+    expect(none.blocking).toEqual([]);
+    expect(none.warnings).toEqual([
+      expect.objectContaining({
+        code: 'sources_disagree',
+        message: `The sources disagree: Should the queue drop or block when full? (${C1}). Check which side the notes take.`,
+      }),
     ]);
   });
 

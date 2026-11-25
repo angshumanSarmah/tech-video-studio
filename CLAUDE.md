@@ -250,7 +250,7 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   `startRun` resolves the run's overrides over the app settings over the defaults once
   (`resolveRunSettings`, pure; a conflict is `RunSettingsConflictError`, a 400) into
   `runs.resolved_settings`: video (the prompt variables), timing, tts voice and speed, research
-  budget, the model per role and the price table, render presets and the cost cap
+  budget and disagreement rule, the model per role and the price table, render presets and the cost cap
   (`budget.maxRunUsd`, default $0.75). **Every job reads `run.resolvedSettings`; handler deps
   carry no settings.** The LLM client takes a run's model and prices from it; render jobs its
   presets. The server reads `settings.json` on each run start (`appSettings` in `AppDeps`), so
@@ -300,7 +300,11 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   check findings plus thin research and sources that disagree (`researchGateFindings`, shared
   `research/gate.ts`: fewer than `THIN_RESEARCH.minFacts` (6) facts, no numbers, under
   `minSourceChars` (3,000) characters across the sources read, one `sources_disagree` per
-  `disagreement` open question; more than `MANY_SOURCES` (5) sources read only warns), beat sheet
+  `disagreement` open question that blocks under the run's `research.disagreementBlocks`
+  (`numbers`, the default: its question states a quantity, or it cites a chunk a research number
+  comes from, `disputedNumbers`; `all`; `none`; run override over app setting), the others
+  advisory `warnings` printed at the top of G1; more than `MANY_SOURCES` (5) sources read only
+  warns), beat sheet
   `planIssues` (an agent's plan passes them to finish its step, so they block a user's edit),
   scenes the Curator's blocking badges, draft the final's blockers (`render_draft` writes them to `runs/<id>/final-check.json`,
   `#core/services/final-check.ts`, since only the worker can compute `finalRenderBlockers`).
@@ -406,8 +410,8 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   no other agent is called. A parent reruns up to its beat sheet, a part from its script.
 - **Tests:** `decide.test.ts` (every transition, regenerate routes, parts, paused and cancelled);
   `worker/orchestrator.test.ts`: the tokenizer from topic to export with every gate on auto (the
-  stage sequence and events pinned; both recorded topics' notes report a sources disagreement, so
-  gate 1 waits and the drain approves it as the user, `approveDisputedResearch` in
+  stage sequence and events pinned; both recorded topics' notes report a sources disagreement
+  citing a chunk with a research number (rate limiter `num-20`, tokenizer `num-6`), so gate 1 waits and the drain approves it as the user, `approveDisputedResearch` in
   `#core/orchestrator/testing.ts`, as `Harness.drain` does unless `approveDisputed` is off), a gate that waits and resumes on approval, the parts split,
   the startup sweep, a state problem, the pipeline's job types against the registry, the dry-run
   switch. The all-auto run replays the topic's recorded Curator round (`curateRound`,
@@ -444,7 +448,9 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   the API, other files and non-http URLs refused; the Researcher reads the pasted text under its
   title and the CSV as labelled rows, its notes cite the pasted chunk and a CSV row's value as a
   research number, and the thin research waits at gate 1 with the reasons and each source's
-  length and chunks; a recorded topic's disagreement keeps gate 1 from approving itself.
+  length and chunks; a recorded topic's disagreement keeps gate 1 from approving itself (it
+  names the number), unless the run sets `disagreementBlocks: none` (then it is a warning), also
+  when switched with a settings update while the run waits there.
 
 ### Source ingestion (`src/worker/ingest`, job in `jobs/ingest.ts`)
 
@@ -476,7 +482,8 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   row is inserted; only `UPLOAD_EXTENSIONS` are read (.md, .markdown, .txt, .pdf, .docx, .csv,
   .json).
 - **Fetching** (`fetch.ts`): http(s) only, the given URL only (redirects followed, nothing
-  crawled), a generic desktop-browser `USER_AGENT` (names no app or person), `FETCH_TIMEOUT_MS` (20 s) per attempt including the body, `MAX_SOURCE_BYTES` (15 MB)
+  crawled), an honest `USER_AGENT` (`Mozilla/5.0 (compatible; TechExplainerStudio/1.0)`: an automated client,
+  never a browser string; a site that refuses it is a 403, "paste or upload instead"), `FETCH_TIMEOUT_MS` (20 s) per attempt including the body, `MAX_SOURCE_BYTES` (15 MB)
   checked on Content-Length and while streaming. Timeouts, 429 and 5xx are retried up to 2 times
   with the shared rules in `src/worker/http/retry.ts` (backoff 1 s, 2 s; Retry-After honoured up
   to 60 s), the same ones the LLM transport uses. GitHub repo, `tree`, `blob` and `raw` URLs are
@@ -1297,7 +1304,7 @@ pbpaste | pnpm studio run "Consistent hashing" --series system-design --text "Te
 
 - **`run`** `"<topic>" --series ai|system-design` with any mix of `--source` and `--text`, and
   `--angle` (the topic notes), `--level`, `--length <sec>`, `--format full|card`, `--cap <usd>`,
-  `--words-per-sec`, `--auto` (gates 1-3 approve themselves when nothing blocks), `--auto-final`
+  `--words-per-sec`, `--disagreements numbers|all|none` (`research.disagreementBlocks`), `--auto` (gates 1-3 approve themselves when nothing blocks), `--auto-final`
   (gate 4 too), `--dry-run <dir>`. Every source is read and checked before anything is created.
 - **Follows the run** by reading `events` (`follow.ts`, `progress.ts`): one line per step
   entered, per job that ends (time, the run's cost by then), per gate event, warnings; progress

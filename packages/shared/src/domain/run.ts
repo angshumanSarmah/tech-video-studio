@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import { ModelRoleSchema } from '../config/llm.ts';
-import { PauseSecSchema, RunCostCapSchema, TtsSpeedSchema } from '../config/settings.ts';
+import {
+  DisagreementBlocksSchema,
+  PauseSecSchema,
+  RunCostCapSchema,
+  TtsSpeedSchema,
+} from '../config/settings.ts';
 import { VideoLengthSecSchema, VideoSettingsOverrideSchema } from '../config/video.ts';
 import { VideoFormatSchema } from '../spec/meta.ts';
 
@@ -92,6 +97,8 @@ export const RunSettingsSchema = z.strictObject({
     .optional(),
   /** Per-run length, parts and pace overrides (`VideoSettingsSchema`); omitted fields use the app's. */
   video: VideoSettingsOverrideSchema.optional(),
+  /** Per-run research overrides; omitted fields use the app's `settings.research`. */
+  research: z.strictObject({ disagreementBlocks: DisagreementBlocksSchema.optional() }).optional(),
   /** Per-run cost cap; omitted uses the app's `budget.maxRunUsd`. */
   budget: z.strictObject({ maxRunUsd: RunCostCapSchema.optional() }).optional(),
   /** Per-run model per role; omitted roles use the app's `llm.models`. */

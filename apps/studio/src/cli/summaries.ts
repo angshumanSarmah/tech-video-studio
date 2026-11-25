@@ -31,12 +31,13 @@ export function gateSummary(view: GateView, dataDir: string): string[] {
   const lines = [
     `── Gate ${gateNumber(view.gate)}: ${GATE_TITLES[view.gate]} · run ${view.runId} ──`,
   ];
+  // Advisory notes first (gate 1: disagreements that do not block, many sources).
+  lines.push(...view.warnings.map((w) => `  ! ${clip(w.message, WIDTH)}`));
   lines.push(...contentLines(view, dataDir));
   if (view.blocking.length > 0) {
     lines.push('Blocking (it does not approve itself):');
     lines.push(...view.blocking.map((b) => `  ✗ ${clip(b, WIDTH)}`));
   }
-  lines.push(...view.warnings.map((w) => `  ! ${clip(w.message, WIDTH)}`));
   lines.push(costLine(view));
   return lines;
 }

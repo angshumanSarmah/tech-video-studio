@@ -257,6 +257,9 @@ describe('gate 1', () => {
     expect(gate.blocking[0]).toMatch(
       /^sources_disagree at \$\.openQuestions\[0\]: The sources disagree: Should limits for a team's own APIs fail open or fail closed\?/,
     );
+    // The question states no quantity; it blocks because its chunk is where a research number
+    // comes from (`disagreementBlocks: numbers`, the default).
+    expect(gate.blocking[0]).toContain('It involves num-20 = 150.');
     if (gate.content?.gate !== 'research') throw new Error('expected the research gate');
     expect(gate.content.sources).toHaveLength(3);
     for (const source of gate.content.sources) {
@@ -272,5 +275,42 @@ describe('gate 1', () => {
     expect(res.status).toBe(200);
     await h.drain({}, 1);
     expect(h.jobs(runId)).toContain('direct');
+  });
+
+  it('with disagreementBlocks "none" the disagreement is an advisory note and gate 1 approves itself', async () => {
+    h.approveDisputed = false;
+    const runId = h.start({
+      autoApprove: { research: true },
+      research: { disagreementBlocks: 'none' },
+    });
+    await h.drain();
+
+    expect(getRun(h.t.db, runId)?.pipelineStep).toBe('gate_beat_sheet');
+    const gate = await h.gate(runId, 'research');
+    expect(gate.status).toBe('approved');
+    expect(gate.decidedBy).toBe('auto');
+    expect(gate.blocking).toEqual([]);
+    expect(gate.warnings).toEqual([
+      expect.objectContaining({
+        code: 'sources_disagree',
+        path: '$.openQuestions[0]',
+        message: expect.stringMatching(
+          /^The sources disagree: Should limits for a team's own APIs fail open or fail closed\?/,
+        ) as string,
+      }),
+    ]);
+  });
+
+  it('switching the rule to "none" at gate 1 lets the waiting run approve itself', async () => {
+    h.approveDisputed = false;
+    const runId = await h.runUntilWaiting({ research: true });
+    expect(getRun(h.t.db, runId)?.pipelineStep).toBe('gate_research');
+
+    const res = await h.putSettings(runId, { research: { disagreementBlocks: 'none' } });
+    expect(res.status).toBe(200);
+    expect(getRun(h.t.db, runId)).toMatchObject({
+      pipelineStep: 'direct',
+      resolvedSettings: { research: { disagreementBlocks: 'none' } },
+    });
   });
 });

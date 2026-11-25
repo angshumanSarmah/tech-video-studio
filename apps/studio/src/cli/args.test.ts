@@ -28,6 +28,8 @@ describe('parseCommand', () => {
       '0.5',
       '--words-per-sec',
       '2.7',
+      '--disagreements',
+      'all',
       '--auto',
       '--dry-run',
       'rec',
@@ -44,6 +46,7 @@ describe('parseCommand', () => {
       format: 'card',
       capUsd: 0.5,
       wordsPerSec: 2.7,
+      disagreements: 'all',
       auto: true,
       autoFinal: false,
       dryRun: 'rec',
@@ -53,6 +56,7 @@ describe('parseCommand', () => {
       lengthOverrideSec: 75,
       format: 'card',
       budget: { maxRunUsd: 0.5 },
+      research: { disagreementBlocks: 'all' },
       video: { explanationLevel: 'expert', wordsPerSec: 2.7 },
     });
   });
@@ -66,6 +70,10 @@ describe('parseCommand', () => {
       /--series takes one of: ai, system-design/,
     );
     fails(['run', '--series', 'ai', '--source', 'a.md'], /quote the topic/);
+    fails(
+      ['run', 'X', '--series', 'ai', '--source', 'a.md', '--disagreements', 'some'],
+      /--disagreements takes one of: numbers, all, none/,
+    );
     fails(
       ['run', 'X', '--series', 'ai', '--source', 'a.md', '--length', 'long'],
       /positive number/,

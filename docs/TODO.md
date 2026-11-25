@@ -425,3 +425,8 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **One system: numbers stated but not cited.** `mixed_system_numbers` reads the ids a beat
       cites; an intent that states another source's number without citing its id escapes it.
       Map intent values to research numbers (`researchNumberOf`) and check their sources too.
+- [ ] **Gate 1: disagreements tied to numbers by id.** `disagreementBlocks: numbers` treats a
+      disagreement as numeric when it cites a chunk any research number comes from; chunks are
+      ~1,200 characters, so most carry one (the rate limiter's fail open / closed question blocks
+      through `num-20`, a timeout it is not about). Let the Researcher list `numberIds` on a
+      `disagreement` open question (schema, prompt version, re-recorded fixtures) and block on those.

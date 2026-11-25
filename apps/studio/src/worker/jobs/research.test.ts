@@ -88,9 +88,9 @@ async function runNext(reg: JobRegistry): Promise<void> {
 async function research(
   reg: JobRegistry,
   files = RATE_LIMITER_SOURCE_FILES,
-  research: ResearchSettings = settings.research,
+  research: Partial<ResearchSettings> = {},
 ) {
-  const app = { ...settings, research };
+  const app = { ...settings, research: { ...settings.research, ...research } };
   const { runId } = seedRunWithUploads(t.db, t.dataDir, RATE_LIMITER_TOPIC, files, { app });
   await runNext(reg);
   expect(listRunJobs(t.db, runId)[0]!.status).toBe('done');

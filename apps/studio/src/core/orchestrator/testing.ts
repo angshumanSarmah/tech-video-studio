@@ -6,8 +6,9 @@ import { researchReview } from '../services/gate-checks.ts';
 /** Test-only helpers. Not imported by any entrypoint. */
 
 /**
- * Both recorded fixture topics' notes report a disagreement between their sources, which keeps
- * gate 1 from approving itself (P1C.9 step 9). For tests that put research on auto to get past
+ * Both recorded fixture topics' notes report a disagreement between their sources that cites a
+ * chunk a research number comes from, which keeps gate 1 from approving itself under the default
+ * `research.disagreementBlocks: numbers` (P1C.9 step 9). For tests that put research on auto to get past
  * it, this approves gate 1 as the user would, on every run that waits there for that reason only
  * (thin research still waits). True when it approved any.
  */

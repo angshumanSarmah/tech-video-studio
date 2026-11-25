@@ -10,12 +10,11 @@ export const FETCH_TIMEOUT_MS = 20_000;
 export { MAX_SOURCE_BYTES };
 
 /**
- * A generic desktop-browser User-Agent: it names no app or person, and pages that refuse unknown
- * clients serve it the same HTML a reader gets. Only the given URL is fetched, never crawled.
+ * An honest User-Agent: it says this is an automated client (and names no person), not a browser.
+ * A site that refuses it answers 403, which tells the user to paste or upload the page instead.
+ * Only the given URL is fetched, never crawled.
  */
-export const USER_AGENT =
-  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) ' +
-  'Chrome/131.0.0.0 Safari/537.36';
+export const USER_AGENT = 'Mozilla/5.0 (compatible; TechExplainerStudio/1.0)';
 const ACCEPT =
   'text/html,application/xhtml+xml,text/markdown,text/plain;q=0.9,application/pdf;q=0.9,' +
   'text/csv;q=0.8,application/json;q=0.8,*/*;q=0.5';

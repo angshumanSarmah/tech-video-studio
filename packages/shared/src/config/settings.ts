@@ -71,12 +71,23 @@ export type RenderSettings = z.infer<typeof RenderSettingsSchema>;
 /** Rough tokens per character of English source text (`estimateTokens`). */
 export const SOURCE_CHARS_PER_TOKEN = 4;
 
+/**
+ * Which disagreements between sources keep gate 1 from approving itself: only those that involve
+ * a number (`numbers`: the question states a quantity, or cites a chunk a research number comes
+ * from), every one (`all`), or none (`none`). The others are advisory notes at the gate.
+ */
+export const DISAGREEMENT_BLOCKS = ['numbers', 'all', 'none'] as const;
+export const DisagreementBlocksSchema = z.enum(DISAGREEMENT_BLOCKS);
+export type DisagreementBlocks = z.infer<typeof DisagreementBlocksSchema>;
+
 export const ResearchSettingsSchema = z.strictObject({
   /**
    * Most source text the Researcher gets, in estimated tokens (characters / 4). Above it, chunks
    * are selected per source (`selectChunks`) and the rest is recorded as left out.
    */
   sourceTokenBudget: z.number().int().min(2_000).max(500_000).default(60_000),
+  /** Which source disagreements block gate 1 (`DISAGREEMENT_BLOCKS`). */
+  disagreementBlocks: DisagreementBlocksSchema.default('numbers'),
 });
 
 export type ResearchSettings = z.infer<typeof ResearchSettingsSchema>;
@@ -103,7 +114,7 @@ export const SettingsSchema = z.strictObject({
   render: RenderSettingsSchema.prefault({}),
   /** Length, parts and pace: the values agent prompts are filled with. */
   video: VideoSettingsSchema.prefault({}),
-  /** Researcher input limits. */
+  /** Researcher input limits and gate 1's disagreement rule. */
   research: ResearchSettingsSchema.prefault({}),
   /** Cost caps. */
   budget: BudgetSettingsSchema.prefault({}),

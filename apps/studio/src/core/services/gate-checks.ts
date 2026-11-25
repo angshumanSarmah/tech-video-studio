@@ -25,7 +25,8 @@ import { latestResearch, researchOfStep, type RunResearch } from './research-not
 /**
  * The checks of gates 1 and 2 (P1C.9 step 9), shared by the orchestrator (what blocks
  * auto-approve) and the gate view (what it shows). Research: the notes' own checks, then thin
- * research and sources that disagree (`researchGateFindings`). Beat sheet: the Director's checks
+ * research and sources that disagree, as the run's `research.disagreementBlocks` says
+ * (`researchGateFindings`). Beat sheet: the Director's checks
  * (`planIssues`). An agent's answer passes its own checks to finish its step, so these block
  * mostly a user's edit, and research that is thin or disputed.
  */
@@ -35,7 +36,7 @@ export interface ResearchReview {
   readonly sources: ResearchSourceStat[];
   /** The notes' check findings (citations, numbers), then thin research and disagreements. */
   readonly blocking: SpecError[];
-  /** Never blocking: many sources. */
+  /** Never blocking: disagreements the run's rule leaves advisory, then many sources. */
   readonly warnings: SpecError[];
   /** The notes' check findings alone (the gate's `checks`). */
   readonly checks: SpecError[];
@@ -50,7 +51,7 @@ export function researchReview(
   if (!research) return undefined;
   const sources = researchSourceStats(db, dataDir, run, research.input);
   const checks = researchNotesProblems(research.notes, citableChunks(research.input));
-  const findings = researchGateFindings(research.notes, sources);
+  const findings = researchGateFindings(research.notes, sources, run.resolvedSettings.research);
   return {
     research,
     sources,
