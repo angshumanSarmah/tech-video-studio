@@ -35,3 +35,5 @@ export * from './text/phrase.ts';
 export * from './text/readability.ts';
 export * from './text/terms.ts';
 export * from './memory/index.ts';
+export * from './reference/index.ts';
+export * from './api/references.ts';

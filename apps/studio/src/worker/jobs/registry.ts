@@ -1,3 +1,4 @@
+import { analyzeReferenceJobHandler } from './analyze-reference.ts';
 import { curateJobHandler, type CurateJobDeps } from './curate.ts';
 import { directJobHandler, type DirectJobDeps } from './direct.ts';
 import { generateJobHandler, type GenerateJobDeps } from './generate.ts';
@@ -54,5 +55,6 @@ export function createJobHandlers(deps: WorkerDeps): JobHandler[] {
     ...renderJobHandlers(deps),
     ttsJobHandler(deps),
     proposeRuleJobHandler(deps),
+    analyzeReferenceJobHandler(deps),
   ];
 }

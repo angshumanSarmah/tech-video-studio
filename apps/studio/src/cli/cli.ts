@@ -4,6 +4,7 @@ import { renderCommand } from './commands/render.ts';
 import { resumeCommand } from './commands/resume.ts';
 import { runCommand } from './commands/run.ts';
 import { costCommand, statusCommand } from './commands/status.ts';
+import { referencesCommand } from './commands/references.ts';
 import { rulesCommand } from './commands/rules.ts';
 import { usageCommand } from './commands/usage.ts';
 import { CliError, EXIT, type CliContext } from './context.ts';
@@ -35,6 +36,8 @@ export async function runCli(argv: readonly string[], ctx: CliContext): Promise<
         return usageCommand(ctx, cmd.videos);
       case 'rules':
         return await rulesCommand(ctx, cmd);
+      case 'references':
+        return await referencesCommand(ctx, cmd);
       case 'render':
         return await renderCommand(ctx, cmd);
     }
@@ -58,6 +61,8 @@ function isServiceError(error: unknown): boolean {
     [
       'NotFoundError',
       'InvalidSourceError',
+      'InvalidEditError',
+      'ConflictError',
       'RunSettingsConflictError',
       'OrchestratorStateError',
     ].includes(error.name)

@@ -1,8 +1,11 @@
 import type {
+  BacklogRequestDto,
   EventDto,
   GateDto,
   JobDto,
   MemoryRuleDto,
+  ReferenceDetailDto,
+  ReferenceSummaryDto,
   RunDetailDto,
   RunDto,
   SeriesDto,
@@ -18,6 +21,9 @@ import type { Source } from '#core/db/repositories/sources.ts';
 import type { Topic } from '#core/db/repositories/topics.ts';
 import type { GateView } from '#core/services/gates.ts';
 import type { MemoryRule } from '#core/services/style-rules.ts';
+import type { BacklogRequest } from '#core/db/repositories/backlog.ts';
+import type { ReferenceRow } from '#core/db/repositories/references.ts';
+import type { ReferenceDetail } from '#core/services/references.ts';
 import type { RunDetail } from '#core/services/runs.ts';
 
 /** DB rows -> wire shapes (`Date` -> ISO string, internal columns dropped). */
@@ -96,5 +102,43 @@ export function toMemoryRuleDto(r: MemoryRule): MemoryRuleDto {
     sourceEventId: r.sourceEventId,
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
+  };
+}
+
+export function toReferenceSummaryDto(r: ReferenceRow): ReferenceSummaryDto {
+  return {
+    id: r.id,
+    slug: r.slug,
+    title: r.title,
+    origin: r.origin,
+    status: r.status,
+    topicClass: r.topicClass,
+    devices: r.devices as ReferenceSummaryDto['devices'],
+    error: r.error,
+    attachments: r.attachments.length,
+    createdAt: r.createdAt.toISOString(),
+    updatedAt: r.updatedAt.toISOString(),
+  };
+}
+
+export function toBacklogRequestDto(r: BacklogRequest): BacklogRequestDto {
+  return {
+    id: r.id,
+    name: r.name,
+    description: r.description,
+    status: r.status,
+    runId: r.runId,
+    referenceVideoId: r.referenceVideoId,
+    createdAt: r.createdAt.toISOString(),
+  };
+}
+
+export function toReferenceDetailDto(d: ReferenceDetail): ReferenceDetailDto {
+  return {
+    ...toReferenceSummaryDto(d.row),
+    breakdown: d.breakdown,
+    record: d.record,
+    attachmentFiles: d.row.attachments,
+    backlog: d.backlog.map(toBacklogRequestDto),
   };
 }

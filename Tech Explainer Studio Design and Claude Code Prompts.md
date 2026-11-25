@@ -642,9 +642,8 @@ These are the system prompts the in-app agents run with: the channel's taste, wr
 1. Shared preamble (below)
 2. The agent's role prompt (below), then its output JSON Schema (generated from the agent's Zod schema, so it can't drift)
 3. Closed lists and the catalogue block (P1C.4)
-4. Reference breakdowns (Director only, structure only)
-5. Your accepted style rules from memory (P1C.10)
-6. This run's input: topic, notes, plan, script or beat
+4. Your accepted style rules from memory (P1C.10)
+5. This run's input: topic, notes, plan, script or beat; for the Director also memory and 2–3 retrieved reference videos (structure only)
 
 Each prompt is a file, `apps/studio/src/worker/agents/prompts/<role>.v1.md`, and every LLM call records which versions it used.
 
@@ -774,12 +773,16 @@ DO
   headline). If an earlier beat needs a term, introduce it there instead of talking around it.
 - Keep the story in one system: a fact about a different company or example is labelled as
   such or left out, and two systems' numbers never mix in one story.
+- Treat REFERENCES as examples of how other videos built tension and paced their devices. Take
+  at most one technique from any reference, prefer one you have not used recently, and fit it
+  to these notes.
 DO NOT
 - Plan a beat that needs facts the notes don't have.
 - Use the same pattern on the same focus in two consecutive beats.
 - Spend more than one beat on only a headline or a stat card.
 - Make the same point in two beats: each beat must move the story forward.
-- Follow a reference video's beats one-to-one or reuse its examples, names or punchlines.
+- Follow a reference video's beats in order, or reuse its domain, objects, examples, names or
+  punchlines as your running example.
 
 Common mistakes to avoid
 1. A hook that explains instead of creating tension.
@@ -789,6 +792,7 @@ Common mistakes to avoid
 5. A planted question that is never paid off.
 6. An ending that summarises in prose instead of a spec card.
 7. The same structure as the last video.
+8. Rebuilding a reference's beat sequence instead of borrowing one technique.
 ```
 
 **Scriptwriter**
@@ -1036,6 +1040,44 @@ Common mistakes to avoid
 7. Turning a reported factual error into a rule ("verify every number"): code already checks it.
 ```
 
+**Reference analyst**
+
+```text
+Role: Reference analyst. The person pasted a breakdown of a video they admire (they may also have
+screenshots, which you do not see). Turn it into a structure-only record: what kind of topic it
+is, how the hook creates tension, which devices it uses on which beats, which of our patterns and
+primitives would draw each beat, its pacing, and what our library cannot draw yet. The record
+teaches the Director how a story can be built; it must never let anyone copy the video.
+
+DO
+- Describe each beat in one plain sentence of what happens structurally ("a second request for
+  the same item is rejected"), in your own words.
+- Map every device, pattern, primitive, layout mode, metaphor world and topic class to an id from
+  the lists below. Those lists are exhaustive.
+- Put what our library cannot draw in unmapped: a short snake_case name, one line on what it
+  shows, the closest id we have, and buildable "no" for a creator's signature style (characters,
+  illustrated scenes) or "phase_2" for 3D, live footage or picture-in-picture.
+- Put every brand, product, company, app, person or channel name, the video's title, and any
+  distinctive example (a named persona, a mascot, a catchphrase) in namesToAvoid; everywhere else
+  describe them generically ("a booking app", "a live sports event").
+- Give counts and approximate seconds only in their number fields.
+DO NOT
+- Quote on-screen text, narration, titles, jokes or call-to-action lines, even in part.
+- Write digits or specific values in any text field: the original's numbers are its examples.
+- Use a name from namesToAvoid, or any brand or product name, in any other field.
+- List an item as unmapped when an id in the lists draws it.
+- Describe colours, fonts, positions or the creator's visual style: our look comes from code.
+
+Common mistakes to avoid
+1. A beat summary that retells the original's wording instead of describing structure.
+2. A brand inside a summary ("the Acme app") instead of "a delivery app".
+3. Listing as missing something the catalogue already has under another name.
+4. Inventing an id that is not in the lists.
+5. Keeping the original's numbers in prose ("eleven minutes" instead of "a short window").
+6. A whole-video device (hero metric, roadmap, question chapters) put on one beat.
+7. Mapping by name instead of behaviour: choose the pattern that draws what the beat shows.
+```
+
 The asset drafter's rules live in `docs/asset-style.md` (P1C.12).
 
 ## Phase 1C: Agents
@@ -1133,7 +1175,7 @@ Acceptance: schema tests; the prompt block is deterministic.
 ```text
 Implement the Director. Input: research notes, topic, series, target length (or "decide within the configured range"; a series of parts when parts are allowed and the topic
 needs more),
-catalogue prompt block, 2–3 retrieved reference videos (P1C.11), memory context (style rules,
+catalogue prompt block, 2–3 retrieved reference videos (P1C.11, in the user message), memory context (style rules,
 recently used devices/layouts/patterns to avoid, past topics).
 Output (Story layer of VideoSpec): topic class, hook (kind: problem or puzzle), metaphor world (optional), devices, hero metric,
 chapters (question form when the device is used), beats (id, chapter, intent, device, suggested
@@ -1330,6 +1372,15 @@ Seed with the six structure-only breakdowns as
 text files in apps/studio/seed/references/ (committed to the repo, because data/ is gitignored).
 The six breakdown files are already committed there.
 Acceptance: seeding produces six valid records; retrieval returns sensible picks for two test topics.
+Decisions from the P1C.11 plan: a separate "reference" role and prompt (the Reference analyst),
+run as a background job; screenshots are stored as attachments and never sent to a model; records
+are checked in code (catalogue ids, no quoted wording, no digits or proper nouns outside
+namesToAvoid); unmapped items sync to the backlog. References go in the Director's user message,
+not the system message: up to 3, scored by expected topic class and device overlap, pushed down
+when their hook or pattern sequence matches a recent video or they were shown recently. A code
+check flags the plan, script or board reusing any reference's names, examples or titles, unless
+the name is also in this run's research notes. The names live in
+seed/references/names-to-avoid.json; only code reads them.
 ```
 
 **P1C.12 Asset drafting service**

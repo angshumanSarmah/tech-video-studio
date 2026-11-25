@@ -50,6 +50,13 @@
       "when": 1795614167209,
       "tag": "0006_memory_rule_sources",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1795617435833,
+      "tag": "0007_reference_library",
+      "breakpoints": true
     }
   ]
 }

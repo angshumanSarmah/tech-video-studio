@@ -219,6 +219,26 @@ export function sourceUploadPath(topicId: number, fileHash: string, fileName: st
   return posix.join('topics', String(topicId), 'uploads', fileHash.slice(0, 16), safe || 'file');
 }
 
+/** A reference video's folder (P1C.11): its breakdown, record and attachments. */
+export function referenceDir(slug: string): string {
+  return posix.join('references', slug);
+}
+
+/** The breakdown as pasted (or as committed, for a seed). */
+export function referenceBreakdownPath(slug: string): string {
+  return posix.join(referenceDir(slug), 'breakdown.md');
+}
+
+/** The checked `ReferenceRecord`. */
+export function referenceRecordPath(slug: string): string {
+  return posix.join(referenceDir(slug), 'record.json');
+}
+
+/** A screenshot kept with the reference, content-addressed, with its sanitised extension. */
+export function referenceAttachmentPath(slug: string, fileHash: string, extension: string): string {
+  return posix.join(referenceDir(slug), 'attachments', `${fileHash.slice(0, 16)}${extension}`);
+}
+
 /** sha256 hex of UTF-8 text. */
 export function contentHash(text: string): string {
   return createHash('sha256').update(text, 'utf8').digest('hex');

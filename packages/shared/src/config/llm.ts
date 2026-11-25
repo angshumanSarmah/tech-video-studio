@@ -8,6 +8,7 @@ export const MODEL_ROLES = [
   'generator',
   'curator',
   'analyst',
+  'reference',
   'asset',
 ] as const;
 
@@ -38,6 +39,8 @@ export const ModelMapSchema = z.strictObject({
   generator: flash(),
   curator: flash(),
   analyst: flash(),
+  /** The Reference analyst (P1C.11): a pasted breakdown to a structure-only record. */
+  reference: flash(),
   asset: flash(),
 });
 

@@ -1,0 +1,149 @@
+{
+  "title": "Live demand map for a ride service",
+  "series": ["system-design"],
+  "topicClass": "product-design",
+  "format": "full",
+  "lengthSec": 105,
+  "hook": {
+    "kind": "problem",
+    "device": "contention_hook",
+    "shape": "Demand spikes in one small spot while supply sits scattered far away, so showing the live picture becomes the problem."
+  },
+  "arc": "hook → numbered steps that build a live map → named traps inside a step → scaling comparison → callback ending",
+  "videoDevices": ["roadmap"],
+  "beats": [
+    {
+      "role": "hook",
+      "summary": "A crowd suddenly wants rides in one spot while the cars are spread far away, shown as a rising count over a map.",
+      "devices": ["contention_hook"],
+      "patterns": [],
+      "primitives": ["map_base", "counter", "radius_ring"],
+      "layoutMode": "map",
+      "continuesPrevious": false
+    },
+    {
+      "role": "step",
+      "summary": "A moving vehicle's phone emits position records; they pile onto one server until it strains, then wait on a belt.",
+      "devices": ["object_to_data", "failure_before_fix"],
+      "patterns": ["flood_then_funnel"],
+      "primitives": ["data_block", "packet_stream", "conveyor_queue", "node_card"],
+      "layoutMode": "pipeline",
+      "continuesPrevious": false
+    },
+    {
+      "role": "step",
+      "summary": "A grid is dropped over the map and one vehicle's coordinates turn into the single cell that holds it.",
+      "devices": ["object_to_data"],
+      "patterns": [],
+      "primitives": ["map_base", "grid_overlay", "tag"],
+      "layoutMode": "map",
+      "continuesPrevious": false
+    },
+    {
+      "role": "step",
+      "summary": "The map becomes a grid of numbers; a vehicle crossing a boundary lowers the old cell and raises the new one.",
+      "devices": [],
+      "patterns": [],
+      "primitives": ["grid_overlay", "counter_transition", "counter"],
+      "layoutMode": "grid",
+      "continuesPrevious": true
+    },
+    {
+      "role": "trap",
+      "summary": "A parked vehicle keeps sending pings so its cell count inflates; the fix stores each driver's last cell and updates only on change.",
+      "devices": ["named_traps"],
+      "patterns": [],
+      "primitives": ["callout", "grid_overlay", "counter_transition"],
+      "layoutMode": "grid",
+      "continuesPrevious": true
+    },
+    {
+      "role": "trap",
+      "summary": "A vehicle loses signal, a countdown ring runs out and its contribution is removed from the cell.",
+      "devices": ["named_traps"],
+      "patterns": [],
+      "primitives": ["timer_ring", "counter", "grid_overlay"],
+      "layoutMode": "grid",
+      "continuesPrevious": true
+    },
+    {
+      "role": "payoff",
+      "summary": "The same number grid is redrawn as a density view so crowding reads at a glance.",
+      "devices": [],
+      "patterns": [],
+      "primitives": ["grid_overlay", "counter"],
+      "layoutMode": "grid",
+      "continuesPrevious": true
+    },
+    {
+      "role": "step",
+      "summary": "The single map splits into several regional maps, each wired to its own server.",
+      "devices": [],
+      "patterns": [],
+      "primitives": ["map_base", "zone_polygon", "node_card", "connector"],
+      "layoutMode": "map",
+      "continuesPrevious": false
+    },
+    {
+      "role": "twist",
+      "summary": "Two cell shapes are compared on the same map for what neighbouring distance looks like in each.",
+      "devices": ["versus_split"],
+      "patterns": ["versus_split"],
+      "primitives": ["grid_overlay", "bracket"],
+      "layoutMode": "versus_split",
+      "continuesPrevious": false
+    },
+    {
+      "role": "ending",
+      "summary": "One overloaded cell raises the price on a generic app screen, then a failed search state lands as the closing joke.",
+      "devices": ["callback_ending"],
+      "patterns": [],
+      "primitives": ["device_frame", "tag", "callout"],
+      "layoutMode": "centered_focus",
+      "continuesPrevious": false
+    }
+  ],
+  "metaphorWorld": null,
+  "chapters": [],
+  "pacing": [
+    "Hook lands fast: demand spike and distant cars in the opening seconds.",
+    "Each step stays short and ends on one visible change to the same map board.",
+    "The two traps slow the rhythm, then the comparison and the closing joke rush out."
+  ],
+  "unmapped": [
+    {
+      "kind": "primitive",
+      "name": "hex_grid_equidistance",
+      "description": "A honeycomb grid whose neighbouring cell centres are linked to show equal distance.",
+      "closest": "grid_overlay",
+      "buildable": "yes"
+    },
+    {
+      "kind": "primitive",
+      "name": "cell_density_heatmap",
+      "description": "A whole grid shaded by how much each cell holds, so density reads as one surface.",
+      "closest": "grid_overlay",
+      "buildable": "yes"
+    },
+    {
+      "kind": "primitive",
+      "name": "offline_signal_prop",
+      "description": "A small marker showing a device dropping to no signal bars.",
+      "closest": "icon",
+      "buildable": "yes"
+    },
+    {
+      "kind": "other",
+      "name": "three_d_crowd_scene",
+      "description": "A perspective crowd filling a street at ground level.",
+      "closest": "item_icon",
+      "buildable": "phase_2"
+    }
+  ],
+  "namesToAvoid": [
+    {
+      "text": "ride-hailing live demand heat map",
+      "kind": "title"
+    }
+  ]
+}

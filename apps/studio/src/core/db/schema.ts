@@ -18,6 +18,8 @@ import {
   MEMORY_RULE_STATUSES,
   MODEL_ROLES,
   PIPELINE_STEP_IDS,
+  REFERENCE_ORIGINS,
+  REFERENCE_STATUSES,
   RUN_STATUSES,
   SOURCE_FAILURE_CODES,
   SOURCE_KINDS,
@@ -25,11 +27,13 @@ import {
   SPEC_AUTHORS,
   STAGES,
   STEP_STATUSES,
+  TOPIC_CLASSES,
   USAGE_KINDS,
   WORKER_KINDS,
   LLM_MODES,
   type EventBody,
   type NormalizerFix,
+  type ReferenceAttachment,
   type ResolvedRunSettings,
   type RunSettings,
   type StepRequests,
@@ -427,16 +431,38 @@ export const assets = sqliteTable(
   (t) => [index('assets_family_idx').on(t.family)],
 );
 
-/** The full extracted ReferenceVideo record lives at `record_path`; retrieval fields are columns. */
-export const referenceVideos = sqliteTable('reference_videos', {
-  id: id(),
-  title: text('title').notNull(),
-  topicClass: text('topic_class'),
-  devices: jsonStringArray('devices'),
-  breakdownPath: text('breakdown_path').notNull(),
-  recordPath: text('record_path'),
-  createdAt: createdAt(),
-});
+/**
+ * A reference video (P1C.11). The pasted breakdown lives at `breakdown_path` and the checked
+ * `ReferenceRecord` at `record_path` (both under `references/<slug>/`); title, class and devices
+ * are copied from the record for lists. Only `ready` rows are shown to the Director.
+ */
+export const referenceVideos = sqliteTable(
+  'reference_videos',
+  {
+    id: id(),
+    /** Stable name: a seed's file name, or one made from a pasted reference's title. */
+    slug: text('slug').notNull(),
+    title: text('title').notNull(),
+    origin: text('origin', { enum: REFERENCE_ORIGINS }).notNull(),
+    status: text('status', { enum: REFERENCE_STATUSES }).notNull().default('pending'),
+    /** Why the last analysis failed (`failed`), or null. */
+    error: text('error'),
+    topicClass: text('topic_class', { enum: TOPIC_CLASSES }),
+    devices: jsonStringArray('devices'),
+    breakdownPath: text('breakdown_path').notNull(),
+    recordPath: text('record_path'),
+    /** A seed's committed files (breakdown, record, names) as one hash: reseeded when it changes. */
+    seedHash: text('seed_hash'),
+    /** Screenshots the person kept with it (never sent to a model). */
+    attachments: text('attachments', { mode: 'json' })
+      .$type<ReferenceAttachment[]>()
+      .notNull()
+      .default(sql`'[]'`),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex('reference_videos_slug_uq').on(t.slug)],
+);
 
 export const memoryRules = sqliteTable(
   'memory_rules',

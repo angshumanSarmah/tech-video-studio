@@ -1372,6 +1372,70 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   proposal per event), `style-rules.test.ts`, the CLI (`cli.test.ts`: a terminal note to an
   active rule, then `rules`), shared `memory/*.test.ts`.
 
+### Reference library (P1C.11, R1: records, seeding, API, CLI)
+
+- **`ReferenceRecord`** (shared `reference/record.ts`): a reference video's structure only:
+  `title` (the topic in generic words, never the original's title), `series`, `topicClass`
+  (+ `secondaryTopicClass`), `format`, `lengthSec` (only when the breakdown states one), `hook`
+  (`kind`, `device`, `shape`), `arc`, `videoDevices` (`WHOLE_VIDEO_DEVICES`: hero_metric,
+  roadmap, question_chapters), `beats` (`role`, `summary`, devices, patterns, primitives,
+  `layoutMode`, `continuesPrevious`), `metaphorWorld`, `chapters` (beat indexes), `pacing`,
+  `unmapped` (`kind`, snake_case `name`, `description`, `closest` id, `buildable` yes | phase_2
+  | no) and `namesToAvoid` (`AvoidName`: text + kind brand | person | title | example |
+  phrase; read only by code, never by a model). Devices, layout modes, worlds and classes are
+  enums; patterns and primitives are slugs checked against the registries. Code derives
+  `referenceDevices` (first use, hook first), `referencePatterns`, `backlogItems` (buildable
+  yes or phase_2).
+- **Checks** (`referenceRecordProblems(value, ctx)`, shared `reference/checks.ts`, pure, any
+  JSON; the analyst's `check` and a person's edit): `unknown_reference` (pattern, primitive,
+  `closest`), `unmapped_is_registered` (`catalogueKey`: case, `-`/`_`, plural),
+  `unmapped_is_built_in` (`RENDERER_BUILT_INS`, `reference/built-ins.ts`: what code draws
+  itself, matched by whole-word name phrases), `unmapped_duplicate`, `whole_video_device_on_beat`,
+  `hook_device_missing`, `chapter_beat_out_of_range`, `length_not_in_breakdown`
+  (`statedDurations`, ±5 s), and on every structure text (`referenceTexts`): `quoted_wording`
+  (a quoted span over `MAX_QUOTED_WORDS`, 3), `copied_wording` (`COPIED_RUN_WORDS`, 6, in a row
+  from a span the breakdown quotes), `name_in_structure` (a `namesToAvoid` entry or a name the
+  person gave), `proper_noun` (a capital mid-sentence, or an all-caps or inner-capital word at a
+  sentence start, outside `GENERIC_TERMS`) and `digits_in_text` (digits glued to letters, "3D",
+  are identifiers).
+- **Rows and files:** `reference_videos` (0007: `slug` unique, `origin` seed | pasted, `status`
+  pending | ready | failed, `error`, list fields copied from the record, `seed_hash`,
+  `attachments`); `references/<slug>/breakdown.md`, `record.json`, `attachments/<hash>.<ext>`
+  (`#core/data-files.ts`). Only `ready` rows will be shown to the Director (R2).
+- **Backlog link:** `saveReferenceRecord` (`#core/services/references.ts`) writes the record,
+  copies title, class and devices, and `syncReferenceBacklog` (`repositories/backlog.ts`): a
+  `missing_primitive_requests` row per buildable unmapped name (`reference_video_id`, `run_id`
+  null, description with "(phase 2)" and "(closest: x)"), an `open` row whose name left the
+  record deleted, planned / built / rejected rows kept.
+- **The Reference analyst** (role `reference`, flash; `reference.v1`; job `analyze_reference`,
+  `jobs/analyze-reference.ts`, `run_id` null, `failsRun: false`, payload `{ referenceId,
+namesToAvoid? }`): system message = preamble (default video settings), role prompt, the record
+  schema, `directorCatalogueBlock()` and `builtInsSection()`; user message
+  (`agents/reference/input.ts`) = the breakdown as one JSON string, then the names the person
+  marked. Screenshots never reach it. Its names are merged into the record (`withNames`). No
+  answer passing: the reference is `failed` with the issues. A reference no longer `pending` is
+  left alone (at-least-once).
+- **Seeds** (`#core/services/reference-seed.ts`, from `prepareDatabase`; `seedReferencesDir`
+  option, tests use `noSeedReferences()`): `apps/studio/seed/references/<slug>.md` +
+  `<slug>.record.json` (the recorded analyst answer, reviewed) + `names-to-avoid.json`
+  (`NamesToAvoidFileSchema`, per slug; the person fills it). Never calls a model; rewritten only
+  when the files' hash changes, so an API edit stays until then; checked with the names (a
+  failing record is `failed` with the reason, a missing record too).
+- **`reference:fixture [--replay] [--record] [--timeout]`**: the analyst live on the six
+  breakdowns in a scratch DB (`<DATA_DIR>/reference/fixture/`); `--record` (all six passing)
+  writes the six `.record.json` and `agents/reference/fixtures/responses/reference.json` (run
+  `pnpm format` after). About $0.02 for the six.
+- **API:** `GET /api/references`, `POST` (JSON `CreateReferenceRequestSchema`, or multipart:
+  `breakdown`, `title`, `namesToAvoid` as JSON text, `attachments` files; 202 `{ id, slug,
+jobId }`), `GET /:id` (record, breakdown, attachments, backlog rows), `PUT /:id` (`{ record
+}`, the same checks: `InvalidEditError` 400 with issues), `POST /:id/reanalyze` (202; 409
+  while an analysis is queued or running, also for PUT).
+- **Tests:** shared `reference/checks.test.ts` (one planted fault per code),
+  `reference-seed.test.ts` (six ready, idempotent, edit kept, names merged, failures),
+  `references.test.ts`, `jobs/analyze-reference.test.ts` (the recording replayed into the
+  committed records, no screenshot in the prompt, a missing primitive to the backlog, a repair,
+  a failure), `routes/references.test.ts`, `cli/references.test.ts`.
+
 API conventions: routes under `/api`, inputs validated with the `validate()` helper against schemas
 from `packages/shared/src/api`, list responses wrapped as `{ items }`, and every error is
 `ApiErrorSchema` (`{ error: { code, message, issues? } }`). Domain errors from core
@@ -1428,6 +1492,11 @@ pbpaste | pnpm studio run "Consistent hashing" --series system-design --text "Te
 "<text>"`**, **`rules accept|reject|edit|on|off|rm <id>`** (accept and edit take `--text`,
   `--scope`) and **`rules propose (--event <id> | --run <id> --gate <gate>)`** (the newest
   note at that gate; follows the job and asks as at a gate),
+  **`references`** (list), **`references add <file|-> [--title] [--avoid [<kind>:]<name>]…
+[--attach <image>]…`** (follows the analyst's job, prints the record and its backlog rows),
+  **`references show <ref> [--json]`**, **`references edit <ref> [<record.json>]`** (`$EDITOR`
+  on a copy in a terminal) and **`references reanalyze <ref>`** (`<ref>`: slug or id; see
+  "Reference library"),
   **`render <spec.json> [--draft|--final]`** (`startRenderRun`: a scratch run, the spec as its
   `external` version 1, its scenes gate approved; the draft, and with `--final` gate 4 approves
   itself when nothing blocks and the final exports; no LLM calls).

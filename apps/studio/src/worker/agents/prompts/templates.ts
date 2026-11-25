@@ -16,6 +16,7 @@ export const PROMPT_ROLES = [
   'generator',
   'curator',
   'analyst',
+  'reference',
 ] as const satisfies readonly ModelRole[];
 export type PromptRole = (typeof PROMPT_ROLES)[number];
 
@@ -24,11 +25,12 @@ export type PromptName = 'preamble' | PromptRole;
 export const PROMPT_VERSIONS: Readonly<Record<PromptName, number>> = {
   preamble: 1,
   researcher: 3,
-  director: 3,
+  director: 4,
   scriptwriter: 8,
   generator: 2,
   curator: 3,
   analyst: 2,
+  reference: 1,
 };
 
 /** Relative to the workspace root, like other repo paths in config (works in dev and build). */

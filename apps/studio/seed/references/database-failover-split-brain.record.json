@@ -1,0 +1,106 @@
+{
+  "title": "Database failover and split-brain after a primary dies",
+  "series": ["system-design"],
+  "topicClass": "internals",
+  "secondaryTopicClass": "concept",
+  "format": "card",
+  "lengthSec": 50,
+  "hook": {
+    "kind": "puzzle",
+    "device": "failure_before_fix",
+    "shape": "A primary database dies overnight and writes stop, framed as a mismatch between a brief glitch and a long outage."
+  },
+  "arc": "failure hook → failover mechanism → open question → dated incident → split-brain twist → new rule → two-line close",
+  "videoDevices": ["planted_question"],
+  "beats": [
+    {
+      "role": "hook",
+      "summary": "An application writes to a primary database until it dies overnight and the writes stop, framed as a tiny hiccup with a long aftermath.",
+      "devices": ["failure_before_fix"],
+      "patterns": ["failover"],
+      "primitives": ["node_card", "connector"],
+      "layoutMode": "pipeline",
+      "continuesPrevious": false
+    },
+    {
+      "role": "step",
+      "summary": "A follower is handed the leader badge, the other followers re-point to copy from it, and the application's writes re-route to the new primary.",
+      "devices": [],
+      "patterns": ["failover"],
+      "primitives": ["node_card", "connector", "tag"],
+      "layoutMode": "pipeline",
+      "continuesPrevious": true
+    },
+    {
+      "role": "twist",
+      "summary": "The board dims behind a short question card asking whether the old primary is really gone, and the question is left open.",
+      "devices": ["planted_question"],
+      "patterns": [],
+      "primitives": ["statement_card"],
+      "layoutMode": "centered_focus",
+      "continuesPrevious": true
+    },
+    {
+      "role": "step",
+      "summary": "A sourced, dated case: two regional databases joined through a network hub lose their link, an outage clock runs, and the standby is promoted.",
+      "devices": ["real_incident"],
+      "patterns": ["split_brain"],
+      "primitives": ["node_card", "connector", "counter"],
+      "layoutMode": "versus_split",
+      "continuesPrevious": false
+    },
+    {
+      "role": "twist",
+      "summary": "The link returns with both sides holding the leader badge and their own new writes; the divergence is named and the merge turns out to be manual.",
+      "devices": ["ownership_twist", "what_breaks"],
+      "patterns": ["split_brain"],
+      "primitives": ["node_card", "connector", "callout", "tag"],
+      "layoutMode": "versus_split",
+      "continuesPrevious": true
+    },
+    {
+      "role": "payoff",
+      "summary": "A rule label states the new policy the team adopted: no automatic promotion across regions.",
+      "devices": [],
+      "patterns": [],
+      "primitives": ["tag", "callout"],
+      "layoutMode": "centered_focus",
+      "continuesPrevious": true
+    },
+    {
+      "role": "ending",
+      "summary": "A two-line contrast closes the lesson, one line on what is easy and one on what is hard, then a pointer to a longer video appears.",
+      "devices": ["contrast_takeaway"],
+      "patterns": [],
+      "primitives": ["statement_card"],
+      "layoutMode": "centered_focus",
+      "continuesPrevious": true
+    }
+  ],
+  "metaphorWorld": null,
+  "chapters": [],
+  "pacing": [
+    "The failover demo moves fast; the incident and the divergence get the most screen time.",
+    "Two still moments: the open question and the closing contrast, both over a dimmed board.",
+    "The rule lands straight after the damage is shown, before any summary."
+  ],
+  "unmapped": [
+    {
+      "kind": "other",
+      "name": "companion_video_pointer",
+      "description": "A small badge under the diagram window pointing viewers to a longer companion video.",
+      "closest": "callout",
+      "buildable": "yes"
+    }
+  ],
+  "namesToAvoid": [
+    {
+      "text": "database failover and split-brain (real incident)",
+      "kind": "title"
+    },
+    {
+      "text": "seconds of glitch, a day of degradation",
+      "kind": "phrase"
+    }
+  ]
+}

@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { SettingsSchema, type Settings } from '@explainer-studio/shared';
 import { findWorkspaceRoot } from '../workspace-root.ts';
 import { closeDatabase, migrationsDirFor, openDatabase, type Db } from './client.ts';
-import { prepareDatabase } from './prepare.ts';
+import { prepareDatabase, type PrepareOptions } from './prepare.ts';
 
 /** Test-only helpers. Not imported by any entrypoint. */
 
@@ -19,10 +19,10 @@ export interface TestDb {
   readonly cleanup: () => void;
 }
 
-/** A fresh data dir with a migrated, seeded database. */
-export function createTestDb(): TestDb {
+/** A fresh data dir with a migrated, seeded database (`options`: e.g. other seed references). */
+export function createTestDb(options: PrepareOptions = {}): TestDb {
   const dataDir = join(mkdtempSync(join(tmpdir(), 'studio-db-')), 'data');
-  const { dbPath } = prepareDatabase(dataDir, TEST_MIGRATIONS_DIR);
+  const { dbPath } = prepareDatabase(dataDir, TEST_MIGRATIONS_DIR, options);
   const db = openDatabase(dbPath);
   return {
     db,

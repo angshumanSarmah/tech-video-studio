@@ -1,0 +1,129 @@
+{
+  "title": "How a live score reaches millions of phones",
+  "series": ["system-design"],
+  "topicClass": "product-design",
+  "format": "full",
+  "hook": {
+    "kind": "puzzle",
+    "device": "persona_hook",
+    "shape": "A person sneaks a glance at a live score on a phone at work, and the question of where that number is born is left hanging."
+  },
+  "arc": "Persona hook with an open question → six steps through the write path, queue, workers and cache → the answer → callback ending",
+  "videoDevices": ["planted_question"],
+  "beats": [
+    {
+      "role": "hook",
+      "summary": "A person sneaks a look at a live score on a phone at work, and the question of where that number comes from is left open.",
+      "devices": ["persona_hook", "planted_question"],
+      "patterns": [],
+      "primitives": ["device_frame", "item_icon"],
+      "layoutMode": "centered_focus",
+      "continuesPrevious": false
+    },
+    {
+      "role": "step",
+      "summary": "The moment on the field becomes a record with an identity, a value, the people involved and a line of commentary.",
+      "devices": ["object_to_data"],
+      "patterns": [],
+      "primitives": ["data_block", "item_icon"],
+      "layoutMode": "centered_focus",
+      "continuesPrevious": false
+    },
+    {
+      "role": "step",
+      "summary": "The record reaches a write endpoint; a second copy carrying the same identity is refused as a repeat, so the work happens once.",
+      "devices": [],
+      "patterns": ["reject_duplicate"],
+      "primitives": ["node_card", "tag", "command_bubble"],
+      "layoutMode": "pipeline",
+      "continuesPrevious": true
+    },
+    {
+      "role": "step",
+      "summary": "The accepted record is stored in a database and then handed to a queue as a waiting job.",
+      "devices": [],
+      "patterns": [],
+      "primitives": ["node_card", "connector", "conveyor_queue"],
+      "layoutMode": "pipeline",
+      "continuesPrevious": true
+    },
+    {
+      "role": "step",
+      "summary": "Workers take jobs off the queue; one assembles a summary panel and puts it in a fast store kept close to the readers.",
+      "devices": [],
+      "patterns": ["worker_pool"],
+      "primitives": ["conveyor_queue", "node_card"],
+      "layoutMode": "pipeline",
+      "continuesPrevious": true
+    },
+    {
+      "role": "step",
+      "summary": "One notification is copied once per delivery service and then spreads to a crowd of phones that keeps growing.",
+      "devices": [],
+      "patterns": ["fan_out"],
+      "primitives": ["connector", "icon", "counter"],
+      "layoutMode": "pipeline",
+      "continuesPrevious": false
+    },
+    {
+      "role": "trap",
+      "summary": "At peak, many phones hit one central server at once; the request rate climbs and the node fails.",
+      "devices": ["failure_before_fix"],
+      "patterns": ["flood_then_funnel"],
+      "primitives": ["packet_stream", "node_card", "counter"],
+      "layoutMode": "pipeline",
+      "continuesPrevious": true
+    },
+    {
+      "role": "step",
+      "summary": "A cache layer in front takes the flood and lets one steady request through to the origin, at the cost of a short lifetime.",
+      "devices": ["counterfactual"],
+      "patterns": ["flood_then_funnel", "cache_hit_miss"],
+      "primitives": ["node_card", "connector", "callout"],
+      "layoutMode": "pipeline",
+      "continuesPrevious": true
+    },
+    {
+      "role": "payoff",
+      "summary": "The chain is traced back to a person at the venue keying the result in by hand, which answers the question planted at the start.",
+      "devices": ["planted_question"],
+      "patterns": [],
+      "primitives": ["node_card", "icon", "statement_card"],
+      "layoutMode": "pipeline",
+      "continuesPrevious": false
+    },
+    {
+      "role": "ending",
+      "summary": "Return to the person from the opening, now holding the answer, and close on a share line.",
+      "devices": ["callback_ending"],
+      "patterns": [],
+      "primitives": ["device_frame"],
+      "layoutMode": "centered_focus",
+      "continuesPrevious": false
+    }
+  ],
+  "metaphorWorld": null,
+  "chapters": [],
+  "pacing": [
+    "Open question in the first seconds, answer only near the end; keep the middle moving.",
+    "Each step grows the same board, so the flow reads as one system rather than a tour.",
+    "Slow down on the flood so the climbing rate lands, then resolve the fix in one beat."
+  ],
+  "unmapped": [
+    {
+      "kind": "other",
+      "name": "character_animation",
+      "description": "A recurring drawn character acts out the everyday moment and the closing joke.",
+      "closest": "item_icon",
+      "buildable": "no"
+    },
+    {
+      "kind": "format",
+      "name": "picture_in_picture_clip",
+      "description": "Live footage playing inside a phone frame on the board.",
+      "closest": "device_frame",
+      "buildable": "phase_2"
+    }
+  ],
+  "namesToAvoid": []
+}

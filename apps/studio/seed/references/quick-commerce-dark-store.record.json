@@ -1,0 +1,126 @@
+{
+  "title": "How a fast-delivery order is sourced, reserved and timed",
+  "series": ["system-design"],
+  "topicClass": "product-design",
+  "format": "full",
+  "hook": {
+    "kind": "problem",
+    "device": "hero_metric",
+    "shape": "One order's promise is pinned as a constant while a running clock starts, so every later step visibly spends from a fixed budget."
+  },
+  "arc": "Hook pins the promise and the clock → three viewer questions announced → one chapter per question, source then stock then speed → payoff on where the time goes.",
+  "videoDevices": ["hero_metric", "question_chapters"],
+  "beats": [
+    {
+      "role": "hook",
+      "summary": "A rider leaves a warehouse while a pinned promise and a running clock frame the whole trip, and a route draws from the store to the door.",
+      "devices": [],
+      "patterns": [],
+      "primitives": ["route_path", "item_icon"],
+      "layoutMode": "map",
+      "continuesPrevious": false
+    },
+    {
+      "role": "setup",
+      "summary": "Three questions the viewer would ask are listed up front and become the chapters that follow.",
+      "devices": [],
+      "patterns": [],
+      "primitives": ["statement_card"],
+      "layoutMode": "centered_focus",
+      "continuesPrevious": false
+    },
+    {
+      "role": "step",
+      "summary": "A route with a distance tag runs from a nearby warehouse to the customer, and the warehouse turns out to serve online orders only.",
+      "devices": [],
+      "patterns": [],
+      "primitives": ["route_path", "node_card", "tag"],
+      "layoutMode": "map",
+      "continuesPrevious": false
+    },
+    {
+      "role": "step",
+      "summary": "Each store's delivery area is drawn as a polygon, and a customer outside it gets no delivery at all.",
+      "devices": [],
+      "patterns": [],
+      "primitives": ["zone_polygon", "map_base", "callout"],
+      "layoutMode": "map",
+      "continuesPrevious": true
+    },
+    {
+      "role": "step",
+      "summary": "With many overlapping areas, checking them one by one is shown as slow before any shortcut exists.",
+      "devices": ["brute_force_first"],
+      "patterns": ["brute_force_then_index"],
+      "primitives": ["zone_polygon", "tag"],
+      "layoutMode": "map",
+      "continuesPrevious": true
+    },
+    {
+      "role": "step",
+      "summary": "A grid drops over the map and only the customer's cell and the areas crossing it light up.",
+      "devices": [],
+      "patterns": ["brute_force_then_index"],
+      "primitives": ["grid_overlay", "zone_polygon"],
+      "layoutMode": "map",
+      "continuesPrevious": true
+    },
+    {
+      "role": "step",
+      "summary": "Payment succeeds and one unit is locked to the order, a second order for the same unit is rejected, and the stock count drops by one.",
+      "devices": [],
+      "patterns": ["atomic_lock"],
+      "primitives": ["slot_grid", "counter_transition", "tag"],
+      "layoutMode": "hub_spoke",
+      "continuesPrevious": false
+    },
+    {
+      "role": "payoff",
+      "summary": "A time bar splits the promise between packing and riding, and a picker walks straight to a lit shelf slot because items sit in fixed places.",
+      "devices": [],
+      "patterns": [],
+      "primitives": ["segmented_time_bar", "slot_grid", "item_icon"],
+      "layoutMode": "two_column",
+      "continuesPrevious": false
+    }
+  ],
+  "metaphorWorld": null,
+  "chapters": [
+    {
+      "beats": [0, 1],
+      "questionForm": false
+    },
+    {
+      "beats": [2, 3, 4, 5],
+      "questionForm": true
+    },
+    {
+      "beats": [6],
+      "questionForm": true
+    },
+    {
+      "beats": [7],
+      "questionForm": true
+    }
+  ],
+  "pacing": [
+    "The pinned promise and running clock carry tension while the map underneath changes from beat to beat.",
+    "Each chapter question is asked and answered before the next appears, so the open sub-problem is always clear.",
+    "The concept beats stay short; most of the attention goes to the stock race and the split of the time budget."
+  ],
+  "unmapped": [
+    {
+      "kind": "other",
+      "name": "three_d_warehouse_scene",
+      "description": "A three-dimensional establishing shot of a warehouse interior with a rider leaving it.",
+      "closest": "map_base",
+      "buildable": "phase_2"
+    }
+  ],
+  "namesToAvoid": [
+    {
+      "text": "delivering an order in minutes",
+      "kind": "title"
+    }
+  ]
+}

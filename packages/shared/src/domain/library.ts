@@ -59,3 +59,16 @@ export type UsageKind = z.infer<typeof UsageKindSchema>;
 export const BACKLOG_STATUSES = ['open', 'planned', 'built', 'rejected'] as const;
 export const BacklogStatusSchema = z.enum(BACKLOG_STATUSES);
 export type BacklogStatus = z.infer<typeof BacklogStatusSchema>;
+
+/**
+ * A reference video's record (P1C.11): waiting for the Reference analyst, ready (checked; the
+ * Director may be shown it), or failed (the analyst's answer never passed the checks).
+ */
+export const REFERENCE_STATUSES = ['pending', 'ready', 'failed'] as const;
+export const ReferenceStatusSchema = z.enum(REFERENCE_STATUSES);
+export type ReferenceStatus = z.infer<typeof ReferenceStatusSchema>;
+
+/** Where a reference came from: a committed seed breakdown, or one pasted through the API or CLI. */
+export const REFERENCE_ORIGINS = ['seed', 'pasted'] as const;
+export const ReferenceOriginSchema = z.enum(REFERENCE_ORIGINS);
+export type ReferenceOrigin = z.infer<typeof ReferenceOriginSchema>;

@@ -1,0 +1,107 @@
+{
+  "title": "food delivery order path from tap to doorstep",
+  "series": ["system-design", "ai"],
+  "topicClass": "product-design",
+  "secondaryTopicClass": "ai-ml",
+  "format": "full",
+  "hook": {
+    "kind": "puzzle",
+    "device": "persona_hook",
+    "shape": "An everyday order shows up sooner than expected, then the story rewinds to the moment it was placed and asks how that was possible."
+  },
+  "arc": "persona hook with rewind → each stage of the flow walked on one persistent architecture → callback to the opening scene",
+  "videoDevices": ["persona_hook"],
+  "beats": [
+    {
+      "role": "hook",
+      "summary": "A delivery arrives faster than the viewer expects, then the story cuts back to the person placing that order.",
+      "devices": ["persona_hook"],
+      "patterns": [],
+      "primitives": ["item_icon", "device_frame"],
+      "layoutMode": "centered_focus",
+      "continuesPrevious": false
+    },
+    {
+      "role": "step",
+      "summary": "The placed order becomes a saved record, and a held-open connection flips the restaurant's screen from waiting to accepted.",
+      "devices": ["object_to_data"],
+      "patterns": [],
+      "primitives": ["node_card", "connector", "tag", "device_frame", "data_block"],
+      "layoutMode": "pipeline",
+      "continuesPrevious": false
+    },
+    {
+      "role": "step",
+      "summary": "A closer card shows the order's features grouped and fed into a model, whose guess at cooking time appears where the answer was unknown.",
+      "devices": [],
+      "patterns": ["inference_card"],
+      "primitives": ["inset_panel", "data_block", "bracket", "node_card", "counter_transition"],
+      "layoutMode": "pipeline",
+      "continuesPrevious": true
+    },
+    {
+      "role": "step",
+      "summary": "A closer card shows riders in a search ring; the closest is crossed out and one whose travel time fits the cooking time is picked, with a note on the cost.",
+      "devices": ["counterfactual"],
+      "patterns": ["pick_by_rule"],
+      "primitives": ["inset_panel", "radius_ring", "tag", "callout", "map_base"],
+      "layoutMode": "hub_spoke",
+      "continuesPrevious": true
+    },
+    {
+      "role": "step",
+      "summary": "A single bar splits the promised time into cooking, riding and slack, showing how the pieces add up to the number the user sees.",
+      "devices": [],
+      "patterns": [],
+      "primitives": ["segmented_time_bar", "counter", "tag"],
+      "layoutMode": "centered_focus",
+      "continuesPrevious": true
+    },
+    {
+      "role": "step",
+      "summary": "Raw position pings make the rider hop from point to point, then a smooth line is drawn through them and the rider glides to the door.",
+      "devices": [],
+      "patterns": [],
+      "primitives": ["route_path", "map_base", "item_icon"],
+      "layoutMode": "map",
+      "continuesPrevious": false
+    },
+    {
+      "role": "ending",
+      "summary": "The story returns to the opening delivery, now explained, and closes on an invitation to share.",
+      "devices": ["callback_ending"],
+      "patterns": [],
+      "primitives": ["item_icon"],
+      "layoutMode": "centered_focus",
+      "continuesPrevious": false
+    }
+  ],
+  "metaphorWorld": null,
+  "chapters": [],
+  "pacing": [
+    "The hook moves fast: delivery, rewind, the claim, then straight onto the board.",
+    "Each closer card opens and closes quickly so the architecture never leaves the screen.",
+    "Later stages run shorter, and the final beat holds a little longer for the callback."
+  ],
+  "unmapped": [
+    {
+      "kind": "device",
+      "name": "flashback_cut",
+      "description": "Cuts back in time to the moment just before the outcome shown, then returns to it.",
+      "buildable": "yes"
+    },
+    {
+      "kind": "other",
+      "name": "illustrated_character_scene",
+      "description": "Hand-drawn characters acting out an everyday moment as the framing story.",
+      "closest": "item_icon",
+      "buildable": "no"
+    }
+  ],
+  "namesToAvoid": [
+    {
+      "text": "how a food order arrives in minutes",
+      "kind": "title"
+    }
+  ]
+}

@@ -15,6 +15,9 @@ import {
   MAX_USAGE_VIDEOS,
   REGENERATE_TARGETS,
   VIDEO_FORMATS,
+  AVOID_NAME_KINDS,
+  type AvoidName,
+  type AvoidNameKind,
   type DisagreementBlocks,
   type ExplanationLevel,
   type FixField,
@@ -97,6 +100,23 @@ export type RulesCommand = { readonly kind: 'rules' } & (
     }
 );
 
+/** `studio references …` (P1C.11): the reference library before the UI exists. */
+export type ReferencesCommand = { readonly kind: 'references' } & (
+  | { readonly action: 'list' }
+  | {
+      readonly action: 'add';
+      /** A breakdown file, or `-` for stdin. */
+      readonly file: string;
+      readonly title?: string;
+      readonly avoid: readonly AvoidName[];
+      readonly attach: readonly string[];
+      readonly dryRun?: string;
+    }
+  | { readonly action: 'show'; readonly ref: string; readonly json: boolean }
+  | { readonly action: 'edit'; readonly ref: string; readonly file?: string }
+  | { readonly action: 'reanalyze'; readonly ref: string; readonly dryRun?: string }
+);
+
 export type Command =
   | { readonly kind: 'help' }
   | RunCommand
@@ -118,6 +138,7 @@ export type Command =
   | { readonly kind: 'cost'; readonly runId: number }
   | { readonly kind: 'usage'; readonly videos: number }
   | RulesCommand
+  | ReferencesCommand
   | {
       readonly kind: 'render';
       readonly file: string;
@@ -154,6 +175,13 @@ export const USAGE = `Usage: pnpm studio <command> [options]
   rules propose (--event <id> | --run <id> --gate <gate>) [--dry-run <dir>]
         The Analyst proposes a style rule from a gate decision's note (--run/--gate: the newest
         note at that gate). Scopes: ${MEMORY_RULE_SCOPES.join(', ')} (all: the three writers).
+  references                                The reference library: slug, status, class, devices.
+  references add <file|-> [--title <t>] [--avoid [<kind>:]<name>]... [--attach <image>]... [--dry-run <dir>]
+        Paste a breakdown (a file, or - for stdin); the Reference analyst turns it into a
+        structure-only record. --avoid: a name only code reads (kinds: ${AVOID_NAME_KINDS.join(', ')};
+        default brand). Screenshots are kept for you, never sent to a model.
+  references show <ref> [--json] · references edit <ref> [<record.json>] · references reanalyze <ref>
+        <ref> is a slug or an id. edit opens $EDITOR on the record (or saves the file given).
   usage [--videos <n>]    What the last n exported videos used (default ${DEFAULT_USAGE_VIDEOS}): each
                           video's hook, ending and main patterns, then counts per kind.
   render <spec.json> [--draft|--final] [--series ai|system-design] [--dry-run <dir>]
@@ -188,6 +216,8 @@ export function parseCommand(argv: readonly string[]): Command {
       return parseUsage(rest);
     case 'rules':
       return parseRules(rest);
+    case 'references':
+      return parseReferences(rest);
     case 'render':
       return parseRender(rest);
     default:
@@ -440,6 +470,73 @@ function proposeFrom(
   if (values.run === undefined || values.gate === undefined)
     throw new UsageError(`Expected: ${form}`);
   return { runId: runIdOf(text(values.run)), gate: oneOf('--gate', values.gate, GATE_IDS, true) };
+}
+
+function parseReferences(args: readonly string[]): ReferencesCommand {
+  const { values, positionals: found } = parse(args, {
+    title: { type: 'string' },
+    avoid: { type: 'string', multiple: true },
+    attach: { type: 'string', multiple: true },
+    json: { type: 'boolean' },
+    'dry-run': { type: 'string' },
+  });
+  const [sub = 'list', ...rest] = found;
+  const dryRun = optional('dryRun', text(values['dry-run']));
+  const one = (form: string) => {
+    if (rest.length !== 1 || !rest[0]?.trim()) throw new UsageError(`Expected: references ${form}`);
+    return rest[0].trim();
+  };
+  switch (sub) {
+    case 'list':
+      if (rest.length > 0) throw new UsageError('Expected: references');
+      return { kind: 'references', action: 'list' };
+    case 'add':
+      return {
+        kind: 'references',
+        action: 'add',
+        file: one('add <file|->'),
+        ...optional('title', text(values.title)),
+        avoid: ((values.avoid ?? []) as string[]).map(avoidName),
+        attach: (values.attach ?? []) as string[],
+        ...dryRun,
+      };
+    case 'show':
+      return {
+        kind: 'references',
+        action: 'show',
+        ref: one('show <ref>'),
+        json: values.json === true,
+      };
+    case 'edit': {
+      if (rest.length < 1 || rest.length > 2) {
+        throw new UsageError('Expected: references edit <ref> [<record.json>]');
+      }
+      return {
+        kind: 'references',
+        action: 'edit',
+        ref: rest[0]!,
+        ...optional('file', text(rest[1])),
+      };
+    }
+    case 'reanalyze':
+      return { kind: 'references', action: 'reanalyze', ref: one('reanalyze <ref>'), ...dryRun };
+    default:
+      throw new UsageError(
+        `Unknown references command "${sub}": list, add, show, edit or reanalyze.`,
+      );
+  }
+}
+
+/** `--avoid "[<kind>:]<name>"`: a brand unless it starts with a known kind. */
+export function avoidName(value: string): AvoidName {
+  const at = value.indexOf(':');
+  const prefix = at > 0 ? value.slice(0, at).trim() : '';
+  const known = (AVOID_NAME_KINDS as readonly string[]).includes(prefix);
+  const name = (known ? value.slice(at + 1) : value).trim();
+  if (!name || name.length > 60) {
+    throw new UsageError(`--avoid takes "[<kind>:]<name>" of 1 to 60 characters, not "${value}".`);
+  }
+  return { text: name, kind: known ? (prefix as AvoidNameKind) : 'brand' };
 }
 
 /** A rule's text from the command line: one line of at most 160 characters. */

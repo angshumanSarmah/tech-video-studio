@@ -1,0 +1,132 @@
+{
+  "title": "Booking a seat when many people want the same one",
+  "series": ["system-design"],
+  "topicClass": "product-design",
+  "format": "full",
+  "hook": {
+    "kind": "problem",
+    "device": "contention_hook",
+    "shape": "Several contenders reach for one scarce seat at the same moment while a cited peak-demand figure lands, so the winner is unknown."
+  },
+  "arc": "contention → ordered steps with a tracker → two-clock trap → real-world payoff → pull-back over the whole board",
+  "videoDevices": ["roadmap"],
+  "beats": [
+    {
+      "role": "hook",
+      "summary": "Many contenders reach for the same single seat at the same instant, and a cited figure shows how busy that moment is.",
+      "devices": ["contention_hook"],
+      "patterns": [],
+      "primitives": ["slot_grid", "stat_card", "packet_stream"],
+      "layoutMode": "hub_spoke",
+      "continuesPrevious": false
+    },
+    {
+      "role": "step",
+      "summary": "A tap becomes traffic that travels the roads to a nearby cache and content network before any server sees it.",
+      "devices": [],
+      "patterns": ["cache_hit_miss"],
+      "primitives": ["map_base", "route_path", "node_card", "packet_stream"],
+      "layoutMode": "map",
+      "continuesPrevious": false
+    },
+    {
+      "role": "step",
+      "summary": "Every request passes one entry point that checks who the person is before anything else runs.",
+      "devices": [],
+      "patterns": [],
+      "primitives": ["node_card", "connector"],
+      "layoutMode": "pipeline",
+      "continuesPrevious": true
+    },
+    {
+      "role": "step",
+      "summary": "Search reads a separate copy of availability refreshed only now and then, so a listing flips to sold out while a screen still shows it free.",
+      "devices": ["seen_this_bug"],
+      "patterns": [],
+      "primitives": ["device_frame", "node_card", "tag", "callout"],
+      "layoutMode": "two_column",
+      "continuesPrevious": true
+    },
+    {
+      "role": "twist",
+      "summary": "The venue's own system turns out to be the source of truth, and several venues with different interfaces feed one aggregator that outputs a single format.",
+      "devices": ["ownership_twist"],
+      "patterns": ["converge_adapter"],
+      "primitives": ["node_card", "connector", "tag"],
+      "layoutMode": "pipeline",
+      "continuesPrevious": false
+    },
+    {
+      "role": "step",
+      "summary": "A tap claims the seat under a hold that will expire, and a second request arriving moments later is turned away.",
+      "devices": [],
+      "patterns": ["atomic_lock"],
+      "primitives": ["slot_grid", "timer_ring", "tag", "connector"],
+      "layoutMode": "hub_spoke",
+      "continuesPrevious": false
+    },
+    {
+      "role": "trap",
+      "summary": "A user timer and the venue's hold timer run side by side, and the hold runs out just as a late payment clears, so the money is returned.",
+      "devices": ["race_reveal"],
+      "patterns": [],
+      "primitives": ["timer_ring", "callout", "counter_transition"],
+      "layoutMode": "versus_split",
+      "continuesPrevious": false
+    },
+    {
+      "role": "step",
+      "summary": "A queue feeds workers that build a confirmation, a scannable code and a ticket, and a person scans it at the gate where the record matches.",
+      "devices": ["real_world_closure"],
+      "patterns": ["worker_pool"],
+      "primitives": ["conveyor_queue", "node_card", "item_icon", "data_block"],
+      "layoutMode": "pipeline",
+      "continuesPrevious": false
+    },
+    {
+      "role": "ending",
+      "summary": "The camera pulls back over every part built so far, then closes with a short call to follow.",
+      "devices": [],
+      "patterns": [],
+      "primitives": ["statement_card"],
+      "layoutMode": "centered_focus",
+      "continuesPrevious": true
+    }
+  ],
+  "metaphorWorld": null,
+  "chapters": [],
+  "pacing": [
+    "The hook stacks contenders quickly, then the roadmap slows down to name each step before any detail.",
+    "One board persists and grows, so each step adds a part instead of starting from scratch.",
+    "The two-clock beat sits longest on screen; the final pull-back is one uninterrupted move."
+  ],
+  "unmapped": [
+    {
+      "kind": "other",
+      "name": "isometric_world",
+      "description": "A three-dimensional city world with roads that the camera flies over and finally pulls back from.",
+      "closest": "map_base",
+      "buildable": "phase_2"
+    },
+    {
+      "kind": "other",
+      "name": "turnstile_characters",
+      "description": "Illustrated people queueing and scanning at a gate, used as the real-world payoff.",
+      "closest": "item_icon",
+      "buildable": "no"
+    },
+    {
+      "kind": "layout_mode",
+      "name": "venue_seat_map_kit",
+      "description": "A venue seating chart with rows, blocks and aisles that individual seats are picked from.",
+      "closest": "slot_grid",
+      "buildable": "yes"
+    }
+  ],
+  "namesToAvoid": [
+    {
+      "text": "Who gets the last seat?",
+      "kind": "title"
+    }
+  ]
+}

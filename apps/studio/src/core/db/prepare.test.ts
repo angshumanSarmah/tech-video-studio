@@ -9,6 +9,7 @@ import { createSource } from './repositories/sources.ts';
 import { createTopic } from './repositories/topics.ts';
 import { channels, runSources, series, sources } from './schema.ts';
 import { DEFAULT_SERIES } from './seed.ts';
+import { noSeedReferences } from '../services/references-testing.ts';
 import { TEST_MIGRATIONS_DIR } from './testing.ts';
 
 const EXPECTED_TABLES = [
@@ -114,7 +115,8 @@ describe('migrations on a database with data', () => {
 
   it('rebuilds `sources` (0004) under a pinned source, keeping its rows and references', () => {
     const dataDir = join(root, 'data');
-    const { dbPath } = prepareDatabase(dataDir, migrationsUpTo(4));
+    // Seed references need the newest schema, so none are seeded on the old one.
+    const { dbPath } = prepareDatabase(dataDir, migrationsUpTo(4), noSeedReferences());
     db = openDatabase(dbPath);
     const topic = createTopic(db, { title: 'Write-ahead logs' });
     const source = createSource(db, {
