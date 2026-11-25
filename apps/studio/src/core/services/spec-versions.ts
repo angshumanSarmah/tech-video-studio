@@ -1,6 +1,6 @@
 import type { SpecAuthor } from '@explainer-studio/shared';
 import { readDataText, specVersionPath, writeDataJson } from '../data-files.ts';
-import type { Db } from '../db/client.ts';
+import type { Db, Executor } from '../db/client.ts';
 import {
   createSpecVersion,
   getLatestSpecVersion,
@@ -48,21 +48,28 @@ export function saveSpecVersion(
   dataDir: string,
   input: SaveSpecVersionInput,
 ): SavedSpecVersion {
-  return db.transaction((tx) => {
-    const latest = getLatestSpecVersion(tx, input.runId);
-    if (latest && readDataText(dataDir, latest.jsonPath) === specJson(input.spec)) {
-      return { version: latest, created: false };
-    }
-    const number = (latest?.version ?? 0) + 1;
-    const jsonPath = writeDataJson(dataDir, specVersionPath(input.runId, number), input.spec);
-    const version = createSpecVersion(tx, {
-      runId: input.runId,
-      version: number,
-      jsonPath,
-      createdBy: input.createdBy,
-      sourceLabel: input.sourceLabel ?? null,
-      note: input.note ?? null,
-    });
-    return { version, created: true };
+  return db.transaction((tx) => saveSpecVersionIn(tx, dataDir, input));
+}
+
+/** `saveSpecVersion` inside a transaction the caller holds (the orchestrator's). */
+export function saveSpecVersionIn(
+  tx: Executor,
+  dataDir: string,
+  input: SaveSpecVersionInput,
+): SavedSpecVersion {
+  const latest = getLatestSpecVersion(tx, input.runId);
+  if (latest && readDataText(dataDir, latest.jsonPath) === specJson(input.spec)) {
+    return { version: latest, created: false };
+  }
+  const number = (latest?.version ?? 0) + 1;
+  const jsonPath = writeDataJson(dataDir, specVersionPath(input.runId, number), input.spec);
+  const version = createSpecVersion(tx, {
+    runId: input.runId,
+    version: number,
+    jsonPath,
+    createdBy: input.createdBy,
+    sourceLabel: input.sourceLabel ?? null,
+    note: input.note ?? null,
   });
+  return { version, created: true };
 }

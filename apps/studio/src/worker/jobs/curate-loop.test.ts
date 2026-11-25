@@ -1,8 +1,6 @@
 import { join } from 'node:path';
 import {
-  narrationSentences,
   SettingsSchema,
-  type Claim,
   type CuratorIssue,
   type RenderableVideoSpec,
 } from '@explainer-studio/shared';
@@ -14,7 +12,7 @@ import { latestCuration } from '#core/services/curation.ts';
 import { saveSpecVersion } from '#core/services/spec-versions.ts';
 import { findWorkspaceRoot } from '#core/workspace-root.ts';
 import { editNarration } from '../agents/curator/fixtures.ts';
-import { reviewBeatTexts } from '../agents/curator/input.ts';
+import { answer, reviewOf } from '../agents/curator/testing.ts';
 import { fixtureResponsesDir, fixtureRunSettings, fixtureTopic } from '../agents/fixture-topics.ts';
 import {
   fixtureGeneratedSpec,
@@ -51,45 +49,6 @@ beforeEach(() => {
 });
 
 afterEach(() => t.cleanup());
-
-const answer = (value: unknown): DryRunResponse => ({
-  content: JSON.stringify(value),
-  servedModel: 'recorded',
-  finishReason: 'stop',
-  usage: null,
-});
-
-/** A complete claims audit that supports nothing and flags nothing (every entry no_claim). */
-function quietClaims(spec: RenderableVideoSpec): DryRunResponse {
-  const claims: Claim[] = reviewBeatTexts(spec).flatMap((beat) => [
-    ...narrationSentences(beat.narration).map((text) => ({
-      beatId: beat.beatId,
-      source: 'narration' as const,
-      text,
-      verdict: 'no_claim' as const,
-      ids: [],
-    })),
-    ...(beat.drawnValues ?? []).map((v) => ({
-      beatId: beat.beatId,
-      source: 'value' as const,
-      elementId: v.elementId,
-      text: v.value,
-      verdict: 'no_claim' as const,
-      ids: [],
-    })),
-  ]);
-  return answer({ claims, issues: [] });
-}
-
-const story = (issues: CuratorIssue[], previous?: { id: string; status: string }[]) =>
-  answer({ issues, ...(previous ? { previous } : {}) });
-
-/** A review pair (claims, story) for one version of the spec. */
-const reviewOf = (
-  spec: RenderableVideoSpec,
-  issues: CuratorIssue[],
-  previous?: { id: string; status: string }[],
-) => [quietClaims(spec), story(issues, previous)];
 
 /** The recorded rate-limiter spec without its timing, with `edit` applied. */
 function untimed(edit: (spec: RenderableVideoSpec) => void = () => undefined): RenderableVideoSpec {

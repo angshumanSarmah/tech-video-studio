@@ -16,6 +16,7 @@ import { recordExport } from '#core/db/repositories/exports.ts';
 import type { Job } from '#core/db/repositories/jobs.ts';
 import { getRun } from '#core/db/repositories/runs.ts';
 import { NotFoundError } from '#core/errors.ts';
+import { writeFinalCheck } from '#core/services/final-check.ts';
 import {
   renderBeatDraft,
   renderDraft,
@@ -97,6 +98,9 @@ function draftJob(deps: RenderJobDeps) {
       recordMissingAssets(deps.dataDir, runId, input.missing);
       logResult(ctx, input, result);
       ctx.log('info', `Draft written to ${runDraftPath(runId)}.`);
+      const blockers = finalRenderBlockers(input);
+      writeFinalCheck(deps.dataDir, runId, { specVersionId: ctx.payload.specVersionId, blockers });
+      for (const blocker of blockers) ctx.log('warn', `The final would be refused: ${blocker}`);
     },
   });
 }

@@ -48,11 +48,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **P1D.1 — Format on the New Run page.** `RunSettings.format` (`full` | `card`) overrides
       the Director's `plan.meta.format`; the New Run form needs a choice ("Director decides",
       full, card).
-- [ ] **P1C.9 — From plan to specs.** On gate 2 approval: `specFromPlan` per video (a
-      multi-part plan becomes one run per part: its beats, chapters, the planted question /
-      alternative inside it, the ending on the last part, `seriesNumber` per part), saved as
-      spec version 1; record `story.missingPrimitiveRequests` in the backlog table then (gate
-      edits respected); create the `beat_sheet` gate row; queue `direct` after research.
 - [ ] **P1C.10 — Record `device_layout` usage.** The Director's variety check reads
       `usage_history` rows of kind `device_layout` (`<device>/<layout>`, `deviceLayoutCombo`)
       next to device, layout and pattern; the post-export usage writer must record them.
@@ -93,9 +88,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       branch list if that matters.
 - [ ] **P1C.2 — Scanned PDFs.** A PDF without a text layer fails as `empty` (upload its text
       instead); there is no OCR.
-- [ ] **P1C.9 — Gate 1 row.** The `research` job ends after saving its step; the orchestrator
-      creates the `gates` row (`research`), sets the run `awaiting_review` unless auto-approved,
-      and reads `latestResearch` for the gate.
 - [ ] **P1D.3 — Research gate view.** Show `input.omittedChunks` (what the source budget left
       out, per source) next to the notes. **Exclusions are a gate-side list** (fact ids, kept
       with the gate decision), never a field on `ResearchFact`: downstream agents read the
@@ -107,8 +99,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **P1C.3 — Pinned title and date.** `loadRunSources` takes title and fetch date from the
       source row (its latest version), not the pinned version; store both on `run_sources` if a
       re-fetch between runs ever makes that matter.
-- [ ] **P1C.9 — Queue research after ingest.** The `ingest` job ends without queueing the next
-      step; the orchestrator does that.
 - [ ] **P1A.13 — Golden images are platform-specific.** `apps/studio/golden/` holds macOS
       renders; Chrome rasterises text differently on Linux, so a Linux CI run would fail. Before
       adding CI, render the goldens in a pinned container (or keep one set per platform).
@@ -168,22 +158,22 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       (headline, title, chapter, metric) by the display advance ratio. Mono and sans styles keep
       blueprint-dark's sizes (Plex Mono matches JetBrains Mono's 0.6 em; Plex Sans is slightly
       narrower than Inter). Scale them too if a future font differs.
-- [ ] **P1C.9 — Run state transitions.** The orchestrator takes over run state transitions. Until
-      then the worker only moves a run to `failed` when one of its jobs fails (unless the handler
-      sets `failsRun: false`); `queued → running`, gate pauses and `done` belong to the
-      orchestrator, as does resuming a run from its last finished `run_steps` row.
+- [ ] **P1C.9 step 8 — Parts end to end.** The orchestrator splits a plan with parts into child
+      runs (`partPlan`), but nothing has run a part past its script yet. A part is checked as a
+      single video: the Scriptwriter, `validateVideoSpec` and the Curator (`planOfSpec`) see part
+      1's `cliffhanger_ending` and part 2's recap with no part context (`ending_kind`, the recap
+      device), and the title block has no PART n/N cell. Part n+1's script waits for part n's,
+      but the Scriptwriter's input does not yet include part n's narration for the recap.
+- [ ] **P1C.9 — Backlog fallback.** `missing_primitive_requests` has no `fallback_used` column;
+      the orchestrator appends "(fallback used: …)" to the description. Add the column (an
+      appended migration) when the backlog UI needs to filter by it.
+- [ ] **P1C.9 — Gate views read the gate's subject.** Gates store what they review
+      (`subject_step_id`, `spec_version_id`); the gate API and UI (step 4, P1D.3) should read that
+      row, not "the latest", and compare it with the outputs' manifests (`draft.json`,
+      `stills/stills.json`) to show when a preview is from another version.
 - [ ] **P1C.9 — Paused and cancelled.** The run status `paused` and the job status `cancelled`
       exist since step 1; nothing sets them until the cost cap (step 7) and cancel (step 6).
       `budget.maxRunUsd` is already in every run's snapshot.
-- [ ] **P1C.9 — Pipeline order with re-timing.** The orchestrator runs
-      `tts -> generator -> re-time (landing holds) -> curator -> render`. The first `tts` job
-      times the script alone (no scenes, so no landing holds); after the Generator, queue `tts`
-      again on the new version: every beat is a cache hit, and the timing step adds the landing
-      holds from the scenes. The Curator checks the re-timed spec (its layout, `draw_cut_short`
-      and highlight timing depend on the holds). Gate edits that change narration or scenes
-      re-time the same way before the next render. The Curator's repairs already re-time the
-      version they save (`repairBeats`), so render `report.final.specVersionId`, not the newest
-      version (keep-best can put beats back); `draft:fixture` does.
 - [ ] **P1B.1 — Pronunciation editing.** `readPronunciations` only reads. Settings (GET/PUT
       `/api/pronunciations`) needs a `savePronunciations` (atomic, validated) in core. Keys are
       single tokens; multi-word keys ("Kafka Streams") and misaki's inline IPA override
@@ -207,20 +197,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **P1B.3 — Subtitles before the final.** The SRT is written only by `render_final`. If the
       draft gate should show or download captions, write `runs/<id>/draft.srt` from the same cues
       in `render_draft`.
-- [ ] **P1C.9 / P1D — Queueing render jobs; gates store the version they approved.** Nothing
-      queues `render_beat_draft`, `render_draft`, `render_final` or `render_stills` yet (the
-      orchestrator and the gate UI will). Every render payload requires `specVersionId` (a
-      `spec_versions` row id of the job's run) and renders exactly that version.
-  - Gate approvals must store the spec version they approved: `gates.spec_version_id` (and
-    `subject_step_id` for the research and beat-sheet gates) exist since P1C.9 step 1; set them
-    in the same transaction as the decision (step 4).
-  - The orchestrator queues renders with that id: drafts after the scenes gate with the version
-    approved there, `render_final` with the version approved at the draft gate (never "the
-    latest"), so an edit saved while a job waits cannot reach the export unreviewed.
-  - Outputs record what they were made from: `runs/<id>/draft.json`, `<slug>.json` next to the
-    export and `runs/<id>/stills/stills.json` (`render/manifests.ts`); each clip's
-    `.draft.json` keeps the version it was rendered from while later versions reuse it. The
-    gate UI can compare these with the version under review.
 - [ ] **Worker — Bundle cache on disk.** The Remotion bundle is built once per worker process
       (`render/bundle.ts`), so every `tsx watch` restart rebuilds it on the next render. If that
       gets slow, keep it under the data dir keyed by `rendererSourceHash()`.
@@ -238,8 +214,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       message from its first tokens and misses the provider's prefix cache for that run. Cheap
       while overrides are rare; if they become common, move the filled values into a short
       block after the static sections.
-- [ ] **P1C.9 — Dry-run switch.** The worker always builds the HTTP transport; the end-to-end test
-      needs a way to start it with `dryRunTransport(loadDryRunFixtures(dir))`.
 - [ ] **P1C.1 — Off-peak holidays.** DeepSeek treats Chinese public holidays as off-peak in full;
       the price table only models weekday peak windows, so cost is slightly overestimated on
       those days. Add a holiday list only if the difference matters.
@@ -425,9 +399,6 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       `segmented_time_bar`, `slot_grid` and `conveyor_queue` (slots and blocks are parts, which
       keep the fade). Add outlines (circles, polylines) when they should draw. Connectors draw with
       the enter's ease-out over a length-based duration, not a strictly constant pen.
-- [ ] **P1C.9 — Script into the spec.** The `script` job writes no spec version, like the
-      Director. P1C.9 assembles plan + script into the run's spec (and splits parts into runs),
-      then queues TTS.
 - [ ] **P1C.6 — Headline anchors.** `ScriptwriterOutputSchema` leaves `headline.at` out, so
       every headline lands at `DEFAULT_HEADLINE_ANCHOR`. Let the Scriptwriter (or the Generator)
       anchor it to its word once timing needs it.

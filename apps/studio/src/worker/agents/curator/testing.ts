@@ -1,6 +1,12 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { recordedInOrder, type DryRunFixtures } from '#worker/llm/index.ts';
+import {
+  narrationSentences,
+  type Claim,
+  type CuratorIssue,
+  type RenderableVideoSpec,
+} from '@explainer-studio/shared';
+import { recordedInOrder, type DryRunFixtures, type DryRunResponse } from '#worker/llm/index.ts';
 import { saveSpecVersion } from '#core/services/spec-versions.ts';
 import type { Db } from '#core/db/client.ts';
 import { enqueueJob } from '#core/db/repositories/jobs.ts';
@@ -8,6 +14,7 @@ import { fixtureResponsesDir, type FixtureTopicId } from '../fixture-topics.ts';
 import { fixtureGeneratedSpec } from '../generator/testing.ts';
 import { CURATE_JOB_TYPE } from '#worker/jobs/curate.ts';
 import { seededSpec, seedResponsesDir, type CuratorSeed } from './fixtures.ts';
+import { reviewBeatTexts } from './input.ts';
 
 /**
  * Test and script helpers for the Curator: the spec it reviews for a fixture topic (the recorded
@@ -56,3 +63,40 @@ export function recordedChain(topic: FixtureTopicId, curatorDir: string): DryRun
       : {}),
   };
 }
+
+/** A dry-run answer with this JSON. */
+export const answer = (value: unknown): DryRunResponse => ({
+  content: JSON.stringify(value),
+  servedModel: 'recorded',
+  finishReason: 'stop',
+  usage: null,
+});
+
+/** A complete claims audit of `spec` that supports nothing and flags nothing (all `no_claim`). */
+export function quietClaims(spec: RenderableVideoSpec): DryRunResponse {
+  const claims: Claim[] = reviewBeatTexts(spec).flatMap((beat) => [
+    ...narrationSentences(beat.narration).map((text) => ({
+      beatId: beat.beatId,
+      source: 'narration' as const,
+      text,
+      verdict: 'no_claim' as const,
+      ids: [],
+    })),
+    ...(beat.drawnValues ?? []).map((v) => ({
+      beatId: beat.beatId,
+      source: 'value' as const,
+      elementId: v.elementId,
+      text: v.value,
+      verdict: 'no_claim' as const,
+      ids: [],
+    })),
+  ]);
+  return answer({ claims, issues: [] });
+}
+
+/** A review pair (claims, then story) of one version of `spec`, with these story issues. */
+export const reviewOf = (
+  spec: RenderableVideoSpec,
+  issues: CuratorIssue[] = [],
+  previous?: { id: string; status: string }[],
+): DryRunResponse[] => [quietClaims(spec), answer({ issues, ...(previous ? { previous } : {}) })];

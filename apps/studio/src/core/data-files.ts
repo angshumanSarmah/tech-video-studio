@@ -137,6 +137,11 @@ export function runDraftPath(runId: number): string {
   return posix.join(runDir(runId), 'draft.mp4');
 }
 
+/** What would stop the final render of the version the draft shows (written with the draft). */
+export function finalCheckPath(runId: number): string {
+  return posix.join(runDir(runId), 'final-check.json');
+}
+
 /** One preview still per beat at its key frame (`render_stills`). */
 export function beatStillPath(runId: number, beatId: string): string {
   return posix.join(runDir(runId), 'stills', `${beatId}.png`);

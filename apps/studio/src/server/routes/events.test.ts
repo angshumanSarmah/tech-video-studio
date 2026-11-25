@@ -79,7 +79,7 @@ describe('GET /api/events', () => {
     const messages = await reading;
 
     expect(messages.map((m) => [m.event, m.data.payload])).toEqual([
-      ['run_status', { status: 'queued' }],
+      ['run_status', { status: 'queued', step: 'ingest' }],
       ['progress', { pct: 10 }],
     ]);
     expect(messages[1]?.id).toBe(String(messages[1]?.data.id));

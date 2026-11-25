@@ -45,16 +45,25 @@ describe('job lifecycle', () => {
     expect(eventsOf({ jobId: job.id })).toEqual([['job_status', { status: 'queued' }]]);
   });
 
-  it('records claim and completion as job_status events', () => {
+  it('records claim and completion as job_status events; the claim starts the run', () => {
     const job = claim();
     completeJob(t.db, job);
 
     expect(getJob(t.db, job.id)).toMatchObject({ status: 'done', lockedBy: null });
+    expect(getRun(t.db, runId)?.status).toBe('running');
     expect(eventsOf({ jobId: job.id })).toEqual([
-      ['run_status', { status: 'queued' }],
+      ['run_status', { status: 'queued', step: 'ingest' }],
       ['job_status', { status: 'running' }],
+      ['run_status', { status: 'running', step: 'ingest' }],
       ['job_status', { status: 'done' }],
     ]);
+  });
+
+  it('moves the run on in the transaction that completes its job (the orchestrator hook)', () => {
+    const job = claim();
+    const advanced: number[] = [];
+    completeJob(t.db, job, { advance: (_tx, id) => advanced.push(id) });
+    expect(advanced).toEqual([runId]);
   });
 
   it('fails the run with the job by default', () => {
@@ -68,9 +77,11 @@ describe('job lifecycle', () => {
     ]);
   });
 
-  it('leaves the run alone when the handler opts out', () => {
-    failJob(t.db, claim(), 'boom', { failsRun: false });
-    expect(getRun(t.db, runId)?.status).toBe('queued');
+  it('leaves the run running, and moves it on, when the handler opts out', () => {
+    const advanced: number[] = [];
+    failJob(t.db, claim(), 'boom', { failsRun: false, advance: (_tx, id) => advanced.push(id) });
+    expect(getRun(t.db, runId)?.status).toBe('running');
+    expect(advanced).toEqual([runId]);
   });
 
   it('does not touch a run that already finished', () => {

@@ -138,7 +138,7 @@ describe('runNextJob', () => {
     await runNextJob(deps([failing({ type: job.type, failsRun: false })]));
 
     expect(getJob(t.db, job.id)?.status).toBe('failed');
-    expect(getRun(t.db, run.id)?.status).toBe('queued');
+    expect(getRun(t.db, run.id)?.status).toBe('running');
   });
 
   it('requeues a gracefully aborted job and refunds its attempt', async () => {

@@ -2,7 +2,14 @@ import type { RunSettingsInput, RunSettingsSource, Stage } from '@explainer-stud
 import type { Db, Executor } from '../db/client.ts';
 import { enqueueJob, type Job } from '../db/repositories/jobs.ts';
 import { appendEvent, latestEventId } from '../db/repositories/events.ts';
-import { createRun, getRunSummary, type Run, type RunSummary } from '../db/repositories/runs.ts';
+import {
+  createRun,
+  getRun,
+  getRunSummary,
+  setPipelineStep,
+  type Run,
+  type RunSummary,
+} from '../db/repositories/runs.ts';
 import { getSeries } from '../db/repositories/series.ts';
 import { getTopic } from '../db/repositories/topics.ts';
 import { NotFoundError } from '../errors.ts';
@@ -32,13 +39,14 @@ export function startRun(db: Db, input: StartRunInput): StartedRun {
     assertReferencesExist(tx, input);
     const run = createRun(tx, input);
     const job = enqueueJob(tx, { type: FIRST_RUN_JOB_TYPE, runId: run.id });
+    setPipelineStep(tx, run.id, 'ingest', job.id);
     appendEvent(tx, {
       runId: run.id,
       jobId: job.id,
       type: 'run_status',
-      payload: { status: run.status },
+      payload: { status: run.status, step: 'ingest' },
     });
-    return { run, job };
+    return { run: getRun(tx, run.id)!, job };
   });
 }
 

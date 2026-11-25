@@ -10,7 +10,7 @@ import {
   type JobRelease,
   type NewJob,
 } from '../db/repositories/jobs.ts';
-import { setActiveRunStatus } from '../db/repositories/runs.ts';
+import { getRun, setActiveRunStatus } from '../db/repositories/runs.ts';
 
 /**
  * Job lifecycle transitions. Each one updates the job and appends its `job_status` event in one
@@ -29,36 +29,60 @@ export const MAX_JOB_ATTEMPTS = 3;
  * transaction instead.
  */
 export function queueJob(db: Db, job: NewJob): Job {
-  return db.transaction((tx) => {
-    const queued = enqueueJob(tx, job);
-    appendJobStatus(tx, queued);
-    return queued;
-  });
+  return db.transaction((tx) => queueJobIn(tx, job));
 }
 
-/** Claims the next due job and records it as running. */
+/** `queueJob` inside a transaction the caller holds (the orchestrator's). */
+export function queueJobIn(tx: Executor, job: NewJob): Job {
+  const queued = enqueueJob(tx, job);
+  appendJobStatus(tx, queued);
+  return queued;
+}
+
+/** Claims the next due job and records it as running; its run, if still queued, starts running. */
 export function claimJob(db: Db, options: ClaimOptions): Job | undefined {
   return db.transaction((tx) => {
     const job = claimNextJob(tx, options);
     if (job) appendJobStatus(tx, job);
+    if (job?.runId != null) startRunning(tx, job.runId, job.id);
     return job;
   });
 }
 
-export function completeJob(db: Db, job: Job): Job | undefined {
-  return db.transaction((tx) => release(tx, job, { status: 'done' }));
+/**
+ * Moves a run on once one of its jobs is over (the orchestrator's `advanceRun`), in the same
+ * transaction that records the job's end, so a crash never leaves a finished job unfollowed.
+ */
+export type AdvanceRun = (tx: Executor, runId: number) => void;
+
+export interface ReleaseHooks {
+  readonly advance?: AdvanceRun | undefined;
 }
 
-export interface FailOptions {
+export function completeJob(db: Db, job: Job, hooks: ReleaseHooks = {}): Job | undefined {
+  return db.transaction((tx) => {
+    const done = release(tx, job, { status: 'done' });
+    if (done && job.runId !== null) hooks.advance?.(tx, job.runId);
+    return done;
+  });
+}
+
+export interface FailOptions extends ReleaseHooks {
   /** Also fail the job's run (default). A handler opts out with `failsRun: false`. */
   readonly failsRun: boolean;
 }
 
-/** Marks the job failed and, unless opted out, fails its run if the run is still active. */
+/**
+ * Marks the job failed and, unless opted out, fails its run if the run is still active. A job
+ * that does not fail its run (previews) lets the run move on.
+ */
 export function failJob(db: Db, job: Job, error: string, options: FailOptions): Job | undefined {
   return db.transaction((tx) => {
     const failed = release(tx, job, { status: 'failed', error });
-    if (failed && options.failsRun && job.runId !== null) failRun(tx, job.runId, job.id);
+    if (failed && job.runId !== null) {
+      if (options.failsRun) failRun(tx, job.runId, job.id);
+      else options.advance?.(tx, job.runId);
+    }
     return failed;
   });
 }
@@ -73,7 +97,7 @@ export function requeueJob(db: Db, job: Job, options: { refundAttempt: boolean }
   );
 }
 
-export interface RecoveryOptions {
+export interface RecoveryOptions extends ReleaseHooks {
   /** Whether a failure of this job type fails its run (from the worker's handler registry). */
   readonly failsRun: (jobType: string) => boolean;
 }
@@ -93,7 +117,8 @@ export function recoverStaleJobs(db: Db, options: RecoveryOptions): RecoveryResu
   for (const job of listJobsByStatus(db, 'running')) {
     if (job.attempts >= MAX_JOB_ATTEMPTS) {
       const error = `abandoned after ${job.attempts} attempts (worker stopped while running it)`;
-      const failed = failJob(db, job, error, { failsRun: options.failsRun(job.type) });
+      const failsRun = options.failsRun(job.type);
+      const failed = failJob(db, job, error, { failsRun, advance: options.advance });
       if (failed) result.failed.push(failed);
     } else {
       const requeued = requeueJob(db, job, { refundAttempt: false });
@@ -116,6 +141,15 @@ function appendJobStatus(tx: Executor, job: Job): void {
     type: 'job_status',
     payload: job.error === null ? { status: job.status } : { status: job.status, error: job.error },
   });
+}
+
+function startRunning(tx: Executor, runId: number, jobId: number): void {
+  if (getRun(tx, runId)?.status !== 'queued') return;
+  const run = setActiveRunStatus(tx, runId, 'running');
+  if (run) {
+    const payload = { status: run.status, step: run.pipelineStep };
+    appendEvent(tx, { runId, jobId, type: 'run_status', payload });
+  }
 }
 
 function failRun(tx: Executor, runId: number, jobId: number): void {

@@ -43,6 +43,8 @@ export interface AppConfig {
   readonly research: ResearchSettings;
   /** Cost caps; a run's `settings.budget` overrides them. */
   readonly budget: BudgetSettings;
+  /** `LLM_DRY_RUN_DIR`, absolute: the worker replays recorded answers from it. */
+  readonly llmDryRunDir: string | null;
 }
 
 type RawEnv = Record<string, string | undefined>;
@@ -100,6 +102,7 @@ export function resolveConfig(env: Env, settings: Settings, workspaceRoot: strin
     video: settings.video,
     research: settings.research,
     budget: settings.budget,
+    llmDryRunDir: env.LLM_DRY_RUN_DIR ? resolveFromRoot(workspaceRoot, env.LLM_DRY_RUN_DIR) : null,
   };
 }
 

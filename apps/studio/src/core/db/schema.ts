@@ -17,6 +17,7 @@ import {
   MEMORY_RULE_SCOPES,
   MEMORY_RULE_STATUSES,
   MODEL_ROLES,
+  PIPELINE_STEP_IDS,
   RUN_STATUSES,
   SOURCE_FAILURE_CODES,
   SOURCE_KINDS,
@@ -156,6 +157,12 @@ export const runs = sqliteTable(
       .references(() => series.id, { onDelete: 'restrict' }),
     status: text('status', { enum: RUN_STATUSES }).notNull().default('queued'),
     currentStage: text('current_stage', { enum: STAGES }),
+    /** Where the orchestrator is (P1C.9): the step the run is in or waits at. */
+    pipelineStep: text('pipeline_step', { enum: PIPELINE_STEP_IDS }).notNull().default('ingest'),
+    /** The job the current step queued (a job step), so the same job type twice stays apart. */
+    stepJobId: integer('step_job_id').references((): AnySQLiteColumn => jobs.id, {
+      onDelete: 'set null',
+    }),
     /** The run's own overrides, as given when it started. */
     settings: text('settings', { mode: 'json' }).$type<RunSettings>().notNull(),
     /**

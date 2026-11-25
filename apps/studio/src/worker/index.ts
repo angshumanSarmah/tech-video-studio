@@ -2,11 +2,12 @@ import { hostname } from 'node:os';
 import { join } from 'node:path';
 import { loadConfig } from '#core/config.ts';
 import { ensureDataDirs } from '#core/data-dirs.ts';
-import { closeDatabase, dbPathFor, openDatabase } from '#core/db/client.ts';
+import { closeDatabase, dbPathFor, openDatabase, type Executor } from '#core/db/client.ts';
+import { advanceRun, sweepRuns } from '#core/orchestrator/advance.ts';
 import { recoverStaleJobs } from '#core/services/jobs.ts';
 import { loadPromptTemplates, PROMPTS_DIR } from '#worker/agents/prompts/templates.ts';
 import { createJobHandlers, createJobRegistry } from '#worker/jobs/registry.ts';
-import { createLlmClient, createLlmTransport } from '#worker/llm/index.ts';
+import { createLlmClient, workerTransport } from '#worker/llm/index.ts';
 import { startPollLoop } from '#worker/poll-loop.ts';
 import { runFfmpeg } from '#worker/render/ffmpeg.ts';
 import { createRemotionEngine } from '#worker/render/remotion-engine.ts';
@@ -28,12 +29,9 @@ const { provider: tts } = createKokoroTts({
   log: (message) => console.warn(`[worker] ${message}`),
 });
 // Every LLM call goes through this one client (logged and costed); a missing key fails the call.
-const llm = createLlmClient({
-  db,
-  dataDir: config.dataDir,
-  llm: config.llm,
-  transport: createLlmTransport(config.llm),
-});
+const { transport, dryRun } = workerTransport(config);
+if (dryRun) console.warn(`[worker] DRY RUN: LLM answers replayed from ${config.llmDryRunDir}`);
+const llm = createLlmClient({ db, dataDir: config.dataDir, llm: config.llm, transport });
 const prompts = loadPromptTemplates(join(config.workspaceRoot, PROMPTS_DIR));
 const registry = createJobRegistry(
   createJobHandlers({ db, dataDir: config.dataDir, tools, tts, llm, prompts }),
@@ -42,12 +40,17 @@ const workerId = `${hostname()}:${process.pid}`;
 const shutdownController = new AbortController();
 
 // Single worker: any job still `running` belongs to a previous process that died.
-const recovered = recoverStaleJobs(db, { failsRun: (type) => registry.failsRun(type) });
+// The orchestrator moves a run on in the transaction that ends each of its jobs.
+const advance = (tx: Executor, runId: number) => advanceRun(tx, config.dataDir, runId);
+const recovered = recoverStaleJobs(db, { failsRun: (type) => registry.failsRun(type), advance });
 if (recovered.requeued.length + recovered.failed.length > 0) {
   console.warn(
     `[worker] stale jobs: requeued ${recovered.requeued.length}, failed ${recovered.failed.length}`,
   );
 }
+
+const swept = sweepRuns(db, config.dataDir);
+if (swept.length > 0) console.warn(`[worker] moved on stalled runs: ${swept.join(', ')}`);
 
 const loop = startPollLoop({
   intervalMs: POLL_INTERVAL_MS,
@@ -56,6 +59,7 @@ const loop = startPollLoop({
       db,
       registry,
       workerId,
+      advance,
       signal: shutdownController.signal,
       onError: (message, error) => console.error(`[worker] ${message}`, error),
     }),

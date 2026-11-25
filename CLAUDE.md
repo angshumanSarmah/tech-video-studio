@@ -233,6 +233,56 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   Scripts start their runs from their config (`seedFixtureRun(..., config)`).
   `settings-snapshot.test.ts` is the acceptance test.
 
+### Orchestrator (`#core/orchestrator`, P1C.9)
+
+- **Order** (`pipeline.ts`, `PIPELINE`: a table keyed by `PIPELINE_STEP_IDS`, shared
+  `domain/pipeline.ts`): ingest → research → gate_research → direct → gate_beat_sheet → split →
+  script → spec → tts → generate → board_backlog → retime (tts again: landing holds) → curate
+  (repairs on) → stills → gate_scenes → draft → gate_draft → final → done. Each step is a job (its
+  type, stage and which spec version its payload pins: none, latest, the curated one, the one a
+  gate approved), a gate, a transition, `children` or the end. `children` (a parent waiting for
+  its parts) and `repair` (a gate's "regenerate beat", step 5) are entered only explicitly.
+- **`decide(snapshot) → action`** (`decide.ts`, pure, table-driven): enqueue, advance, effect,
+  open / approve / carry a gate, await review, finish, or idle. A gate auto-approves only when
+  its `autoApprove` flag is on and nothing blocks; a rejected gate cancels the run; a paused,
+  cancelled or finished run is idle. `regenerateRoute(gate, target)` is the regenerate routing
+  (which step reruns, which gates reopen: the deciding one and every later one; an earlier gate
+  the rerun passes keeps its approval with the new subject, `carry_gate`).
+- **`advanceRun(tx, dataDir, runId)`** (`advance.ts`): snapshot (`snapshot.ts`: the run's
+  `pipeline_step` and `step_job_id`, its jobs, the gate row and what it reviews and what blocks
+  it), decide, apply, repeat until idle (at most 50 actions). It runs **in the transaction that
+  ends a job** (`completeJob` / `failJob` take an `advance` hook; the runner's `RunnerDeps.advance`,
+  set by the worker) and, from step 4, in the one that records a gate decision. A state it cannot
+  work from (`OrchestratorStateError`: no spec version, no curation) fails the run with the
+  reason logged. It then moves on the runs this one unblocks (its parent, its next part).
+  `sweepRuns` at worker startup advances every queued or running run with no active job.
+- **Events:** every step entered is a `run_status` event with `step`; a gate opened or decided is
+  a `gate` event (`status`, `decidedBy`, `blocking`). Claiming a queued run's first job sets it
+  `running`.
+- **Gates:** each row stores what it reviews (`gateSubject`): research and beat sheet the
+  newest finished step (`subject_step_id`), scenes the curated version (`report.final`), draft the
+  version the scenes gate approved (`spec_version_id`). Blocking: research and beat sheet nothing
+  yet (step 9 adds thin and contradictory sources), scenes the Curator's blocking badges, draft
+  the final's blockers (`render_draft` writes them to `runs/<id>/final-check.json`,
+  `#core/services/final-check.ts`, since only the worker can compute `finalRenderBlockers`).
+- **Transitions** (`effects.ts`): `split` records the plan's missing-primitive requests in the
+  backlog (`recordMissingPrimitives`, once per run and name) and, for a plan with parts, creates a
+  child run per part (`parent_run_id`, `part_index`, `part_count`; the parent's settings and
+  snapshot; a finished `direct` step whose plan is `partPlan(plan, n)` and whose input is the
+  parent's, so it reads the same research) starting at `script`; the parent waits at `children`
+  and finishes when every part has (`done` only if all are). Part n+1's script waits until part
+  n is past `spec`. `spec` assembles plan + script (`assembleScriptedSpec`, the run's format
+  override, series number = the Director's `nextNumber` + part offset) as the next version
+  (`saveSpecVersionIn`). `board_backlog` records the Generator's requests.
+- **Dry run:** `LLM_DRY_RUN_DIR` (env) makes the worker replay `<role>.json` recordings from that
+  directory (`workerTransport`) instead of calling the API.
+- **Tests:** `decide.test.ts` (every transition, regenerate routes, parts, paused and cancelled);
+  `worker/orchestrator.test.ts`: the tokenizer from topic to export with every gate on auto (the
+  stage sequence and events pinned), a gate that waits and resumes on approval, the parts split,
+  the startup sweep, a state problem, the pipeline's job types against the registry, the dry-run
+  switch. The Curator there answers with `reviewOf` (`agents/curator/testing.ts`: a claims audit
+  and story pass that flag nothing), since the recorded reviews' repairs were never recorded.
+
 ### Source ingestion (`src/worker/ingest`, job in `jobs/ingest.ts`)
 
 - **`ingest` job** (the run's first job, payload `{}`): extracts every source of the run's topic
@@ -499,7 +549,8 @@ stepId?, aliases?, check?, signal?, log? })`** is the only way to call a model (
 - **Steps and files** like the Researcher: one `run_steps` row per attempt (stage `direct`),
   `runs/<id>/direct/input-<step>.json` (`DirectorInputSchema`) and `plan-<step>.json`. **Gate 2
   input** is `latestDirection(db, dataDir, runId)` (`#core/services/direction.ts`). The job writes
-  no spec version: turning the plan into specs (and parts into runs) is P1C.9's.
+  no spec version: the orchestrator's `split` and `spec` transitions turn the plan into runs and
+  specs.
 - **`DirectorPlan`** (`packages/shared/src/director`) is shaped like a spec: `meta` (title, topic
   class, recommended `format`, `targetLengthSec` unless there are parts), `lengthReason`, `story`
   (the Story layer; code fills `ending.seriesNumber`) and optional `parts` (`part`, `title`,
@@ -586,7 +637,8 @@ researchStepId)`, not the newest research), the run's level and pace (`resolvedS
 - **Steps and files** like the Director: stage `script`, `runs/<id>/script/input-<step>.json`
   (`ScriptwriterInputSchema`: the direct and research step ids, level, pace, pauses, budgets,
   style rules) and `script-<step>.json`. `latestScript(db, dataDir, runId)`
-  (`#core/services/script.ts`) reads the newest. The job writes no spec version (P1C.9).
+  (`#core/services/script.ts`) reads the newest. The job writes no spec version (the orchestrator's `spec`
+  transition does).
 - **`ScriptwriterOutput`** (`packages/shared/src/script`) is `{ script: [...] }`, the spec's
   Script layer with stricter limits: on-screen text takes `ON_SCREEN_TEXT_LIMITS`, which the
   `tag`, `stat_card`, `command_bubble` and `formula_card` props schemas also read (one source),
@@ -667,7 +719,8 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   `generatorScene(output, storyBeat)` adds the plan's fields (a layout mode only on a board's
   first beat) and drops the requests. Registered in `ROLE_OUTPUT_SCHEMAS`.
 - **`assembleScriptedSpec(plan, script, ctx)`** (`director/spec.ts`): `specFromPlan` plus the
-  script, the spec before TTS (P1C.9 saves it as version 1; the Scriptwriter check uses it).
+  script, the spec before TTS (the orchestrator's `spec` transition saves it; the Scriptwriter check
+  uses it).
 - **Prompt prefix:** the system message is the same for every beat of every run with the same
   settings and registries: catalogue and assets in the block, per-run lists (logo slots, allowed
   layout modes) and the beat in the user message. `generator/prefix.test.ts` builds a prompt per

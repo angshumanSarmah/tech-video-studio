@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   JobStatusEventSchema,
+  GateEventSchema,
   LogEventSchema,
   ProgressEventSchema,
   RunStatusEventSchema,
@@ -42,5 +43,6 @@ export const EventDtoSchema = z.discriminatedUnion('type', [
   JobStatusEventSchema.extend(EventMetaShape),
   ProgressEventSchema.extend(EventMetaShape),
   LogEventSchema.extend(EventMetaShape),
+  GateEventSchema.extend(EventMetaShape),
 ]);
 export type EventDto = z.infer<typeof EventDtoSchema>;

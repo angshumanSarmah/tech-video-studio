@@ -3,7 +3,13 @@ import { z } from 'zod';
 import type { Db } from '#core/db/client.ts';
 import { appendEvent } from '#core/db/repositories/events.ts';
 import type { Job } from '#core/db/repositories/jobs.ts';
-import { claimJob, completeJob, failJob, requeueJob } from '#core/services/jobs.ts';
+import {
+  claimJob,
+  completeJob,
+  failJob,
+  requeueJob,
+  type AdvanceRun,
+} from '#core/services/jobs.ts';
 import type { JobContext, JobHandler } from './jobs/handler.ts';
 import type { JobRegistry } from './jobs/registry.ts';
 import { createProgressThrottle, type ProgressThrottle } from './progress.ts';
@@ -18,6 +24,8 @@ export interface RunnerDeps {
   /** Aborted on graceful shutdown. */
   readonly signal: AbortSignal;
   readonly progressIntervalMs?: number;
+  /** Moves a run on when one of its jobs ends (the orchestrator); omitted, jobs run alone. */
+  readonly advance?: AdvanceRun;
   readonly onError?: (message: string, error: unknown) => void;
 }
 
@@ -40,13 +48,16 @@ export async function drainQueue(deps: RunnerDeps): Promise<void> {
 async function runClaimedJob(deps: RunnerDeps, job: Job): Promise<void> {
   const handler = deps.registry.get(job.type);
   if (!handler) {
-    failJob(deps.db, job, `no handler for job type ${job.type}`, { failsRun: true });
+    failJob(deps.db, job, `no handler for job type ${job.type}`, {
+      failsRun: true,
+      advance: deps.advance,
+    });
     return;
   }
   const parsed = handler.payloadSchema.safeParse(job.payload);
   if (!parsed.success) {
     const error = `invalid payload for job type ${job.type}: ${z.prettifyError(parsed.error)}`;
-    failJob(deps.db, job, error, { failsRun: handler.failsRun ?? true });
+    failJob(deps.db, job, error, { failsRun: handler.failsRun ?? true, advance: deps.advance });
     return;
   }
   await execute(deps, job, handler, parsed.data);
@@ -67,7 +78,7 @@ async function execute(
     return;
   }
   throttle.flush();
-  completeJob(deps.db, job);
+  completeJob(deps.db, job, { advance: deps.advance });
 }
 
 /** A throw after a graceful abort requeues (attempt refunded); any other throw fails the job. */
@@ -75,7 +86,10 @@ function settleThrownJob(deps: RunnerDeps, job: Job, handler: JobHandler, error:
   if (deps.signal.aborted) {
     requeueJob(deps.db, job, { refundAttempt: true });
   } else {
-    failJob(deps.db, job, errorMessage(error), { failsRun: handler.failsRun ?? true });
+    failJob(deps.db, job, errorMessage(error), {
+      failsRun: handler.failsRun ?? true,
+      advance: deps.advance,
+    });
   }
 }
 

@@ -2,13 +2,25 @@ import {
   resolveRunSettings,
   ResolvedRunSettingsSchema,
   RunSettingsSchema,
+  type PipelineStepId,
   type ResolvedRunSettings,
   type RunSettings,
   type RunSettingsSource,
   type RunSettingsInput,
   type RunStatus,
+  type Stage,
 } from '@explainer-studio/shared';
-import { and, desc, eq, getTableColumns, isNotNull, notInArray, sql } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  getTableColumns,
+  inArray,
+  isNotNull,
+  notInArray,
+  sql,
+} from 'drizzle-orm';
 import type { Db, Executor } from '../client.ts';
 import { exports, jobs, runSources, runs, sources } from '../schema.ts';
 
@@ -27,6 +39,10 @@ export interface NewRun {
   readonly app: RunSettingsSource;
   /** A part of a multi-part video (P1C.9). */
   readonly part?: { readonly parentRunId: number; readonly index: number; readonly count: number };
+  /** Use this snapshot as it is instead of resolving one (a part takes its parent's). */
+  readonly snapshot?: ResolvedRunSettings;
+  /** Where the orchestrator starts the run (default `ingest`; a part starts at `script`). */
+  readonly pipelineStep?: PipelineStepId;
 }
 
 /** Settings JSON can be hand-edited on disk, so it is validated on read as well as write. */
@@ -47,7 +63,8 @@ export function createRun(db: Executor, input: NewRun): Run {
       topicId: input.topicId,
       seriesId: input.seriesId,
       settings,
-      resolvedSettings: resolveRunSettings(settings, input.app),
+      resolvedSettings: input.snapshot ?? resolveRunSettings(settings, input.app),
+      ...(input.pipelineStep ? { pipelineStep: input.pipelineStep } : {}),
       ...(input.part
         ? {
             parentRunId: input.part.parentRunId,
@@ -81,6 +98,43 @@ export function setActiveRunStatus(db: Executor, id: number, status: RunStatus):
     .returning()
     .get();
   return row && toRun(row);
+}
+
+/** Moves the orchestrator's cursor: the step the run is in, and the job that step queued. */
+export function setPipelineStep(
+  db: Executor,
+  id: number,
+  step: PipelineStepId,
+  stepJobId: number | null,
+): void {
+  db.update(runs).set({ pipelineStep: step, stepJobId }).where(eq(runs.id, id)).run();
+}
+
+/** Records the stage of the job a run is running (`current_stage`). */
+export function setCurrentStage(db: Executor, id: number, stage: Stage): void {
+  db.update(runs).set({ currentStage: stage }).where(eq(runs.id, id)).run();
+}
+
+/** A multi-part video's parts, by part number. */
+export function listPartRuns(db: Executor, parentRunId: number): Run[] {
+  return db
+    .select()
+    .from(runs)
+    .where(eq(runs.parentRunId, parentRunId))
+    .orderBy(asc(runs.partIndex))
+    .all()
+    .map(toRun);
+}
+
+/** Runs in any of these statuses, oldest first. */
+export function listRunsByStatus(db: Executor, statuses: readonly RunStatus[]): Run[] {
+  return db
+    .select()
+    .from(runs)
+    .where(inArray(runs.status, [...statuses]))
+    .orderBy(asc(runs.id))
+    .all()
+    .map(toRun);
 }
 
 /** A run plus the error of its newest failed job (why it failed), or null. */
