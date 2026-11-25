@@ -5,6 +5,7 @@ export default defineConfig({
     'server/index': 'src/server/index.ts',
     'worker/index': 'src/worker/index.ts',
     'db/migrate-cli': 'src/core/db/migrate-cli.ts',
+    'cli/main': 'src/cli/main.ts',
   },
   outDir: 'dist/node',
   format: 'esm',

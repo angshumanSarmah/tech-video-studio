@@ -40,6 +40,7 @@ export function readRunSnapshot(db: Executor, dataDir: string, runId: number): R
     gate: gate?.row ?? null,
     blocking: gate?.blocking ?? [],
     autoApprove: run.settings.autoApprove,
+    held: step.kind === 'gate' && run.holdGate === step.gate,
     part: partState(db, run),
     parts: step.kind === 'children' ? listPartRuns(db, runId).map((p) => p.status) : null,
   };

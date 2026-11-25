@@ -34,7 +34,9 @@
     "curator:fixture": "tsx scripts/curator-fixture.ts",
     "repair:fixture": "tsx scripts/repair-fixture.ts",
     "draft:fixture": "tsx scripts/draft-fixture.ts",
-    "curate-round:fixture": "tsx scripts/curate-round-fixture.ts"
+    "curate-round:fixture": "tsx scripts/curate-round-fixture.ts",
+    "studio": "tsx src/core/db/migrate-cli.ts --quiet && tsx src/cli/main.ts",
+    "dry-run:dir": "tsx scripts/dry-run-dir.ts"
   },
   "dependencies": {
     "@explainer-studio/renderer": "workspace:*",

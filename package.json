@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "pnpm --filter @explainer-studio/studio dev",
+    "studio": "pnpm --reporter=silent --filter @explainer-studio/studio studio",
     "build": "pnpm -r --if-present build",
     "typecheck": "pnpm -r --if-present typecheck",
     "lint": "eslint . && prettier --check .",

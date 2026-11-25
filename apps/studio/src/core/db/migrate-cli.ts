@@ -11,7 +11,9 @@ const { dbPath, seeded, assets } = prepareDatabase(
   config.dataDir,
   migrationsDirFor(config.workspaceRoot),
 );
-console.log(`[db] migrated ${dbPath}${seeded ? ' (seeded defaults)' : ''}`);
+// `--quiet` (the studio CLI): only what changed is printed.
+const quiet = process.argv.includes('--quiet');
+if (!quiet || seeded) console.log(`[db] migrated ${dbPath}${seeded ? ' (seeded defaults)' : ''}`);
 if (assets.inserted + assets.updated > 0) {
   console.log(`[assets] seeded ${assets.inserted} new, refreshed ${assets.updated}`);
 }

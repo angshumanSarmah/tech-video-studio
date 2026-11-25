@@ -34,9 +34,10 @@ Topic + links -> Source ingestion
 ## Repo layout
 
 ```text
-apps/studio/            one Node app, three entrypoints
+apps/studio/            one Node app, four entrypoints
   src/server/           Hono HTTP API (thin handlers; enqueue work, never do it)
   src/worker/           job runner: agents, TTS, render (separate process)
+  src/cli/              `pnpm studio`: start and drive runs from a terminal (see "Studio CLI")
   src/core/             Node-only code shared by server + worker (config, data dirs)
   src/web/              Vue 3 + Vite SPA (Vue Router, Pinia, Tailwind v4; see "Web app")
   drizzle/              generated SQL migrations (drizzle-kit)
@@ -52,7 +53,7 @@ the version pinned in `packageManager`. Re-run it after switching Node versions;
 globally.
 
 Commands (from the repo root): `pnpm dev` (server, worker and Vite via `concurrently`),
-`pnpm build`, `pnpm typecheck`, `pnpm lint`, `pnpm format`, `pnpm test`. The visual regression
+`pnpm build`, `pnpm typecheck`, `pnpm lint`, `pnpm format`, `pnpm test`, `pnpm studio …` (the CLI). The visual regression
 test is separate: `pnpm --filter @explainer-studio/studio test:visual` (see "Golden fixtures").
 TTS: `pnpm tts:setup` (needs `uv`; installs nothing global) and `pnpm tts:doctor` (see "TTS").
 
@@ -232,9 +233,17 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
 - **Cost cap** (P1C.9): a handler that throws `RunBudgetReachedError` (`#core/errors.ts`, from the
   LLM client) is requeued with its attempt refunded and its run set `paused` with a `run_status`
   and a `warn` log event (`pauseForBudget`). The claim skips a paused run's jobs.
-- **Crash recovery** assumes a single worker: on startup every `running` job is stale. It is
-  requeued, or failed once it has used `MAX_JOB_ATTEMPTS` (3) hard crashes. There is no
-  heartbeat or lease; add one before running a second worker.
+- **Worker lock** (P1C.9b; `worker_lock`, one row, `#core/services/worker-lock.ts`): only its
+  holder claims jobs. The worker loop is `startWorker` (`src/worker/runtime.ts`), shared by the
+  worker process and the CLI. A worker takes the lock when it is free, its holder's heartbeat is
+  older than `LOCK_STALE_MS` (30 s), or its holder's process is gone on this host; it renews it
+  every `LOCK_HEARTBEAT_MS` (5 s) and stops claiming once a renewal finds it taken. Otherwise it
+  waits on standby and tries again on the same beat (the dev worker while a CLI runs; a CLI
+  while `pnpm dev` runs: it attaches). The row records `kind` (`worker` | `cli`) and `llm_mode`
+  (`live` | `dry_run`). Stopping releases it.
+- **Crash recovery** runs when a worker takes the lock (so with one worker at a time): every
+  `running` job is stale. It is requeued, or failed once it has used `MAX_JOB_ATTEMPTS` (3) hard
+  crashes; then `sweepRuns`.
 - **Handlers get dependencies** through `createJobHandlers({ db, dataDir, tools })`
   (`jobs/registry.ts`); `JobContext` carries only the job, payload, progress, log and signal.
 - **Settings snapshot** (`ResolvedRunSettingsSchema`, shared `domain/resolved-settings.ts`):
@@ -384,8 +393,17 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   new cap is above what the video has spent (`resumeUnderCap`: a `run_status` event and a log
   line on each, either way). A part's own `budget` patch is a 400 (set it on the parent). Gate
   payloads show the cost per role.
-- **Dry run:** `LLM_DRY_RUN_DIR` (env) makes the worker replay `<role>.json` recordings from that
-  directory (`workerTransport`) instead of calling the API.
+- **Dry run:** `LLM_DRY_RUN_DIR` (env, or the CLI's `--dry-run`) makes the worker replay
+  `<role>.json` recordings from that directory (`workerTransport`) instead of calling the API.
+  `dry-run:dir [--topic]` writes a fixture topic's recordings, Curator round included
+  (`topicDryRunFixtures`), into `<DATA_DIR>/dry-run/<topic>/` and prints the CLI command.
+- **Rerun** (`rerunRun`, `#core/services/run-control.ts`; the CLI's `resume --from|--only`): a run
+  that is not busy (waiting, failed or done; never cancelled, paused or with a job active) goes
+  back to one of `RERUN_STEPS`; every gate after it is reopened, earlier ones keep their
+  approvals; a Generator rerun redraws every board (`generate: { redraw: true }`). `--only` holds
+  the next gate for a review once (`runs.hold_gate`: `decide` does not auto-approve it; an
+  approve or reject at it clears it) and turns a curate on the way to it to `repair: false`, so
+  no other agent is called. A parent reruns up to its beat sheet, a part from its script.
 - **Tests:** `decide.test.ts` (every transition, regenerate routes, parts, paused and cancelled);
   `worker/orchestrator.test.ts`: the tokenizer from topic to export with every gate on auto (the
   stage sequence and events pinned; both recorded topics' notes report a sources disagreement, so
@@ -449,8 +467,8 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   uploads are written content-addressed under the topic (`writeDataFileOnce`) before the row;
   pasted text is a `kind: 'text'` row whose `file_path` is `PASTED_TEXT_FILE_NAME` and whose
   `title` is the one given, kept by ingestion. Its origin (`sourceOrigin`) is that title. The
-  run's angle / notes steer the story but are never a citable source. The CLI (P1C.9b) is not
-  built yet.
+  run's angle / notes steer the story but are never a citable source. The CLI adds sources the
+  same way (`pnpm studio run … --source <url|file> --text "<title>=<file|->"`).
 - **Outputs** (content-addressed by the normalized text's sha256, written atomically, skipped when
   present): `topics/<t>/sources/<s>/<hash>.txt` and `<hash>.chunks.json`
   (`SourceChunksFileSchema`). The row gets `text_path`, `content_hash`, `title` and `extracted_at`
@@ -1259,6 +1277,59 @@ compose repositories live in `src/core/services`; handlers call them or a reposi
 Demo and debug endpoints live under `/api/dev` (`src/server/routes/dev.ts`), mounted only outside
 the production build (`enableDevRoutes`). There is no generic `POST /api/jobs`: jobs are queued by
 the service that owns them.
+
+## Studio CLI (`src/cli`, P1C.9b)
+
+`pnpm studio <command>` (root script → the studio package's `studio`, which runs `db:migrate`
+quietly first, as `dev` does). Relative paths resolve from where you ran it (`INIT_CWD`). It calls
+the same core services as the API and has no logic of its own (ESLint: no server or web imports).
+
+```sh
+# A URL (fetched; GitHub repo and file URLs read as raw markdown)
+pnpm studio run "Consistent hashing" --series system-design --source https://example.com/ring-notes
+# An uploaded file (.md .markdown .txt .pdf .docx .csv .json; tables become labelled rows)
+pnpm studio run "Consistent hashing" --series system-design --source ./notes/ring-benchmarks.csv
+# Pasted text from a file, under the title it is cited by
+pnpm studio run "Consistent hashing" --series system-design --text "Our load test=./load-test.md"
+# Pasted text from stdin
+pbpaste | pnpm studio run "Consistent hashing" --series system-design --text "Team notes=-"
+```
+
+- **`run`** `"<topic>" --series ai|system-design` with any mix of `--source` and `--text`, and
+  `--angle` (the topic notes), `--level`, `--length <sec>`, `--format full|card`, `--cap <usd>`,
+  `--words-per-sec`, `--auto` (gates 1-3 approve themselves when nothing blocks), `--auto-final`
+  (gate 4 too), `--dry-run <dir>`. Every source is read and checked before anything is created.
+- **Follows the run** by reading `events` (`follow.ts`, `progress.ts`): one line per step
+  entered, per job that ends (time, the run's cost by then), per gate event, warnings; progress
+  on one live line in a terminal. A multi-part video's parts are followed with it.
+- **At a gate** it prints a summary (`summaries.ts`: G1 notes counts, each source's length and
+  chunks, failures and the blocking reasons; G2 a beat table; G3 each beat's narration and
+  badges, the stills; G4 the draft path) and writes the subject to `runs/<id>/cli/<gate>-<id>.json`
+  for editing. In a terminal it asks (`gate-reply.ts`): `a` · `r "<feedback>"` (G1 Researcher,
+  G2 Director) or `r <beat>[:<fields>] "<feedback>"` / `r scriptwriter|generator` (G3, G4) · `e`
+  ($EDITOR on that file) · `x [notes]` · `q`. Without one it prints the exact commands and exits 0.
+- **`gate <run> approve|reject|edit <file>|regenerate (--beat <id> [--fields] | --target <role>
+[--source-id]) [--feedback]`**, **`resume <run> [--from|--only <step>] [--cap <usd>]`** (a
+  failed run resumes; `--cap` raises the cap and resumes a paused run; see "Rerun"),
+  **`status [<run>]`** (recent runs, or one with its gates, parts and the worker lock),
+  **`cost <run>`** (per role over the run and its parts, and the cap),
+  **`render <spec.json> [--draft|--final]`** (`startRenderRun`: a scratch run, the spec as its
+  `external` version 1, its scenes gate approved; the draft, and with `--final` gate 4 approves
+  itself when nothing blocks and the final exports; no LLM calls).
+- **Its worker** (`host.ts`, `withWorker`): each command that moves a run starts a `cli` worker in
+  its own process. Holding the lock, it runs the jobs; when `pnpm dev`'s worker holds it, it
+  attaches (prints who runs the jobs, follows the run, and takes over if that worker goes away).
+  A command whose LLM mode differs from the lock holder's (`--dry-run` next to a live worker, or
+  the reverse) is refused before anything is created. Ctrl-C stops following and the worker (the
+  running job is requeued); the run stays where it is (`resume` follows it again).
+- **Exit codes:** 0 done or waiting at a gate, 1 failed, cancelled, paused or an error, 2 usage,
+  130 interrupted.
+- **Tests** (`cli.test.ts`, through `runCli` with a scripted terminal, `testing.ts`): the tokenizer
+  from its sources to its draft with `--dry-run` (gate 1 stops on the disagreement, `gate 1
+approve` goes on), `resume --only generate` calling only the Generator and the review and
+  holding gate 3, the prompt in a terminal, a CLI attaching to a running worker, and a refused
+  dry run next to a live one. `args.test.ts`, `rerun.test.ts`, `runtime.test.ts` (standby
+  takeover).
 
 ## Web app
 

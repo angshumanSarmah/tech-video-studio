@@ -55,7 +55,7 @@ export default tseslint.config(
   // Node-side code
   {
     files: [
-      'apps/studio/src/{core,server,worker,acceptance}/**',
+      'apps/studio/src/{core,server,worker,cli,acceptance}/**',
       'apps/studio/scripts/**',
       'packages/renderer/scripts/**',
       '**/*.config.{ts,js}',
@@ -77,6 +77,13 @@ export default tseslint.config(
     files: ['apps/studio/src/worker/**'],
     rules: forbidImports(
       'The worker must not import server or web code.',
+      '^#(server|web)/|/(server|web)/',
+    ),
+  },
+  {
+    files: ['apps/studio/src/cli/**'],
+    rules: forbidImports(
+      'The CLI calls core services and hosts a worker; it must not import server or web code.',
       '^#(server|web)/|/(server|web)/',
     ),
   },

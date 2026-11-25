@@ -5,12 +5,11 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { DATA_SUBDIRS } from '../data-dirs.ts';
 import { closeDatabase, openDatabase, type Db } from './client.ts';
 import { prepareDatabase } from './prepare.ts';
-import { createRun } from './repositories/runs.ts';
 import { createSource } from './repositories/sources.ts';
 import { createTopic } from './repositories/topics.ts';
 import { channels, runSources, series, sources } from './schema.ts';
 import { DEFAULT_SERIES } from './seed.ts';
-import { TEST_APP_SETTINGS, TEST_MIGRATIONS_DIR } from './testing.ts';
+import { TEST_MIGRATIONS_DIR } from './testing.ts';
 
 const EXPECTED_TABLES = [
   'assets',
@@ -31,6 +30,7 @@ const EXPECTED_TABLES = [
   'spec_versions',
   'topics',
   'usage_history',
+  'worker_lock',
 ];
 
 function tableNames(db: Db): string[] {
@@ -123,10 +123,15 @@ describe('migrations on a database with data', () => {
       url: 'https://example.com/a',
     });
     const seriesId = db.select().from(series).all()[0]!.id;
-    const run = createRun(db, { topicId: topic.id, seriesId, app: TEST_APP_SETTINGS });
-    db.insert(runSources)
-      .values({ runId: run.id, sourceId: source.id, contentHash: 'a'.repeat(64) })
-      .run();
+    // The runs table as it stood then (later migrations add columns), so plain SQL.
+    const runId = db.$client
+      .prepare(
+        "insert into runs (topic_id, series_id, settings, resolved_settings) values (?, ?, '{}', '{}')",
+      )
+      .run(topic.id, seriesId).lastInsertRowid;
+    db.$client
+      .prepare('insert into run_sources (run_id, source_id, content_hash) values (?, ?, ?)')
+      .run(runId, source.id, 'a'.repeat(64));
     closeDatabase(db);
 
     prepareDatabase(dataDir, TEST_MIGRATIONS_DIR);

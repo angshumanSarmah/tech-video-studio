@@ -26,6 +26,8 @@ import {
   STAGES,
   STEP_STATUSES,
   USAGE_KINDS,
+  WORKER_KINDS,
+  LLM_MODES,
   type EventBody,
   type NormalizerFix,
   type ResolvedRunSettings,
@@ -188,6 +190,11 @@ export const runs = sqliteTable(
     /** This part's number, from 1, and how many parts the video has; set iff `parent_run_id`. */
     partIndex: integer('part_index'),
     partCount: integer('part_count'),
+    /**
+     * A gate that waits for a review once, even with its auto-approve on (`resume --only`, P1C.9b):
+     * cleared when a decision is made at it.
+     */
+    holdGate: text('hold_gate', { enum: GATE_IDS }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -503,4 +510,27 @@ export const exports = sqliteTable(
     createdAt: createdAt(),
   },
   (t) => [index('exports_run_idx').on(t.runId)],
+);
+
+/**
+ * The one worker that may claim jobs (P1C.9b): crash recovery assumes a single worker, and the
+ * CLI can run one in its own process. One row at most (`id` 1). The holder renews `heartbeat_at`;
+ * a row whose heartbeat is stale, or whose process is gone on this host, may be taken over.
+ */
+export const workerLock = sqliteTable(
+  'worker_lock',
+  {
+    id: integer('id').primaryKey(),
+    /** `<host>:<pid>:<instance>`: one per worker started, even two in one process. */
+    holder: text('holder').notNull(),
+    host: text('host').notNull(),
+    pid: integer('pid').notNull(),
+    /** `cli` or `worker` (the `pnpm dev` / `start` process). */
+    kind: text('kind', { enum: WORKER_KINDS }).notNull(),
+    /** Where its LLM answers come from: a run started on a dry-run worker must not go live. */
+    llmMode: text('llm_mode', { enum: LLM_MODES }).notNull(),
+    acquiredAt: timestamp('acquired_at').notNull(),
+    heartbeatAt: timestamp('heartbeat_at').notNull(),
+  },
+  (t) => [check('worker_lock_single_ck', sql`${t.id} = 1`)],
 );

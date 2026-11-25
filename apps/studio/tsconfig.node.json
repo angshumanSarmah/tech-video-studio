@@ -9,6 +9,7 @@
     "src/core",
     "src/server",
     "src/worker",
+    "src/cli",
     "src/acceptance",
     "scripts",
     "vite.config.ts",

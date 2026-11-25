@@ -28,6 +28,8 @@ export interface RunSnapshot {
   /** At a gate step: why it cannot be auto-approved (empty: nothing blocks). */
   readonly blocking: readonly string[];
   readonly autoApprove: Readonly<Record<GateId, boolean>>;
+  /** At a gate step: the run asked for a review of this gate once (`resume --only`). */
+  readonly held: boolean;
   /**
    * A part of a multi-part video: its number, and whether the part before it is ready for this
    * part's script (done, or its scenes gate approved: the recap reads approved narration).
@@ -107,7 +109,9 @@ function decideGate(s: RunSnapshot, gate: GateId): Action {
       return { kind: 'finish', status: 'cancelled' };
     case 'pending':
       if (!s.gate.current) return { kind: 'open_gate', gate };
-      if (s.autoApprove[gate] && s.blocking.length === 0) return { kind: 'approve_gate', gate };
+      if (s.autoApprove[gate] && !s.held && s.blocking.length === 0) {
+        return { kind: 'approve_gate', gate };
+      }
       return s.status === 'awaiting_review'
         ? idle(`gate ${gate} awaits review`)
         : { kind: 'await_review', gate };

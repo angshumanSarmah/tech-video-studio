@@ -167,9 +167,14 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **P1D — Gate previews over HTTP.** `GET …/gates/:gate` lists stills and the draft as
       data-dir paths; nothing serves those files yet. The gate views (P1D.3–P1D.5) need a file
       route (or signed paths) and the beat-level actions they list.
-- [ ] **P1C.9b — Sources from the CLI.** The dev CLI does not exist yet. Its `run` should add
-      sources through `#core/services/sources.ts` like the API: `--source <url|file>` (a file by
-      its extension, `UPLOAD_EXTENSIONS`) and `--paste "<title>=<file or ->"` for pasted text.
+- [ ] **P1C.9b — Contact sheet at G4.** The plan's G4 summary shows a contact sheet; the CLI
+      prints the stills folder instead. Make `render_stills` write `contact-sheet.png` (the
+      `draft:fixture` script's `contactSheet` and PNG helpers) and list it in the gate payload.
+- [ ] **P1C.9b — Render runs at gate 4.** `studio render` stops at G4 like any run, and the CLI
+      prints the regenerate commands, which a scratch run (no plan or script steps) cannot do.
+      Mark render runs and print only approve / reject there.
+- [ ] **P1C.9b — `--only` for any step.** `RERUN_STEPS` are the agent and render steps; `tts`
+      and `stills` rerun as part of them. Add more if a real run needs them.
 - [ ] **P1C.9 step 9 — Gate 1 thresholds.** `THIN_RESEARCH` (6 facts, 1 number, 3,000
       characters) and `MANY_SOURCES` (5) are first guesses. Tune them once real runs show what
       thin research looks like; a topic that is small on purpose can always be approved by hand.

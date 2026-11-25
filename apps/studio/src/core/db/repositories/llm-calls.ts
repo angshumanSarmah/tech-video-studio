@@ -1,5 +1,5 @@
 import type { ModelRole, NormalizerFix } from '@explainer-studio/shared';
-import { asc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, lte, sql } from 'drizzle-orm';
 import type { Executor } from '../client.ts';
 import { llmCalls } from '../schema.ts';
 
@@ -51,12 +51,17 @@ export function listRunLlmCalls(db: Executor, runId: number): LlmCallRow[] {
     .all();
 }
 
-/** What the run's LLM calls cost so far, in USD. */
-export function runCostUsd(db: Executor, runId: number): number {
+/** What the run's LLM calls cost so far (or, with `until`, those made by then), in USD. */
+export function runCostUsd(db: Executor, runId: number, until?: Date): number {
   const row = db
     .select({ total: sql<number>`coalesce(sum(${llmCalls.costUsd}), 0)` })
     .from(llmCalls)
-    .where(eq(llmCalls.runId, runId))
+    .where(
+      and(
+        eq(llmCalls.runId, runId),
+        until === undefined ? undefined : lte(llmCalls.createdAt, until),
+      ),
+    )
     .get();
   return row?.total ?? 0;
 }

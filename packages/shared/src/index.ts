@@ -24,6 +24,7 @@ export * from './domain/pipeline.ts';
 export * from './domain/resolved-settings.ts';
 export * from './domain/run.ts';
 export * from './domain/sources.ts';
+export * from './domain/worker.ts';
 export * from './director/index.ts';
 export * from './generator/index.ts';
 export * from './research/index.ts';

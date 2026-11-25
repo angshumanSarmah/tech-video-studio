@@ -8,7 +8,7 @@ import type {
 } from '@explainer-studio/shared';
 import type { Db, Executor } from '../db/client.ts';
 import { decideGate, getGate } from '../db/repositories/gates.ts';
-import type { Run } from '../db/repositories/runs.ts';
+import { setHoldGate, type Run } from '../db/repositories/runs.ts';
 import { getLatestSpecVersion } from '../db/repositories/spec-versions.ts';
 import { ConflictError } from '../errors.ts';
 import { advanceRun, gateEvent } from '../orchestrator/advance.ts';
@@ -65,10 +65,12 @@ function apply(
   switch (decision.action) {
     case 'approve':
       requireCurrentSubject(tx, dataDir, run, gate, decision.subjectId);
+      releaseHold(tx, run, gate);
       record(tx, run, gate, 'approved', decision.notes);
       advanceRun(tx, dataDir, run.id);
       return NOTHING_SAVED;
     case 'reject':
+      releaseHold(tx, run, gate);
       record(tx, run, gate, 'rejected', decision.notes);
       advanceRun(tx, dataDir, run.id);
       return NOTHING_SAVED;
@@ -79,6 +81,11 @@ function apply(
       regenerateAtGate(tx, dataDir, run, gate, decision);
       return NOTHING_SAVED;
   }
+}
+
+/** A gate held for review (`resume --only`) is released by its approval or rejection. */
+function releaseHold(tx: Executor, run: Run, gate: GateId): void {
+  if (run.holdGate === gate) setHoldGate(tx, run.id, null);
 }
 
 /** The run, stopped at this gate with the gate pending; a 409 otherwise. */

@@ -1,0 +1,207 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import type { GateId } from '@explainer-studio/shared';
+import { resolveDataPath, runDir, writeDataJson } from '#core/data-files.ts';
+import { listRunExports } from '#core/db/repositories/exports.ts';
+import { runCostByRole } from '#core/db/repositories/llm-calls.ts';
+import { getRunSummary, listPartRuns } from '#core/db/repositories/runs.ts';
+import { ConflictError, InvalidEditError } from '#core/errors.ts';
+import { RegenerateNotAllowedError } from '#core/orchestrator/decide.ts';
+import { videoCostUsd } from '#core/services/budget.ts';
+import { decideAtGate, type GateDecision } from '#core/services/gate-decisions.ts';
+import { readGate, type GateView } from '#core/services/gates.ts';
+import type { GateAction } from './args.ts';
+import { CliError, EXIT, type CliContext } from './context.ts';
+import { followRun, runLabel, type FollowCursors, type FollowEnd } from './follow.ts';
+import { GATE_PROMPT, parseGateReply } from './gate-reply.ts';
+import { gateCommands, gateSummary } from './summaries.ts';
+
+/**
+ * Drives a run from the terminal (P1C.9b): follows it, and at each gate prints the summary.
+ * With a terminal it asks what to do and goes on; without one it prints the exact commands and
+ * stops (the run waits). Returns the exit code.
+ */
+export async function driveRun(ctx: CliContext, rootId: number, after: number): Promise<number> {
+  const cursors: FollowCursors = new Map();
+  for (;;) {
+    const end = await followRun(ctx, rootId, cursors, after);
+    if (end.kind !== 'gate') return finish(ctx, end);
+    const view = readGate(ctx.db, ctx.config.dataDir, end.runId, end.gate);
+    for (const line of gateSummary(view, ctx.config.dataDir)) ctx.io.out(line);
+    const editFile = writeEditFile(ctx, view);
+    if (!ctx.io.isTTY || !(await askAtGate(ctx, view, editFile))) {
+      for (const line of gateCommands(end.runId, end.gate, editFile)) ctx.io.out(line);
+      return EXIT.ok;
+    }
+  }
+}
+
+/** The prompt until a decision is made (true) or the user quits (false). */
+async function askAtGate(ctx: CliContext, view: GateView, editFile: string): Promise<boolean> {
+  for (;;) {
+    const answer = await ctx.io.ask(GATE_PROMPT);
+    if (answer === null) return false;
+    const reply = parseGateReply(answer, view.gate);
+    try {
+      switch (reply.kind) {
+        case 'quit':
+          return false;
+        case 'invalid':
+          ctx.io.err(reply.message);
+          continue;
+        case 'edit':
+          await ctx.io.edit(editFile);
+          applyDecision(ctx, view.runId, view.gate, { action: 'edit', file: editFile });
+          return true;
+        case 'decide':
+          applyDecision(ctx, view.runId, view.gate, reply.decision);
+          return true;
+      }
+    } catch (error) {
+      if (!isDecisionError(error)) throw error;
+      ctx.io.err(decisionErrorText(error));
+    }
+  }
+}
+
+/** One decision at the gate the run waits at, through the same service as the API. */
+export function applyDecision(
+  ctx: CliContext,
+  runId: number,
+  gate: GateId,
+  action: GateAction,
+): void {
+  const view = readGate(ctx.db, ctx.config.dataDir, runId, gate);
+  const result = decideAtGate(
+    ctx.db,
+    ctx.config.dataDir,
+    runId,
+    gate,
+    decisionOf(ctx, view, action),
+  );
+  if (action.action === 'edit') {
+    ctx.io.out(
+      result.saved
+        ? `Saved your edit as ${result.saved.kind === 'step' ? 'step' : 'version'} ${result.saved.id}.`
+        : 'The edit is the same as what the gate reviews: nothing saved.',
+    );
+    for (const issue of result.issues)
+      ctx.io.out(`  · ${issue.code} at ${issue.path}: ${issue.message}`);
+  } else {
+    ctx.io.out(
+      `${action.action} at gate ${gate}: the run is ${result.run.status} at ${result.run.step}.`,
+    );
+  }
+}
+
+function decisionOf(ctx: CliContext, view: GateView, action: GateAction): GateDecision {
+  const subjectId = view.subject?.id;
+  switch (action.action) {
+    case 'approve':
+      if (subjectId === undefined)
+        throw new CliError(`Gate ${view.gate} has nothing to approve yet.`);
+      return { action: 'approve', subjectId, ...(action.notes ? { notes: action.notes } : {}) };
+    case 'reject':
+      return { action: 'reject', ...(action.notes ? { notes: action.notes } : {}) };
+    case 'edit':
+      if (subjectId === undefined) throw new CliError(`Gate ${view.gate} has nothing to edit yet.`);
+      return { action: 'edit', subjectId, content: readJson(ctx, action.file) };
+    case 'regenerate': {
+      const { target, beatId, fields, sourceId, feedback } = action;
+      return {
+        action: 'regenerate',
+        target,
+        ...(beatId !== undefined ? { beatId } : {}),
+        ...(fields ? { fields: [...fields] } : {}),
+        ...(sourceId !== undefined ? { sourceId } : {}),
+        ...(feedback !== undefined ? { feedback } : {}),
+      };
+    }
+  }
+}
+
+function readJson(ctx: CliContext, file: string): unknown {
+  const path = file.startsWith('/') ? file : join(ctx.io.cwd, file);
+  try {
+    return JSON.parse(readFileSync(path, 'utf8')) as unknown;
+  } catch (error) {
+    throw new CliError(`${path} is not readable JSON: ${(error as Error).message}`);
+  }
+}
+
+/** What the gate reviews, as JSON to edit: `runs/<id>/cli/<gate>-<subject>.json`. */
+function writeEditFile(ctx: CliContext, view: GateView): string {
+  const content = view.content;
+  const value =
+    content?.gate === 'research'
+      ? content.notes
+      : content?.gate === 'beat_sheet'
+        ? content.plan
+        : content?.spec;
+  const rel = join(runDir(view.runId), 'cli', `${view.gate}-${view.subject?.id ?? 'none'}.json`);
+  writeDataJson(ctx.config.dataDir, rel, value ?? null);
+  return resolveDataPath(ctx.config.dataDir, rel);
+}
+
+export function isDecisionError(error: unknown): error is Error {
+  return (
+    error instanceof ConflictError ||
+    error instanceof InvalidEditError ||
+    error instanceof RegenerateNotAllowedError ||
+    error instanceof CliError
+  );
+}
+
+export function decisionErrorText(error: Error): string {
+  if (!(error instanceof InvalidEditError)) return error.message;
+  return [error.message, ...error.issues.map((i) => `  · ${i.path}: ${i.message}`)].join('\n');
+}
+
+function finish(ctx: CliContext, end: Exclude<FollowEnd, { kind: 'gate' }>): number {
+  const run = getRunSummary(ctx.db, end.runId)!;
+  if (end.kind === 'interrupted') {
+    ctx.io.out(`Stopped following ${runLabel(run)} (${run.status} at ${run.pipelineStep}).`);
+    ctx.io.out(`  Follow it again: pnpm studio resume ${run.id}`);
+    return EXIT.interrupted;
+  }
+  if (end.kind === 'paused') {
+    ctx.io.out(`${runLabel(run)} is paused at its cost cap (${run.pipelineStep}).`);
+    ctx.io.out(`  Raise it: pnpm studio resume ${run.parentRunId ?? run.id} --cap <usd>`);
+    return EXIT.failed;
+  }
+  ctx.io.out(`${runLabel(run)}: ${end.status}.`);
+  for (const line of costTable(ctx, end.runId)) ctx.io.out(line);
+  if (end.status === 'failed') {
+    ctx.io.out(`  ${run.lastError ?? 'no error recorded'}`);
+    ctx.io.out(`  Resume: pnpm studio resume ${run.id}`);
+    return EXIT.failed;
+  }
+  for (const id of [end.runId, ...listPartRuns(ctx.db, end.runId).map((p) => p.id)]) {
+    for (const row of listRunExports(ctx.db, id)) {
+      ctx.io.out(`  Export: ${join(ctx.config.dataDir, row.mp4Path)}`);
+      ctx.io.out(`          ${join(ctx.config.dataDir, row.srtPath)}`);
+    }
+  }
+  return end.status === 'done' ? EXIT.ok : EXIT.failed;
+}
+
+/** The LLM cost per role over a run and its parts, and the total. */
+export function costTable(ctx: CliContext, rootId: number): string[] {
+  const ids = [rootId, ...listPartRuns(ctx.db, rootId).map((p) => p.id)];
+  const roles = new Map<string, { calls: number; costUsd: number }>();
+  for (const id of ids) {
+    for (const row of runCostByRole(ctx.db, id)) {
+      const sum = roles.get(row.role) ?? { calls: 0, costUsd: 0 };
+      roles.set(row.role, { calls: sum.calls + row.calls, costUsd: sum.costUsd + row.costUsd });
+    }
+  }
+  const lines = [...roles].map(
+    ([role, r]) =>
+      `  ${role.padEnd(13)} ${String(r.calls).padStart(4)} calls  $${r.costUsd.toFixed(4)}`,
+  );
+  return [
+    'LLM cost:',
+    ...lines,
+    `  ${'total'.padEnd(13)} ${' '.repeat(10)} $${videoCostUsd(ctx.db, rootId).toFixed(4)}`,
+  ];
+}

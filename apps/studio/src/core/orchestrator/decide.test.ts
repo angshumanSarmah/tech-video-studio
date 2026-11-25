@@ -14,6 +14,7 @@ const snap = (over: Partial<RunSnapshot> = {}): RunSnapshot => ({
   gate: null,
   blocking: [],
   autoApprove: AUTO_OFF,
+  held: false,
   part: null,
   parts: null,
   ...over,
@@ -110,6 +111,19 @@ describe('decide: gates', () => {
     });
     expect(decide(pending).kind).toBe('approve_gate');
   });
+
+  it.each(GATE_STEPS)(
+    '%s: waits for review when on but held for a review (resume --only)',
+    (step) => {
+      const held = snap({
+        step,
+        autoApprove: AUTO_ON,
+        held: true,
+        gate: { status: 'pending', current: true },
+      });
+      expect(decide(held).kind).toBe('await_review');
+    },
+  );
 
   it.each(GATE_STEPS)('%s: waits for review when on but something blocks', (step) => {
     const blocked = snap({

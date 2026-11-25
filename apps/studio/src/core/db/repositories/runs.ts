@@ -3,6 +3,7 @@ import {
   ResolvedRunSettingsSchema,
   RunSettingsSchema,
   StepRequestsSchema,
+  type GateId,
   type PipelineStepId,
   type StepRequests,
   type ResolvedRunSettings,
@@ -110,6 +111,25 @@ export function reopenFailedRun(db: Executor, id: number): Run | undefined {
     .update(runs)
     .set({ status: 'running' })
     .where(and(eq(runs.id, id), eq(runs.status, 'failed')))
+    .returning()
+    .get();
+  return row && toRun(row);
+}
+
+/** The gate that waits for a review once even with auto-approve on (`resume --only`), or none. */
+export function setHoldGate(db: Executor, id: number, gate: GateId | null): void {
+  db.update(runs).set({ holdGate: gate }).where(eq(runs.id, id)).run();
+}
+
+/**
+ * A run made active again for a rerun (`rerunRun`): failed or done back to running. Undefined
+ * when it was cancelled (that is final).
+ */
+export function restartRun(db: Executor, id: number): Run | undefined {
+  const row = db
+    .update(runs)
+    .set({ status: 'running' })
+    .where(and(eq(runs.id, id), notInArray(runs.status, ['cancelled'])))
     .returning()
     .get();
   return row && toRun(row);
