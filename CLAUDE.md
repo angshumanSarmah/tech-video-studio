@@ -1347,7 +1347,7 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   `propose_rule` job for its event (`requestRuleProposal`: a gate decision with a note, else
   `InvalidProposalError` 400; one rule or queued job per event, else 409). The job has no run
   (`run_id` null, `failsRun: false`): no video's cost or cap, a cancel or pause never touches
-  it. `jobs/propose-rule.ts`: the Analyst (`analyst.v1`, `ROLE_OUTPUT_SCHEMAS.analyst` =
+  it. `jobs/propose-rule.ts`: the Analyst (`analyst.v2`, `ROLE_OUTPUT_SCHEMAS.analyst` =
   `AnalystOutputSchema`: a `rule` (text, scope, why) or `noRule` (`one_off`, `duplicate`,
   `unsafe`, `unclear`); the closed scope list `ruleScopesSection()` in the catalogue slot)
   reads `analystUserMessage` (`agents/analyst/input.ts`; `context.ts` reads it from the run:

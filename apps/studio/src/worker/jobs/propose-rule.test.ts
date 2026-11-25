@@ -83,12 +83,12 @@ describe('propose_rule job (recorded analyst answers)', () => {
       expect(job.runId).toBeNull();
       outcomes.push(rule ? `${note.id}: ${rule.scope}` : `${note.id}: ${logs.join(' ')}`);
     }
-    // As recorded: the one-off date became a rule too (the Analyst's miss, see docs/TODO.md).
+    // As recorded (analyst@v2): four rules, and the one-off date stays one-off.
     expect(outcomes).toEqual([
       'headline-edit: scriptwriter',
       'busy-board: generator',
       'same-opening: director',
-      'wrong-date: scriptwriter',
+      expect.stringMatching(/^wrong-date: No rule \(one_off\): /),
       'contractions: curator',
     ]);
     const rules = listRules(t.db);

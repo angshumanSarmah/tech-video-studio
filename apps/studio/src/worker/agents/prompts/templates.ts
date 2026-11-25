@@ -28,7 +28,7 @@ export const PROMPT_VERSIONS: Readonly<Record<PromptName, number>> = {
   scriptwriter: 8,
   generator: 2,
   curator: 3,
-  analyst: 1,
+  analyst: 2,
 };
 
 /** Relative to the workspace root, like other repo paths in config (works in dev and build). */

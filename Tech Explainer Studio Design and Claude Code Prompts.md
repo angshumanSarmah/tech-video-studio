@@ -1022,6 +1022,8 @@ DO NOT
 - Name this video's topic, beats, numbers, sources or wording in the rule.
 - Propose a rule about colours, fonts, positions or timing: code decides those.
 - Propose more than one rule.
+- Propose a rule for something the app already checks (facts, numbers, dates and sources against
+  the notes, lengths): a wrong fact in this video is one_off.
 
 Common mistakes to avoid
 1. A rule that only fits this topic.
@@ -1031,6 +1033,7 @@ Common mistakes to avoid
 4. An existing rule restated in other words.
 5. One complaint turned into a ban (a weak example becomes "never use examples").
 6. Restating the note instead of the preference behind it.
+7. Turning a reported factual error into a rule ("verify every number"): code already checks it.
 ```
 
 The asset drafter's rules live in `docs/asset-style.md` (P1C.12).
