@@ -70,13 +70,19 @@ export const DIM_FADE = 0.7;
  * 1.86:1 on paper). It reaches components through the same `dimmed` level, scaled
  * (`FOCUS_DIM_LEVEL`).
  */
-export const FOCUS_DIM_FADE = 0.5;
+export const FOCUS_DIM_FADE = 0.45;
 
 /** The `dimmed` level a fully out-of-focus element gets: `dimOpacity` of it is `1 - FOCUS_DIM_FADE`. */
 export const FOCUS_DIM_LEVEL = FOCUS_DIM_FADE / DIM_FADE;
 
 /** Contrast dimmed (out of focus) neutral text keeps against the background, in every theme. */
 export const DIMMED_TEXT_MIN_CONTRAST = 3;
+
+/**
+ * Contrast dimmed muted text (card subtitles, data keys, small labels) keeps: `mutedText` darkens
+ * it toward the primary ink as its element dims, just enough to stay at this floor.
+ */
+export const DIMMED_MUTED_MIN_CONTRAST = 2.5;
 
 /** Opacity factor for a `dimmed` level (0..1). */
 export function dimOpacity(dimmed: number): number {

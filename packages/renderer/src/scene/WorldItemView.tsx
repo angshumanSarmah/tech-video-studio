@@ -3,6 +3,7 @@ import { DrawReveal } from '../draw/DrawReveal.tsx';
 import { boxOf, type PlacedItem } from '../layout/types.ts';
 import { componentFor } from '../primitives/components.ts';
 import { elementState } from '../primitives/element-state.ts';
+import { dimmedTheme } from '../primitives/muted-text.ts';
 import type { Size } from '../primitives/types.ts';
 import { semanticTint, textCss, type Theme } from '../theme/index.ts';
 import type { WorldItem } from './beat-world.ts';
@@ -57,10 +58,12 @@ export function WorldItemView({ theme, item, frame, fps, containerPresence = 1, 
     elementState(item.events, frame, fps, item.focus),
     containerPresence,
   );
+  // Dimmed, muted text keeps its contrast floor (`dimmedTheme`).
+  const drawTheme = dimmedTheme(theme, state.dimmed);
   const path = placed?.path;
   if (placed?.children) {
     return drawn(
-      <Component theme={theme} props={item.props} box={box} state={state} path={path}>
+      <Component theme={drawTheme} props={item.props} box={box} state={state} path={path}>
         {item.children.map((child) => {
           const at = placed.children?.find((c) => c.key === child.key);
           if (!at) return null;
@@ -93,7 +96,7 @@ export function WorldItemView({ theme, item, frame, fps, containerPresence = 1, 
   }
   const room = childRoom(theme, box, item.children.length);
   return drawn(
-    <Component theme={theme} props={item.props} box={box} state={state} path={path}>
+    <Component theme={drawTheme} props={item.props} box={box} state={state} path={path}>
       {item.children.map((child) => (
         <Fit
           key={child.key}

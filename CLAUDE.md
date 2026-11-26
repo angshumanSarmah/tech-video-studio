@@ -2065,9 +2065,13 @@ message }` for the Curator): `too_many_elements` (mode `maxUnits`), `text_too_sm
 - **Event engine** (`src/events`, React-free). `presets.ts` holds every timing and strength
   constant: per-action duration and easing (none overshoots), group stagger, highlight lead,
   camera and transition times, and the dim strengths: `DIM_FADE` (0.7: an explicit `dim`, the
-  board behind an overlay) and the lighter `FOCUS_DIM_FADE` (0.5: out of focus, reaching
+  board behind an overlay) and the lighter `FOCUS_DIM_FADE` (0.45: out of focus, reaching
   components as `dimmed` = `FOCUS_DIM_LEVEL`, so neutral text keeps `DIMMED_TEXT_MIN_CONTRAST`,
-  3:1, in every theme; `theme/dim-contrast.test.ts`). Components use `dimOpacity(state.dimmed)`,
+  3:1, in every theme; `theme/dim-contrast.test.ts`). Muted text keeps
+  `DIMMED_MUTED_MIN_CONTRAST` (2.5:1): `WorldItemView` draws a dimmed element with
+  `dimmedTheme` (`primitives/muted-text.ts`), whose `ink.muted` moves toward the primary ink
+  just enough at that dim level (`mutedText`; drafting-paper out of focus: #696D74 to #4F5359;
+  unchanged where it already passes and when undimmed), so no primitive handles it itself. Components use `dimOpacity(state.dimmed)`,
   never a literal. `resolve.ts` turns anchored scene and pattern
   events into per-element events: a default stagger for groups (several targets, an instance,
   several parts; enter, exit, highlight, dim, pulse), `params.stagger: 'scan'` for a one-by-one

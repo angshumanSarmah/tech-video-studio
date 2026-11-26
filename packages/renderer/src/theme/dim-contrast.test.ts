@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { mutedText } from '../primitives/muted-text.ts';
 import {
   DIM_FADE,
+  DIMMED_MUTED_MIN_CONTRAST,
   DIMMED_TEXT_MIN_CONTRAST,
   dimOpacity,
   FOCUS_DIM_FADE,
@@ -27,6 +29,19 @@ describe('dimmed text contrast', () => {
         const dimmed = blendOver(colour, dimOpacity(FOCUS_DIM_LEVEL), bg);
         expect(contrastRatio(dimmed, bg)).toBeGreaterThanOrEqual(DIMMED_TEXT_MIN_CONTRAST);
       }
+    });
+  }
+
+  for (const theme of listThemes()) {
+    it(`${theme.id}: muted text keeps ${DIMMED_MUTED_MIN_CONTRAST}:1 out of focus, shifting toward ink only as needed`, () => {
+      const bg = theme.colours.background;
+      const opacity = dimOpacity(FOCUS_DIM_LEVEL);
+      const muted = mutedText(theme, FOCUS_DIM_LEVEL);
+      expect(contrastRatio(blendOver(muted, opacity, bg), bg)).toBeGreaterThanOrEqual(
+        DIMMED_MUTED_MIN_CONTRAST,
+      );
+      // Undimmed, muted text is the theme's own.
+      expect(mutedText(theme, 0)).toBe(theme.colours.ink.muted);
     });
   }
 });
