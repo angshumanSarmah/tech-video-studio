@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_USAGE_VIDEOS } from '@explainer-studio/shared';
 import { parseCommand, textSource, UsageError } from './args.ts';
 import { runSettings } from './commands/run.ts';
-import { parseGateReply } from './gate-reply.ts';
+import { FIELDS_PROMPT, parseFieldsAnswer, parseGateReply } from './gate-reply.ts';
+import type { CliContext } from './context.ts';
+import { regenerateRunsLine, withFields } from './session.ts';
+import { fakeIo } from './testing.ts';
 
 describe('parseCommand', () => {
   it('reads a run with every flag', () => {
@@ -86,6 +89,21 @@ describe('parseCommand', () => {
     fails(['resume', '3', '--from', 'script', '--only', 'generate'], /not both/);
     fails(['frob'], /Unknown command "frob"/);
     expect(() => textSource('no title')).toThrow(/"<title>=<file>"/);
+  });
+
+  it('a beat regenerate without --fields changes what the feedback is about', () => {
+    const fieldsOf = (feedback: string, ...more: string[]) => {
+      const args = ['gate', '4', 'regenerate', '--beat', 'b3', '--feedback', feedback, ...more];
+      const command = parseCommand(args);
+      return command.kind === 'gate' && command.decision.action === 'regenerate'
+        ? command.decision.fields
+        : undefined;
+    };
+    expect(fieldsOf('give the stat card the focus')).toEqual(['board']);
+    expect(fieldsOf("don't say it locks")).toEqual(['narration']);
+    expect(fieldsOf('give the stat card the focus', '--fields', 'narration')).toEqual([
+      'narration',
+    ]);
   });
 
   it('reads gate decisions, resume, status, cost and render', () => {
@@ -241,7 +259,78 @@ describe('parseGateReply', () => {
     });
     expect(parseGateReply(' e ', 'scenes')).toEqual({ kind: 'edit' });
     expect(parseGateReply('q', 'scenes')).toEqual({ kind: 'quit' });
+    // Without fields the session asks which part to change (`withFields`).
+    expect(parseGateReply('r b3 "pin the tag to the cache card"', 'scenes')).toEqual({
+      kind: 'decide',
+      decision: {
+        action: 'regenerate',
+        target: 'beat',
+        beatId: 'b3',
+        feedback: 'pin the tag to the cache card',
+      },
+    });
     expect(parseGateReply('r b3', 'scenes').kind).toBe('invalid');
     expect(parseGateReply('r b3:plan fix it', 'scenes').kind).toBe('invalid');
+  });
+});
+
+describe('parseFieldsAnswer', () => {
+  it('takes n, b, o or the words, and Enter for the suggestion', () => {
+    expect(FIELDS_PROMPT('board')).toBe('Change [n]arration, [b]oard or b[o]th? [board] ');
+    expect(parseFieldsAnswer('', 'board')).toEqual(['board']);
+    expect(parseFieldsAnswer(' N ', 'board')).toEqual(['narration']);
+    expect(parseFieldsAnswer('o', 'narration')).toEqual(['narration', 'board']);
+    expect(parseFieldsAnswer('both', 'board')).toEqual(['narration', 'board']);
+    expect(parseFieldsAnswer('maybe', 'board')).toBeUndefined();
+  });
+});
+
+describe('regenerateRunsLine', () => {
+  it('names the agents a beat regenerate calls, in order', () => {
+    expect(regenerateRunsLine('b2', ['board'])).toBe(
+      'Regenerating b2 (board): runs the Generator, then a Curator review of the beat.',
+    );
+    expect(regenerateRunsLine('b1', ['narration', 'board'])).toBe(
+      'Regenerating b1 (narration, board): runs the Scriptwriter, then the Generator, then a ' +
+        'Curator review of the beat.',
+    );
+  });
+});
+
+describe('withFields', () => {
+  const regenerate = (feedback: string, fields?: ('narration' | 'board')[]) => ({
+    action: 'regenerate' as const,
+    target: 'beat' as const,
+    beatId: 'b2',
+    feedback,
+    ...(fields ? { fields } : {}),
+  });
+  const ctxOf = (io: ReturnType<typeof fakeIo>) => ({ io }) as unknown as CliContext;
+
+  it('asks which part to change, suggesting what the note is about', async () => {
+    const io = fakeIo(['maybe', '']);
+    const action = await withFields(ctxOf(io), regenerate('give the stat card the focus'));
+    expect(action).toMatchObject({ fields: ['board'] });
+    expect(io.transcript.filter((l) => l.startsWith('Change '))).toEqual([
+      'Change [n]arration, [b]oard or b[o]th? [board] ',
+      'Change [n]arration, [b]oard or b[o]th? [board] ',
+    ]);
+    expect(io.errors).toHaveLength(1);
+  });
+
+  it('takes an answer over the suggestion, and never asks when fields are given', async () => {
+    const io = fakeIo(['o']);
+    expect(await withFields(ctxOf(io), regenerate('give the card focus'))).toMatchObject({
+      fields: ['narration', 'board'],
+    });
+    const given = fakeIo([]);
+    expect(await withFields(ctxOf(given), regenerate('x', ['narration']))).toMatchObject({
+      fields: ['narration'],
+    });
+    expect(given.transcript).toEqual([]);
+  });
+
+  it('null when the input ends', async () => {
+    expect(await withFields(ctxOf(fakeIo([])), regenerate('focus'))).toBeNull();
   });
 });

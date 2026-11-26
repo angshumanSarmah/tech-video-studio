@@ -6,6 +6,7 @@ import {
   measuredBeatLengths,
   planOfSpec,
   remapAnchors,
+  requestOutcomes,
   ScriptwriterOutputSchema,
   validateRenderableVideoSpec,
   wordBudgets,
@@ -103,6 +104,8 @@ export interface RepairArgs {
   readonly runId: number;
   readonly specVersionId: number;
   readonly requests: readonly RepairRequest[];
+  /** The gate decision this repair carries out (a person's beat regenerate), recorded in its input. */
+  readonly decisionEventId?: number;
   readonly signal: AbortSignal;
   readonly log: (level: LogLevel, message: string) => void;
 }
@@ -150,6 +153,7 @@ export async function repairBeats(deps: RepairDeps, args: RepairArgs): Promise<R
         version: ctx.version,
         requests: args.requests,
         styleRules: ctx.styleRules,
+        ...(args.decisionEventId !== undefined ? { decisionEventId: args.decisionEventId } : {}),
       }),
     );
     const output = await repair(deps, args, ctx, parent.id);
@@ -242,6 +246,7 @@ async function repair(
     created: saved.created,
     beats: outcomesOf(before, script, outcomes),
     usage: repairUsage(deps.db, ctx.run.id, parentId),
+    requests: requestOutcomes(args.requests, ctx.spec, { script, scenes }),
   };
 }
 

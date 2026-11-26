@@ -1277,6 +1277,11 @@ user message's FEEDBACK section, and code enforces it. A changed narration is re
 board's anchors are remapped, or the board is redrawn when a remap fails, along with later beats of
 that board; then the video is re-timed and reviewed again (new issues only on changed beats).
 Director-owned issues are never auto-repaired.
+The Scriptwriter's revise message (built in code) says: "When FEEDBACK is only about what is drawn
+(cards, icons, focus, layout, colours), return the beat's narration exactly as it is now. Narration
+says what happens, never what the screen shows: do not describe colours, shapes or on-screen
+motion." A beat regenerate runs only the agents for the fields the note is about, and every gate
+regenerate reports its outcome (changed, or unchanged with the reason) at the top of the gate.
 Then an auto-repair loop: send blocking issues to the responsible agent (Scriptwriter or Generator)
 for that beat only; max 2 rounds, stopping early when a round changes nothing; per beat the version
 with fewer blocking issues is kept; remaining issues go to the gate for you to decide.

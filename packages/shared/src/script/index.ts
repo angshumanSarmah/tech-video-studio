@@ -8,3 +8,4 @@ export * from './note-values.ts';
 export * from './number-mentions.ts';
 export * from './output.ts';
 export * from './terms.ts';
+export * from './visual-words.ts';

@@ -34,10 +34,22 @@ export const SCRIPT_PROBLEM_CODES = [
   'source_missing',
   'source_changed',
   'source_label_bare',
+  'narration_describes_visuals',
   // Originality (P1C.11): a reference video's names, examples or title reused.
   ...ORIGINALITY_CODES,
 ] as const;
 export type ScriptProblemCode = (typeof SCRIPT_PROBLEM_CODES)[number];
+
+/**
+ * Codes that never fail the Scriptwriter's answer: listed as advisory in a repair turn (`soft`),
+ * never the reason for one. The Curator rates them advisory too.
+ */
+export const SCRIPT_ADVISORY_CODES: readonly ScriptProblemCode[] = ['narration_describes_visuals'];
+
+const ADVISORY: ReadonlySet<string> = new Set(SCRIPT_ADVISORY_CODES);
+
+/** Whether a script issue's code is advisory (`SCRIPT_ADVISORY_CODES`). */
+export const isScriptAdvisory = (code: string): boolean => ADVISORY.has(code);
 
 export interface ScriptProblem {
   /** JSON path into the output, e.g. `$.script[2].narration`. */

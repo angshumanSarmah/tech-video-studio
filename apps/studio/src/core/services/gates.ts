@@ -9,6 +9,7 @@ import {
   type GateStatus,
   type GateSubjectDto,
   type ModelRole,
+  type RegenerateOutcome,
   type VideoSpec,
 } from '@explainer-studio/shared';
 import {
@@ -33,6 +34,7 @@ import {
 import { DraftManifestSchema, manifestPathFor, StillsManifestSchema } from '../render-manifests.ts';
 import { latestCuration } from './curation.ts';
 import { beatSheetReview, researchReview } from './gate-checks.ts';
+import { latestRegenerateOutcome } from './regenerate-outcome.ts';
 import { staleRecapBadge } from './parts.ts';
 
 /**
@@ -56,6 +58,7 @@ export interface GateView {
   readonly badges: GateBadge[];
   readonly blocking: string[];
   readonly warnings: GateIssue[];
+  readonly regenerated: RegenerateOutcome | null;
   readonly stills: { beatId: string; path: string }[];
   readonly draftPath: string | null;
   readonly cost: RunCost;
@@ -90,6 +93,7 @@ export function readGate(db: Executor, dataDir: string, runId: number, gate: Gat
     badges: review?.badges ?? [],
     blocking: subject ? gateBlocking(db, dataDir, run, gate, subject) : [],
     warnings: review?.warnings ?? [],
+    regenerated: latestRegenerateOutcome(db, dataDir, run.id, gate),
     stills: subject?.specVersionId ? stillsOf(dataDir, run.id, subject.specVersionId) : [],
     draftPath: subject?.specVersionId ? draftOf(dataDir, run.id, subject.specVersionId) : null,
     cost: runCost(db, run.id),

@@ -35,6 +35,7 @@ import { mainTerm, mentionsTerm } from './terms.ts';
 import { EXAMPLE_MARKERS, hasExampleMarker } from './example-markers.ts';
 import { incidentNames } from './incident-names.ts';
 import { containsPhrase } from '../text/phrase.ts';
+import { visualWords } from './visual-words.ts';
 import { exampleNumberIds, incidentSourceIds } from '../director/systems.ts';
 
 /**
@@ -117,7 +118,24 @@ export function scriptProblems(output: ScriptToCheck, ctx: ScriptCheckContext): 
     ...exampleTiedProblems(output, ctx),
     ...sourceProblems(output, ctx.plan, ctx.sourceNames),
     ...originalityProblems(output, ctx),
+    ...visualWordProblems(output),
   ];
+}
+
+/** Advisory: narration that describes the picture (colours, shapes, on-screen actions). */
+function visualWordProblems(output: ScriptToCheck): ScriptProblem[] {
+  return output.script.flatMap((beat, i) => {
+    const words = visualWords(beat.narration);
+    if (words.length === 0) return [];
+    return [
+      problem(
+        ['script', i, 'narration'],
+        'narration_describes_visuals',
+        `Beat "${beat.beatId}"'s narration describes the picture (${words.map((w) => `"${w}"`).join(', ')}): ` +
+          'say what happens, not what the screen shows; the board draws it.',
+      ),
+    ];
+  });
 }
 
 /** A reference's names in what the script says or shows (P1C.11). */

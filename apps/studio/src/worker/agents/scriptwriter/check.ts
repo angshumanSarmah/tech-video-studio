@@ -9,6 +9,7 @@ import {
 } from '@explainer-studio/renderer/catalog';
 import { getTheme } from '@explainer-studio/renderer/theme';
 import {
+  isScriptAdvisory,
   scriptProblems,
   ScriptLayerSchema,
   ScriptwriterOutputSchema,
@@ -72,8 +73,10 @@ function lenientScript(value: unknown): ScriptToCheck | undefined {
 
 const inScript = (issue: { path: string }) => issue.path.startsWith('$.script');
 
+/** Advisory script codes (`SCRIPT_ADVISORY_CODES`) are soft: never the reason for a repair. */
 function toOutputIssue(issue: { path: string; code: string; message: string }): OutputIssue {
-  return { path: issue.path, code: issue.code, message: issue.message };
+  const soft = isScriptAdvisory(issue.code) ? { soft: true } : {};
+  return { path: issue.path, code: issue.code, message: issue.message, ...soft };
 }
 
 /**

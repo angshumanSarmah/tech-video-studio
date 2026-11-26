@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { DirectorPlanSchema, type DirectorPlan } from '../director/plan.ts';
 import { ResearchNotesSchema, type ResearchNotes } from '../research/notes.ts';
 import { scriptProblems, sentences, wordBudgets } from './checks.ts';
-import type { ScriptCheckContext } from './context.ts';
+import { isScriptAdvisory, type ScriptCheckContext } from './context.ts';
 import { EXAMPLE_MARKERS } from './example-markers.ts';
 import { headlineWords } from './screen-checks.ts';
 import { ScriptwriterOutputSchema, type ScriptwriterOutput } from './output.ts';
@@ -164,6 +164,16 @@ describe('scriptProblems', () => {
       'narration_under_budget',
     ]);
     expect(problems[0]!.message).toContain('32 words; its budget is 23-31');
+  });
+
+  it('flags narration that describes the picture (advisory)', () => {
+    const out = output();
+    out.script[1]!.narration = out.script[1]!.narration.replace(/\.$/, ', shown as a red bar.');
+    expect(codes(out)).toEqual(['narration_describes_visuals $.script[1].narration']);
+    const [problem] = scriptProblems(out, ctx());
+    expect(problem!.message).toContain('"red", "bar", "shown"');
+    expect(isScriptAdvisory(problem!.code)).toBe(true);
+    expect(isScriptAdvisory('digits_in_narration')).toBe(false);
   });
 
   it('flags a sentence over 20 words', () => {

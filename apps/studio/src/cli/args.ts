@@ -12,6 +12,7 @@ import {
   type MemoryRuleStatus,
   EXPLANATION_LEVELS,
   FIX_FIELDS,
+  fieldsForFeedback,
   MAX_USAGE_VIDEOS,
   REGENERATE_TARGETS,
   VIDEO_FORMATS,
@@ -165,8 +166,9 @@ export const USAGE = `Usage: pnpm studio <command> [options]
   gate <run> reject [--notes <text>] [--propose-rule]
   gate <run> edit <file.json> [--notes <text>] [--propose-rule]
   gate <run> regenerate (--beat <id> [--fields a,b] | --target <role> [--source-id <n>]) [--feedback <text>] [--propose-rule]
-        Decide at the gate the run waits at, then follow it. --propose-rule: the Analyst
-        proposes a style rule from the notes (or feedback); you accept it or not.
+        Decide at the gate the run waits at, then follow it. --fields defaults to what the
+        feedback is about (board, narration, or both). --propose-rule: the Analyst proposes a
+        style rule from the notes (or feedback); you accept it or not.
   resume <run> [--from <step> | --only <step>] [--cap <usd>] [--dry-run <dir>]
         Follow a run again: a failed run goes on from its failed step, a paused one after --cap.
         --from reruns a step and everything after it; --only reruns one step and stops at the
@@ -347,9 +349,11 @@ function regenerate(values: Record<string, unknown>): GateAction {
   const feedback = optional('feedback', text(values['feedback']));
   if (beatId !== undefined) {
     if (values['target'] !== undefined) throw new UsageError('Give --beat or --target, not both.');
-    const fields = (text(values['fields']) ?? 'narration,board')
-      .split(',')
-      .map((f) => oneOf('--fields', f.trim(), FIX_FIELDS, true));
+    const given = text(values['fields']);
+    // Without --fields, the note decides: a note about the board calls only the Generator.
+    const fields = given
+      ? given.split(',').map((f) => oneOf('--fields', f.trim(), FIX_FIELDS, true))
+      : fieldsForFeedback(feedback.feedback ?? '');
     return { action: 'regenerate', target: 'beat', beatId, fields, ...feedback };
   }
   const target = oneOf('--target', values['target'], REGENERATE_TARGETS, true);

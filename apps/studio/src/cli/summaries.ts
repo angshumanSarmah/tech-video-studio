@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import type { GateId, VideoSpec } from '@explainer-studio/shared';
+import { outcomeLine, type GateId, type VideoSpec } from '@explainer-studio/shared';
 import type { GateView } from '#core/services/gates.ts';
 
 /**
@@ -30,6 +30,7 @@ export const gateNumber = (gate: GateId): number => GATE_NUMBERS[gate];
 export function gateSummary(view: GateView, dataDir: string): string[] {
   const lines = [
     `── Gate ${gateNumber(view.gate)}: ${GATE_TITLES[view.gate]} · run ${view.runId} ──`,
+    ...regeneratedLines(view),
   ];
   // Advisory notes first (gate 1: disagreements that do not block, many sources; gate 2: the
   // previous video's hook, topics close to earlier ones).
@@ -41,6 +42,15 @@ export function gateSummary(view: GateView, dataDir: string): string[] {
   }
   lines.push(costLine(view));
   return lines;
+}
+
+/**
+ * What the last beat regenerate did, first and never clipped: an unchanged request must not
+ * pass for a fix, and its reason is what to act on.
+ */
+function regeneratedLines(view: GateView): string[] {
+  const requests = view.regenerated?.requests ?? [];
+  return requests.map((r) => `${r.outcome === 'changed' ? '↻' : '✗'} ${outcomeLine(r)}`);
 }
 
 function contentLines(view: GateView, dataDir: string): string[] {

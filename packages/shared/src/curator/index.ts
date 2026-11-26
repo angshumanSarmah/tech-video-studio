@@ -8,4 +8,6 @@ export * from './review-checks.ts';
 export * from './report.ts';
 export * from './claims-checks.ts';
 export * from './repair.ts';
+export * from './repair-outcome.ts';
+export * from './feedback-fields.ts';
 export * from './usage.ts';

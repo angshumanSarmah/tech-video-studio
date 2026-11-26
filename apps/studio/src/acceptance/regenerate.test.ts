@@ -1,7 +1,8 @@
 import { appendFileSync, readFileSync } from 'node:fs';
-import type { RenderableVideoSpec } from '@explainer-studio/shared';
+import { outcomeLine, type GateId, type RenderableVideoSpec } from '@explainer-studio/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { resolveDataPath } from '#core/data-files.ts';
+import { gateEvents } from '#core/db/repositories/events.ts';
 import { getGate } from '#core/db/repositories/gates.ts';
 import { listRunJobs } from '#core/db/repositories/jobs.ts';
 import { listRunLlmCalls } from '#core/db/repositories/llm-calls.ts';
@@ -10,6 +11,7 @@ import { listTopicSources } from '#core/db/repositories/sources.ts';
 import { getLatestSpecVersion } from '#core/db/repositories/spec-versions.ts';
 import { latestCuration } from '#core/services/curation.ts';
 import { latestDirection } from '#core/services/direction.ts';
+import { readGate } from '#core/services/gates.ts';
 import { latestResearch } from '#core/services/research-notes.ts';
 import { startRun } from '#core/services/runs.ts';
 import { fixtureRunSettings } from '#worker/agents/fixture-topics.ts';
@@ -303,7 +305,8 @@ describe('regenerate at the draft gate', () => {
     const reviewed = getLatestSpecVersion(h.t.db, runId)!;
     const before = h.spec(reviewed.id);
     const mark = h.lastEventId(runId);
-    await decided(
+    const scriptCalls = prompts(runId, 'scriptwriter').length;
+    const res = await decided(
       await h.post(runId, 'draft', {
         action: 'regenerate',
         target: 'beat',
@@ -312,6 +315,14 @@ describe('regenerate at the draft gate', () => {
         feedback: FEEDBACK,
       }),
     );
+    // The repair carries the decision it was asked by, and only the Generator's request.
+    expect(lastJob(runId)).toMatchObject({
+      type: 'repair',
+      payload: {
+        decisionEventId: res.eventId,
+        requests: [{ beatId: BEAT, owner: 'generator', fields: ['board'] }],
+      },
+    });
     expect(getGate(h.t.db, runId, 'scenes')).toMatchObject({
       status: 'approved',
       carriedFrom: 'draft',
@@ -344,10 +355,60 @@ describe('regenerate at the draft gate', () => {
     const scenes = await h.gate(runId, 'scenes');
     expect(scenes).toMatchObject({ status: 'approved', carriedFrom: 'draft' });
     expect(scenes.subject).toMatchObject({ id: getLatestSpecVersion(h.t.db, runId)!.id });
-    expect(await h.gate(runId, 'draft')).toMatchObject({ status: 'pending', waiting: true });
+    const draft = await h.gate(runId, 'draft');
+    expect(draft).toMatchObject({ status: 'pending', waiting: true });
     expect(hasFeedback(prompts(runId, 'generator').at(-1)!)).toBe(true);
+    // A board-only fix never calls the Scriptwriter.
+    expect(prompts(runId, 'scriptwriter')).toHaveLength(scriptCalls);
+    const changed = {
+      decisionEventId: res.eventId,
+      requests: [{ beatId: BEAT, owner: 'generator', fields: ['board'], outcome: 'changed' }],
+    };
+    expect(draft.regenerated).toEqual(changed);
+    expect(reopened(runId, 'draft')?.payload.regenerated).toEqual(changed);
+  });
+
+  it('a regenerate that changes nothing says so: the gate event and the payload', async () => {
+    const runId = await h.runUntilWaiting(
+      { research: true, beat_sheet: true, scenes: true },
+      { curator: QUIET },
+    );
+    const reviewed = getLatestSpecVersion(h.t.db, runId)!;
+    const res = await decided(
+      await h.post(runId, 'draft', {
+        action: 'regenerate',
+        target: 'beat',
+        beatId: BEAT,
+        fields: ['board'],
+        feedback: FEEDBACK,
+      }),
+    );
+    // Every attempt invalid: the Generator cannot make a valid board, so nothing is saved.
+    const invalid = answer({ elements: 'not a list' });
+    await h.drain({
+      generator: { [BEAT]: [invalid, invalid, invalid] },
+      curator: reviewOf(h.spec(reviewed.id), [], []),
+    });
+    expectWaitingAt(runId, 'gate_draft');
+    expect(getLatestSpecVersion(h.t.db, runId)!.id).toBe(reviewed.id);
+
+    const draft = await h.gate(runId, 'draft');
+    const request = draft.regenerated?.requests[0];
+    expect(draft.regenerated?.decisionEventId).toBe(res.eventId);
+    expect(request).toMatchObject({ beatId: BEAT, owner: 'generator', outcome: 'unchanged' });
+    expect(request?.reason).toMatch(/^the Generator could not make a valid change: /);
+    expect(reopened(runId, 'draft')?.payload.regenerated).toEqual(draft.regenerated);
+    expect(outcomeLine(request!)).toMatch(
+      new RegExp(`^${BEAT} board: unchanged: the Generator could not`),
+    );
+    expect(readGate(h.t.db, h.t.dataDir, runId, 'draft').regenerated).toEqual(draft.regenerated);
   });
 });
+
+/** The newest `gate` event for the gate: the one that reopened it. */
+function reopened(runId: number, gate: GateId) {
+  return gateEvents(h.t.db, runId, gate)[0];
+}
 
 /** The Scriptwriter's revision of one beat: its script entry with a new headline. */
 function revisedHeadline(spec: RenderableVideoSpec, beatId: string, text: string) {

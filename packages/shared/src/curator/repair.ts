@@ -36,8 +36,27 @@ export const RepairInputSchema = z.strictObject({
   styleRules: z
     .strictObject({ scriptwriter: z.array(z.string()), generator: z.array(z.string()) })
     .optional(),
+  /**
+   * The gate decision this repair carries out (a person's "regenerate beat N"): its `gate` event
+   * id, so the gate can report what the regenerate did (`regenerateOutcomes`). Absent for the
+   * Curator's own repairs.
+   */
+  decisionEventId: z.number().int().positive().optional(),
 });
 export type RepairInput = z.infer<typeof RepairInputSchema>;
+
+/** What one repair request did: something changed, or nothing did (and why). */
+export const REQUEST_OUTCOMES = ['changed', 'unchanged'] as const;
+
+export const RepairRequestOutcomeSchema = z.strictObject({
+  beatId: SpecIdSchema,
+  owner: z.enum(['scriptwriter', 'generator']),
+  fields: z.array(FixFieldSchema).min(1),
+  outcome: z.enum(REQUEST_OUTCOMES),
+  /** Why nothing changed (only with `unchanged`). */
+  reason: z.string().min(1).optional(),
+});
+export type RepairRequestOutcome = z.infer<typeof RepairRequestOutcomeSchema>;
 
 /** What a beat's board became: as it was, its anchors moved, or drawn again. */
 export const BOARD_OUTCOMES = ['kept', 'remapped', 'redrawn'] as const;
@@ -58,5 +77,7 @@ export const RepairOutputSchema = z.strictObject({
     }),
   ),
   usage: LlmUsageSchema,
+  /** Each request's outcome, in request order. Absent in steps from before outcomes existed. */
+  requests: z.array(RepairRequestOutcomeSchema).optional(),
 });
 export type RepairOutput = z.infer<typeof RepairOutputSchema>;

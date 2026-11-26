@@ -59,6 +59,12 @@ type Compared = (typeof COMPARED)[number];
 const allowedKeys = (req: ReviseRequest): Set<Compared> =>
   new Set(req.fields.flatMap((f) => (FIELD_KEYS[f] ? [FIELD_KEYS[f]] : [])));
 
+/** Design doc rev 225 (P1C.8): a visual note never rewrites the narration. */
+export const REVISE_VISUAL_RULE =
+  'When FEEDBACK is only about what is drawn (cards, icons, focus, layout, colours), return the ' +
+  "beat's narration exactly as it is now. Narration says what happens, never what the screen " +
+  'shows: do not describe colours, shapes or on-screen motion.';
+
 export function reviseUserMessage(
   base: ScriptwriterMessage,
   script: readonly BeatScript[],
@@ -88,6 +94,7 @@ export function reviseUserMessage(
     `## CURRENT SCRIPT\n${JSON.stringify({ script }, null, 2)}`,
     `## REVISE beat ${req.beatId}\nReturn {"script": [<beat ${req.beatId} only, every field>]}. ` +
       `Change only ${allowed.join(', ')}; keep every other field exactly as it is now. ` +
+      `${REVISE_VISUAL_RULE} ` +
       budgetLine,
     `## FEEDBACK (fix only these)\n${feedback.join('\n')}`,
   ].join('\n\n');

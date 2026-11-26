@@ -4,6 +4,7 @@ import type {
   GateId,
   GateStatus,
   PipelineStepId,
+  RegenerateOutcome,
   RunStatus,
 } from '@explainer-studio/shared';
 import type { Db, Executor } from '../db/client.ts';
@@ -21,6 +22,7 @@ import {
   type Run,
 } from '../db/repositories/runs.ts';
 import { latestCuration } from '../services/curation.ts';
+import { reopeningOutcome } from '../services/regenerate-outcome.ts';
 import { queueJobIn } from '../services/jobs.ts';
 import { decide, type Action, type RunSnapshot } from './decide.ts';
 import { EFFECTS } from './effects.ts';
@@ -118,9 +120,12 @@ function apply(tx: Executor, dataDir: string, run: Run, action: Action): boolean
       openOrCarry(tx, dataDir, run, action.gate, action.kind === 'carry_gate');
       return true;
     case 'approve_gate':
-      approve(tx, run, action.gate);
+      approve(tx, dataDir, run, action.gate);
       return true;
     case 'await_review':
+      // A regenerate that saved nothing leaves the gate on its subject: it waits again, and
+      // its event says what the regenerate did.
+      recordReopening(tx, dataDir, run, action.gate);
       setStatus(tx, run, 'awaiting_review');
       return false;
     case 'finish':
@@ -217,16 +222,32 @@ function openOrCarry(tx: Executor, dataDir: string, run: Run, gate: GateId, carr
     return;
   }
   const blocking = readRunSnapshot(tx, dataDir, run.id).blocking;
-  gateEvent(tx, run, gate, 'pending', undefined, blocking);
+  const regenerated = reopeningOutcome(tx, dataDir, run.id, gate);
+  gateEvent(tx, run, gate, 'pending', undefined, blocking, undefined, regenerated ?? undefined);
 }
 
-function approve(tx: Executor, run: Run, gate: GateId): void {
+function approve(tx: Executor, dataDir: string, run: Run, gate: GateId): void {
+  const regenerated = reopeningOutcome(tx, dataDir, run.id, gate);
   decideGate(tx, run.id, gate, { status: 'approved', decidedBy: 'auto' });
-  gateEvent(tx, run, gate, 'approved', 'auto', []);
+  gateEvent(tx, run, gate, 'approved', 'auto', [], undefined, regenerated ?? undefined);
 }
 
-/** A gate opened or decided: the `gate` event. */
-/** A `gate` event; `decision` when it records a person's decision (P1C.10). Returns its id. */
+/**
+ * The gate waits again on the same subject after a beat regenerate (it saved nothing): a
+ * pending `gate` event with what the regenerate did. Nothing when the gate's last event is not
+ * that decision.
+ */
+function recordReopening(tx: Executor, dataDir: string, run: Run, gate: GateId): void {
+  const regenerated = reopeningOutcome(tx, dataDir, run.id, gate);
+  if (!regenerated) return;
+  const blocking = readRunSnapshot(tx, dataDir, run.id).blocking;
+  gateEvent(tx, run, gate, 'pending', undefined, blocking, undefined, regenerated);
+}
+
+/**
+ * A `gate` event (a gate opened or decided); `decision` when it records a person's decision
+ * (P1C.10), `regenerated` when it reopens after their beat regenerate. Returns its id.
+ */
 export function gateEvent(
   tx: Executor,
   run: Pick<Run, 'id'>,
@@ -235,6 +256,7 @@ export function gateEvent(
   decidedBy: DecidedBy | undefined,
   blocking: readonly string[],
   decision?: GateDecisionRecord,
+  regenerated?: RegenerateOutcome,
 ): number {
   return appendEvent(tx, {
     runId: run.id,
@@ -245,6 +267,7 @@ export function gateEvent(
       ...(decidedBy ? { decidedBy } : {}),
       blocking: [...blocking],
       ...(decision ? { decision } : {}),
+      ...(regenerated ? { regenerated } : {}),
     },
   }).id;
 }

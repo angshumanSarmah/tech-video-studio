@@ -1,5 +1,5 @@
-import { EventBodySchema, type EventBody } from '@explainer-studio/shared';
-import { and, asc, eq, gt, max, type SQL } from 'drizzle-orm';
+import { EventBodySchema, type EventBody, type GateId } from '@explainer-studio/shared';
+import { and, asc, desc, eq, gt, max, type SQL } from 'drizzle-orm';
 import type { Executor } from '../client.ts';
 import { events } from '../schema.ts';
 
@@ -76,4 +76,18 @@ export function latestEventId(db: Executor, filter: EventFilter = {}): number {
       .where(filterCondition(filter))
       .get()?.id ?? 0
   );
+}
+
+export type GateEvent = StoredEvent & { type: 'gate' };
+
+/** A run's `gate` events for one gate, newest first. */
+export function gateEvents(db: Executor, runId: number, gate: GateId): GateEvent[] {
+  return db
+    .select()
+    .from(events)
+    .where(and(eq(events.runId, runId), eq(events.type, 'gate')))
+    .orderBy(desc(events.id))
+    .all()
+    .map(toStoredEvent)
+    .filter((e): e is GateEvent => e.type === 'gate' && e.payload.gate === gate);
 }

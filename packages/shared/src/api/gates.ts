@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { ModelRoleSchema } from '../config/llm.ts';
 import { GateBadgeSchema } from '../curator/report.ts';
+import { RegenerateOutcomeSchema } from '../curator/repair-outcome.ts';
 import { FixFieldSchema } from '../curator/review.ts';
 import { DirectorPlanSchema } from '../director/plan.ts';
 import { PipelineStepIdSchema, RegenerateTargetSchema } from '../domain/pipeline.ts';
@@ -99,6 +100,12 @@ export const GateDtoSchema = z.object({
    * (`hook_repeated`) and earlier topics close to this one (`topic_similar`).
    */
   warnings: z.array(GateIssueSchema),
+  /**
+   * When the latest decision at this gate was a beat regenerate: what it did, per request
+   * (changed, or unchanged and why); shown at the top of the gate. Null otherwise, and while its
+   * repair has not run.
+   */
+  regenerated: RegenerateOutcomeSchema.nullable(),
   /** A still per beat of the subject version (data-dir relative); empty when none shows it. */
   stills: z.array(z.object({ beatId: z.string(), path: z.string() })),
   /** The joined draft of the subject version (data-dir relative), when it exists. */

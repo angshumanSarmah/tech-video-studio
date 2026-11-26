@@ -3,7 +3,13 @@ import { describe, expect, it } from 'vitest';
 import { FIXTURE_WORDS_PER_SEC } from '../fixture-topics.ts';
 import { fixtureGeneratedSpec, recordedNotes, recordedScript } from '../generator/testing.ts';
 import type { ScriptwriterCheckDeps } from './check.ts';
-import { reviseCheck, spliceRevision, type ReviseRequest } from './revise.ts';
+import {
+  REVISE_VISUAL_RULE,
+  reviseCheck,
+  reviseUserMessage,
+  spliceRevision,
+  type ReviseRequest,
+} from './revise.ts';
 
 const spec = fixtureGeneratedSpec('rate-limiter');
 const script: BeatScript[] = spec.script;
@@ -46,6 +52,18 @@ describe('reviseCheck', () => {
     expect(codes({ script: [digits] })).toContain('$.script[0].narration digits_in_narration');
   });
 
+  it('marks narration that describes the picture advisory (soft): never a repair turn', () => {
+    const visual = { ...recorded, narration: trimmed.replace(/\.$/, ', shown in red.') };
+    const issues = reviseCheck(deps, script, req)({ script: [visual] });
+    expect(issues).toEqual([
+      expect.objectContaining({
+        path: '$.script[0].narration',
+        code: 'narration_describes_visuals',
+        soft: true,
+      }),
+    ]);
+  });
+
   it('wants exactly the one beat back', () => {
     expect(codes({ script: [recorded, recordedScript('rate-limiter').script[1]] })).toEqual([
       '$.script revise_one_beat',
@@ -78,5 +96,24 @@ describe('spliceRevision', () => {
     });
     expect(spliced[0]?.tags).toEqual(script[0]?.tags);
     expect(spliced.slice(1)).toEqual(script.slice(1));
+  });
+});
+
+describe('reviseUserMessage', () => {
+  it('tells the Scriptwriter to keep the narration for a note about the picture', () => {
+    const base = {
+      topic: { title: 'Rate limiters', notes: null },
+      series: { name: 'System Design' },
+      level: 'beginner' as const,
+      format: spec.meta.format,
+      plan: deps.plan,
+      notes: deps.notes,
+      research: { sources: [], chunks: [], budget: 0, leftOut: [] } as never,
+      budgets: [],
+    };
+    const message = reviseUserMessage(base, script, req, undefined);
+    expect(message).toContain(`## REVISE beat beat1`);
+    expect(message).toContain(REVISE_VISUAL_RULE);
+    expect(REVISE_VISUAL_RULE).toMatch(/^When FEEDBACK is only about what is drawn/);
   });
 });

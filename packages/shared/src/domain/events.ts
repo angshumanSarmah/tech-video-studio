@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { RegenerateOutcomeSchema } from '../curator/repair-outcome.ts';
 import { FixFieldSchema } from '../curator/review.ts';
 import { JobStatusSchema } from './job.ts';
 import { PipelineStepIdSchema, RegenerateTargetSchema } from './pipeline.ts';
@@ -50,6 +51,12 @@ export const GatePayloadSchema = z.strictObject({
   /** Why it cannot be auto-approved (empty: nothing blocks). */
   blocking: z.array(z.string()),
   decision: GateDecisionRecordSchema.optional(),
+  /**
+   * The gate reopened after a person's beat regenerate: what each of its repair requests did
+   * (changed, or unchanged and why), so a regenerate that changed nothing never looks like one
+   * that did.
+   */
+  regenerated: RegenerateOutcomeSchema.optional(),
 });
 
 export const JobStatusPayloadSchema = z.strictObject({

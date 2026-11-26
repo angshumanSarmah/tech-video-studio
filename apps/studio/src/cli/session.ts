@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { GateId } from '@explainer-studio/shared';
+import { feedbackAbout, type FixField, type GateId } from '@explainer-studio/shared';
 import { resolveDataPath, runDir, writeDataJson } from '#core/data-files.ts';
 import { listRunExports } from '#core/db/repositories/exports.ts';
 import { runCostByRole } from '#core/db/repositories/llm-calls.ts';
@@ -9,11 +9,12 @@ import { ConflictError, InvalidEditError, InvalidProposalError } from '#core/err
 import { RegenerateNotAllowedError } from '#core/orchestrator/decide.ts';
 import { videoCostUsd } from '#core/services/budget.ts';
 import { decideAtGate, type GateDecision } from '#core/services/gate-decisions.ts';
+import { regenerateAgents } from '#core/services/gate-regenerate.ts';
 import { readGate, type GateView } from '#core/services/gates.ts';
 import type { GateAction } from './args.ts';
 import { CliError, EXIT, type CliContext } from './context.ts';
 import { followRun, runLabel, type FollowCursors, type FollowEnd } from './follow.ts';
-import { GATE_PROMPT, parseGateReply } from './gate-reply.ts';
+import { FIELDS_PROMPT, GATE_PROMPT, parseFieldsAnswer, parseGateReply } from './gate-reply.ts';
 import { settleProposals, type PendingProposal } from './proposals.ts';
 import { gateCommands, gateSummary } from './summaries.ts';
 
@@ -76,7 +77,9 @@ async function askAtGate(
           return { proposal: applyDecision(ctx, view.runId, view.gate, action) };
         }
         case 'decide': {
-          const action = await withProposal(ctx, reply.decision);
+          const decision = await withFields(ctx, reply.decision);
+          if (!decision) return null;
+          const action = await withProposal(ctx, decision);
           return { proposal: applyDecision(ctx, view.runId, view.gate, action) };
         }
       }
@@ -84,6 +87,23 @@ async function askAtGate(
       if (!isDecisionError(error)) throw error;
       ctx.io.err(decisionErrorText(error));
     }
+  }
+}
+
+/**
+ * A beat regenerate without fields: asks which part to change, suggesting what the feedback is
+ * about (`feedbackAbout`), so a note about the board never sends the Scriptwriter a rewrite.
+ * Null when the input ends.
+ */
+export async function withFields(ctx: CliContext, action: GateAction): Promise<GateAction | null> {
+  if (action.action !== 'regenerate' || action.target !== 'beat' || action.fields) return action;
+  const suggested = feedbackAbout(action.feedback ?? '');
+  for (;;) {
+    const answer = await ctx.io.ask(FIELDS_PROMPT(suggested));
+    if (answer === null) return null;
+    const fields = parseFieldsAnswer(answer, suggested);
+    if (fields) return { ...action, fields };
+    ctx.io.err('Type n (narration), b (board) or o (both), or press Enter for the suggestion.');
   }
 }
 
@@ -122,6 +142,9 @@ export function applyDecision(
     for (const issue of result.issues)
       ctx.io.out(`  · ${issue.code} at ${issue.path}: ${issue.message}`);
   } else {
+    if (action.action === 'regenerate' && action.target === 'beat' && action.fields) {
+      ctx.io.out(regenerateRunsLine(action.beatId ?? '', action.fields));
+    }
     ctx.io.out(
       `${action.action} at gate ${gate}: the run is ${result.run.status} at ${result.run.step}.`,
     );
@@ -255,4 +278,11 @@ export function costTable(ctx: CliContext, rootId: number): string[] {
     ...lines,
     `  ${'total'.padEnd(13)} ${' '.repeat(10)} $${videoCostUsd(ctx.db, rootId).toFixed(4)}`,
   ];
+}
+
+/** "Regenerating b2 (board): runs the Generator, then a Curator review of the beat." */
+export function regenerateRunsLine(beatId: string, fields: readonly FixField[]): string {
+  const [first, ...rest] = regenerateAgents(fields);
+  const then = rest.length > 0 ? `, then ${rest.join(', then ')}` : '';
+  return `Regenerating ${beatId} (${fields.join(', ')}): runs ${first}${then}.`;
 }

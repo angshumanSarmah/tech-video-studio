@@ -343,9 +343,8 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
     Director's own check list less its advisory codes; scenes and draft: the Curator's code
     issues, when its report's `final` is that version), `badges` (part runs add `recap_stale`),
     `blocking` (lines `<code> at <path>: <message>` for gates 1 and 2), `warnings` (research:
-    `sources_many`; beat sheet: `hook_repeated` and `topic_similar`, see "Memory"), the
-    stills and
-    draft of that version (data-dir paths, from their manifests, `#core/render-manifests.ts`),
+    `sources_many`; beat sheet: `hook_repeated` and `topic_similar`, see "Memory"),
+    `regenerated` (below), the stills and draft of that version (data-dir paths, from their manifests, `#core/render-manifests.ts`),
     and the run's cost in total and per role (`runCostByRole`).
   - `POST` (`decideAtGate`, one transaction with `advanceRun`): only on a gate the run waits at
     (else 409, `ConflictError`). `approve` and `edit` name the `subjectId` they were made on: not
@@ -370,7 +369,20 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
     (`repairRequestsFor`: one request per agent owning a named field, the feedback as issue
     `reviewer_feedback`; `plan` is a 400) → `curate` `{ scope: { sinceSpecVersionId } }` →
     stills → the scenes gate (carried at the draft gate) → the draft, whose cache re-renders only
-    the clips whose inputs changed. A field that belongs to another target is a 400.
+    the clips whose inputs changed. A field that belongs to another target is a 400. Only the
+    agents owning the named fields run (`regenerateAgents`): a `board`-only fix never calls the
+    Scriptwriter.
+  - **Regenerate outcome** (`#core/services/regenerate-outcome.ts`, shared
+    `curator/repair-outcome.ts`): a beat regenerate's `repair` payload carries its decision's
+    `gate` event id (`decisionEventId`), recorded in the repair step's input, so the step that
+    carried it out is found by that id, never by time. Each request is `changed` or `unchanged`
+    with a reason (`requestOutcomes`, in `RepairOutput.requests`; a failed repair, an agent's
+    answer still invalid and nothing saved: every request `unchanged`, the first hard issue as
+    the reason, `failedRequestOutcomes`). The `gate` event that follows the decision carries it
+    as `regenerated` (`RegenerateOutcomeSchema`): the gate reopening on a new version, waiting
+    again on the same one (nothing saved), or approving itself. `readGate` returns it as
+    `regenerated` while the regenerate is the gate's latest decision; the CLI prints one line per
+    request at the top of the gate (`↻ b2 board: changed`, `✗ b2 board: unchanged: <reason>`).
   - **Edits** (`editAtGate`): the whole subject, parsed with its schema (`InvalidEditError`, 400
     with issues; nothing saved). Notes and plans become the user's finished step
     (`run_steps.created_by = user`, reading the replaced step's input file); the gate reopens on
@@ -887,7 +899,11 @@ researchStepId)`, not the newest research), the run's level and pace (`resolvedS
   `TOPIC_DEFINED_BY_BEAT` (2) beats of each video name `mainTerm`, the longest of the topic title
   and glossary terms that `meta.title` names, else the topic title; skipped when a later beat's
   `newTerms` introduce it) `source_missing` (a planned `source`, or stat cards) `source_changed` (a planned
-  `source` is kept word for word, unless it is bare) and `source_label_bare`. Budget and per-sentence messages name the rule a fix tends to
+  `source` is kept word for word, unless it is bare), `source_label_bare` and
+  `narration_describes_visuals` (narration naming colours, shapes or on-screen actions, "bar",
+  "red", "shown": `visualWords`, `script/visual-words.ts`, whole words, technical terms such as
+  "red-black" left out; advisory: `SCRIPT_ADVISORY_CODES` are `soft` in the Scriptwriter's
+  check, never the reason for a repair, and advisory at the Curator). Budget and per-sentence messages name the rule a fix tends to
   break (one number per sentence; the beat's words left), so repairs do not oscillate. On-screen
   checks (`script/screen-checks.ts`): `stat_cards_per_beat` (`MAX_STAT_CARDS_PER_BEAT`, 1),
   `stat_cards_per_video` (`MAX_STAT_CARDS_PER_VIDEO`, 4, per part), `stat_card_not_spoken`
@@ -1256,7 +1272,9 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   current script, REVISE beat X and a FEEDBACK section with the issues, allowed fields, word
   budget and measured length; the answer is the script schema with one beat; `reviseCheck`
   splices it and keeps the beat's Scriptwriter issues plus `repair_scope`, a field outside the
-  request changed; `spliceRevision` takes only the allowed fields); (2) every beat synthesised
+  request changed; `spliceRevision` takes only the allowed fields; `REVISE_VISUAL_RULE`, design
+  doc rev 225: a note only about what is drawn keeps the narration as it is, and narration never
+  describes the screen); (2) every beat synthesised
   (`timing/narrate.ts`, shared with the `tts` job: unchanged beats are cache hits); (3) each
   changed narration's board remapped (`remapAnchors`, shared `spec/remap-anchors.ts`: LCS over
   `narrationWords`, word and `word_text` anchors moved, beat edges kept; a lost anchored word
@@ -1521,13 +1539,16 @@ pbpaste | pnpm studio run "Consistent hashing" --series system-design --text "Te
   badges, the stills; G4 the draft path) and writes the subject to `runs/<id>/cli/<gate>-<id>.json`
   for editing. In a terminal it asks (`gate-reply.ts`): `a [notes]` · `r "<feedback>"` (G1
   Researcher, G2 Director) or `r <beat>[:<fields>] "<feedback>"` / `r scriptwriter|generator`
-  (G3, G4) · `e [notes]` ($EDITOR on that file) · `x [notes]` · `q`; a decision with text then
+  (G3, G4; without `:fields` it asks "Change [n]arration, [b]oard or b[o]th?", suggesting what
+  the feedback is about, `feedbackAbout` in shared `curator/feedback-fields.ts`, then prints
+  which agents run, `regenerateRunsLine`) · `e [notes]` ($EDITOR on that file) · `x [notes]` · `q`; a decision with text then
   asks "Propose a style rule from this note? [y/N]". Proposals queued with a decision are
   settled when the run stops next (`proposals.ts`: the job awaited, the rule or its reason
   printed, then `[a]ccept / [e]dit "<text>" / [x] reject / [l]ater`). Without a terminal it
   prints the exact commands and exits 0.
 - **`gate <run> approve|reject|edit <file>|regenerate (--beat <id> [--fields] | --target <role>
-[--source-id]) [--feedback]`** (`--notes`, `--propose-rule`), **`resume <run> [--from|--only <step>] [--cap <usd>]`** (a
+[--source-id]) [--feedback]`** (`--notes`, `--propose-rule`; `--fields` defaults to
+  `fieldsForFeedback(feedback)`: board, narration, or both), **`resume <run> [--from|--only <step>] [--cap <usd>]`** (a
   failed run resumes; `--cap` raises the cap and resumes a paused run; see "Rerun"),
   **`status [<run>]`** (recent runs, or one with its gates, parts and the worker lock),
   **`cost <run>`** (per role over the run and its parts, and the cap),

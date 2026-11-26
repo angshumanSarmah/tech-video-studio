@@ -118,3 +118,13 @@ export function doneBeatSteps(
 export function getRunStep(db: Executor, id: number): RunStep | undefined {
   return db.select().from(runSteps).where(eq(runSteps.id, id)).get();
 }
+
+/** A stage's whole-stage attempts (no beat), newest first, whatever their status. */
+export function stageSteps(db: Executor, runId: number, stage: Stage): RunStep[] {
+  return db
+    .select()
+    .from(runSteps)
+    .where(and(eq(runSteps.runId, runId), eq(runSteps.stage, stage), isNull(runSteps.beatId)))
+    .orderBy(desc(runSteps.id))
+    .all();
+}

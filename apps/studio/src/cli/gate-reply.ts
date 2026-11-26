@@ -1,10 +1,16 @@
-import { FIX_FIELDS, type FixField, type GateId } from '@explainer-studio/shared';
+import {
+  FIX_FIELDS,
+  type FeedbackAbout,
+  type FixField,
+  type GateId,
+} from '@explainer-studio/shared';
 import type { GateAction } from './args.ts';
 
 /**
  * What the user typed at a gate prompt (P1C.9b), pure:
  * `a` approve · `r <feedback>` regenerate (G1 the Researcher, G2 the Director) · at G3 and G4
- * `r <beat>[:<fields>] <feedback>` one beat (fields default narration,board) or
+ * `r <beat>[:<fields>] <feedback>` one beat (without fields, the session asks which, the default
+ * being what the feedback is about: `fieldsForFeedback`) or
  * `r scriptwriter|generator [<feedback>]` · `e [<notes>]` edit in $EDITOR · `x [<notes>]` reject
  * · `q` quit; `a [<notes>]` approves with a note. A decision with text may then propose a style
  * rule (P1C.10).
@@ -61,10 +67,10 @@ function regenerate(gate: GateId, tail: string): GateReply {
     return { kind: 'decide', decision: { action: 'regenerate', target: first, ...feedback(rest) } };
   }
   const [beatId = '', fieldList] = first.split(':');
-  const fields = (fieldList ?? 'narration,board').split(',').map((f) => f.trim());
+  const fields = fieldList?.split(',').map((f) => f.trim());
   const known = (f: string): f is FixField =>
     f !== 'plan' && (FIX_FIELDS as readonly string[]).includes(f);
-  if (!beatId || !fields.every(known) || !rest) {
+  if (!beatId || (fields && !fields.every(known)) || !rest) {
     return {
       kind: 'invalid',
       message:
@@ -74,8 +80,40 @@ function regenerate(gate: GateId, tail: string): GateReply {
   }
   return {
     kind: 'decide',
-    decision: { action: 'regenerate', target: 'beat', beatId, fields, feedback: rest },
+    decision: {
+      action: 'regenerate',
+      target: 'beat',
+      beatId,
+      ...(fields ? { fields: fields.filter(known) } : {}),
+      feedback: rest,
+    },
   };
+}
+
+export const FIELDS_PROMPT = (suggested: FeedbackAbout) =>
+  `Change [n]arration, [b]oard or b[o]th? [${suggested}] `;
+
+/**
+ * The answer to `FIELDS_PROMPT` (pure): n, b or o (or the words), empty for the suggestion;
+ * undefined for anything else (ask again).
+ */
+export function parseFieldsAnswer(
+  answer: string,
+  suggested: FeedbackAbout,
+): FixField[] | undefined {
+  const word = answer.trim().toLowerCase();
+  const about: FeedbackAbout | undefined =
+    word === ''
+      ? suggested
+      : ['n', 'narration'].includes(word)
+        ? 'narration'
+        : ['b', 'board'].includes(word)
+          ? 'board'
+          : ['o', 'both'].includes(word)
+            ? 'both'
+            : undefined;
+  if (!about) return undefined;
+  return about === 'both' ? ['narration', 'board'] : [about];
 }
 
 function feedback(text: string): { feedback?: string } {

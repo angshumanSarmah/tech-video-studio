@@ -111,7 +111,7 @@ function apply(
       const subject = currentSubject(tx, dataDir, run, gate);
       const made = subject ? { ...record, subjectId: subjectId(subject) } : record;
       const eventId = pendingDecision(tx, run, gate, made);
-      regenerateAtGate(tx, dataDir, run, gate, decision);
+      regenerateAtGate(tx, dataDir, run, gate, decision, eventId);
       return { saved: null, issues: [], eventId };
     }
   }

@@ -34,9 +34,10 @@ export function regenerateAtGate(
   run: Run,
   gate: GateId,
   decision: RegenerateDecision,
+  decisionEventId: number,
 ): void {
   const route = regenerateRoute(gate, decision.target);
-  const requests = stepRequests(tx, dataDir, run, gate, decision);
+  const requests = stepRequests(tx, dataDir, run, gate, decision, decisionEventId);
   for (const reopened of route.reopen) reopenGate(tx, run.id, reopened);
   for (const passed of passedGates(gate, route.from)) markCarried(tx, run.id, passed, gate);
   setStepRequests(tx, run.id, requests);
@@ -63,6 +64,7 @@ function stepRequests(
   run: Run,
   gate: GateId,
   d: RegenerateDecision,
+  decisionEventId: number,
 ): StepRequests {
   const feedback = d.feedback ? { feedback: d.feedback } : undefined;
   refuseExtras(d);
@@ -81,7 +83,7 @@ function stepRequests(
     case 'generator':
       return { generate: { redraw: true, ...feedback } };
     case 'beat':
-      return beatRequests(tx, dataDir, run, gate, d);
+      return beatRequests(tx, dataDir, run, gate, d, decisionEventId);
   }
 }
 
@@ -110,7 +112,8 @@ function requireSource(tx: Executor, run: Run, sourceId: number | undefined): nu
 /**
  * One beat: a repair request per agent that owns one of the named fields, the feedback as its
  * issue, then a curate scoped to the beats the repair changed (against the version the gate
- * reviews, which the last curation ended on).
+ * reviews, which the last curation ended on). The repair carries the decision's event id, so
+ * the gate can report what it did (`latestRegenerateOutcome`).
  */
 function beatRequests(
   tx: Executor,
@@ -118,6 +121,7 @@ function beatRequests(
   run: Run,
   gate: GateId,
   d: RegenerateDecision,
+  decisionEventId: number,
 ): StepRequests {
   if (!d.beatId || !d.fields || !d.feedback) {
     throw new RegenerateNotAllowedError(
@@ -130,7 +134,7 @@ function beatRequests(
     throw new RegenerateNotAllowedError(`The spec has no beat "${d.beatId}".`);
   }
   return {
-    repair: { requests: repairRequestsFor(d.beatId, d.fields, d.feedback) },
+    repair: { requests: repairRequestsFor(d.beatId, d.fields, d.feedback), decisionEventId },
     curate: { scope: { sinceSpecVersionId: subject } },
   };
 }
@@ -157,10 +161,23 @@ export function repairRequestsFor(
 function describe(gate: GateId, d: RegenerateDecision, from: string): string {
   const what =
     d.target === 'beat'
-      ? `beat ${d.beatId} (${d.fields?.join(', ')})`
+      ? `beat ${d.beatId} (${d.fields?.join(', ')}; runs ${regenerateAgents(d.fields ?? []).join(', ')})`
       : d.target === 'source'
         ? `source ${d.sourceId}`
         : d.target;
   const note = d.feedback ? ` with feedback: "${d.feedback}"` : '';
   return `Regenerate ${what} at the ${gate} gate${note}: the run goes back to ${from}.`;
+}
+
+const AGENT_LABELS = { scriptwriter: 'the Scriptwriter', generator: 'the Generator' } as const;
+
+/**
+ * Pure: who a beat regenerate calls, in order: the agents owning the named fields (only the
+ * Generator for a board-only fix), then the Curator's review of the beat.
+ */
+export function regenerateAgents(fields: readonly FixField[]): string[] {
+  const owners = (['scriptwriter', 'generator'] as const).filter((owner) =>
+    fields.some((f) => FIELD_OWNERS[f] === owner),
+  );
+  return [...owners.map((o) => AGENT_LABELS[o]), 'a Curator review of the beat'];
 }
