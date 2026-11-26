@@ -4,10 +4,10 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 
 ## Open
 
-- [ ] **Dropped conditions on drawn values.** `claim_drops_condition` reads narration claims only;
-      a stat card or board value citing a conditioned number ("1 million" / "requests per second"
-      with num-2's "when using pipelining") passes. Decide who owns the fix (stat cards are the
-      Scriptwriter's, board values the Generator's) and extend the check to value claims.
+- [ ] **Dropped conditions on board values.** `claim_drops_condition` covers narration claims
+      (the Curator's audit) and stat cards (the Scriptwriter's check). A board value the
+      Generator draws (a counter, a data block field) citing a conditioned number still passes:
+      extend the check to the claims pass's value entries, owned by the Generator.
 - [ ] **Scoped story pass: reasoning variance.** On run 1's b5 replay the scoped claims pass fell
       from 8.3k to ~1.4k output tokens, but the story pass ranged 2.0k to 22k (run 1's own scoped
       story passes: 1.9k to 20.8k). Cap or lower its reasoning for scoped rounds, and measure
