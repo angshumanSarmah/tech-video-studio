@@ -5,6 +5,7 @@ import { SourceFailureCodeSchema } from '../domain/sources.ts';
 import type { SpecError } from '../spec/validate.ts';
 import type { ResearchNotes } from './notes.ts';
 import { numberWordTokens, quantityTokens } from './numbers.ts';
+import { SOURCE_THIN_REASONS, thinSourceMessage } from './source-quality.ts';
 
 /**
  * Gate 1's own rules (P1C.9 step 9), on top of the notes' checks: thin research and sources that
@@ -37,12 +38,19 @@ export const ResearchSourceStatSchema = z.object({
   /** Why it failed (a source the run could not use). */
   error: z.string().nullable(),
   errorCode: SourceFailureCodeSchema.nullable(),
-  /** The Researcher read this source: its version's characters, chunks, and chunks sent. */
+  /**
+   * The Researcher read this source: its version's characters, chunks, and chunks sent; the
+   * characters left once links and boilerplate are dropped, and why it is thin (empty: it is not;
+   * `sourceQuality`).
+   */
   read: z
     .object({
       chars: z.number().int().nonnegative(),
       chunks: z.number().int().nonnegative(),
       sentChunks: z.number().int().nonnegative(),
+      substantiveChars: z.number().int().nonnegative(),
+      thin: z.array(z.enum(SOURCE_THIN_REASONS)),
+      pointsAtImage: z.boolean(),
     })
     .nullable(),
 });
@@ -54,6 +62,7 @@ export const RESEARCH_GATE_CODES = [
   'sources_thin',
   'sources_disagree',
   'sources_many',
+  'source_thin',
 ] as const;
 
 export interface ResearchGateFindings {
@@ -76,7 +85,7 @@ export function researchGateFindings(
   const disputes = disagreements(notes, options.disagreementBlocks);
   return {
     blocking: [...thinResearch(notes, sources), ...disputes.blocking],
-    warnings: [...disputes.advisory, ...manySources(sources)],
+    warnings: [...disputes.advisory, ...manySources(sources), ...thinSources(notes, sources)],
   };
 }
 
@@ -171,3 +180,44 @@ function manySources(sources: readonly ResearchSourceStat[]): SpecError[] {
     },
   ];
 }
+
+/**
+ * `source_thin`, one warning per thin fetched page the Researcher read (`sourceQuality`): what it gave,
+ * why it is thin, what to do, and the facts and numbers that cite only it (or only thin
+ * sources), so a person sees what rests on it before planning.
+ */
+function thinSources(notes: ResearchNotes, sources: readonly ResearchSourceStat[]): SpecError[] {
+  // Fetched pages only: pasted text and uploads are what the person chose to give.
+  const thin = sources.filter((s) => s.kind === 'url' && s.read && s.read.thin.length > 0);
+  const thinIds = new Set(thin.map((s) => s.sourceId));
+  const restsOnThin = (chunkIds: readonly string[]) =>
+    chunkIds.length > 0 && chunkIds.every((id) => thinIds.has(sourceIdOfChunk(id)));
+  const resting = (sourceId: number) => [
+    ...notes.facts
+      .filter((f) => restsOnThin(f.sourceChunkIds) && citesSource(f.sourceChunkIds, sourceId))
+      .map((f) => f.id),
+    ...notes.numbers
+      .filter(
+        (n) => restsOnThin([n.sourceChunkId]) && sourceIdOfChunk(n.sourceChunkId) === sourceId,
+      )
+      .map((n) => n.id),
+  ];
+  return thin.map((s) => {
+    const ids = resting(s.sourceId);
+    const rest = ids.length > 0 ? ` Resting only on thin sources: ${ids.join(', ')}.` : '';
+    return {
+      path: `$.sources[${sources.indexOf(s)}]`,
+      code: 'source_thin',
+      message: `Source ${s.sourceId}: ${thinSourceMessage(s.origin, s.read!)}${rest}`,
+    };
+  });
+}
+
+/** `source-3#chunk-1` → 3 (`sourceChunkId`'s format); NaN for anything else. */
+function sourceIdOfChunk(chunkId: string): number {
+  const match = /^source-(\d+)#chunk-\d+$/.exec(chunkId);
+  return match ? Number(match[1]) : Number.NaN;
+}
+
+const citesSource = (chunkIds: readonly string[], sourceId: number) =>
+  chunkIds.some((id) => sourceIdOfChunk(id) === sourceId);

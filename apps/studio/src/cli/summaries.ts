@@ -88,7 +88,8 @@ function researchLines(
       const head = `  #${s.sourceId} ${s.kind.padEnd(4)} ${clip(s.origin, 52).padEnd(52)}`;
       if (!s.read) return `${head} FAILED: ${clip(s.error ?? '', 60)}`;
       const chars = s.read.chars.toLocaleString('en-US').padStart(8);
-      return `${head} ${chars} chars ${s.read.sentChunks}/${s.read.chunks} chunks`;
+      const thin = s.read.thin.length > 0 ? `  THIN (${s.read.substantiveChars} of content)` : '';
+      return `${head} ${chars} chars ${s.read.sentChunks}/${s.read.chunks} chunks${thin}`;
     }),
   ];
 }

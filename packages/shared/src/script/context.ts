@@ -35,6 +35,8 @@ export const SCRIPT_PROBLEM_CODES = [
   'source_changed',
   'source_label_bare',
   'narration_describes_visuals',
+  // A stat card's number said without the condition it holds under (shared with the Curator).
+  'claim_drops_condition',
   // Originality (P1C.11): a reference video's names, examples or title reused.
   ...ORIGINALITY_CODES,
 ] as const;

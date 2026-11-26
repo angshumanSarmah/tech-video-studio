@@ -232,7 +232,11 @@ describe('gate 1', () => {
         sourceId: 1,
         kind: 'text',
         origin: PASTED.title,
-        read: { chars: PASTED.text.length, chunks: 1, sentChunks: 1 },
+        read: expect.objectContaining({
+          chars: PASTED.text.length,
+          chunks: 1,
+          sentChunks: 1,
+        }) as unknown,
       }),
       expect.objectContaining({
         sourceId: 2,

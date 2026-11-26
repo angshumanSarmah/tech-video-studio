@@ -2,6 +2,7 @@ import { Readability } from '@mozilla/readability';
 import { JSDOM, VirtualConsole } from 'jsdom';
 import { domToText } from './dom-text.ts';
 import { removeHiddenContent } from './hidden.ts';
+import { refusePaywalled } from './paywall.ts';
 
 export interface ExtractedDocument {
   readonly title: string | null;
@@ -10,7 +11,8 @@ export interface ExtractedDocument {
 }
 
 /**
- * Article text from an HTML page: parse without running scripts or loading anything, remove what
+ * Article text from an HTML page: parse without running scripts or loading anything, refuse a
+ * paywalled preview (`refusePaywalled`, `paywalled`), remove what
  * a browser would not show (`removeHiddenContent`), then Readability picks the main content and
  * `domToText` writes it out. When Readability finds no article, the whole cleaned body is used.
  */
@@ -22,6 +24,8 @@ export function extractHtml(html: string, url: string): ExtractedDocument {
   });
   try {
     const { document } = dom.window;
+    // Before anything is removed: a paid article's preview is refused, not read.
+    refusePaywalled(document);
     removeHiddenContent(document);
     const pageTitle = document.title || null;
     const article = new Readability<Node>(document, { serializer: (node) => node }).parse();

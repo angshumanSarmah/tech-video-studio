@@ -54,6 +54,7 @@ export const SOURCE_FAILURE_CODES = [
   'unsupported_type',
   'unreadable',
   'empty',
+  'paywalled',
 ] as const;
 export const SourceFailureCodeSchema = z.enum(SOURCE_FAILURE_CODES);
 export type SourceFailureCode = z.infer<typeof SourceFailureCodeSchema>;

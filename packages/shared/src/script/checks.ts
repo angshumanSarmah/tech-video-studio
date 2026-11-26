@@ -36,6 +36,7 @@ import { EXAMPLE_MARKERS, hasExampleMarker } from './example-markers.ts';
 import { incidentNames } from './incident-names.ts';
 import { containsPhrase } from '../text/phrase.ts';
 import { visualWords } from './visual-words.ts';
+import { droppedConditions, droppedConditionText } from '../curator/conditions.ts';
 import { exampleNumberIds, incidentSourceIds } from '../director/systems.ts';
 
 /**
@@ -119,7 +120,34 @@ export function scriptProblems(output: ScriptToCheck, ctx: ScriptCheckContext): 
     ...sourceProblems(output, ctx.plan, ctx.sourceNames),
     ...originalityProblems(output, ctx),
     ...visualWordProblems(output),
+    ...statCardConditionProblems(output, ctx),
   ];
+}
+
+/**
+ * `claim_drops_condition` on stat cards: a card shows its number verbatim, so when the number it
+ * cites holds only under a condition (its context: "when using pipelining"), the card's value or
+ * label names it (run 1's "1 million" / "requests per second" did not).
+ */
+function statCardConditionProblems(
+  output: ScriptToCheck,
+  ctx: ScriptCheckContext,
+): ScriptProblem[] {
+  return output.script.flatMap((beat, i) =>
+    beat.statCards.flatMap((card, j) => {
+      const dropped = droppedConditions([card.sourceRef], [card.value, card.label], ctx.notes);
+      if (dropped.length === 0) return [];
+      return [
+        problem(
+          ['script', i, 'statCards', j],
+          'claim_drops_condition',
+          `Beat "${beat.beatId}"'s stat card "${card.value}" / "${card.label}" shows ` +
+            `${card.sourceRef}, but ${droppedConditionText(dropped)}: name the condition in its ` +
+            'label (a word is enough), or cite another number.',
+        ),
+      ];
+    }),
+  );
 }
 
 /** Advisory: narration that describes the picture (colours, shapes, on-screen actions). */

@@ -304,7 +304,14 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   (`numbers`, the default: its question states a quantity, or it cites a chunk a research number
   comes from, `disputedNumbers`; `all`; `none`; run override over app setting), the others
   advisory `warnings` printed at the top of G1; more than `MANY_SOURCES` (5) sources read only
-  warns), beat sheet
+  warns; a thin fetched page (not pasted text or an upload) warns `source_thin`, one per source: `sourceQuality`, shared
+  `research/source-quality.ts`, on its pinned text drops link-only lines, link labels and site
+  boilerplate (subscribe, upgrade, share, "you might like"), and under `THIN_SOURCE_CHARS`
+  (1,500) of what is left, or under `MIN_SUBSTANTIVE_SHARE` (half) of its text, it is thin:
+  `points_at_image` (its text points at a diagram it does not contain), `mostly_boilerplate`,
+  `short`; the warning says what to do and lists the facts and numbers whose chunks all come
+  from thin sources; `ResearchSourceStat.read` carries `substantiveChars`, `thin` and
+  `pointsAtImage`, and the CLI's source table marks it `THIN`), beat sheet
   `planIssues` (an agent's plan passes them to finish its step, so they block a user's edit),
   scenes the Curator's blocking badges, draft the final's blockers (`render_draft` writes them to `runs/<id>/final-check.json`,
   `#core/services/final-check.ts`, since only the worker can compute `finalRenderBlockers`).
@@ -508,7 +515,13 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   read as raw markdown (`github.ts`: README through the API, files from
   raw.githubusercontent.com); other GitHub pages are HTML.
 - **Extraction** (`extract.ts`): format from PDF magic bytes, then content type, then file name,
-  then an HTML sniff. HTML: jsdom (no scripts, no subresources), then **`removeHiddenContent`**
+  then an HTML sniff. HTML: jsdom (no scripts, no subresources), then **`refusePaywalled`**
+  (`paywall.ts`, before anything is removed): JSON-LD `isAccessibleForFree: false` (item or
+  `@graph`), a Substack post whose `preloads-json` audience is `only_paid` or `founding`, or a
+  paywall element (`.paywall`, `[data-testid="paywall"]`) fails the source as `paywalled` with
+  the paste or upload hint (the bare word is not enough: a free post's config names
+  `paywall_free_trial_enabled`; `fixtures/diagram-post.html` and `paywalled-post.html`: a real
+  newsletter page's markup with invented words), then **`removeHiddenContent`**
   (`hidden.ts`) drops what a browser would not show (`template`, `noscript`, `script`, `style`,
   embeds, `[hidden]`, `aria-hidden="true"`, and `display: none` / `visibility: hidden|collapse` /
   `content-visibility: hidden` from inline styles and the page's own `<style>` rules), so hidden
@@ -903,7 +916,11 @@ researchStepId)`, not the newest research), the run's level and pace (`resolvedS
   `narration_describes_visuals` (narration naming colours, shapes or on-screen actions, "bar",
   "red", "shown": `visualWords`, `script/visual-words.ts`, whole words, technical terms such as
   "red-black" left out; advisory: `SCRIPT_ADVISORY_CODES` are `soft` in the Scriptwriter's
-  check, never the reason for a repair, and advisory at the Curator). Budget and per-sentence messages name the rule a fix tends to
+  check, never the reason for a repair, and advisory at the Curator) and
+  `claim_drops_condition` on stat cards (a card shows its number verbatim: when its `sourceRef`
+  number holds only under a condition, `numberConditions`, the value or label names it by stem;
+  blocking, the Scriptwriter's `stat_cards`; the same code the Curator's claim audit raises on
+  narration). Budget and per-sentence messages name the rule a fix tends to
   break (one number per sentence; the beat's words left), so repairs do not oscillate. On-screen
   checks (`script/screen-checks.ts`): `stat_cards_per_beat` (`MAX_STAT_CARDS_PER_BEAT`, 1),
   `stat_cards_per_video` (`MAX_STAT_CARDS_PER_VIDEO`, 4, per part), `stat_card_not_spoken`

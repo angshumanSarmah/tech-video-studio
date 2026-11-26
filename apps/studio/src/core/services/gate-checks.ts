@@ -1,5 +1,7 @@
 import { referenceNamesToAvoid } from './reference-retrieval.ts';
 import {
+  sourceQuality,
+  type SourceThinReason,
   citableChunks,
   researchGateFindings,
   researchNotesProblems,
@@ -11,7 +13,8 @@ import {
   type SpecError,
 } from '@explainer-studio/shared';
 import { planCheckDeps, planIssues, splitPlanIssues } from '../checks/plan.ts';
-import { readDataJson, sourceChunksPath } from '../data-files.ts';
+import { readFileSync } from 'node:fs';
+import { readDataJson, resolveDataPath, sourceChunksPath, sourceTextPath } from '../data-files.ts';
 import type { Executor } from '../db/client.ts';
 import type { Run } from '../db/repositories/runs.ts';
 import { getSeries, seriesChannelHandle } from '../db/repositories/series.ts';
@@ -87,6 +90,7 @@ export function researchSourceStats(
         chars: file.chunks.at(-1)?.end ?? 0,
         chunks: file.chunks.length,
         sentChunks: s.chunks.length,
+        ...qualityOf(dataDir, run.topicId, s),
       },
     };
   });
@@ -171,4 +175,22 @@ export function planDeps(
     channelHandle: seriesChannelHandle(db, series.id),
     references: referenceNamesToAvoid(db, dataDir),
   });
+}
+
+/** How much the pinned version's text says (`sourceQuality`), for `source_thin`. */
+function qualityOf(
+  dataDir: string,
+  topicId: number,
+  s: { sourceId: number; contentHash: string },
+): { substantiveChars: number; thin: SourceThinReason[]; pointsAtImage: boolean } {
+  const text = readFileSync(
+    resolveDataPath(dataDir, sourceTextPath(topicId, s.sourceId, s.contentHash)),
+    'utf8',
+  );
+  const quality = sourceQuality(text);
+  return {
+    substantiveChars: quality.substantiveChars,
+    thin: [...quality.thin],
+    pointsAtImage: quality.pointsAtImage,
+  };
 }

@@ -52,7 +52,30 @@ const source = (sourceId: number, chars: number | null): ResearchSourceStat => (
   status: chars === null ? 'failed' : 'extracted',
   error: chars === null ? 'HTTP 403' : null,
   errorCode: chars === null ? 'blocked' : null,
-  read: chars === null ? null : { chars, chunks: 2, sentChunks: 2 },
+  read:
+    chars === null
+      ? null
+      : {
+          chars,
+          chunks: 2,
+          sentChunks: 2,
+          substantiveChars: chars,
+          thin: [],
+          pointsAtImage: false,
+        },
+});
+
+/** A source whose text is mostly furniture (run 1's third source, in shape). */
+const thinSource = (sourceId: number): ResearchSourceStat => ({
+  ...source(sourceId, 511),
+  read: {
+    chars: 511,
+    chunks: 1,
+    sentChunks: 1,
+    substantiveChars: 367,
+    thin: ['points_at_image', 'mostly_boilerplate'],
+    pointsAtImage: true,
+  },
 });
 
 /** The default rule: only disagreements that involve a number block. */
@@ -169,5 +192,44 @@ describe('researchGateFindings', () => {
     const { blocking, warnings } = researchGateFindings(notes(), read);
     expect(blocking).toEqual([]);
     expect(codes(warnings)).toEqual(['sources_many']);
+  });
+});
+
+describe('source_thin', () => {
+  it('warns per thin source, naming why, what to do and what rests only on it', () => {
+    const n = notes({
+      facts: [
+        { ...fact(1), sourceChunkIds: [C2] },
+        { ...fact(2), sourceChunkIds: [C1, C2] },
+        ...[3, 4, 5, 6, 7].map(fact),
+      ],
+      numbers: [
+        { id: 'num-1', value: '40', unit: 'ms', context: 'Wait', sourceChunkId: C1 },
+        { id: 'num-2', value: '1000', unit: 'times', context: 'Faster', sourceChunkId: C2 },
+      ],
+    });
+    const { warnings, blocking } = researchGateFindings(n, [source(1, 9_000), thinSource(2)]);
+    expect(codes(blocking)).toEqual([]);
+    expect(warnings).toEqual([
+      {
+        path: '$.sources[1]',
+        code: 'source_thin',
+        message:
+          'Source 2: https://docs.example.com/2 gave only 367 characters of content (511 ' +
+          'extracted): its text points at a diagram or image it does not contain; much of it is ' +
+          'links or site boilerplate. To use what it says, paste its text, or describe the ' +
+          'diagram, as a source instead. Resting only on thin sources: fact-1, num-2.',
+      },
+    ]);
+  });
+
+  it('says nothing about pasted text or an upload, however short', () => {
+    const pasted = { ...thinSource(2), kind: 'text' as const };
+    expect(codes(researchGateFindings(notes(), [source(1, 9_000), pasted]).warnings)).toEqual([]);
+  });
+
+  it('says nothing about a source that is not thin, or one it could not read', () => {
+    const { warnings } = researchGateFindings(notes(), [source(1, 9_000), source(2, null)]);
+    expect(codes(warnings)).toEqual([]);
   });
 });

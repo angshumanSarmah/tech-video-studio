@@ -1,0 +1,62 @@
+<!doctype html>
+<!--
+  A free newsletter post whose content is a diagram (invented text). Its markup follows a real
+  Substack post page, trimmed: the JSON-LD article with isAccessibleForFree true, the post
+  metadata in preloads-json (a free audience, and the publication's paywall settings, whose key
+  names contain "paywall"), a header with the date, and a body of one image without alt text,
+  three one-line points, a book plug and two link lines. Every word, name and URL is invented.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Why is Quillstore so quick? - Ledgerline Notes</title>
+    <meta name="description" content="Why is Quillstore so quick? There are 3 main reasons as shown in the diagram below." />
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"NewsArticle","url":"https://notes.example.com/p/why-is-quillstore-so-quick","mainEntityOfPage":"https://notes.example.com/p/why-is-quillstore-so-quick","headline":"Why is Quillstore so quick?","description":"Why is Quillstore so quick? There are 3 main reasons as shown in the diagram below.","image":[{"@type":"ImageObject","url":"https://cdn.example.com/images/quillstore-diagram_3573x2280.jpeg"}],"datePublished":"2023-02-14T21:10:00+00:00","dateModified":"2023-02-14T21:10:00+00:00","isAccessibleForFree":true,"author":[{"@type":"Person","name":"Mira Tolland","url":"https://notes.example.com/@ledgerline"}],"publisher":{"@type":"Organization","name":"Ledgerline Notes","url":"https://notes.example.com"}}</script>
+  </head>
+  <body>
+    <div id="main">
+      <article class="typography newsletter-post post">
+        <div class="post-header">
+          <h1 dir="auto" class="post-title published title-X77sOw">Why is Quillstore so quick?</h1>
+          <div class="pencraft pc-display-flex pc-reset">
+            <a class="pencraft pc-reset" href="https://notes.example.com/@ledgerline">Ledgerline</a>
+            <div class="pencraft pc-reset meta-jfcJ27"><time dateTime="2023-02-14T21:10:00.000Z">Feb 14, 2023</time></div>
+          </div>
+        </div>
+        <div class="post-ufi"><button type="button" aria-label="Like (58)"><div class="label">58</div></button></div>
+        <div>
+          <div class="dt-post-body">
+            <div class="available-content">
+              <div class="body markup" dir="auto">
+                <p><span>Why is </span><strong>Quillstore</strong><span> so </span><strong>quick</strong><span>? There are 3 main reasons as shown in the diagram below.</span></p>
+                <div class="captioned-image-container">
+                  <figure>
+                    <a class="image-link image2 is-viewable-img" target="_blank" href="https://cdn.example.com/images/quillstore-diagram_3573x2280.jpeg">
+                      <div class="image2-inset">
+                        <picture>
+                          <img src="https://cdn.example.com/images/quillstore-diagram_1456.jpeg" width="1456" height="929" class="sizing-normal" alt="" />
+                        </picture>
+                      </div>
+                    </a>
+                  </figure>
+                </div>
+                <p>1. Quillstore keeps its index in memory. A memory read is far quicker than a seek on a spinning disk.</p>
+                <p>2. Quillstore runs one event loop and a single worker thread that takes each request in turn.</p>
+                <p>3. Quillstore relies on a handful of compact structures built for its own workload.</p>
+                <div><hr /></div>
+                <p>If you enjoyed this post, you might like our system design handbooks as well.</p>
+                <p><span>LN-book1: </span><a href="https://shop.example.com/b/k7Q2mR">https://shop.example.com/b/k7Q2mR</a></p>
+                <p><span>LN-book2: </span><a href="https://shop.example.com/b/p3V8tW">https://shop.example.com/b/p3V8tW</a></p>
+              </div>
+            </div>
+            <div class="visibility-check"></div>
+          </div>
+        </div>
+        <div class="post-footer">
+          <div class="post-ufi"><button type="button" aria-label="View comments (2)">2</button><button type="button">Share</button></div>
+        </div>
+      </article>
+    </div>
+    <script type="application/json" id="preloads-json">{"pub":{"name":"Ledgerline Notes","expose_paywall_content_to_search_engines":true,"paywall_free_trial_enabled":true,"paywall_chat":"free"},"post":{"audience":"everyone","audience_before_archived":null,"canonical_url":"https://notes.example.com/p/why-is-quillstore-so-quick","exempt_from_archive_paywall":false,"free_unlock_required":false,"should_send_free_preview":false,"slug":"why-is-quillstore-so-quick","title":"Why is Quillstore so quick?","type":"newsletter"}}</script>
+  </body>
+</html>

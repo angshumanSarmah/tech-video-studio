@@ -176,6 +176,29 @@ describe('scriptProblems', () => {
     expect(isScriptAdvisory('digits_in_narration')).toBe(false);
   });
 
+  it("flags a stat card that drops its number's condition (run 1's hook card)", () => {
+    // Run 1, b1: "1 million" / "requests per second", citing a number that needs pipelining.
+    const piped = notes();
+    piped.numbers[1] = {
+      ...piped.numbers[1]!,
+      value: '1 million',
+      unit: 'requests per second',
+      context:
+        'Throughput a Redis instance on an average Linux system can deliver when using pipelining.',
+    };
+    const card = (label: string) => {
+      const out = output();
+      out.script[1]!.statCards = [{ value: '1 million', label, sourceRef: 'num-2' }];
+      return scriptProblems(out, ctx({ notes: piped })).filter(
+        (p) => p.code === 'claim_drops_condition',
+      );
+    };
+    const [dropped] = card('requests per second');
+    expect(dropped?.path).toBe('$.script[1].statCards[0]');
+    expect(dropped?.message).toContain('num-2 holds only when using pipelining');
+    expect(card('pipelined requests a second')).toEqual([]);
+  });
+
   it('flags a sentence over 20 words', () => {
     const out = output();
     out.script[1]!.narration =
