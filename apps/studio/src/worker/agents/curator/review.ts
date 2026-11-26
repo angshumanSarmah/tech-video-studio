@@ -5,6 +5,7 @@ import {
   reviewPassProblems,
   StoryPassSchema,
   type Claim,
+  type ClaimsPass,
   type CodeIssue,
   type CuratorIssue,
   type CuratorReview,
@@ -23,7 +24,14 @@ import type { OutputIssue } from '../../llm/types.ts';
 import { buildPrompt } from '../prompt-builder.ts';
 import type { PromptVariables } from '../prompt-variables.ts';
 import type { PromptTemplates } from '../prompts/templates.ts';
-import { beatOfPath, curatorUserMessage, reviewBeatTexts, type CuratorRound } from './input.ts';
+import {
+  beatOfPath,
+  curatorUserMessage,
+  hasDrawnValues,
+  reviewBeatTexts,
+  roundCoverage,
+  type CuratorRound,
+} from './input.ts';
 
 /**
  * The Curator's review (P1C.8 part 2): two calls per video with the same system prompt and the
@@ -78,15 +86,21 @@ const COVERAGE_CODES: readonly string[] = ['claim_missing', 'label_claim_missing
 
 export async function reviewSpec(deps: ReviewDeps, request: ReviewRequest): Promise<ReviewResult> {
   const beats = reviewBeatTexts(request.spec, { registries: deps.registries });
-  const claimsContext: ReviewCheckContext = { beats, notes: request.notes };
+  const coverage = roundCoverage(request.round);
+  const base: ReviewCheckContext = { beats, notes: request.notes };
+  const claimsContext: ReviewCheckContext = { ...base, ...(coverage ? { coverage } : {}) };
   const storyContext: ReviewCheckContext = {
-    ...claimsContext,
+    ...base,
     ...(request.round ? { previousIds: request.round.previous.map((p) => p.id) } : {}),
   };
   let coverageRepairs = 0;
-  const claims = await runPass(deps, request, 'claims', ClaimsPassSchema, claimsContext, () => {
-    coverageRepairs += 1;
-  });
+  // A board-only round whose boards draw no values has nothing for PASS claims: no call.
+  const claims =
+    coverage && !coverage.narration && !hasDrawnValues(request.spec, coverage.beatIds, deps)
+      ? { value: { claims: [], issues: [] } as ClaimsPass, callIds: [] as number[] }
+      : await runPass(deps, request, 'claims', ClaimsPassSchema, claimsContext, () => {
+          coverageRepairs += 1;
+        });
   const story = await runPass(deps, request, 'story', StoryPassSchema, storyContext);
   const settle = (
     pass: ReviewPass,
@@ -109,10 +123,33 @@ export async function reviewSpec(deps: ReviewDeps, request: ReviewRequest): Prom
     dropped: [...fromClaims.dropped, ...fromStory.dropped],
     capped: fromClaims.capped + fromStory.capped,
     ...(story.value.previous ? { previous: story.value.previous } : {}),
-    claims: claims.value.claims,
+    claims: mergeClaims(request.spec, request.round, claims.value.claims),
     coverage: { repairs: coverageRepairs, missing },
     calls: { claims: claims.callIds, story: story.callIds },
   };
+}
+
+/**
+ * The audit standing after a round (pure): the earlier entries of beats this round did not list
+ * (unchanged beats; a board-only round's narration), then this round's entries on the beats it
+ * covers, in beat order. Outside a carried round, the answer as it is.
+ */
+export function mergeClaims(
+  spec: RenderableVideoSpec,
+  round: CuratorRound | undefined,
+  answered: readonly Claim[],
+): Claim[] {
+  const coverage = roundCoverage(round);
+  if (!coverage || !round?.previousClaims) return [...answered];
+  const covered = new Set(coverage.beatIds);
+  const listsNow = (c: Claim) =>
+    covered.has(c.beatId) && (coverage.narration || c.source === 'value');
+  const order = new Map(spec.story.beats.map((b, i) => [b.id, i]));
+  const at = (c: Claim) => order.get(c.beatId) ?? order.size;
+  return [...round.previousClaims.filter((c) => !listsNow(c)), ...answered.filter(listsNow)]
+    .map((claim, i) => ({ claim, i }))
+    .sort((a, b) => at(a.claim) - at(b.claim) || a.i - b.i)
+    .map(({ claim }) => claim);
 }
 
 async function runPass<S extends z.ZodType>(

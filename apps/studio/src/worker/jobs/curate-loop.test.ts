@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   SettingsSchema,
@@ -5,6 +6,7 @@ import {
   type RenderableVideoSpec,
 } from '@explainer-studio/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { resolveDataPath } from '#core/data-files.ts';
 import { enqueueJob } from '#core/db/repositories/jobs.ts';
 import { listRunLlmCalls } from '#core/db/repositories/llm-calls.ts';
 import { createTestDb, type TestDb } from '#core/db/testing.ts';
@@ -12,6 +14,7 @@ import { latestCuration } from '#core/services/curation.ts';
 import { saveSpecVersion } from '#core/services/spec-versions.ts';
 import { findWorkspaceRoot } from '#core/workspace-root.ts';
 import { editNarration } from '../agents/curator/fixtures.ts';
+import { hasDrawnValues } from '../agents/curator/input.ts';
 import { answer, reviewOf } from '../agents/curator/testing.ts';
 import { fixtureResponsesDir, fixtureRunSettings, fixtureTopic } from '../agents/fixture-topics.ts';
 import {
@@ -64,11 +67,8 @@ function beatWith(beatId: string, narration: string): DryRunResponse {
   return answer({ script: [{ ...beat, narration }] });
 }
 
-async function curate(
-  spec: RenderableVideoSpec,
-  curator: DryRunResponse[],
-  scriptwriter: DryRunResponse[] = [],
-) {
+/** A run with the recorded research and plan, whose next curate jobs get these answers. */
+async function setup(curator: DryRunResponse[], scriptwriter: DryRunResponse[] = []) {
   const llm = createLlmClient({
     db: t.db,
     dataDir: t.dataDir,
@@ -95,14 +95,62 @@ async function curate(
     enqueueJob(t.db, { type, runId });
     await next();
   }
-  const saved = saveSpecVersion(t.db, t.dataDir, { runId, spec, createdBy: 'user' });
-  enqueueJob(t.db, { type: CURATE_JOB_TYPE, runId, payload: { specVersionId: saved.version.id } });
-  await next();
-  const curation = latestCuration(t.db, t.dataDir, runId);
-  if (!curation) throw new Error('curate did not finish');
+  /** Saves `spec` and curates it with `payload`; the curation's report. */
+  const curateVersion = async (
+    spec: RenderableVideoSpec,
+    payload: Record<string, unknown> = {},
+  ) => {
+    const saved = saveSpecVersion(t.db, t.dataDir, { runId, spec, createdBy: 'user' });
+    enqueueJob(t.db, {
+      type: CURATE_JOB_TYPE,
+      runId,
+      payload: { specVersionId: saved.version.id, ...payload },
+    });
+    await next();
+    const curation = latestCuration(t.db, t.dataDir, runId);
+    if (!curation) throw new Error('curate did not finish');
+    return { report: curation.report, specVersionId: saved.version.id };
+  };
+  const curatorCalls = () => listRunLlmCalls(t.db, runId).filter((c) => c.role === 'curator');
   const calls = (role: string) =>
     listRunLlmCalls(t.db, runId).filter((c) => c.role === role).length;
-  return { report: curation.report, calls };
+  return { runId, curateVersion, calls, curatorCalls };
+}
+
+async function curate(
+  spec: RenderableVideoSpec,
+  curator: DryRunResponse[],
+  scriptwriter: DryRunResponse[] = [],
+) {
+  const run = await setup(curator, scriptwriter);
+  const { report } = await run.curateVersion(spec);
+  return { report, calls: run.calls };
+}
+
+/**
+ * `before` curated with a quiet review, then `after` curated scoped against it, as after a gate's
+ * one-beat regenerate (`badgeOnly`: the beats the person regenerated).
+ */
+async function curateScoped(
+  before: RenderableVideoSpec,
+  after: RenderableVideoSpec,
+  curator: DryRunResponse[],
+  badgeOnly: string[] = [],
+  scriptwriter: DryRunResponse[] = [],
+) {
+  const run = await setup([...reviewOf(before), ...curator], scriptwriter);
+  const first = await run.curateVersion(before, { repair: false });
+  const reviewed = run.curatorCalls().length;
+  const scope = {
+    sinceSpecVersionId: first.specVersionId,
+    ...(badgeOnly.length > 0 ? { badgeOnlyBeatIds: badgeOnly } : {}),
+  };
+  const { report } = await run.curateVersion(after, { scope });
+  const prompts = run
+    .curatorCalls()
+    .slice(reviewed)
+    .map((c) => readFileSync(resolveDataPath(t.dataDir, c.promptPath), 'utf8'));
+  return { report, first: first.report, calls: run.calls, prompts };
 }
 
 /** A blocking narration issue on a beat, quoting it. */
@@ -233,5 +281,82 @@ describe('curate: the repair loop', () => {
     expect(report.review?.issues.map((i) => i.evidence)).toEqual([
       [{ kind: 'narration', quote: 'a pile of passes' }],
     ]);
+  });
+});
+
+describe('curate: scoped after a gate regenerate', () => {
+  const RETOLD_SPEC = () =>
+    untimed((s) => editNarration(s, 'beat7', 'Checkouts started failing.', RETOLD));
+
+  it('badges the regenerated beat: its blocking finding stays, nothing repairs it', async () => {
+    const before = untimed();
+    const after = RETOLD_SPEC();
+    const { report, calls } = await curateScoped(before, after, reviewOf(after, [], []), ['beat7']);
+    expect(report.scope).toMatchObject({ changedBeatIds: ['beat7'], badgeOnlyBeatIds: ['beat7'] });
+    expect(report.rounds).toEqual([]);
+    expect(calls('scriptwriter') + calls('generator')).toBe(0);
+    expect(report.stop).toBe('nothing_repairable');
+    expect(report.blocking).toBe(true);
+    expect(report.badges).toContainEqual(
+      expect.objectContaining({
+        beatId: 'beat7',
+        code: 'hook_number_repeated',
+        severity: 'blocking',
+      }),
+    );
+  });
+
+  it('shows the changed beat and its planted-question partner, and lists only its claims', async () => {
+    const before = untimed();
+    const after = RETOLD_SPEC();
+    const { report, first, prompts } = await curateScoped(before, after, reviewOf(after, [], []), [
+      'beat7',
+    ]);
+    expect(prompts).toHaveLength(2);
+    for (const prompt of prompts) {
+      // beat7 pays off beat5's planted question: beat5 is shown as context, nothing else.
+      expect(prompt).toContain('## BEAT beat7 (7 of 8)');
+      expect(prompt).toContain('## BEAT beat5 (5 of 8)');
+      expect(prompt).toContain('context (the planted question and its payoff; unchanged)');
+      expect(prompt).not.toContain('## BEAT beat2 (2 of 8)');
+      expect(prompt).toContain('## OTHER BEATS (reviewed already and unchanged; narration only)');
+    }
+    expect(prompts[0]).toContain('every narration sentence of the CHANGED beats (beat7)');
+    // The earlier audit of the other beats carries over; beat7's comes from this round.
+    const others = (claims: readonly { beatId: string }[]) =>
+      claims.filter((c) => c.beatId !== 'beat7');
+    expect(others(report.review!.claims)).toEqual(others(first.review!.claims));
+    expect(report.review!.claims.some((c) => c.beatId === 'beat7' && c.text === RETOLD)).toBe(true);
+  });
+
+  it('a board-only change: the story pass still runs, PASS claims audits drawn values only', async () => {
+    const before = untimed();
+    const beatId = 'beat2';
+    const after = untimed((s) => {
+      const scene = s.scenes.find((x) => x.beatId === beatId)!;
+      scene.transitionIn = scene.transitionIn === 'fade' ? 'cut' : 'fade';
+    });
+    const values = hasDrawnValues(after, [beatId]);
+    const { report, prompts } = await curateScoped(
+      before,
+      after,
+      values ? reviewOf(after, [], []) : [answer({ issues: [], previous: [] })],
+      [beatId],
+    );
+    expect(report.scope).toMatchObject({ changedBeatIds: [beatId] });
+    const story = prompts.at(-1)!;
+    expect(story).toContain('## PASS story');
+    expect(story).toContain(`## BEAT ${beatId} (2 of 8)`);
+    if (values) {
+      expect(prompts).toHaveLength(2);
+      expect(prompts[0]).toContain('kept their narration, whose audit carries over');
+    } else {
+      expect(prompts).toHaveLength(1);
+    }
+    expect(report.review!.claims.filter((c) => c.source === 'narration')).toEqual(
+      expect.arrayContaining(
+        report.review!.claims.filter((c) => c.beatId === beatId && c.source === 'narration'),
+      ),
+    );
   });
 });

@@ -1193,8 +1193,25 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   `reviewPassProblems` (shared `curator/claims-checks.ts`) is each pass's check:
   `curatorIssueProblems`, `category_not_in_pass`, and for claims `claim_missing` /
   `value_claim_missing` (coverage: a repair turn), `quote_not_found` on a claim or its label,
-  `claim_restatement_missing`, `claim_ids_missing`, `unknown_research_id` and
-  `claim_issue_missing`. The story task names the Director as `missing_trade_off`'s owner.
+  `claim_restatement_missing`, `claim_ids_missing`, `unknown_research_id`,
+  `claim_issue_missing` and `claim_drops_condition` (shared `curator/conditions.ts`: a supported
+  narration claim citing a number whose context holds it only under a condition, a clause from
+  when / whenever / if / unless / using / without ("when using pipelining"; not "with" or
+  "under", which name parties and scopes), when neither the sentence nor `restates.claim` names
+  one of its key words by stem: a narration in other words passes once the restatement names it).
+  What the last, soft attempt leaves is a blocking code issue `claim_drops_condition` on the
+  beat's narration for the Scriptwriter (`claimConditionIssues`, from the audit standing on the
+  version, added to the code findings by the curate job). The story task names the Director as
+  `missing_trade_off`'s owner.
+- **Scoped rounds** (a second round, the repair loop's or a gate-scoped curate's, with the
+  earlier audit carried: `CuratorRound.previousClaims`): both passes see only the changed beats
+  plus, when one of them is the planted question's beat or its payoff, the other one as context
+  (`roundBeatIds`), then OTHER BEATS (the rest's narration); PASS claims lists only the changed
+  beats (`roundCoverage`, `ReviewCheckContext.coverage`) and the audit standing is the round's
+  entries over the carried ones (`mergeClaims`); PASS story reports only on the changed beats
+  (`scopedStoryTask`). A board-only round (every changed beat kept its script,
+  `boardOnlyChange`) audits only the changed beats' drawn values (no call when they draw none,
+  `hasDrawnValues`); the story pass runs as in any scoped round.
 - **The review's output** (shared `curator/review.ts`): each pass's issues and, in a second
   round, `previous` statuses. Each issue: beat,
   category (`REVIEW_CATEGORIES`), severity, owner, `fields` (`FIX_FIELDS`, each owned by one agent:
@@ -1211,10 +1228,12 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   `previous_status_missing` / `unknown_previous_issue`.
 
 - **`curate` job** (`jobs/curate.ts`, payload `{ specVersionId, repair, scope? }`; `scope:
-{ sinceSpecVersionId }` (after a gate's one-beat regenerate): the first review is a second
-  round scoped to the beats whose script or board differ from that version (`changedBeats`)
-  against the issues of the curation that ended on it, the others carry over, only changed
-  beats are repaired, and the report records `scope`; the re-timed spec
+{ sinceSpecVersionId, badgeOnlyBeatIds? }` (after a gate's one-beat regenerate): the first
+  review is a second round scoped to the beats whose script or board differ from that version
+  (`changedBeats`) against the issues and claim audit of the curation that ended on it, the
+  others carry over, only changed beats are repaired, never a `badgeOnlyBeatIds` beat (the beat
+  the person regenerated: its findings are badges, blocking ones still block auto-approve, even
+  when the scope cannot apply), and the report records `scope`; the re-timed spec
   after the Generator; `repair` defaults to true): the code checks on the pinned version (context from the run: the plan's research
   step's notes and sources, series and handle, resolved video settings and pauses,
   `directorMemory` usage, the DB's approved assets), then the two review passes

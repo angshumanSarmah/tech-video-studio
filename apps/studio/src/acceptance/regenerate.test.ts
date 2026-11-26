@@ -285,6 +285,7 @@ describe('regenerate at the scenes gate', () => {
     expect(curation.report.scope).toEqual({
       sinceSpecVersionId: reviewed.id,
       changedBeatIds: [BEAT],
+      badgeOnlyBeatIds: [BEAT],
     });
     const after = h.spec(curation.report.final.specVersionId);
     expect(after.script.find((b) => b.beatId === BEAT)!.headline?.text).toBe(

@@ -6,6 +6,7 @@ import {
   hookNumberRepeats,
   notesTextOf,
   ORIGINALITY_CODES,
+  CLAIM_DROPS_CONDITION,
   planOfSpec,
   readabilityProblems,
   scriptProblems,
@@ -146,6 +147,8 @@ export const BLOCKING_WARNING_CODES = [
   'incident_source_missing',
   // A reference video's names, examples or title (P1C.11): a copy, whoever wrote it.
   ...ORIGINALITY_CODES,
+  // The claim audit (run 1's b1): a number said without the condition it holds under.
+  CLAIM_DROPS_CONDITION,
 ] as const;
 
 /** Every other warning a check here can raise (a test keeps this list complete). */

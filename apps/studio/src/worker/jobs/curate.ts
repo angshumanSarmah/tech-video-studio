@@ -11,6 +11,8 @@ import {
   bareSourceNames,
   PROGRESS_DONE_PCT,
   validateRenderableVideoSpec,
+  claimConditionIssues,
+  type Claim,
   type CodeIssue,
   type CurateInput,
   type CurateRound,
@@ -91,9 +93,16 @@ const PayloadSchema = z.strictObject({
   /**
    * A scoped curate (after a gate's "regenerate beat", P1C.9): the review covers only the beats
    * that changed since this version (the one the last curation ended on), the earlier issues on
-   * the others carry over, and only the changed beats are repaired.
+   * the others carry over, and only the changed beats are repaired. `badgeOnlyBeatIds`: the beats
+   * the person regenerated: their findings go to the gate as badges (blocking ones still block
+   * auto-approve), never to an agent.
    */
-  scope: z.strictObject({ sinceSpecVersionId: z.number().int().positive() }).optional(),
+  scope: z
+    .strictObject({
+      sinceSpecVersionId: z.number().int().positive(),
+      badgeOnlyBeatIds: z.array(z.string()).optional(),
+    })
+    .optional(),
 });
 type Ctx = JobContext<z.output<typeof PayloadSchema>>;
 
@@ -152,13 +161,42 @@ async function curate(deps: CurateJobDeps, ctx: Ctx): Promise<void> {
   }
 }
 
-/** Where the loop stands: the current version, its code issues and the review's issues. */
+/**
+ * Where the loop stands: the current version, its code issues (with the claim audit's
+ * `claim_drops_condition`), the review's issues and the claim audit standing on it (a scoped
+ * round's new claims over the ones it carried).
+ */
 interface Standing {
   readonly spec: RenderableVideoSpec;
   readonly specVersionId: number;
   readonly version: number;
   readonly code: CodeIssue[];
   readonly issues: CuratorIssue[];
+  readonly claims: Claim[];
+}
+
+/** The code checks' findings plus what the claim audit leaves (a dropped number condition). */
+function withClaimFindings(
+  code: readonly CodeIssue[],
+  claims: readonly Claim[],
+  notes: ResearchNotes,
+  spec: RenderableVideoSpec,
+): CodeIssue[] {
+  const extra = claimConditionIssues(claims, notes, spec.script).filter(
+    (c) => !code.some((i) => i.path === c.path && i.code === c.code),
+  );
+  return [...code, ...extra];
+}
+
+/** Every changed beat kept its script: a board-only round (the claims pass audits only values). */
+export function boardOnlyChange(
+  before: RenderableVideoSpec,
+  after: RenderableVideoSpec,
+  changed: ReadonlySet<string>,
+): boolean {
+  const script = (spec: RenderableVideoSpec, id: string) =>
+    JSON.stringify(spec.script.find((b) => b.beatId === id));
+  return changed.size > 0 && [...changed].every((id) => script(before, id) === script(after, id));
 }
 
 async function curateLoop(
@@ -197,23 +235,32 @@ async function curateLoop(
   const firstCode = checks(job.spec);
   ctx.progress(10, `Code checks: ${firstCode.length} finding(s)`);
   const scope = job.valid ? scopeOf(deps, ctx, runId, job.spec) : undefined;
-  const firstIssues = async (): Promise<CuratorIssue[]> => {
-    if (!job.valid) return [];
-    if (!scope) return (await review(job.spec, firstCode)).issues;
-    const earlier = scope.previous.review?.issues ?? [];
-    if (scope.changed.size === 0) return earlier;
+  // The beats the person regenerated: badged, never repaired (even when the scope cannot apply).
+  const badgeOnly: ReadonlySet<string> = new Set(ctx.payload.scope?.badgeOnlyBeatIds ?? []);
+  const firstReview = async (): Promise<{ issues: CuratorIssue[]; claims: Claim[] }> => {
+    if (!job.valid) return { issues: [], claims: [] };
+    if (!scope) return await review(job.spec, firstCode);
+    const earlier = { issues: [], claims: [], ...scope.previous.review };
+    if (scope.changed.size === 0) return { issues: earlier.issues, claims: earlier.claims };
     const result = await review(job.spec, firstCode, {
-      previous: numbered(earlier),
+      previous: numbered(earlier.issues),
       changedBeatIds: [...scope.changed],
+      previousClaims: earlier.claims,
+      boardOnly: boardOnlyChange(scope.before, job.spec, scope.changed),
     });
-    return mergeRoundReview(earlier, result, scope.changed);
+    return {
+      issues: mergeRoundReview(earlier.issues, result, scope.changed),
+      claims: result.claims,
+    };
   };
+  const first = await firstReview();
   let now: Standing = {
     spec: job.spec,
     specVersionId: job.input.specVersionId,
     version: job.input.version,
-    code: firstCode,
-    issues: await firstIssues(),
+    code: withClaimFindings(firstCode, first.claims, job.checks.notes, job.spec),
+    issues: first.issues,
+    claims: first.claims,
   };
   const rounds: CurateRound[] = [];
   let stop: CuratorReport['stop'] = job.valid
@@ -225,7 +272,7 @@ async function curateLoop(
     ctx.log('warn', 'The spec has validation errors: no review until they are fixed.');
   for (let round = 1; job.valid && ctx.payload.repair && round <= MAX_REPAIR_ROUNDS; round += 1) {
     const requests = repairRequests(now.spec, now.code, now.issues).filter(
-      (r) => !scope || scope.changed.has(r.beatId),
+      (r) => !badgeOnly.has(r.beatId) && (!scope || scope.changed.has(r.beatId)),
     );
     const before = blockingKeys(now.spec, now.code, now.issues);
     if (requests.length === 0) {
@@ -238,7 +285,9 @@ async function curateLoop(
       stop = 'repair_failed';
       break;
     }
-    const next = await reviewRound(deps, ctx, now, repaired, runId, checks, review);
+    const findings = (spec: RenderableVideoSpec, claims: readonly Claim[]) =>
+      withClaimFindings(checks(spec), claims, job.checks.notes, spec);
+    const next = await reviewRound(deps, ctx, now, repaired, runId, findings, review);
     rounds.push({
       round,
       requests,
@@ -267,6 +316,7 @@ async function curateLoop(
     scope: {
       sinceSpecVersionId: scope.since,
       changedBeatIds: [...scope.changed],
+      ...(badgeOnly.size > 0 ? { badgeOnlyBeatIds: [...badgeOnly] } : {}),
     },
   };
 }
@@ -277,6 +327,8 @@ interface Scope {
   readonly previous: CuratorReport;
   /** Beats whose script or board differ from `since`. */
   readonly changed: ReadonlySet<string>;
+  /** The spec at `since`. */
+  readonly before: RenderableVideoSpec;
 }
 
 /** The payload's scope, with what it needs; undefined (logged) when it cannot be scoped. */
@@ -294,7 +346,7 @@ function scopeOf(
     return undefined;
   }
   const before = loadSpec(deps, since);
-  return { since, previous, changed: changedBeats(before, spec) };
+  return { since, previous, changed: changedBeats(before, spec), before };
 }
 
 /** Beats whose script entry or board differ between two versions. */
@@ -352,7 +404,7 @@ async function reviewRound(
   now: Standing,
   repaired: { output: RepairOutput; spec: RenderableVideoSpec },
   runId: number,
-  checks: (spec: RenderableVideoSpec) => CodeIssue[],
+  findings: (spec: RenderableVideoSpec, claims: readonly Claim[]) => CodeIssue[],
   review: (
     spec: RenderableVideoSpec,
     code: CodeIssue[],
@@ -364,11 +416,14 @@ async function reviewRound(
       .filter((b) => b.script === 'revised' || b.board !== 'kept')
       .map((b) => b.beatId),
   );
-  const code = checks(repaired.spec);
-  const second = await review(repaired.spec, code, {
+  const reviewed = findings(repaired.spec, []);
+  const second = await review(repaired.spec, reviewed, {
     previous: numbered(now.issues),
     changedBeatIds: [...changed],
+    previousClaims: now.claims,
+    boardOnly: boardOnlyChange(now.spec, repaired.spec, changed),
   });
+  const code = findings(repaired.spec, second.claims);
   const issues = mergeRoundReview(now.issues, second, changed);
   const was = blockingPerBeat(now.spec, now.code, now.issues);
   const is = blockingPerBeat(repaired.spec, code, issues);
@@ -379,6 +434,7 @@ async function reviewRound(
     version: repaired.output.version,
     code,
     issues,
+    claims: second.claims,
   };
   if (worse.length === 0) return { standing, restored: [] };
   const restored = await restoreBeats(deps, {
@@ -391,12 +447,17 @@ async function reviewRound(
   ctx.log('warn', `Beats ${restored.beatIds.join(', ')} came out worse: put back as they were.`);
   const spec = loadSpec(deps, restored.specVersionId);
   const back = new Set(restored.beatIds);
+  const claims = [
+    ...second.claims.filter((c) => !back.has(c.beatId)),
+    ...now.claims.filter((c) => back.has(c.beatId)),
+  ];
   return {
     standing: {
       spec,
       specVersionId: restored.specVersionId,
       version: restored.version,
-      code: checks(spec),
+      code: findings(spec, claims),
+      claims,
       issues: [
         ...issues.filter((i) => !back.has(i.beatId)),
         ...now.issues.filter((i) => back.has(i.beatId)),
@@ -530,7 +591,7 @@ function buildReport(
           dropped: reviews.flatMap((r) => r.dropped),
           capped: reviews.reduce((sum, r) => sum + r.capped, 0),
           ...(last.previous ? { previous: last.previous } : {}),
-          claims: last.claims,
+          claims: now.claims,
           coverage: last.coverage,
           calls: {
             claims: reviews.reduce((sum, r) => sum + r.calls.claims.length, 0),

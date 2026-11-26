@@ -135,7 +135,8 @@ function beatRequests(
   }
   return {
     repair: { requests: repairRequestsFor(d.beatId, d.fields, d.feedback), decisionEventId },
-    curate: { scope: { sinceSpecVersionId: subject } },
+    // The beat the person regenerated is theirs: the Curator badges it, never repairs it.
+    curate: { scope: { sinceSpecVersionId: subject, badgeOnlyBeatIds: [d.beatId] } },
   };
 }
 

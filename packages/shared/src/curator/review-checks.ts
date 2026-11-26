@@ -58,6 +58,12 @@ export type ReviewCheckContext = {
   notes: ResearchNotes;
   /** In a second round: the ids of the earlier issues (`issue-<n>`), each needing a status. */
   previousIds?: readonly string[];
+  /**
+   * PASS claims in a scoped round: only these beats must be listed (the others' audit carries
+   * over), and their narration sentences only when `narration` (false: a board-only change, its
+   * drawn values alone). Absent: every beat, sentences and values.
+   */
+  coverage?: { readonly beatIds: readonly string[]; readonly narration: boolean };
 };
 
 export const REVIEW_PROBLEM_CODES = [
@@ -77,6 +83,7 @@ export const REVIEW_PROBLEM_CODES = [
   'claim_ids_missing',
   'claim_restatement_missing',
   'claim_issue_missing',
+  'claim_drops_condition',
 ] as const;
 export type ReviewProblemCode = (typeof REVIEW_PROBLEM_CODES)[number];
 

@@ -1,8 +1,9 @@
-import type { CodeIssue, CuratorIssue } from '@explainer-studio/shared';
+import type { Claim, CodeIssue, CuratorIssue } from '@explainer-studio/shared';
 import { describe, expect, it } from 'vitest';
 import { fixtureGeneratedSpec, recordedNotes } from '../generator/testing.ts';
-import { reviewBeatTexts } from './input.ts';
-import { passCheck, settleReview } from './review.ts';
+import { reviewBeatTexts, roundBeatIds, roundCoverage, type CuratorRound } from './input.ts';
+import { mergeClaims, passCheck, settleReview } from './review.ts';
+import { boardOnlyChange } from '../../jobs/curate.ts';
 
 const spec = fixtureGeneratedSpec('rate-limiter');
 const notes = recordedNotes('rate-limiter');
@@ -105,5 +106,71 @@ describe('settleReview: the pass', () => {
     run({ claims: [], issues: [] }, { final: false });
     run({ claims: [], issues: [] }, { final: true });
     expect(repairs).toBe(1);
+  });
+});
+
+describe('scoped rounds', () => {
+  const c = (beatId: string, source: Claim['source'], text: string): Claim => ({
+    beatId,
+    source,
+    text,
+    verdict: 'no_claim',
+    ids: [],
+  });
+  const previousClaims = [
+    c('beat1', 'narration', 'old 1'),
+    c('beat2', 'narration', 'old 2'),
+    c('beat2', 'value', '100'),
+    c('beat3', 'narration', 'old 3'),
+  ];
+  const round = (changed: string[], boardOnly = false): CuratorRound => ({
+    previous: [],
+    changedBeatIds: changed,
+    previousClaims,
+    boardOnly,
+  });
+
+  it("shows the changed beats and a planted question's partner", () => {
+    expect(roundBeatIds(spec, ['beat2'])).toEqual(['beat2']);
+    expect(roundBeatIds(spec, ['beat7'])).toEqual(['beat5', 'beat7']);
+    expect(roundBeatIds(spec, ['beat5', 'beat8'])).toEqual(['beat5', 'beat7', 'beat8']);
+  });
+
+  it('covers the changed beats, without sentences when board-only; nothing outside a carried round', () => {
+    expect(roundCoverage(round(['beat2']))).toEqual({ beatIds: ['beat2'], narration: true });
+    expect(roundCoverage(round(['beat2'], true))).toEqual({ beatIds: ['beat2'], narration: false });
+    expect(roundCoverage({ previous: [], changedBeatIds: ['beat2'] })).toBeUndefined();
+  });
+
+  it("merges the round's claims over the carried audit, in beat order", () => {
+    const answered = [
+      c('beat2', 'narration', 'new 2'),
+      c('beat2', 'value', '99'),
+      c('beat3', 'narration', 'stray'),
+    ];
+    expect(mergeClaims(spec, round(['beat2']), answered).map((x) => x.text)).toEqual([
+      'old 1',
+      'new 2',
+      '99',
+      'old 3',
+    ]);
+    // Board-only: the narration audit carries, only the values are new.
+    expect(mergeClaims(spec, round(['beat2'], true), answered).map((x) => x.text)).toEqual([
+      'old 1',
+      'old 2',
+      '99',
+      'old 3',
+    ]);
+    expect(mergeClaims(spec, undefined, answered)).toEqual(answered);
+  });
+
+  it('a round is board-only when every changed beat kept its script', () => {
+    const boardEdit = structuredClone(spec);
+    boardEdit.scenes[1]!.transitionIn = 'cut';
+    expect(boardOnlyChange(spec, boardEdit, new Set(['beat2']))).toBe(true);
+    const scriptEdit = structuredClone(spec);
+    scriptEdit.script[1]!.narration += ' More.';
+    expect(boardOnlyChange(spec, scriptEdit, new Set(['beat2']))).toBe(false);
+    expect(boardOnlyChange(spec, spec, new Set())).toBe(false);
   });
 });

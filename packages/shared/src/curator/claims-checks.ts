@@ -1,5 +1,6 @@
 import { numberKey, numberMentions } from '../script/number-mentions.ts';
 import { narrationSentences } from '../spec/narration.ts';
+import { CLAIM_DROPS_CONDITION, droppedConditions, droppedConditionText } from './conditions.ts';
 import { isRecord, problem, text, type Json } from './review-helpers.ts';
 import {
   curatorIssueProblems,
@@ -54,8 +55,12 @@ function claimsProblems(
   ctx: ReviewCheckContext,
 ): ReviewProblem[] {
   const claims = Array.isArray(value.claims) ? value.claims.filter(isRecord) : [];
+  const covered = ctx.coverage
+    ? ctx.beats.filter((b) => ctx.coverage!.beatIds.includes(b.beatId))
+    : ctx.beats;
+  const narration = ctx.coverage?.narration ?? true;
   return [
-    ...ctx.beats.flatMap((beat) => coverageProblems(beat, claims)),
+    ...covered.flatMap((beat) => coverageProblems(beat, claims, narration)),
     ...claims.flatMap((claim, j) => claimProblems(claim, j, issues, ctx)),
   ];
 }
@@ -64,9 +69,13 @@ const listed = (claims: readonly Json[], beatId: string, source: string) =>
   claims.filter((c) => c.beatId === beatId && c.source === source);
 
 /** Each sentence and each drawn value of the beat, listed. */
-function coverageProblems(beat: ReviewBeatTexts, claims: readonly Json[]): ReviewProblem[] {
+function coverageProblems(
+  beat: ReviewBeatTexts,
+  claims: readonly Json[],
+  narration: boolean,
+): ReviewProblem[] {
   const said = listed(claims, beat.beatId, 'narration').flatMap((c) => text(c.text) ?? []);
-  const sentences = narrationSentences(beat.narration).flatMap((sentence) =>
+  const sentences = (narration ? narrationSentences(beat.narration) : []).flatMap((sentence) =>
     said.some((t) => quoteFound(sentence, [t]))
       ? []
       : [
@@ -203,7 +212,7 @@ function verdictProblems(
       ...ctx.notes.facts.map((f) => f.id),
       ...ctx.notes.numbers.map((n) => n.id),
     ]);
-    return ids.flatMap((id, k) =>
+    const unknown = ids.flatMap((id, k) =>
       known.has(id)
         ? []
         : [
@@ -214,6 +223,7 @@ function verdictProblems(
             ),
           ],
     );
+    return unknown.length > 0 ? unknown : conditionProblems(claim, j, ids, ctx, claimText);
   }
   if (claim.verdict !== 'issue') return [];
   return issues.some((issue) => quotesClaim(issue, claim, claimText))
@@ -226,6 +236,33 @@ function verdictProblems(
             'Report the issue under issues, or give the claim its supporting ids.',
         ),
       ];
+}
+
+/**
+ * `claim_drops_condition`: a supported narration claim whose cited number holds only under a condition
+ * (its context: "when using pipelining") that neither the sentence nor `restates.claim` names.
+ */
+function conditionProblems(
+  claim: Json,
+  j: number,
+  ids: readonly string[],
+  ctx: ReviewCheckContext,
+  claimText: string,
+): ReviewProblem[] {
+  if (claim.source !== 'narration') return [];
+  const restated = isRecord(claim.restates) ? (text(claim.restates.claim) ?? '') : '';
+  const dropped = droppedConditions(ids, [claimText, restated], ctx.notes);
+  if (dropped.length === 0) return [];
+  return [
+    problem(
+      ['claims', j, 'restates', 'claim'],
+      CLAIM_DROPS_CONDITION,
+      `"${claimText}" cites ${dropped.map((d) => d.numberId).join(', ')}, but ` +
+        `${droppedConditionText(dropped)}. If the narration states that condition, in any ` +
+        'words, name it in restates.claim; otherwise the verdict is issue, with an ' +
+        'unsupported_claim issue quoting the sentence.',
+    ),
+  ];
 }
 
 function restates(claim: Json): boolean {

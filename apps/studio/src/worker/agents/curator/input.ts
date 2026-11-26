@@ -20,6 +20,7 @@ import {
   numberMentions,
   readability,
   type BeatScript,
+  type Claim,
   type CodeIssue,
   type PartRef,
   type Evidence,
@@ -52,6 +53,41 @@ export interface CuratorRound {
   readonly previous: readonly PreviousIssue[];
   /** Beats changed by the repairs since; new issues are reported only on these. */
   readonly changedBeatIds: readonly string[];
+  /**
+   * The claim audit standing before this round: the unchanged beats' entries carry over, so PASS
+   * claims lists only the changed beats (`roundCoverage`). Absent: every beat is listed again.
+   */
+  readonly previousClaims?: readonly Claim[];
+  /** Every changed beat kept its script: PASS claims audits their drawn values only. */
+  readonly boardOnly?: boolean;
+}
+
+/**
+ * The beats a scoped round shows the model (pure): the changed ones, plus the planted question's
+ * beat or its payoff when the other one changed, so the pair can still be judged. Beat order.
+ */
+export function roundBeatIds(
+  spec: RenderableVideoSpec,
+  changedBeatIds: readonly string[],
+): string[] {
+  const changed = new Set(changedBeatIds);
+  const planted = spec.story.plantedQuestion;
+  const pair = planted ? [planted.beatId, planted.payoffBeatId] : [];
+  const partners = pair.some((id) => changed.has(id)) ? pair : [];
+  const shown = new Set([...changed, ...partners]);
+  return spec.story.beats.map((b) => b.id).filter((id) => shown.has(id));
+}
+
+/**
+ * What PASS claims must list in a round (`ReviewCheckContext.coverage`): the changed beats, their
+ * sentences unless the round is board-only. Undefined outside a round, or when the earlier audit
+ * is not carried (every beat is listed).
+ */
+export function roundCoverage(
+  round: CuratorRound | undefined,
+): { beatIds: readonly string[]; narration: boolean } | undefined {
+  if (!round?.previousClaims) return undefined;
+  return { beatIds: round.changedBeatIds, narration: !round.boardOnly };
 }
 
 export interface CuratorMessageInput {
@@ -75,16 +111,26 @@ export function curatorUserMessage(input: CuratorMessageInput): string {
   const boards = describeBoards(input);
   const findings = findingsByBeat(spec, input.codeIssues);
   const changed = new Set(input.round?.changedBeatIds ?? []);
+  // A scoped round with the earlier audit carried shows only the beats it reviews.
+  const scoped = input.round?.previousClaims !== undefined;
+  const shown = new Set(
+    input.round && scoped
+      ? roundBeatIds(spec, input.round.changedBeatIds)
+      : spec.story.beats.map((b) => b.id),
+  );
   return [
     intro(spec, input.level),
     section('NOTES (the only facts; evidence cites their ids)', json(notesInput(input.notes))),
     section('VIDEO', videoLines(spec, input.notes, input.level).join('\n')),
     section('CODE FINDINGS (whole video; do not repeat them)', lines(findings.get('') ?? [])),
-    ...spec.story.beats.map((beat, i) =>
-      beatSection(input, beat, i, boards.get(beat.id), findings.get(beat.id) ?? [], changed),
+    ...spec.story.beats.flatMap((beat, i) =>
+      shown.has(beat.id)
+        ? [beatSection(input, beat, i, boards.get(beat.id), findings.get(beat.id) ?? [], changed)]
+        : [],
     ),
+    ...(scoped ? [otherBeatsSection(spec, shown)] : []),
     ...(input.round ? roundSections(input.round) : []),
-    ...passSections(input.pass, spec, boards),
+    ...passSections(input.pass, spec, boards, input.round),
   ].join('\n\n');
 }
 
@@ -295,7 +341,11 @@ function beatSection(
     `BEAT ${beat.id} (${i + 1} of ${spec.story.beats.length})` +
     (chapter ? ` · chapter ${quoted(chapter.question ?? chapter.title)}` : '') +
     (beat.device ? ` · device ${beat.device}` : '') +
-    (changed.has(beat.id) ? ' · CHANGED since the last review' : '');
+    (changed.has(beat.id)
+      ? ' · CHANGED since the last review'
+      : changed.size > 0 && input.round?.previousClaims
+        ? ' · context (the planted question and its payoff; unchanged)'
+        : '');
   const body = [
     `intent: ${beat.intent}`,
     planLine(beat),
@@ -520,6 +570,14 @@ function focusText(board: BoardDescription): string {
 
 // --- A second round ------------------------------------------------------------------------------------
 
+/** A scoped round's unchanged beats, not shown in full: their narration, for the story's flow. */
+function otherBeatsSection(spec: RenderableVideoSpec, shown: ReadonlySet<string>): string {
+  const others = spec.story.beats
+    .filter((b) => !shown.has(b.id))
+    .map((b) => `- ${b.id}: ${quoted(scriptOf(spec, b.id)?.narration ?? '')}`);
+  return section('OTHER BEATS (reviewed already and unchanged; narration only)', lines(others));
+}
+
 function roundSections(round: CuratorRound): string[] {
   const previous = round.previous.map(
     ({ id, issue }) =>
@@ -586,21 +644,68 @@ function passSections(
   pass: ReviewPass,
   spec: RenderableVideoSpec,
   boards: ReadonlyMap<string, BoardDescription>,
+  round?: CuratorRound,
 ): string[] {
-  const values = pass === 'claims' ? [drawnValuesSection(spec, boards)] : [];
-  return [
-    section(`PASS ${pass}`, PASS_TASKS[pass]),
-    ...values,
-    outputSchemaSection(PASS_SCHEMAS[pass]),
-  ];
+  const coverage = roundCoverage(round);
+  const values = pass === 'claims' ? [drawnValuesSection(spec, boards, coverage?.beatIds)] : [];
+  const task = !coverage
+    ? PASS_TASKS[pass]
+    : pass === 'claims'
+      ? scopedClaimsTask(coverage)
+      : scopedStoryTask(coverage.beatIds);
+  return [section(`PASS ${pass}`, task), ...values, outputSchemaSection(PASS_SCHEMAS[pass])];
+}
+
+/** PASS claims in a scoped round: only the changed beats; the others' audit carries over. */
+function scopedClaimsTask(coverage: { beatIds: readonly string[]; narration: boolean }): string {
+  const beats = coverage.beatIds.join(', ');
+  const what = coverage.narration
+    ? `every narration sentence of the CHANGED beats (${beats}), in order and copied exactly ` +
+      '(source "narration"), and every value under DRAWN VALUES'
+    : `every value under DRAWN VALUES (the CHANGED beats ${beats} kept their narration, whose ` +
+      'audit carries over: list no sentence)';
+  return (
+    `List ${what}, one entry each (source "value", its elementId, the value as drawn, and the ` +
+    'label it is read with). Give each a verdict as in a full review: supported, with the ids ' +
+    'that state it and restates; no_claim; or issue, with the issue under issues quoting it. ' +
+    'The other beats were audited already: do not list them. Report only unsupported_claim and ' +
+    'number_wrong_meaning here.'
+  );
+}
+
+/**
+ * PASS story in a scoped round: the categories of a full review, on the CHANGED beats only (the
+ * others' issues carry over), so the task never contradicts CHANGED BEATS.
+ */
+function scopedStoryTask(beatIds: readonly string[]): string {
+  return (
+    `Report, on the CHANGED beats (${beatIds.join(', ')}) only, every problem of the other ` +
+    'categories: wrong_simplification, visual_contradicts, visual_distracts, ' +
+    'term_before_shown, above_level, hook_retold, small_stat_card and missing_trade_off (owner ' +
+    'director, fields plan). Read the beats marked context and OTHER BEATS for how the changed ' +
+    'beats fit the story, but report nothing on them: their issues carry over. Do not report ' +
+    'unsupported_claim or number_wrong_meaning: the claims pass covers them.'
+  );
+}
+
+/** Whether a board-only round's claims pass has anything to audit (drawn values on its beats). */
+export function hasDrawnValues(
+  spec: RenderableVideoSpec,
+  beatIds: readonly string[],
+  options: { registries?: Registries; theme?: Theme } = {},
+): boolean {
+  const boards = describeBoards({ spec, ...options });
+  return beatIds.some((id) => drawnValues(boards.get(id)).length > 0);
 }
 
 /** Each drawn value, with the texts of the element that draws it (what it is read with). */
 function drawnValuesSection(
   spec: RenderableVideoSpec,
   boards: ReadonlyMap<string, BoardDescription>,
+  beatIds?: readonly string[],
 ): string {
-  const lines = spec.story.beats.flatMap((beat) => {
+  const beats = spec.story.beats.filter((b) => !beatIds || beatIds.includes(b.id));
+  const lines = beats.flatMap((beat) => {
     const board = boards.get(beat.id);
     const items = new Map((board?.items ?? []).map((i) => [i.id, i]));
     return drawnValues(board).map((v) => {
