@@ -1192,12 +1192,13 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
 - **Board descriptions** (`describeBoard`, renderer `catalog/board-description.ts`, pure, generic
   over the registries): what earlier beats of the board left on screen, then what this beat adds;
   each item with its screen texts and drawn numbers by prop path (`schema-leaves.ts`), colours,
-  icons, refs (pins with their side, connector ends), a pattern's anchors and inner elements,
+  icons, refs (pins with their side, connector ends, each named by its target's first text,
+  else its asset: `pin.to icon-disk (icon disk, top)`), a pattern's anchors and inner elements,
   this beat's events with the narration word each happens on (index and word as written), and
   its state as the beat ends; the focus over the beat. `reviewBeatTexts` gives the quote checks
   the same texts (narration, headline, tags, stat card values and labels, source line, each
   element's texts and values), so anything the message shows can be quoted.
-- **Two passes** (curator@v3): the same system prompt and the same user message up to its last
+- **Two passes** (curator@v4): the same system prompt and the same user message up to its last
   sections, `PASS <pass>` and its output shape, so the second call reuses the cached prefix.
   PASS claims (`ClaimsPassSchema`: `claims` and `issues` of `PASS_CATEGORIES.claims`,
   `unsupported_claim` and `number_wrong_meaning`) lists every narration sentence of every beat and
@@ -1206,7 +1207,10 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   message lists them under DRAWN VALUES), each `supported` with the ids that state it and
   `restates` (the claim's subject and verb next to the fact's, so a reversal shows), `no_claim`,
   or `issue` with an issue quoting it;
-  PASS story (`StoryPassSchema`: `issues` of the other categories, `previous` in a second round).
+  PASS story (`StoryPassSchema`: `issues` of the other categories, `previous` in a second round;
+  `label_on_wrong_element`, the Generator's, blocking: a tag or callout pinned to an element its
+  words do not describe, with two `label` evidence items on different elements, the tag's and its
+  host's, an icon's asset name quotable as its label: `CategoryRule.distinctLabels`).
   `reviewPassProblems` (shared `curator/claims-checks.ts`) is each pass's check:
   `curatorIssueProblems`, `category_not_in_pass`, and for claims `claim_missing` /
   `value_claim_missing` (coverage: a repair turn), `quote_not_found` on a claim or its label,
@@ -1857,7 +1861,8 @@ channelHandle })` measures the same strings (`subjectText`, `chapterHeaderText`,
   It shows when the ending has lines or a CTA (`hasEndingCard`), enters on the first word of the
   final beat's last sentence (`endingStartSec`, `sentenceStartIndexes` in shared; without word
   timings `ENDING_FALLBACK_SEC` (2.5 s) before the beat's narration ends) and holds through the
-  end tail. While it shows the board layer dims by `DIM_FADE` (`endingBoardOpacity`) and the
+  end tail. While it shows the board layer dims by its own `ENDING_DIM_FADE` (0.7,
+  `endingBoardOpacity`; focus dimming is lighter) and the
   headline stops (`cuesUntil`). Geometry is pure (`ending-layout.ts`): over the board, clear of
   avoid zones (`endingRegion`), fixed row heights (header cell; one `chapter`-style line per spec
   card line beside its number; the CTA in `body`, up to `ENDING_CTA_LINES` (3)). Title-block
@@ -1965,7 +1970,11 @@ theme)` lays out a whole spec, memoised per spec object and theme (never per fra
   - **Warnings** (`LayoutWarning`; `specLayoutWarnings(spec, theme)` gives `{ path, code,
 message }` for the Curator): `too_many_elements` (mode `maxUnits`), `text_too_small`,
     `overlap`, `connector_crosses`, `text_covered`, `unknown_zone`, `unknown_layout_mode`, `layout_mode_ignored`,
-    `pin_unresolved`, `avoid_zone`, and `text_truncated` (`text-fit.ts`: a `clippedLines` line
+    `pin_unresolved`, `avoid_zone`, `key_element_too_small` (`key-size.ts`: a placed solid
+    component, a `zoomable` primitive such as a card or an icon, whose longer side is under
+    `KEY_ELEMENT_MIN_SHARE` (10%) of the frame width: a lower bound beside `text_too_small`;
+    run 1's b2 icons were 7.8%, every golden and recorded board's smallest is above 16%), and
+    `text_truncated` (`text-fit.ts`: a `clippedLines` line
     wider than its room at the placed box, container children included, or a beat source wider
     than its chain's footnote line; measured with `textWidth`; the path points at the text
     itself, e.g. `$.scenes[3].elements[1].props.subtitle` or `$.script[1].source`, or at the
@@ -2055,8 +2064,11 @@ message }` for the Curator): `too_many_elements` (mode `maxUnits`), `text_too_sm
   exit and re-enter.
 - **Event engine** (`src/events`, React-free). `presets.ts` holds every timing and strength
   constant: per-action duration and easing (none overshoots), group stagger, highlight lead,
-  camera and transition times, and `DIM_FADE`, the one dim strength (components use
-  `dimOpacity(state.dimmed)`, never a literal). `resolve.ts` turns anchored scene and pattern
+  camera and transition times, and the dim strengths: `DIM_FADE` (0.7: an explicit `dim`, the
+  board behind an overlay) and the lighter `FOCUS_DIM_FADE` (0.5: out of focus, reaching
+  components as `dimmed` = `FOCUS_DIM_LEVEL`, so neutral text keeps `DIMMED_TEXT_MIN_CONTRAST`,
+  3:1, in every theme; `theme/dim-contrast.test.ts`). Components use `dimOpacity(state.dimmed)`,
+  never a literal. `resolve.ts` turns anchored scene and pattern
   events into per-element events: a default stagger for groups (several targets, an instance,
   several parts; enter, exit, highlight, dim, pulse), `params.stagger: 'scan'` for a one-by-one
   sweep (any action; parts in the element's own order; ≤ 2 s and never past the beat's next
@@ -2066,7 +2078,9 @@ message }` for the Curator): `too_many_elements` (mode `maxUnits`), `text_too_sm
   `focus` events (an engine action, valid on any target; never delivered to elements) and
   overlays give each element a focus track (`focus` and `overlay` keys); out of focus means
   `dimmed`, lifted while the element is highlighted, but the overlay dim is never lifted.
-  Followers (pinned, contained) share their host's focus. `params.ts` reads and validates
+  Followers (pinned, contained) share their host's focus. A primitive with `focusDim: 'never'`
+  (`stat_card`), and what is pinned to or contained in it, is never focus-dimmed (an explicit
+  `dim` and the overlay dim still apply), so a number the beat showed stays readable. `params.ts` reads and validates
   `hold` / `stagger` (`invalid_event_param`: `hold` off a highlight).
 - **Fail → recover.** A `reject` is held until a later `recover` on the same element or part;
   nothing else ends it (highlight, enter and pulse leave it red; lock is separate). Once a

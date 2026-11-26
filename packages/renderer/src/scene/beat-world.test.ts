@@ -1,3 +1,4 @@
+import { FOCUS_DIM_LEVEL } from '../events/presets.ts';
 import { effectiveTiming, type RenderableVideoSpec } from '@explainer-studio/shared';
 import { describe, expect, it } from 'vitest';
 import { parseRenderableSpec } from '../compositions/metadata.ts';
@@ -283,7 +284,27 @@ describe('beatWorld: event engine', () => {
     const late = wordFrame(spec, 12);
     expect(stateOf(spec, 'api', late).dimmed).toBe(0);
     expect(stateOf(spec, 'note', late).dimmed).toBe(0);
-    expect(stateOf(spec, 'client', late).dimmed).toBe(1);
+    expect(stateOf(spec, 'client', late).dimmed).toBe(FOCUS_DIM_LEVEL);
+  });
+
+  it('never focus-dims a stat card, nor what is pinned to it; a `dim` still applies', () => {
+    const card = {
+      id: 'stat',
+      primitive: 'stat_card',
+      props: { value: '429', label: 'requests refused', source: 'status page' },
+    };
+    const pinned = {
+      id: 'stat-note',
+      primitive: 'tag',
+      props: { text: 'peak', pin: { to: 'stat' } },
+    };
+    const spec = hook([card, pinned], [], ['api']);
+    const late = wordFrame(spec, 12);
+    expect(stateOf(spec, 'client', late).dimmed).toBe(FOCUS_DIM_LEVEL);
+    expect(stateOf(spec, 'stat', late).dimmed).toBe(0);
+    expect(stateOf(spec, 'stat-note', late).dimmed).toBe(0);
+    const dimmed = hook([card], [ev('dim', ['stat'], 'error')], ['api']);
+    expect(stateOf(dimmed, 'stat', wordFrame(dimmed, 19) + 20).dimmed).toBe(1);
   });
 
   it('moves the focus at a focus event, animating the change', () => {
@@ -292,7 +313,7 @@ describe('beatWorld: event engine', () => {
     expect(stateOf(spec, 'api', at - 1).dimmed).toBe(0);
     expect(stateOf(spec, 'api', at + 3).dimmed).toBeGreaterThan(0);
     expect(stateOf(spec, 'api', at + 3).dimmed).toBeLessThan(1);
-    expect(stateOf(spec, 'api', at + 20).dimmed).toBe(1);
+    expect(stateOf(spec, 'api', at + 20).dimmed).toBe(FOCUS_DIM_LEVEL);
     expect(stateOf(spec, 'client', at + 20).dimmed).toBe(0);
   });
 
@@ -344,7 +365,7 @@ describe('beatWorld: event engine', () => {
     const later = wordFrame(behind, 15);
     expect(stateOf(behind, 'client', later)).toMatchObject({ highlight: 1, dimmed: 1 });
     const unfocused = hook([], [ev('highlight', ['client'], 'falls')], ['api']);
-    expect(stateOf(unfocused, 'client', wordFrame(unfocused, 8)).dimmed).toBe(1);
+    expect(stateOf(unfocused, 'client', wordFrame(unfocused, 8)).dimmed).toBe(FOCUS_DIM_LEVEL);
     expect(stateOf(unfocused, 'client', later)).toMatchObject({ highlight: 1, dimmed: 0 });
   });
 

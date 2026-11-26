@@ -222,13 +222,20 @@ function resolveWorld(
     }
     return false;
   };
-  return drafts.map((draft) =>
-    withEvents(
-      draft,
-      byKey.get(draft.key) ?? [],
-      exempt(draft.key) ? NO_FOCUS : focusTrack(draft.key, track),
-    ),
-  );
+  // A primitive focus never dims (`focusDim: 'never'`), and what hangs on it, keep the overlay dim.
+  const keepsFocus = (key: string) => {
+    for (let k: string | undefined = key; k !== undefined; k = hosts.get(k)) {
+      const draft = drafts.find((d) => d.key === k);
+      if (draft?.kind === 'primitive' && draft.definition.focusDim === 'never') return true;
+    }
+    return false;
+  };
+  const trackOf = (key: string): FocusTrack => {
+    if (exempt(key)) return NO_FOCUS;
+    const own = focusTrack(key, track);
+    return keepsFocus(key) ? { ...own, focus: [] } : own;
+  };
+  return drafts.map((draft) => withEvents(draft, byKey.get(draft.key) ?? [], trackOf(draft.key)));
 }
 
 function isOverlayDraft(draft: Draft): boolean {

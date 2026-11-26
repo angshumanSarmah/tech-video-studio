@@ -157,6 +157,12 @@ export interface PrimitiveDefinition<Id extends string = string, S extends z.Zod
    */
   zoomable?: boolean;
   /**
+   * `never`: focus never dims it (nor what is pinned to or contained in it), so a number the
+   * beat showed stays readable while focus moves on (`stat_card`). An explicit `dim` and the
+   * board dim behind an overlay still apply.
+   */
+  focusDim?: 'never';
+  /**
    * Text it draws outside its own body (a label on a ring's rim), in box px. The layout reports
    * `text_covered` when an element is placed over one. Omit when all its text is inside it.
    */

@@ -58,8 +58,12 @@ export type BoardItemDescription = {
   /** `semantic`, `fromSemantic`, … wherever they sit in the props. */
   colours: KeyedValue<string>[];
   icons: KeyedValue<string>[];
-  /** Other elements it points to: a pin (with its side), a connector's ends, a container's children. */
-  refs: { key: string; id: string; side?: string }[];
+  /**
+   * Other elements it points to: a pin (with its side), a connector's ends, a container's
+   * children; `name` is the target as a viewer reads it: its first text, else an icon's asset
+   * ("icon disk"), so a label pinned to the wrong element shows.
+   */
+  refs: { key: string; id: string; side?: string; name?: string }[];
   /** A pattern instance's narration anchors (`params.at`). */
   anchors: { name: string; at: AnchorDescription }[];
   /** A pattern instance's elements (`<instance>/<id>`) with their screen texts. */
@@ -116,8 +120,28 @@ export function describeBoard(
     ...(scene.continuesPrevious ? {} : { transitionIn: scene.transitionIn }),
     ...(scene.zoomFrom ? { zoomFrom: scene.zoomFrom } : {}),
     focus: focusOf(scene, words),
-    items: [...kept, ...itemsOf(scene, true, ctx)],
+    items: withRefNames([...kept, ...itemsOf(scene, true, ctx)]),
   };
+}
+
+/** Each ref named by its target's first text, else its asset (`refs[].name`). */
+function withRefNames(items: BoardItemDescription[]): BoardItemDescription[] {
+  const byId = new Map(items.map((i) => [i.id, i]));
+  const nameOf = (id: string): string | undefined => {
+    const target = byId.get(id);
+    if (!target) return undefined;
+    const text = target.texts[0]?.value;
+    if (text) return `${target.type} "${text}"`;
+    const asset = target.icons[0]?.value;
+    return asset ? `${target.type} ${asset}` : undefined;
+  };
+  return items.map((item) => ({
+    ...item,
+    refs: item.refs.map((r) => {
+      const name = nameOf(r.id);
+      return name ? { ...r, name } : r;
+    }),
+  }));
 }
 
 type Words = { normalized: string[]; written: string[] };

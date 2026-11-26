@@ -28,7 +28,7 @@ export const PROMPT_VERSIONS: Readonly<Record<PromptName, number>> = {
   director: 4,
   scriptwriter: 8,
   generator: 2,
-  curator: 3,
+  curator: 4,
   analyst: 2,
   reference: 1,
 };

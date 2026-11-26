@@ -518,9 +518,9 @@ numbers said or shown (each with the research numbers that have its value; the s
 board: new board (fade in) · layout two_column
 added in this beat:
 - checkout · node_card · title "CHECKOUT" · semantic problem · icon server · enter on 6 "checkout"
-- failing-tag · tag · text "checkout failing" · semantic problem · pin.to checkout (top) · enter on 7 "failed"
+- failing-tag · tag · text "checkout failing" · semantic problem · pin.to checkout (node_card "CHECKOUT", top) · enter on 7 "failed"
 - rate-limiter · node_card · title "RATE LIMITER" · subtitle "gate" · semantic focus · icon shield · enter on 13 "limiter,"
-- traffic-tag · tag · text "too much traffic" · semantic problem · pin.to rate-limiter (bottom) · enter on 19 "let"
+- traffic-tag · tag · text "too much traffic" · semantic problem · pin.to rate-limiter (node_card "RATE LIMITER", bottom) · enter on 19 "let"
 - fail-stat · stat_card · value "31%" · label "Checkouts that failed" · source "Post-incident report: checkout errors on 14 March 2025" · semantic problem · enter on 20 "thirty-one"
 focus: checkout from the start → rate-limiter on 13 "limiter,"
 code findings:
@@ -547,9 +547,9 @@ board: new board (fade in) · layout centered_focus
 added in this beat:
 - request · item_icon · caption "checkout request" · semantic neutral · asset credit_card · enter on 1 "checkout"
 - bucket · counter_transition · unit "tokens" · label "capacity" · from 100 · to 99 · fromSemantic neutral · toSemantic focus · enter on 8 "token" · count on 28 "spends"
-- perkey_tag · tag · text "per-key bucket" · semantic concept · pin.to bucket (top) · enter on 9 "bucket,"
+- perkey_tag · tag · text "per-key bucket" · semantic concept · pin.to bucket (counter_transition "tokens", top) · enter on 9 "bucket,"
 - refill · counter · unit "tokens/s" · label "refill rate" · value 10 · from 0 · semantic concept · enter on 22 "refills" · count on 23 "ten"
-- spend_tag · tag · text "spend one token" · semantic focus · pin.to bucket (bottom) · enter on 27 "request"
+- spend_tag · tag · text "spend one token" · semantic focus · pin.to bucket (counter_transition "tokens", bottom) · enter on 27 "request"
 focus: bucket from the start
 code findings:
 none
@@ -601,7 +601,7 @@ on screen from earlier beats:
 added in this beat:
 - node_a · node_card · title "GATEWAY A" · subtitle "one of 24 nodes" · semantic neutral · icon server · enter on 12 "Otherwise" · highlight on 15 "read" · reject on 26 "let" · as the beat ends: rejected
 - node_b · node_card · title "GATEWAY B" · subtitle "one of 24 nodes" · semantic neutral · icon server · enter on 13 "two" · highlight on 15 "read" · reject on 26 "let" · as the beat ends: rejected
-- double_spend · tag · text "double spend" · semantic problem · pin.to store_node (bottom) · enter on 20 "both"
+- double_spend · tag · text "double spend" · semantic problem · pin.to store_node (node_card "IN-MEMORY STORE", bottom) · enter on 20 "both"
 focus: store_node from the start
 code findings:
 none
@@ -625,7 +625,7 @@ board: new board (fade in) · layout stacked_list
 added in this beat:
 - gateway · node_card · title "GATEWAY" · subtitle "sends each check" · semantic neutral · icon router · enter on 2 "check"
 - store · node_card · title "SHARED STORE" · subtitle "bucket state" · semantic neutral · icon memory · enter on 4 "the"
-- trip · connector · semantic concept · from gateway · to store · enter on 5 "network."
+- trip · connector · semantic concept · from gateway (node_card "GATEWAY") · to store (node_card "SHARED STORE") · enter on 5 "network."
 - trip-label · tag · text "network round trip" · semantic concept · pin.to trip (middle)
 - slow-tag · tag · text "slow store" · semantic problem · enter on 11 "slow?"
 - latency · counter_transition · unit "ms" · label "round trip per request" · from 0.4 · to 2.1 · fromSemantic neutral · toSemantic problem · enter on 18 "zero" · count on 25 "two"
@@ -653,8 +653,8 @@ added in this beat:
 - store · node_card · title "STORE" · subtitle "replica in another zone" · semantic neutral · icon database · enter on 3 "failover"
 - check_card · node_card · title "LIMITER CHECK" · subtitle "calls the store" · semantic neutral · icon search · enter on 13 "Store" · reject on 31 "counted" · as the beat ends: rejected
 - latency_card · stat_card · value "80 ms" · label "Store call after failover" · source "Post-incident report: checkout errors on 14 March 2025" · semantic problem · enter on 20 "eighty"
-- zone_tag · tag · text "cross-zone replica" · semantic concept · pin.to store (bottom) · enter on 9 "replica"
-- timeout_tag · tag · text "past the timeout" · semantic problem · pin.to latency_card (top) · enter on 27 "timeout,"
+- zone_tag · tag · text "cross-zone replica" · semantic concept · pin.to store (node_card "STORE", bottom) · enter on 9 "replica"
+- timeout_tag · tag · text "past the timeout" · semantic problem · pin.to latency_card (stat_card "80 ms", top) · enter on 27 "timeout,"
 focus: store from the start → latency_card on 20 "eighty" → check_card on 28 "so"
 code findings:
 none
@@ -675,10 +675,10 @@ added in this beat:
 - inst_a · node_card · title "CHECKOUT 1" · icon server · enter on 6 "limiter"
 - inst_b · node_card · title "CHECKOUT 2" · icon server · enter on 11 "Each"
 - hub · node_card · title "PAYMENT PROVIDER" · semantic problem · icon credit_card · enter on 24 "payment" · reject on 35 "failing." · as the beat ends: rejected
-- link_a · connector · semantic focus · from inst_a · to hub · enter on 27 "roughly" · move on 30 "its"
-- link_b · connector · semantic focus · from inst_b · to hub · enter on 28 "forty" · move on 31 "contracted"
-- tag_uncounted · tag · text "uncounted traffic" · semantic problem · pin.to inst_a (bottom) · enter on 10 "uncounted."
-- tag_local · tag · text "local limits" · semantic problem · pin.to inst_b (top) · enter on 20 "alone."
+- link_a · connector · semantic focus · from inst_a (node_card "CHECKOUT 1") · to hub (node_card "PAYMENT PROVIDER") · enter on 27 "roughly" · move on 30 "its"
+- link_b · connector · semantic focus · from inst_b (node_card "CHECKOUT 2") · to hub (node_card "PAYMENT PROVIDER") · enter on 28 "forty" · move on 31 "contracted"
+- tag_uncounted · tag · text "uncounted traffic" · semantic problem · pin.to inst_a (node_card "CHECKOUT 1", bottom) · enter on 10 "uncounted."
+- tag_local · tag · text "local limits" · semantic problem · pin.to inst_b (node_card "CHECKOUT 2", top) · enter on 20 "alone."
 focus: inst_a, inst_b from the start → hub, link_a, link_b on 29 "times"
 code findings:
 - beat_over_target (blocking, scriptwriter): Beat beat7 runs 15.2 s against its planned 12 s (127%; more than 125% is too long). Cut about 8 words: it is read at 2.4 words a second, and spoken numbers take longer than they look.
@@ -700,9 +700,9 @@ numbers said or shown (each with the research numbers that have its value; the s
 board: new board (fade in) · layout grid
 added in this beat:
 - limiter · node_card · title "PAYMENT LIMITER" · subtitle "Fails closed" · semantic ok · icon shield · enter on 4 "refuses"
-- tag-refuse · tag · text "refuse uncounted" · semantic ok · pin.to limiter (top)
+- tag-refuse · tag · text "refuse uncounted" · semantic ok · pin.to limiter (node_card "PAYMENT LIMITER", top)
 - instances · node_card · title "EACH INSTANCE" · subtitle "Share of contract" · semantic concept · icon split · enter on 13 "each"
-- tag-split · tag · text "split fallback" · semantic concept · pin.to instances (top)
+- tag-split · tag · text "split fallback" · semantic concept · pin.to instances (node_card "EACH INSTANCE", top)
 - store-timeout · stat_card · value "150 ms" · label "Store timeout after fix" · source "Larkspur Pay platform team incident report, 14 Mar 2025" · semantic focus · enter on 25 "a"
 focus: limiter from the start → store-timeout on 29 "milliseconds,"
 code findings:
@@ -840,6 +840,7 @@ List every narration sentence of every beat, in order and copied exactly (source
               "number_wrong_meaning",
               "visual_contradicts",
               "visual_distracts",
+              "label_on_wrong_element",
               "term_before_shown",
               "above_level",
               "hook_retold",

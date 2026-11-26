@@ -44,6 +44,7 @@ export function statCardSizeHints(props: StatCardProps, theme: Theme): SizeHints
 export const statCardPrimitive = definePrimitive({
   id: 'stat_card',
   family: 'metric',
+  focusDim: 'never',
   propsSchema: StatCardPropsSchema,
   actions: ['enter', 'exit', 'highlight', 'dim', 'pulse'],
   sizeHints: statCardSizeHints,

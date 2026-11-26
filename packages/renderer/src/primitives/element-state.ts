@@ -6,6 +6,7 @@ import {
   DRAWN,
   drawLevels,
   type DrawLevels,
+  FOCUS_DIM_LEVEL,
 } from '../events/presets.ts';
 import { eventParts } from './parts.ts';
 
@@ -141,7 +142,8 @@ export function elementState(
     fps,
   );
   const sec = frame / fps;
-  const unfocused = focusLevel(focus.focus, sec) * (1 - whole.highlight);
+  // Out of focus dims lighter than an explicit `dim` or an overlay (`FOCUS_DIM_LEVEL`).
+  const unfocused = focusLevel(focus.focus, sec) * (1 - whole.highlight) * FOCUS_DIM_LEVEL;
   return {
     ...whole,
     dimmed: Math.max(whole.dimmed, unfocused, focusLevel(focus.overlay, sec)),

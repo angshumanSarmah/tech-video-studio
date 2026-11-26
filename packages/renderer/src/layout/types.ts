@@ -65,6 +65,7 @@ export const LAYOUT_WARNING_CODES = [
   'connector_crosses',
   'text_covered',
   'avoid_zone',
+  'key_element_too_small',
 ] as const;
 export type LayoutWarningCode = (typeof LAYOUT_WARNING_CODES)[number];
 

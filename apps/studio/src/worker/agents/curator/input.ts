@@ -220,9 +220,17 @@ function scriptOf(spec: RenderableVideoSpec, beatId: string): BeatScript | undef
   return spec.script.find((s) => s.beatId === beatId);
 }
 
+/** What a label quote may copy per element: its texts, drawn numbers and asset names (icons). */
 function labelEntries(board: BoardDescription): [string, string[]][] {
   return board.items.flatMap((item) => [
-    [item.id, [...item.texts.map((t) => t.value), ...item.numbers.map((n) => String(n.value))]],
+    [
+      item.id,
+      [
+        ...item.texts.map((t) => t.value),
+        ...item.numbers.map((n) => String(n.value)),
+        ...item.icons.map((c) => c.value),
+      ],
+    ],
     ...item.inner.map((i): [string, string[]] => [i.id, i.texts]),
   ]);
 }
@@ -520,7 +528,10 @@ function itemLine(item: BoardItemDescription): string {
     ...item.numbers.map((n) => `${n.key} ${n.value}`),
     ...item.colours.map((c) => `${c.key} ${c.value}`),
     ...item.icons.map((c) => `${c.key} ${c.value}`),
-    ...item.refs.map((r) => `${r.key} ${r.id}${r.side ? ` (${r.side})` : ''}`),
+    ...item.refs.map(
+      (r) =>
+        `${r.key} ${r.id}${r.name || r.side ? ` (${[r.name, r.side].filter(Boolean).join(', ')})` : ''}`,
+    ),
     ...item.anchors.map((a) => `${a.name} on ${anchorText(a.at)}`),
     ...item.events.map(eventText),
     ...endText(item),
@@ -625,7 +636,8 @@ const PASS_TASKS: Readonly<Record<ReviewPass, string>> = {
     'every sentence and every drawn value is listed.',
   story:
     'Report every other category across the whole video: wrong_simplification, ' +
-    'visual_contradicts, visual_distracts, term_before_shown, above_level, hook_retold, ' +
+    'visual_contradicts, visual_distracts, label_on_wrong_element, term_before_shown, ' +
+    'above_level, hook_retold, ' +
     'small_stat_card and missing_trade_off (owner director, fields plan: a missing trade-off ' +
     'needs a beat the plan gives it). Do not report unsupported_claim or number_wrong_meaning: ' +
     'the claims pass covers them.',
@@ -681,7 +693,7 @@ function scopedStoryTask(beatIds: readonly string[]): string {
   return (
     `Report, on the CHANGED beats (${beatIds.join(', ')}) only, every problem of the other ` +
     'categories: wrong_simplification, visual_contradicts, visual_distracts, ' +
-    'term_before_shown, above_level, hook_retold, small_stat_card and missing_trade_off (owner ' +
+    'label_on_wrong_element, term_before_shown, above_level, hook_retold, small_stat_card and missing_trade_off (owner ' +
     'director, fields plan). Read the beats marked context and OTHER BEATS for how the changed ' +
     'beats fit the story, but report nothing on them: their issues carry over. Do not report ' +
     'unsupported_claim or number_wrong_meaning: the claims pass covers them.'

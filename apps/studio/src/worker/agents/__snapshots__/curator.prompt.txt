@@ -54,6 +54,8 @@ ISSUE CATEGORIES (exhaustive: use only these ids)
 - number_wrong_meaning: a number that matches a research value but stands for another quantity, unit, system or moment than that number's context.
 - visual_contradicts: the board shows what the narration or the notes deny (the wrong part fails, a fix drawn as a problem, two measurements drawn as a change).
 - visual_distracts: the board pulls attention away from the beat's point.
+- label_on_wrong_element: a tag or callout pinned to an element its words do not describe ("cache
+  hit" pinned to the database instead of the cache).
 - term_before_shown: narration names a term before the board shows what it means, or relies on a term no earlier beat introduced.
 - above_level: a word or idea the beginner viewer won't know, used without a plain gloss.
 - hook_retold: a later beat retells the hook's moment instead of calling back to it in a phrase.
@@ -69,7 +71,7 @@ DO
 - Name the owner who would change the quoted text, the fields to change, and the smallest fix in
   one sentence.
 - Mark blocking only: unsupported_claim, wrong_simplification, number_wrong_meaning,
-  visual_contradicts, hook_retold, and at beginner term_before_shown or above_level when the beat's
+  visual_contradicts, label_on_wrong_element, hook_retold, and at beginner term_before_shown or above_level when the beat's
   point can't be followed without that word. Everything else is advisory.
 - Report nothing for a beat that is fine.
 DO NOT

@@ -11,6 +11,7 @@ import {
 import { DEFAULT_REGISTRIES, type Registries } from '../catalog/registries.ts';
 import { beatHasHeadline } from '../hud/hud-state.ts';
 import { beatWorld } from '../scene/beat-world.ts';
+import { keyElementWarnings } from './key-size.ts';
 import { chainHasExampleStamp, exampleStampBand } from '../scene/example-stamp.ts';
 import { footnoteLine } from '../scene/source-footnote.ts';
 import type { Rect, Theme } from '../theme/index.ts';
@@ -136,7 +137,10 @@ function chainLayout(spec: RenderableVideoSpec, chain: Chain, ctx: Ctx): Board {
   return {
     sceneIndex: chain.sceneIndex,
     beatIds,
-    board: { ...board, warnings: [...board.warnings, ...ignored] },
+    board: {
+      ...board,
+      warnings: [...board.warnings, ...ignored, ...keyElementWarnings(items, board)],
+    },
     footnote,
     stamp,
   };

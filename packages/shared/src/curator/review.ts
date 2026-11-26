@@ -18,6 +18,7 @@ export const REVIEW_CATEGORIES = [
   'number_wrong_meaning',
   'visual_contradicts',
   'visual_distracts',
+  'label_on_wrong_element',
   'term_before_shown',
   'above_level',
   'hook_retold',
@@ -234,6 +235,8 @@ export type CategoryRule = {
   cap: SeverityCap;
   /** At least one evidence item of these kinds. */
   needs: readonly EvidenceKind[];
+  /** At least this many `label` evidence items, on different elements. */
+  distinctLabels?: number;
 };
 
 export const CATEGORY_RULES: Readonly<Record<ReviewCategory, CategoryRule>> = {
@@ -254,6 +257,13 @@ export const CATEGORY_RULES: Readonly<Record<ReviewCategory, CategoryRule>> = {
   },
   visual_contradicts: { owners: ['generator'], cap: ALWAYS_BLOCKING, needs: ['label'] },
   visual_distracts: { owners: ['generator'], cap: ALWAYS_ADVISORY, needs: ['label'] },
+  // Two labels: the tag (its elementId and text) and its host (its text, or an icon's asset).
+  label_on_wrong_element: {
+    owners: ['generator'],
+    cap: ALWAYS_BLOCKING,
+    needs: ['label'],
+    distinctLabels: 2,
+  },
   term_before_shown: {
     owners: ['scriptwriter', 'generator'],
     cap: BEGINNER_BLOCKING,

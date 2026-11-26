@@ -219,6 +219,35 @@ describe('curatorIssueProblems', () => {
   });
 });
 
+describe('label_on_wrong_element', () => {
+  // Run 1's b2 in shape: a "RAM not disk" tag pinned to the disk icon (its asset is a label text).
+  const beats: ReviewBeatTexts[] = [
+    {
+      ...BEATS[0]!,
+      labels: { 'tag-ram': ['RAM not disk'], 'icon-disk': ['disk'], 'icon-ram': ['memory'] },
+    },
+  ];
+  const wrongLabel = (elementIds: string[]): CuratorIssue => ({
+    ...issue(),
+    category: 'label_on_wrong_element',
+    evidence: elementIds.map((elementId) => ({
+      kind: 'label' as const,
+      elementId,
+      quote: elementId === 'tag-ram' ? 'RAM not disk' : 'disk',
+    })),
+  });
+  const codes = (value: CuratorIssue) =>
+    curatorIssueProblems({ issues: [value] }, { beats, notes: notes() }).map((p) => p.code);
+
+  it('quotes the tag and its host (an icon by its asset), on different elements', () => {
+    expect(codes(wrongLabel(['tag-ram', 'icon-disk']))).toEqual([]);
+    expect(codes(wrongLabel(['tag-ram']))).toEqual(['evidence_missing']);
+    expect(
+      codes({ ...wrongLabel(['tag-ram', 'icon-disk']), owner: 'scriptwriter', fields: ['tags'] }),
+    ).toContain('owner_not_allowed');
+  });
+});
+
 describe('capSeverity', () => {
   it('lowers a severity above its category cap, never raises one', () => {
     const distracting = issue((i) => {

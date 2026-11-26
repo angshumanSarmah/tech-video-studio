@@ -293,6 +293,21 @@ function categoryProblems(
       ),
     ];
   }
+  const labels = new Set(
+    evidence
+      .filter((e) => e.kind === 'label')
+      .map((e) => (typeof e.elementId === 'string' ? e.elementId : '')),
+  );
+  if (rule.distinctLabels && labels.size < rule.distinctLabels) {
+    return [
+      problem(
+        ['issues', i, 'evidence'],
+        'evidence_missing',
+        `A ${category} issue quotes ${rule.distinctLabels} labels on different elements: the ` +
+          "tag's (its elementId and text) and its host's (its text, or an icon's asset name).",
+      ),
+    ];
+  }
   return category === 'number_wrong_meaning' ? meaningProblems(evidence, i, notes) : [];
 }
 

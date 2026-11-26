@@ -1,3 +1,4 @@
+import { FOCUS_DIM_LEVEL } from '../events/presets.ts';
 import { describe, expect, it } from 'vitest';
 import type { FocusKey, FocusTrack } from '../events/focus.ts';
 import { ACTION_DURATION_SEC } from '../events/presets.ts';
@@ -358,7 +359,9 @@ describe('focus dim', () => {
   const behindOverlay: FocusTrack = { focus: [], overlay: keys };
 
   it('dims the whole element through dimmed while it is out of focus', () => {
-    expect(elementState([], 30, FPS, unfocused).dimmed).toBe(1);
+    // Out of focus dims lighter than a `dim` or an overlay: FOCUS_DIM_LEVEL, not 1.
+    expect(elementState([], 30, FPS, unfocused).dimmed).toBe(FOCUS_DIM_LEVEL);
+    expect(elementState([], 30, FPS, behindOverlay).dimmed).toBe(1);
     expect(elementState([], 90, FPS, unfocused).dimmed).toBe(0);
   });
 

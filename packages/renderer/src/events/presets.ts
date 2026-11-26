@@ -58,10 +58,25 @@ export const ACTION_EASING: Record<EventAction, Easing> = {
 };
 
 /**
- * The one dim strength: a fully dimmed element (an explicit `dim`, out of focus, or on the board
- * behind an overlay) keeps `1 - DIM_FADE` of its opacity.
+ * The dim strength: a fully dimmed element (an explicit `dim`, or on the board behind an overlay)
+ * keeps `1 - DIM_FADE` of its opacity.
  */
 export const DIM_FADE = 0.7;
+
+/**
+ * Out of focus is lighter: an element the focus leaves out keeps `1 - FOCUS_DIM_FADE` of its
+ * opacity, so its labels stay readable on a phone (dimmed neutral text keeps
+ * `DIMMED_TEXT_MIN_CONTRAST` against the background in every theme; run 1's boards at 0.7 gave
+ * 1.86:1 on paper). It reaches components through the same `dimmed` level, scaled
+ * (`FOCUS_DIM_LEVEL`).
+ */
+export const FOCUS_DIM_FADE = 0.5;
+
+/** The `dimmed` level a fully out-of-focus element gets: `dimOpacity` of it is `1 - FOCUS_DIM_FADE`. */
+export const FOCUS_DIM_LEVEL = FOCUS_DIM_FADE / DIM_FADE;
+
+/** Contrast dimmed (out of focus) neutral text keeps against the background, in every theme. */
+export const DIMMED_TEXT_MIN_CONTRAST = 3;
 
 /** Opacity factor for a `dimmed` level (0..1). */
 export function dimOpacity(dimmed: number): number {

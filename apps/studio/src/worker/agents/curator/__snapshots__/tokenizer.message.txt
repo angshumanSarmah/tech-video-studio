@@ -457,9 +457,9 @@ numbers said or shown (each with the research numbers that have its value; the s
 board: new board (fade in) · layout versus_split
 added in this beat:
 - chars-tag · tag · text "single characters" · semantic neutral · enter on 6 "Characters" · reject on 21 "steps." · as the beat ends: rejected
-- chars-cost · callout · text "Tiny vocabulary, thousands of steps" · semantic problem · pin.to chars-tag (bottom) · enter on 15 "tiny,"
+- chars-cost · callout · text "Tiny vocabulary, thousands of steps" · semantic problem · pin.to chars-tag (tag "single characters", bottom) · enter on 15 "tiny,"
 - words-tag · tag · text "whole words" · semantic neutral · enter on 22 "Whole" · reject on 28 "entry," · as the beat ends: rejected
-- words-cost · callout · text "New names get no entry" · semantic problem · pin.to words-tag (bottom) · enter on 26 "names"
+- words-cost · callout · text "New names get no entry" · semantic problem · pin.to words-tag (tag "whole words", bottom) · enter on 26 "names"
 - subword-tag · tag · text "subword pieces" · semantic focus · enter on 30 "subword"
 focus: subword-tag on 32 "sit"
 code findings:
@@ -483,8 +483,8 @@ added in this beat:
 - byte-vocab · counter · unit "values" · label "starting vocabulary" · value 256 · semantic concept · enter on 3 "raw" · pulse on 8 "values,"
 - pair-count · node_card · title "COUNT PAIRS" · subtitle "neighbouring symbols" · semantic neutral · icon list · enter on 16 "count" · pulse on 29 "repeat."
 - merge · node_card · title "t + h → th" · subtitle "one new symbol" · semantic focus · icon swap · enter on 23 "'t'"
-- tag-raw · tag · text "raw bytes" · semantic concept · pin.to byte-vocab (right)
-- tag-frequent · tag · text "most frequent pair" · semantic focus · pin.to merge (top)
+- tag-raw · tag · text "raw bytes" · semantic concept · pin.to byte-vocab (counter "values", right)
+- tag-frequent · tag · text "most frequent pair" · semantic focus · pin.to merge (node_card "t + h → th", top)
 focus: merge from the start
 code findings:
 none
@@ -505,11 +505,11 @@ on screen from earlier beats:
 - byte-vocab · counter · unit "values" · label "starting vocabulary" · value 256 · semantic concept
 - pair-count · node_card · title "COUNT PAIRS" · subtitle "neighbouring symbols" · semantic neutral · icon list
 - merge · node_card · title "t + h → th" · subtitle "one new symbol" · semantic focus · icon swap · pulse on 11 "replays"
-- tag-raw · tag · text "raw bytes" · semantic concept · pin.to byte-vocab (right)
-- tag-frequent · tag · text "most frequent pair" · semantic focus · pin.to merge (top) · pulse on 3 "common"
+- tag-raw · tag · text "raw bytes" · semantic concept · pin.to byte-vocab (counter "values", right)
+- tag-frequent · tag · text "most frequent pair" · semantic focus · pin.to merge (node_card "t + h → th", top) · pulse on 3 "common"
 added in this beat:
 - encoded · data_block · title "ENCODED" · fields[0].key "the" · fields[0].value "single token" · fields[1].key "unusual" · fields[1].value "several pieces" · fields[0].semantic ok · fields[1].semantic problem · enter on 16 "'the'"
-- merge-order · tag · text "merge order" · semantic concept · pin.to merge (bottom) · enter on 15 "order:"
+- merge-order · tag · text "merge order" · semantic concept · pin.to merge (node_card "t + h → th", bottom) · enter on 15 "order:"
 focus: merge from the start → encoded on 18 "one"
 code findings:
 none
@@ -560,7 +560,7 @@ added in this beat:
 - en-card · node_card · title "ENGLISH REPLY" · semantic neutral · icon chat · enter on 13 "English"
 - stat-1-3 · stat_card · value "about 1.3" · label "tokens per word" · source "Field notes: counting tokens" · semantic ok · enter on 17 "one"
 - rare-card · node_card · title "SAME REPLY" · subtitle "about 3× the tokens" · semantic focus · icon globe · enter on 24 "language"
-- rare-tag · tag · text "rare language" · semantic focus · pin.to rare-card (bottom) · enter on 25 "rare"
+- rare-tag · tag · text "rare language" · semantic focus · pin.to rare-card (node_card "SAME REPLY", bottom) · enter on 25 "rare"
 focus: assumption from the start
 code findings:
 - focus_colour_off_focus (advisory, generator): "rare-card" is drawn in the focus colour but is never the focus in this beat (its focus is assumption), so it competes with what the viewer should watch. Give it another semantic (concept, neutral), or move the focus to it with a `focus` event on the word that names it.
@@ -578,7 +578,7 @@ numbers said or shown (each with the research numbers that have its value; the s
 board: new board (fade in) · layout centered_focus
 added in this beat:
 - tokenizer-card · node_card · title "TOKENIZER" · subtitle "the model's own" · semantic focus · icon scan_text · enter on 7 "tokenizer"
-- exact-tokenizer · tag · text "exact tokenizer" · semantic focus · pin.to tokenizer-card (top)
+- exact-tokenizer · tag · text "exact tokenizer" · semantic focus · pin.to tokenizer-card (node_card "TOKENIZER", top)
 - budgets-tokens · tag · text "budgets in tokens" · semantic concept · enter on 15 "budgets"
 focus: tokenizer-card from the start
 code findings:
@@ -705,6 +705,7 @@ List every narration sentence of every beat, in order and copied exactly (source
               "number_wrong_meaning",
               "visual_contradicts",
               "visual_distracts",
+              "label_on_wrong_element",
               "term_before_shown",
               "above_level",
               "hook_retold",
