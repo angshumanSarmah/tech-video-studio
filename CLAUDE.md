@@ -924,10 +924,14 @@ researchStepId)`, not the newest research), the run's level and pace (`resolvedS
   narration uses; a narration sentence's first word counts only before another name word), `number_not_in_notes` (narration, headline, tags, stat card labels, formula
   caption, command; not sources or LaTeX), `stat_card_not_a_number`, `stat_card_value_mismatch`,
   `hook_number_missing` (the beat with `hookNumberIds` says each), `new_term_missing` /
-  `new_term_too_early` (`mentionsTerm`, `script/terms.ts`: whole words, any case, each word
+  `new_term_too_early` (`mentionsTerm`, `script/terms.ts`: any of the term's forms, `termForms`: a term written
+  "multiplexing / event loop" or "round trip (RTT)" is named by either side (a slash inside a word,
+  "I/O", is not a split); whole words, any case, each word
   singular or with `s|es|ed|ing`), `topic_not_defined` (beginner: the first
-  `TOPIC_DEFINED_BY_BEAT` (2) beats of each video name `mainTerm`, the longest of the topic title
-  and glossary terms that `meta.title` names, else the topic title; skipped when a later beat's
+  `TOPIC_DEFINED_BY_BEAT` (2) beats of each video name `mainTerm`, the longest of the topic's
+  subject and glossary terms that `meta.title` names, else the subject; the plan has no
+  main-term field, and the subject is the topic title without its question and framing words,
+  `topicSubject`: "How Redis works" → "Redis"; skipped when a later beat's
   `newTerms` introduce it) `source_missing` (a planned `source`, or stat cards) `source_changed` (a planned
   `source` is kept word for word, unless it is bare), `source_label_bare` and
   `narration_describes_visuals` (narration naming colours, shapes or on-screen actions, "bar",

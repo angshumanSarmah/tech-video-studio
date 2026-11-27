@@ -4,6 +4,7 @@ import {
   headlineAnchor,
   type Headline,
   mentionsTerm,
+  termForms,
   narrationWords,
   normalizeWord,
   toJsonPath,
@@ -60,11 +61,17 @@ export function termShownLateWarnings(
   });
 }
 
-/** The first narration words that say the term (each word inflected or not). */
+/**
+ * The first narration words that say the term in any of its forms (`termForms`: "multiplexing /
+ * event loop", "round trip (RTT)"), each word inflected or not.
+ */
 function firstMention(words: readonly string[], term: string): Mention | undefined {
-  const n = foldTerm(term).split(' ').length;
-  for (let i = 0; i + n <= words.length; i++) {
-    if (mentionsTerm(words.slice(i, i + n).join(' '), term)) return { first: i, last: i + n - 1 };
+  for (let i = 0; i < words.length; i++) {
+    for (const form of termForms(term)) {
+      const n = foldTerm(form).split(' ').length;
+      if (i + n > words.length) continue;
+      if (mentionsTerm(words.slice(i, i + n).join(' '), form)) return { first: i, last: i + n - 1 };
+    }
   }
   return undefined;
 }

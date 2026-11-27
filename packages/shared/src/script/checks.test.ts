@@ -199,6 +199,31 @@ describe('scriptProblems', () => {
     expect(card('pipelined requests a second')).toEqual([]);
   });
 
+  it("names a term written with alternatives by any of its forms (run 3's round trip)", () => {
+    const p = plan();
+    p.story.beats[1]!.newTerms = ['round trip (RTT)'];
+    const termCodes = (narration: string, headline: string) => {
+      const out = output();
+      out.script[1]!.narration = narration;
+      out.script[1]!.headline = { text: headline, semantic: 'concept' };
+      return scriptProblems(out, ctx({ plan: p }))
+        .filter((x) => ['new_term_missing', 'headline_not_concept'].includes(x.code))
+        .map((x) => x.code);
+    };
+    // Run 3's naive-rtt beat, word for word.
+    const said =
+      'By default the service sends one GET and waits. Each command pays a round trip, an RTT: ' +
+      "time there and back. That's about two hundred microseconds.";
+    expect(termCodes(said, 'round trip (RTT) = time there and back')).toEqual([]);
+    expect(termCodes('Each command pays an RTT. It waits.', 'RTT = time there and back')).toEqual(
+      [],
+    );
+    expect(termCodes('Each command waits for its reply.', 'Latency = waiting')).toEqual([
+      'headline_not_concept',
+      'new_term_missing',
+    ]);
+  });
+
   it('flags a sentence over 20 words', () => {
     const out = output();
     out.script[1]!.narration =
