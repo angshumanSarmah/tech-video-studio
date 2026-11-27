@@ -53,7 +53,9 @@ the version pinned in `packageManager`. Re-run it after switching Node versions;
 globally.
 
 Commands (from the repo root): `pnpm dev` (server, worker and Vite via `concurrently`),
-`pnpm build`, `pnpm typecheck`, `pnpm lint`, `pnpm format`, `pnpm test`, `pnpm studio …` (the CLI). The visual regression
+`pnpm build`, `pnpm typecheck`, `pnpm lint`, `pnpm format`, `pnpm test` (one package at a time:
+each Vitest already uses every core, so running the three together only made them compete and
+timed out the pipeline tests, for no time saved), `pnpm studio …` (the CLI). The visual regression
 test is separate: `pnpm --filter @explainer-studio/studio test:visual` (see "Golden fixtures").
 TTS: `pnpm tts:setup` (needs `uv`; installs nothing global) and `pnpm tts:doctor` (see "TTS").
 
@@ -1436,9 +1438,10 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
 - **Usage API:** `GET /api/memory/usage?videos=N` (`UsageSummarySchema`, default 10, at most
   50: each video's hooks, endings and sequences, and per kind how many videos used each
   value) and `pnpm studio usage [--videos N]`.
-- **Tests:** `acceptance/memory.test.ts` (the tokenizer to its export, then the rate limiter in
-  the same DB, `Harness.useTopic`, with the Researcher's recorded citations moved to the new
-  source ids: the second Director and Curator read the first's usage, and a third tokenizer run
+- **Tests:** `acceptance/memory.test.ts` (each test drives at most one pipeline: the tokenizer
+  to its export records its usage; the rate limiter (`Harness.useTopic`, with the Researcher's
+  recorded citations moved to the new source ids) after a seeded export of the tokenizer's
+  recorded video, so its Director and Curator read that usage; a tokenizer run after that export
   is warned about; G2 with a seeded previous hook (warning, auto-approves) and a seeded
   structure (an edit adding a pattern blocks)), `director-memory.test.ts`,
   `usage-history.test.ts`, `topic-history.test.ts`, renderer `usage.test.ts`, shared

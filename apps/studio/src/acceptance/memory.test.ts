@@ -45,7 +45,7 @@ const usageRows = (runId: number) =>
   usageOfRuns(t().db, [runId]).map(({ kind, value }) => ({ kind, value }));
 
 /** An exported video of an earlier topic, with this usage (as `render_final` records it). */
-function earlierVideo(title: string, usage: [UsageKind, string][]): number {
+function earlierVideo(title: string, usage: [UsageKind, string][], exportTitle = title): number {
   const run = createRun(t().db, {
     app: h.settings,
     topicId: createTopic(t().db, { title }).id,
@@ -56,20 +56,35 @@ function earlierVideo(title: string, usage: [UsageKind, string][]): number {
     mp4Path: `exports/${run.id}/v.mp4`,
     srtPath: `exports/${run.id}/v.srt`,
     durationMs: 60_000,
-    title,
+    title: exportTitle,
     usage: usage.map(([kind, value]) => ({ kind, value })),
   });
   setActiveRunStatus(t().db, run.id, 'done');
   return run.id;
 }
 
-describe('usage history: two dry runs in a row', () => {
-  it('records the first video at its export, and the second plans and curates with it', async () => {
+/** The tokenizer's recorded video as exported (its boards' usage), with references it was shown. */
+const TOKENIZER_TITLE = 'How an LLM tokenizer works';
+const SHOWN = ['database-failover-split-brain', 'food-delivery-eta'];
+
+function exportedTokenizer(): number {
+  const spec = fixtureGeneratedSpec('tokenizer');
+  const usage = usageOfSpec(spec).map(({ kind, value }) => [kind, value] as [UsageKind, string]);
+  const shown = SHOWN.map((slug) => ['reference', slug] as [UsageKind, string]);
+  return earlierVideo(TOKENIZER_TITLE, [...usage, ...shown], spec.meta.title);
+}
+
+/**
+ * Each test drives at most one dry-run pipeline: the second video starts from the first one's
+ * export as `render_final` records it (seeded), not from a second full run, so no test does the
+ * work of two videos (two pipelines in one test outran the 5 s timeout under full-suite load).
+ */
+describe('usage history: one video after another', () => {
+  it('records a video’s usage at its export: its boards, then the references its Director saw', async () => {
     const first = h.start({ autoApprove: ALL_AUTO });
     await h.drain(curateRound('tokenizer'));
     expect(getRun(t().db, first)!.status).toBe('done');
     const exported = getLatestSpecVersion(t().db, first)!;
-    // What the boards used, then the reference videos its Director was shown (P1C.11).
     const shown = stepInput(first, 'direct', DirectorInputSchema).references?.picks ?? [];
     expect(shown.length).toBeGreaterThan(0);
     expect(usageRows(first)).toEqual([
@@ -77,7 +92,10 @@ describe('usage history: two dry runs in a row', () => {
       ...shown.map((p) => ({ kind: 'reference', value: p.slug })),
     ]);
     expect(usageRows(first)).toContainEqual({ kind: 'hook', value: 'puzzle/planted_question' });
+  });
 
+  it('plans and curates the next video with the earlier one’s usage', async () => {
+    exportedTokenizer();
     h.useTopic('rate-limiter');
     const second = h.start({ autoApprove: ALL_AUTO });
     h.drop('researcher');
@@ -92,11 +110,9 @@ describe('usage history: two dry runs in a row', () => {
     expect(memory.recent.structures).toEqual([
       { title: tokenizer.meta.title, hooks: ['puzzle/planted_question'], sequences: [] },
     ]);
-    expect(memory.pastTopics.map((p) => p.title)).toEqual(['How an LLM tokenizer works']);
-    // The first video's references count against being shown again (rotation, P1C.11).
-    expect(memory.recent.referencesShown).toEqual(
-      Object.fromEntries(shown.map((p) => [p.slug, 1])),
-    );
+    expect(memory.pastTopics.map((p) => p.title)).toEqual([TOKENIZER_TITLE]);
+    // The earlier video's references count against being shown again (rotation, P1C.11).
+    expect(memory.recent.referencesShown).toEqual(Object.fromEntries(SHOWN.map((s) => [s, 1])));
     // The two recorded plans share one device/layout combo, on one beat each: within the reuse
     // allowed, so the beat sheet approved itself with nothing to report.
     const reused = latestDirection(t().db, t().dataDir, second)!.plan.story.beats.filter(
@@ -117,17 +133,16 @@ describe('usage history: two dry runs in a row', () => {
       patterns: [],
       structures: memory.recent.structures,
     });
-    // Each video records its own usage; the first one is not changed by the second.
+    // Each video records its own usage at its export.
     expect(usageRows(second)).toContainEqual({ kind: 'hook', value: 'problem/seen_this_bug' });
+  });
 
-    // A third run on the first topic is warned about when it starts.
-    h.useTopic('tokenizer');
-    const third = h.start();
-    expect(h.logs(third)).toContainEqual(
+  it('warns when a run starts on a topic already exported', () => {
+    const first = exportedTokenizer();
+    const run = h.start();
+    expect(h.logs(run)).toContainEqual(
       expect.stringMatching(
-        new RegExp(
-          `^Close to an earlier topic: "How an LLM tokenizer works" \\(run ${first}, exported `,
-        ),
+        new RegExp(`^Close to an earlier topic: "${TOKENIZER_TITLE}" \\(run ${first}, exported `),
       ),
     );
   });
