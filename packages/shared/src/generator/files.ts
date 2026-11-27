@@ -93,6 +93,21 @@ export const GenerateWarningSchema = z.strictObject({
 });
 export type GenerateWarning = z.infer<typeof GenerateWarningSchema>;
 
+/**
+ * An icon unified by the post-pass (P1C.12): one thing (the same normalised title or label) drawn
+ * with another asset on other beats takes the id used most.
+ */
+export const IconSwapRecordSchema = z.strictObject({
+  beatId: SpecIdSchema,
+  path: z.string(),
+  title: z.string(),
+  from: z.string(),
+  to: z.string(),
+  /** The beat was drawn again because the swap left a new issue on its board. */
+  redrawn: z.boolean(),
+});
+export type IconSwapRecord = z.infer<typeof IconSwapRecordSchema>;
+
 export const GenerateOutputSchema = z.strictObject({
   /** The spec version saved with the boards. */
   specVersionId: z.number().int().positive(),
@@ -108,6 +123,8 @@ export const GenerateOutputSchema = z.strictObject({
     }),
   ),
   warnings: z.array(GenerateWarningSchema),
+  /** Icons the post-pass unified across beats (older outputs have none). */
+  iconSwaps: z.array(IconSwapRecordSchema).default([]),
   /** This job's calls only (reused beats cost nothing here). */
   usage: z.strictObject({
     calls: z.number().int().min(0),

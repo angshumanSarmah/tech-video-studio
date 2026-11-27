@@ -551,6 +551,44 @@ describe('generate job (rate-limiter fixture, hand-written boards, dry run)', ()
     ]);
   });
 
+  it('unifies one thing drawn with different icons across beats (the live run: memory, then database)', async () => {
+    const { runId, specVersionId } = await scripted();
+    const retitle = (board: FixtureBoard, id: string, title: string, icon: string) => ({
+      ...board,
+      elements: board.elements.map((e) =>
+        e.id === id ? { ...e, props: { ...e.props, title, icon } } : e,
+      ),
+    });
+    const answers = {
+      ...cleanAnswers(),
+      beat3: [answer(retitle(storeBoard(), 'shared', 'Shared store', 'memory'))],
+      beat6: [answer(retitle(failoverBoard(), 'replica', 'SHARED STORE', 'database'))],
+    };
+    const job = await generate(registry(answers), runId, { specVersionId });
+    expect(job.status).toBe('done');
+    const generation = latestGeneration(t.db, t.dataDir, runId)!;
+    expect(generation.output.iconSwaps).toEqual([
+      {
+        beatId: 'beat3',
+        path: '$.scenes[2].elements[1].props.icon',
+        title: 'Shared store',
+        from: 'memory',
+        to: 'database',
+        redrawn: false,
+      },
+    ]);
+    const spec = readDataJson(t.dataDir, getLatestSpecVersion(t.db, runId)!.jsonPath) as VideoSpec;
+    const icons = (beat: number, id: string) =>
+      spec.scenes?.[beat]?.elements.find((e) => e.id === id)?.props;
+    expect(icons(2, 'shared')).toMatchObject({ icon: 'database' });
+    expect(icons(4, 'store')).toMatchObject({ icon: 'database' });
+    // A swap that leaves the board clean costs no call: one per beat, as drawn.
+    expect(listRunLlmCalls(t.db, runId).filter((c) => c.role === 'generator')).toHaveLength(8);
+    expect(logs(runId).some((l) => l.message.includes('"Shared store" drawn as "database"'))).toBe(
+      true,
+    );
+  });
+
   it('drops a request for an approved asset (logged) instead of failing the beat', async () => {
     const { runId, specVersionId } = await scripted();
     const board = rateLimiterBoards().beat2;

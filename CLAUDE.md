@@ -1128,8 +1128,17 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
     board); one that fails gets one retry with its issues as FEEDBACK (the user message's last
     section), in beat order, and then the later beats of its chain are re-checked against the new
     board and redrawn only when they fail (`redrawBrokenDependents`, the regenerate's path); a
-    retry that still fails keeps its board. Every issue left, soft
-    ones included, goes into the job output's `warnings` for gate 3.
+    retry that still fails keeps its board. Then **icon drift** (P1C.12, `unifyIcons`; renderer
+    `catalog/icon-drift.ts`, `iconDrift` / `withIconSwaps`, pure): one thing (the same
+    normalised `title`, `label` or `caption` beside the icon, on loose elements; logo slots never)
+    drawn with different asset ids on different beats takes the id used most across every
+    board, the earliest beat's on a tie, in code and only on beats drawn in this job (a
+    regenerate conforms to the rest); a request whose id the board no longer uses is dropped. The
+    changed beats are checked again, and one whose swap leaves a new blocking issue is drawn
+    again once, told the icon (a failed redraw keeps the swapped board). Each swap is in the job
+    output's `iconSwaps` (`IconSwapRecordSchema`: beat, path, title, from, to, `redrawn`) and
+    logged. Boards in parallel chains never see each other, so this is how one thing keeps one
+    icon. Every issue left, soft ones included, goes into the job output's `warnings` for gate 3.
   - **Regenerate** (`beatId`, optional `feedback`): that beat is drawn again (always called),
     the others are `kept` from the pinned spec (which must have every board); each later beat of
     its chain is re-checked against the new board and redrawn (`revalidate`) only when it fails.

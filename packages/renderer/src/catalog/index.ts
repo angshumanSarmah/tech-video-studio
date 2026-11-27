@@ -34,6 +34,7 @@ export type { BeatFromSpecProps, SeriesProps, VideoFromSpecProps } from '../comp
 export * from './asset-swaps.ts';
 export * from './asset-requests.ts';
 export * from './beat-assets.ts';
+export * from './icon-drift.ts';
 export * from './schema-leaves.ts';
 export { nearIdenticalAsset } from '../assets/near-identical.ts';
 export * from './beat-checks.ts';

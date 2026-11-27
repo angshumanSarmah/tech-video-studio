@@ -2,6 +2,8 @@ import {
   buildAssetRegistry,
   DEFAULT_REGISTRIES,
   generatorCatalogueBlock,
+  iconDrift,
+  withIconSwaps,
   withRegistryChecks,
   type Registries,
 } from '@explainer-studio/renderer/catalog';
@@ -13,6 +15,7 @@ import {
   type GenerateInput,
   type GenerateOutput,
   type GenerateWarning,
+  type IconSwapRecord,
   type LogLevel,
   type MissingPrimitiveRequest,
   type ResearchNotes,
@@ -153,8 +156,8 @@ async function generate(deps: GenerateJobDeps, ctx: Ctx): Promise<void> {
     const boards = ctx.payload.beatId
       ? await regenerate(c, job, ctx, ctx.payload.beatId)
       : await drawAll(c, job, ctx);
-    const warnings = await postPass(c, job, boards, ctx);
-    const output = save(deps, runId, job, boards, warnings, step.id);
+    const { warnings, iconSwaps } = await postPass(c, job, boards, ctx);
+    const output = save(deps, runId, job, boards, { warnings, iconSwaps }, step.id);
     finishRunStep(
       deps.db,
       step.id,
@@ -512,7 +515,7 @@ async function postPass(
   job: GenerateJob,
   boards: Boards,
   ctx: Ctx,
-): Promise<GenerateWarning[]> {
+): Promise<{ warnings: GenerateWarning[]; iconSwaps: IconSwapRecord[] }> {
   const before = allIssues(c, job, boards);
   let changed = false;
   for (let index = 0; index < job.spec.story.beats.length; index += 1) {
@@ -543,12 +546,82 @@ async function postPass(
     }
     await redrawBrokenDependents(c, job.spec, boards, index);
   }
+  const iconSwaps = await unifyIcons(c, job, boards, ctx);
   ctx.progress(90, 'Checked across boards');
-  const after = changed ? allIssues(c, job, boards) : before;
-  return [...after].flatMap(([index, issues]) =>
+  const after = changed || iconSwaps.length > 0 ? allIssues(c, job, boards) : before;
+  const warnings = [...after].flatMap(([index, issues]) =>
     issues.map((issue) => warningOf(job.spec.story.beats[index]?.id ?? String(index), issue)),
   );
+  return { warnings, iconSwaps };
 }
+
+/**
+ * Icon drift (P1C.12, `iconDrift`): one thing drawn with different icons on beats drawn in this
+ * job takes the id used most across every board (the earliest beat's on a tie), in code. The
+ * changed beats' checks run again; a beat whose swap leaves a new issue on its board is drawn
+ * again once, told which icon to use (a failed redraw keeps the swapped board).
+ */
+async function unifyIcons(
+  c: BeatStepContext,
+  job: GenerateJob,
+  boards: Boards,
+  ctx: Ctx,
+): Promise<IconSwapRecord[]> {
+  const beats = job.spec.story.beats;
+  const touched = new Set([...boards.touched].flatMap((i) => beats[i]?.id ?? []));
+  const spec = spliceBoards({ spec: job.spec, scenes: boards.scenes });
+  const swaps = iconDrift(spec, c.registries, { beatIds: touched });
+  if (swaps.length === 0) return [];
+  const changed = [...new Set(swaps.map((s) => beats.findIndex((b) => b.id === s.beatId)))];
+  const before = new Map(changed.map((i) => [i, boardCheck(c, job.spec, boards, i, true)]));
+  const swapped = withIconSwaps(spec, swaps, c.registries);
+  for (const i of changed) boards.scenes[i] = swapped.scenes?.[i];
+  for (const s of swaps) {
+    ctx.log(
+      'info',
+      `Beat ${s.beatId}: "${s.title}" drawn as "${s.to}", as elsewhere (was "${s.from}").`,
+    );
+  }
+  const redrawn = new Set<string>();
+  for (const i of changed) {
+    const known = new Set((before.get(i) ?? []).map(issueKey));
+    const added = blockingIssues(boardCheck(c, job.spec, boards, i, true)).filter(
+      (issue) => !known.has(issueKey(issue)),
+    );
+    if (added.length === 0) continue;
+    const beatId = beats[i]?.id ?? String(i);
+    const told = swaps
+      .filter((s) => s.beatId === beatId)
+      .map((s) => `Draw "${s.title}" with the asset "${s.to}", as the other beats do.`);
+    ctx.log('warn', `Beat ${beatId}: the icon swap left ${codes(added)}: drawn again.`);
+    try {
+      const result = await drawBeat(c, {
+        spec: job.spec,
+        scenes: visibleScenes(job.spec, i, boards.scenes),
+        checkScenes: boards.scenes,
+        beatIndex: i,
+        reason: 'retry',
+        feedback: [...told, formatIssues(added)].join('\n'),
+        crossBoard: true,
+      });
+      record(boards, i, result, true);
+      redrawn.add(beatId);
+    } catch (error) {
+      if (!(error instanceof LlmOutputInvalidError)) throw error;
+      ctx.log('warn', `Beat ${beatId}: the redraw failed; the swapped board goes to the gate.`);
+    }
+  }
+  return swaps.map(({ beatId, path, title, from, to }) => ({
+    beatId,
+    path,
+    title,
+    from,
+    to,
+    redrawn: redrawn.has(beatId),
+  }));
+}
+
+const issueKey = (issue: OutputIssue) => `${issue.path} ${issue.code ?? ''}`;
 
 function allIssues(c: BeatStepContext, job: GenerateJob, boards: Boards) {
   return new Map(job.spec.story.beats.map((_, i) => [i, boardCheck(c, job.spec, boards, i, true)]));
@@ -573,7 +646,7 @@ function save(
   runId: number,
   job: GenerateJob,
   boards: Boards,
-  warnings: GenerateWarning[],
+  { warnings, iconSwaps }: { warnings: GenerateWarning[]; iconSwaps: IconSwapRecord[] },
   jobStepId: number,
 ): GenerateOutput {
   const spec = assembledSpec(job, boards);
@@ -601,6 +674,7 @@ function save(
       };
     }),
     warnings,
+    iconSwaps,
     usage: jobUsage(deps.db, runId, jobStepId),
   };
 }
