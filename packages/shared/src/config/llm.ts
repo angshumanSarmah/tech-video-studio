@@ -130,9 +130,11 @@ export const LlmSettingsSchema = z
     models: ModelMapSchema.prefault({}),
     /**
      * Per HTTP request. Generous because the Director's reasoning model can think for minutes
-     * before a long JSON answer; 429/5xx retries each get their own timeout.
+     * before a long JSON answer (about 2 minutes typically; run 1's replay hit 300 s twice on a
+     * slow provider day); 429/5xx retries each get their own timeout. A machine setting, read once
+     * per process (defaults, then `<DATA_DIR>/config.json`), never part of a run's snapshot.
      */
-    requestTimeoutSec: z.number().int().min(10).max(1800).default(300),
+    requestTimeoutSec: z.number().int().min(10).max(1800).default(600),
     /**
      * Requests in flight at once, across every role (the API's rate limit is per key). The
      * Generator runs independent boards in parallel up to this.

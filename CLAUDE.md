@@ -666,7 +666,8 @@ stepId?, aliases?, check?, signal?, log? })`** is the only way to call a model (
   `<baseUrl>/chat/completions` in JSON mode. It retries 429/5xx up to 2 times (1 s, 2 s, or
   `Retry-After` up to 60 s; `src/worker/http/retry.ts`), and a body cut off mid-stream
   (`LlmBodyCutOffError`) like a 5xx, separately from repairs. Each request times out after
-  `llm.requestTimeoutSec` (300) and honours the caller's `signal`. A missing key fails before
+  `llm.requestTimeoutSec` (600; a machine setting from `<DATA_DIR>/config.json`, not part of
+  the run snapshot) and honours the caller's `signal`. A missing key fails before
   any request. `dryRunTransport(fixtures)` / `loadDryRunFixtures(dir)` replay recorded responses
   per role, in order, and run through the same validation, logging and cost. A role recorded
   per key (`{ [beatId]: DryRunResponse[] }`, the Generator) replays from the queue of the call's
@@ -1315,7 +1316,7 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   board's word anchors on their words and drop the timing layer). The studio script
   `curator:fixture [--topic] [--seeded <id>] [--replay] [--record] [--timeout <sec>]` runs the
   review (live, or `--replay`; `--timeout` raises `llm.requestTimeoutSec` for that run: the
-  passes' reasoning can pass 300 s when the provider is slow) in `<DATA_DIR>/curator/fixture/<topic>[-<seed>]/` and prints the attempts, code findings, every issue with its evidence and fix, what was dropped,
+  passes' reasoning can pass the default when the provider is slow) in `<DATA_DIR>/curator/fixture/<topic>[-<seed>]/` and prints the attempts, code findings, every issue with its evidence and fix, what was dropped,
   usage and the eval; `--record` writes `curator.json` and `eval.json` to
   `agents/curator/fixtures/<topic>/responses/` (a seed: `.../<topic>/seeds/<id>/`).
   `jobs/curate.test.ts` replays every recording and expects its recorded eval.
