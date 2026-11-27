@@ -11,6 +11,7 @@ import {
 import { validateVideoSpec } from '../spec/validate.ts';
 import {
   directorPlanProblems,
+  isGateWarningPlanCode,
   isAdvisoryPlanCode,
   MAX_BEATS_PER_DEVICE,
   MAX_RECENT_COMBO_REUSE,
@@ -1067,5 +1068,40 @@ describe('specFromPlan', () => {
     p.parts![0]!.targetLengthSec = 150;
     p.parts![1]!.targetLengthSec = 150;
     expect(specFromPlan(p, { id: 'q', series: 's' }).meta.targetLengthSec).toBe(170);
+  });
+});
+
+describe('off_angle (researcher@v4 tags)', () => {
+  /** The notes with fact-1 and num-1 marked off the angle; the rest serve it. */
+  const tagged = (offIds: string[]) => {
+    const n = notes();
+    for (const item of [...n.facts, ...n.numbers]) {
+      item.angle = offIds.includes(item.id) ? 'off' : 'serves';
+    }
+    return n;
+  };
+  const offAngle = (offIds: string[], mutate: (p: DirectorPlan) => void = () => undefined) =>
+    problemsAfter(mutate, ctx({ notes: tagged(offIds) })).filter(
+      ([, code]) => code === 'off_angle',
+    );
+
+  it('flags a beat built only on notes marked off the angle', () => {
+    const p = plan();
+    const beat = p.story.beats[1]!;
+    const cited = [...beat.factIds, ...(beat.hookNumberIds ?? [])];
+    expect(offAngle(cited)).toEqual([['$.story.beats[1].factIds', 'off_angle']]);
+  });
+
+  it('passes a beat with one item that serves the angle, and untagged notes', () => {
+    const cited = plan().story.beats[1]!.factIds;
+    expect(offAngle(cited.slice(1))).toEqual([]);
+    expect(problemsAfter(() => undefined).filter(([, code]) => code === 'off_angle')).toEqual([]);
+  });
+
+  it('is a warning at the gates, never soft for the Director', () => {
+    expect(isAdvisoryPlanCode('off_angle')).toBe(false);
+    expect(isGateWarningPlanCode('off_angle')).toBe(true);
+    expect(isGateWarningPlanCode('hook_repeated')).toBe(true);
+    expect(isGateWarningPlanCode('unknown_fact')).toBe(false);
   });
 });

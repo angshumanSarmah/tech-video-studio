@@ -151,16 +151,22 @@ export function candidateDevices(
   return [...new Set(devices)];
 }
 
-/** Devices the notes have the material for. */
+/**
+ * Devices the notes have the material for: only items not marked `off` the angle count
+ * (researcher@v4), so a reference is not picked for a device only off-angle material supports.
+ */
 function noteDevices(notes: ResearchNotes): DeviceId[] {
+  const onAngle = <T extends { angle?: string | undefined }>(items: readonly T[]) =>
+    items.filter((i) => i.angle !== 'off');
+  const failures = onAngle(notes.failureModes);
   const devices: DeviceId[] = [];
-  if (notes.failureModes.some((f) => f.kind === 'incident')) devices.push('real_incident');
-  if (notes.failureModes.length > 0) devices.push('what_breaks', 'failure_before_fix');
-  if (notes.rejectedAlternatives.length > 0) {
+  if (failures.some((f) => f.kind === 'incident')) devices.push('real_incident');
+  if (failures.length > 0) devices.push('what_breaks', 'failure_before_fix');
+  if (onAngle(notes.rejectedAlternatives).length > 0) {
     devices.push('brute_force_first', 'versus_split', 'counterfactual');
   }
-  if (notes.misconceptions.length > 0) devices.push('seen_this_bug');
-  if (notes.numbers.length >= HERO_METRIC_NUMBERS) devices.push('hero_metric');
+  if (onAngle(notes.misconceptions).length > 0) devices.push('seen_this_bug');
+  if (onAngle(notes.numbers).length >= HERO_METRIC_NUMBERS) devices.push('hero_metric');
   return DeviceIdSchema.array().parse(devices);
 }
 

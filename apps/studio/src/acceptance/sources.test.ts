@@ -152,6 +152,24 @@ const THIN_NOTES: ResearchNotes = {
   openQuestions: [],
 };
 
+/**
+ * The recorded rate-limiter notes plus a disagreement about a quantity: the store timeout, given
+ * as quotaflow's 50 ms default and the incident fix's 150 ms (invented for this test), naming
+ * both numbers (`numberIds`, researcher@v4), so it blocks gate 1 under the default rule.
+ */
+function numericDisagreement(): DryRunResponse {
+  const recorded = h.recording('researcher').at(-1)!;
+  const notes = JSON.parse(recorded.content!) as ResearchNotes;
+  notes.openQuestions.push({
+    question:
+      'What should the store timeout be? The library defaults to 50 ms; the incident report sets 150 ms.',
+    reason: 'disagreement',
+    sourceChunkIds: ['source-2#chunk-2', 'source-3#chunk-2'],
+    angle: 'serves',
+    numberIds: ['num-13', 'num-20'],
+  });
+  return answer(notes);
+}
 describe('sources through the API', () => {
   it('adds pasted text and a CSV upload, refuses other files and non-http URLs, and lists them', async () => {
     const topic = TopicDtoSchema.parse(
@@ -248,9 +266,13 @@ describe('gate 1', () => {
     expect(gate.warnings).toEqual([]);
   });
 
-  it('sources that disagree keep gate 1 from approving itself; approving goes on', async () => {
+  it('a disagreement about a number keeps gate 1 from approving itself; approving goes on', async () => {
     h.approveDisputed = false;
-    const runId = await h.runUntilWaiting({ research: true, beat_sheet: true });
+    h.drop('researcher');
+    const runId = await h.runUntilWaiting(
+      { research: true, beat_sheet: true },
+      { researcher: [numericDisagreement()] },
+    );
 
     expect(getRun(h.t.db, runId)).toMatchObject({
       status: 'awaiting_review',
@@ -259,11 +281,10 @@ describe('gate 1', () => {
     const gate = await h.gate(runId, 'research');
     expect(gate.blocking).toHaveLength(1);
     expect(gate.blocking[0]).toMatch(
-      /^sources_disagree at \$\.openQuestions\[0\]: The sources disagree: Should limits for a team's own APIs fail open or fail closed\?/,
+      /^sources_disagree at \$\.openQuestions\[5\]: The sources disagree: /,
     );
-    // The question states no quantity; it blocks because its chunk is where a research number
-    // comes from (`disagreementBlocks: numbers`, the default).
-    expect(gate.blocking[0]).toContain('It involves num-20 = 150.');
+    // The numbers it names (`numberIds`, researcher@v4), not a number that shares its chunk.
+    expect(gate.blocking[0]).toContain('It involves num-13 = 50, num-20 = 150.');
     if (gate.content?.gate !== 'research') throw new Error('expected the research gate');
     expect(gate.content.sources).toHaveLength(3);
     for (const source of gate.content.sources) {
@@ -281,33 +302,37 @@ describe('gate 1', () => {
     expect(h.jobs(runId)).toContain('direct');
   });
 
-  it('with disagreementBlocks "none" the disagreement is an advisory note and gate 1 approves itself', async () => {
+  it('a disagreement about a choice is an advisory note, and gate 1 approves itself', async () => {
     h.approveDisputed = false;
-    const runId = h.start({
-      autoApprove: { research: true },
-      research: { disagreementBlocks: 'none' },
-    });
+    const runId = h.start({ autoApprove: { research: true } });
     await h.drain();
 
     expect(getRun(h.t.db, runId)?.pipelineStep).toBe('gate_beat_sheet');
     const gate = await h.gate(runId, 'research');
-    expect(gate.status).toBe('approved');
-    expect(gate.decidedBy).toBe('auto');
-    expect(gate.blocking).toEqual([]);
-    expect(gate.warnings).toEqual([
+    expect(gate).toMatchObject({ status: 'approved', decidedBy: 'auto', blocking: [] });
+    expect(gate.warnings).toContainEqual(
       expect.objectContaining({
         code: 'sources_disagree',
         path: '$.openQuestions[0]',
         message: expect.stringMatching(
-          /^The sources disagree: Should limits for a team's own APIs fail open or fail closed\?/,
+          /^The sources disagree \(no number involved, so it does not block\): Should limits for a team's own APIs fail open or fail closed\?/,
         ) as string,
       }),
+    );
+    // The recorded notes mark two uncovered questions as the angle's own.
+    expect(gate.warnings.filter((w) => w.code === 'angle_not_covered').map((w) => w.path)).toEqual([
+      '$.openQuestions[2]',
+      '$.openQuestions[4]',
     ]);
   });
 
   it('switching the rule to "none" at gate 1 lets the waiting run approve itself', async () => {
     h.approveDisputed = false;
-    const runId = await h.runUntilWaiting({ research: true });
+    h.drop('researcher');
+    const runId = await h.runUntilWaiting(
+      { research: true },
+      { researcher: [numericDisagreement()] },
+    );
     expect(getRun(h.t.db, runId)?.pipelineStep).toBe('gate_research');
 
     const res = await h.putSettings(runId, { research: { disagreementBlocks: 'none' } });

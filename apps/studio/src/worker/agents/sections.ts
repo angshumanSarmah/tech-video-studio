@@ -6,10 +6,17 @@ import type { ResearchNotes } from '@explainer-studio/shared';
  */
 
 /** Chunk citations stay with gate 1: later agents cite fact and number ids, never chunks. */
-export function notesWithoutChunks(notes: ResearchNotes): unknown {
+export function notesWithoutChunks(
+  notes: ResearchNotes,
+  options: { readonly planning?: boolean } = {},
+): unknown {
+  // The angle tags and a disagreement's numbers are for planning (the Director) and gate 1; the
+  // writers and the review read the notes as before researcher@v4.
+  const planningOnly = (key: string) =>
+    !options.planning && (key === 'angle' || key === 'numberIds');
   return JSON.parse(
     JSON.stringify(notes, (key, value: unknown) =>
-      key === 'sourceChunkIds' || key === 'sourceChunkId' ? undefined : value,
+      key === 'sourceChunkIds' || key === 'sourceChunkId' || planningOnly(key) ? undefined : value,
     ),
   );
 }

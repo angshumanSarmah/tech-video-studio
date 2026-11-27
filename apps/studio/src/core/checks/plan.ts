@@ -7,7 +7,7 @@ import { getTheme } from '@explainer-studio/renderer/theme';
 import {
   bareSourceNames,
   directorPlanProblems,
-  isAdvisoryPlanCode,
+  isGateWarningPlanCode,
   previewSpec,
   specFromPlan,
   validateVideoSpec,
@@ -117,14 +117,15 @@ function hudIssues(spec: VideoSpec | undefined, hud: HudContext): SpecError[] {
 }
 
 /**
- * A plan's issues by weight (P1C.10): advisory ones (`DIRECTOR_ADVISORY_CODES`) never block the
- * beat sheet and are never the reason for a Director repair; the rest block.
+ * A plan's issues by weight (P1C.10): advisory ones (`DIRECTOR_ADVISORY_CODES`) and gate-warning
+ * ones (`GATE_WARNING_PLAN_CODES`: the Director must fix them, a person may keep them) never
+ * block the beat sheet; the rest block.
  */
 export function splitPlanIssues<T extends { readonly code: string }>(
   issues: readonly T[],
 ): { blocking: T[]; warnings: T[] } {
   return {
-    blocking: issues.filter((i) => !isAdvisoryPlanCode(i.code)),
-    warnings: issues.filter((i) => isAdvisoryPlanCode(i.code)),
+    blocking: issues.filter((i) => !isGateWarningPlanCode(i.code)),
+    warnings: issues.filter((i) => isGateWarningPlanCode(i.code)),
   };
 }

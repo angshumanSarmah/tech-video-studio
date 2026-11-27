@@ -143,7 +143,9 @@ function eventLines(events: readonly EventDto[]): string[] {
 }
 
 describe.each(FIXTURE_TOPIC_IDS)('the orchestrator, dry run: %s', (topicId) => {
-  it('takes a run from topic to the end with every gate on auto (gate 1 waits for the sources’ disagreement), the real Curator included', async () => {
+  // Both recorded disagreements are about a choice, not a quantity (`numberIds` empty,
+  // researcher@v4), so gate 1 approves itself like every other gate.
+  it('takes a run from topic to the end with every gate on auto, the real Curator included', async () => {
     const runId = startTopic(topicId);
     await drain(worker(curateRound(topicId), topicId));
 
@@ -195,7 +197,7 @@ describe.each(FIXTURE_TOPIC_IDS)('the orchestrator, dry run: %s', (topicId) => {
 
     const gates = listRunGates(t.db, runId);
     expect(gates.map((g) => [g.gate, g.status, g.decidedBy])).toEqual([
-      ['research', 'approved', 'user'],
+      ['research', 'approved', 'auto'],
       ['beat_sheet', 'approved', 'auto'],
       ['scenes', 'approved', 'auto'],
       ['draft', 'approved', 'auto'],
@@ -212,8 +214,7 @@ describe.each(FIXTURE_TOPIC_IDS)('the orchestrator, dry run: %s', (topicId) => {
       'run running research',
       'run running gate_research',
       'gate research pending',
-      'run awaiting_review gate_research',
-      'gate research approved user',
+      'gate research approved auto',
       'run running direct',
       'run running gate_beat_sheet',
       'gate beat_sheet pending',

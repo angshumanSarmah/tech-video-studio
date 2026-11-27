@@ -1,6 +1,7 @@
 import {
   PROGRESS_DONE_PCT,
   ResearchNotesSchema,
+  angleTagProblems,
   researchNotesProblems,
   type ResearchInput,
   type ResearchNotes,
@@ -134,7 +135,11 @@ async function writeNotes(
     schema: ResearchNotesSchema,
     runId: run.id,
     stepId,
-    check: (notes) => researchNotesProblems(notes, chunks),
+    // With an angle (the topic notes), every item says how it relates to it (researcher@v4).
+    check: (notes) => [
+      ...researchNotesProblems(notes, chunks),
+      ...(input.topic.angle?.trim() ? angleTagProblems(notes) : []),
+    ],
     signal: ctx.signal,
     log: ctx.log,
   });

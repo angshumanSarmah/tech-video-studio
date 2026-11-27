@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { researchNotesProblems, type CitableChunk } from './checks.ts';
+import {
+  ANGLE_TAGGED_LISTS,
+  angleTagProblems,
+  researchNotesProblems,
+  type CitableChunk,
+} from './checks.ts';
 import { ResearchNotesSchema, type ResearchNotes } from './notes.ts';
 
 const C1 = 'source-1#chunk-1';
@@ -446,5 +451,36 @@ describe('researchNotesProblems', () => {
       ['$.facts[1].id', 'duplicate_id'],
       ['$.numbers[1].id', 'duplicate_id'],
     ]);
+  });
+});
+
+describe('angle tags and disagreement numbers (researcher@v4)', () => {
+  it('a disagreement names numbers that exist; other questions name none', () => {
+    const q = (reason: 'disagreement' | 'not_covered', numberIds: string[]) =>
+      researchNotesProblems(
+        notes({
+          openQuestions: [{ question: 'Which side?', reason, sourceChunkIds: [], numberIds }],
+        }),
+        CHUNKS,
+      ).map((p) => `${p.path} ${p.code}`);
+    expect(q('disagreement', [])).toEqual([]);
+    expect(q('disagreement', ['num-9'])).toEqual([
+      '$.openQuestions[0].numberIds[0] unknown_number_id',
+    ]);
+    expect(q('not_covered', ['num-1'])).toEqual([
+      '$.openQuestions[0].numberIds number_ids_off_disagreement',
+    ]);
+  });
+
+  it("with an angle, every item says how it relates to it (the Researcher's own check)", () => {
+    const untagged = notes();
+    expect(angleTagProblems(untagged).map((p) => p.code)).toContain('angle_tag_missing');
+    const tagged = JSON.parse(JSON.stringify(untagged)) as ResearchNotes;
+    for (const list of ANGLE_TAGGED_LISTS) {
+      for (const item of tagged[list] as { angle?: string }[]) item.angle = 'serves';
+    }
+    expect(angleTagProblems(tagged)).toEqual([]);
+    // Notes without tags still pass the shared check (gate edits, imports).
+    expect(researchNotesProblems(untagged, CHUNKS)).toEqual([]);
   });
 });

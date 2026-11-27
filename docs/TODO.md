@@ -4,6 +4,13 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 
 ## Open
 
+- [ ] **Angle tags: background vs off.** On run 1's replay researcher@v4 tagged the fork,
+      copy-on-write and overcommit material `background`, not `off` (snapshots keep disk writes
+      off the command path), so `off_angle` cannot fire on a persistence beat; director@v5 still
+      dropped the overcommit failure and kept one persistence beat, framed on the angle. If drift
+      recurs, either tighten the prompt's `background` ("needed to understand an item that serves
+      the angle") or warn at G2 when more than one beat rests only on `background` items.
+
 - [ ] **Dropped conditions on board values.** `claim_drops_condition` covers narration claims
       (the Curator's audit) and stat cards (the Scriptwriter's check). A board value the
       Generator draws (a counter, a data block field) citing a conditioned number still passes:
@@ -458,8 +465,3 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **One system: numbers stated but not cited.** `mixed_system_numbers` reads the ids a beat
       cites; an intent that states another source's number without citing its id escapes it.
       Map intent values to research numbers (`researchNumberOf`) and check their sources too.
-- [ ] **Gate 1: disagreements tied to numbers by id.** `disagreementBlocks: numbers` treats a
-      disagreement as numeric when it cites a chunk any research number comes from; chunks are
-      ~1,200 characters, so most carry one (the rate limiter's fail open / closed question blocks
-      through `num-20`, a timeout it is not about). Let the Researcher list `numberIds` on a
-      `disagreement` open question (schema, prompt version, re-recorded fixtures) and block on those.

@@ -301,9 +301,12 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   `research/gate.ts`: fewer than `THIN_RESEARCH.minFacts` (6) facts, no numbers, under
   `minSourceChars` (3,000) characters across the sources read, one `sources_disagree` per
   `disagreement` open question that blocks under the run's `research.disagreementBlocks`
-  (`numbers`, the default: its question states a quantity, or it cites a chunk a research number
-  comes from, `disputedNumbers`; `all`; `none`; run override over app setting), the others
-  advisory `warnings` printed at the top of G1; more than `MANY_SOURCES` (5) sources read only
+  (`numbers`, the default: its `numberIds` (researcher@v4) name a research number; notes from
+  before v4, without the field, fall back to the chunk rule: its question states a quantity, or
+  it cites a chunk a research number comes from, `disputedNumbers`; `all`; `none`; run override
+  over app setting), the others advisory `warnings` printed at the top of G1, first among them
+  `angle_not_covered` (a `not_covered` open question the Researcher marked `serves`: the sources
+  do not cover what the angle needs; never blocking); more than `MANY_SOURCES` (5) sources read only
   warns; a thin fetched page (not pasted text or an upload) warns `source_thin`, one per source: `sourceQuality`, shared
   `research/source-quality.ts`, on its pinned text drops link-only lines, link labels and site
   boilerplate (subscribe, upgrade, share, "you might like"), and under `THIN_SOURCE_CHARS`
@@ -435,9 +438,11 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   no other agent is called. A parent reruns up to its beat sheet, a part from its script.
 - **Tests:** `decide.test.ts` (every transition, regenerate routes, parts, paused and cancelled);
   `worker/orchestrator.test.ts`: the tokenizer from topic to export with every gate on auto (the
-  stage sequence and events pinned; both recorded topics' notes report a sources disagreement
-  citing a chunk with a research number (rate limiter `num-20`, tokenizer `num-6`), so gate 1 waits and the drain approves it as the user, `approveDisputedResearch` in
-  `#core/orchestrator/testing.ts`, as `Harness.drain` does unless `approveDisputed` is off), a gate that waits and resumes on approval, the parts split,
+  stage sequence and events pinned; both recorded topics' disagreements are about a choice, not a
+  quantity (`numberIds` empty, hand-tagged on the recorded notes with their `angle` tags), so
+  gate 1 approves itself; a run that does wait on a disagreement is approved as the user by
+  `approveDisputedResearch` in `#core/orchestrator/testing.ts`, as `Harness.drain` does unless
+  `approveDisputed` is off), a gate that waits and resumes on approval, the parts split,
   the startup sweep, a state problem, the pipeline's job types against the registry, the dry-run
   switch. The all-auto run replays the topic's recorded Curator round (`curateRound`,
   `agents/curator/fixtures/<topic>/round/`: the review, its repairs' Scriptwriter and Generator
@@ -473,9 +478,10 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   the API, other files and non-http URLs refused; the Researcher reads the pasted text under its
   title and the CSV as labelled rows, its notes cite the pasted chunk and a CSV row's value as a
   research number, and the thin research waits at gate 1 with the reasons and each source's
-  length and chunks; a recorded topic's disagreement keeps gate 1 from approving itself (it
-  names the number), unless the run sets `disagreementBlocks: none` (then it is a warning), also
-  when switched with a settings update while the run waits there.
+  length and chunks; a disagreement naming numbers (`numberIds`, a hand-made one on the store
+  timeout) keeps gate 1 from approving itself, unless the run sets `disagreementBlocks: none`,
+  also when switched with a settings update while the run waits there; the recorded choice
+  disagreement only warns, beside the recorded notes' `angle_not_covered` questions.
 
 ### Source ingestion (`src/worker/ingest`, job in `jobs/ingest.ts`)
 
@@ -716,8 +722,9 @@ stepId?, aliases?, check?, signal?, log? })`** is the only way to call a model (
   (`loadRunSources`: `run_sources` → `<hash>.chunks.json`), applies the source token budget,
   builds the prompt (user message: topic, angle = `topics.notes`, series and the sent chunks as
   JSON, so a source cannot forge chunk boundaries) and calls `callJson` with
-  `ResearchNotesSchema` and `check: researchNotesProblems`, so check failures are repaired like
-  schema errors.
+  `ResearchNotesSchema` and `check: researchNotesProblems` (plus `angleTagProblems` when the
+  topic has an angle: `angle_tag_missing` on any item of `ANGLE_TAGGED_LISTS` without one), so
+  check failures are repaired like schema errors.
 - **Steps:** every attempt is its own `run_steps` row (`#core/db/repositories/run-steps.ts`,
   stage `research`; never reused), whose id goes on its `llm_calls` rows. Files:
   `runs/<id>/research/input-<step>.json` (`ResearchInputSchema`: chunks sent, budget, chunks
@@ -730,7 +737,13 @@ stepId?, aliases?, check?, signal?, log? })`** is the only way to call a model (
   (`fact-<n>`, confidence), numbers (`num-<n>`, `value` exactly as the chunk writes it, unit,
   context, one `sourceChunkId`, optional `asOf`), trade-offs, rejected alternatives,
   misconceptions, failure modes (edge case / failure mode / incident with date and publisher),
-  2–4 hooks and open questions (`disagreement` / `not_covered`). Every item cites chunks
+  2–4 hooks and open questions (`disagreement` / `not_covered`; a disagreement lists the research
+  numbers it is about in `numberIds`, empty for a choice: `unknown_number_id`,
+  `number_ids_off_disagreement`). researcher@v4: facts, numbers, trade-offs, rejected
+  alternatives, misconceptions, failure modes and open questions carry `angle` (`ANGLE_TAGS`:
+  `serves`, `background`, `off`; optional in the schema, so older notes parse). Only the
+  Director's notes keep `angle` and `numberIds` (`notesWithoutChunks(notes, { planning: true })`);
+  the Scriptwriter, Generator and Curator read the notes without them. Every item cites chunks
   except `plainSummary`, analogies and open questions with nothing to cite; analogies and
   uncited open questions may carry no number, and `plainSummary` only numbers whose value
   matches an entry in `numbers` (same token comparison as `number_not_in_source`). Fact and number ids are slugs, so `factIds` and stat card
@@ -846,7 +859,10 @@ seriesNumber })` makes the spec; with parts its `targetLengthSec` is the parts' 
   `<device>/<layout>` combo (usage kind `device_layout`) flags each; a video (or part) with a
   recent video's hook and main pattern sequence is `structure_repeated`, with only the previous
   video's hook `hook_repeated` (advisory, `DIRECTOR_ADVISORY_CODES`: soft in the Director's
-  repair turn, a G2 warning; see "Memory"). Per video (or part), with a
+  repair turn, a G2 warning; see "Memory"); a beat whose cited `fact-*` / `num-*` ids are all
+  marked `off` the angle is `off_angle` (`GATE_WARNING_PLAN_CODES`: hard in the Director's own
+  check, so it replans, but a warning at G2 and G3, `splitPlanIssues` / `isGateWarningPlanCode`;
+  untagged notes skip it). Per video (or part), with a
   `continuesPrevious` chain counted as one scene (its mode is its first beat's): a layout mode
   lays out at most `MAX_SCENES_PER_LAYOUT_MODE` (2) scenes (`layout_mode_overused`), two scenes
   in a row never share a mode (`layout_mode_repeated`), a pattern is suggested on at most
@@ -1508,8 +1524,8 @@ jobId }`), `GET /:id` (record, breakdown, attachments, backlog rows), `PUT /:id`
   (`expectedClass`: the previous plan's on a rerun, else the class whose `exampleTopics` the
   title is at least `CLASS_GUESS_SIMILARITY` (0.5) close to by `topicSimilarity`, ties to the
   series' class, else the series', AI → ai-ml), the candidate devices (its `preferredDevices`
-  plus what the notes support: an incident, failure modes, rejected alternatives,
-  misconceptions, 3+ numbers), then `REFERENCE_SCORE` per reference: class +3 (secondary
+  plus what the notes support, counting only items not marked `off` the angle: an incident,
+  failure modes, rejected alternatives, misconceptions, 3+ numbers), then `REFERENCE_SCORE` per reference: class +3 (secondary
   +1.5), +1 per shared device (at most 5), series +1, −2 for a hook or main pattern sequence
   (`referenceFingerprint`) a recent video used, −1 per recent video it was shown to
   (`DirectorMemory.recent.referencesShown`, from usage kind `reference`). Up to
@@ -1614,8 +1630,8 @@ pbpaste | pnpm studio run "Consistent hashing" --series system-design --text "Te
 - **Exit codes:** 0 done or waiting at a gate, 1 failed, cancelled, paused or an error, 2 usage,
   130 interrupted.
 - **Tests** (`cli.test.ts`, through `runCli` with a scripted terminal, `testing.ts`): the tokenizer
-  from its sources to its draft with `--dry-run` (gate 1 stops on the disagreement, `gate 1
-approve` goes on), `resume --only generate` calling only the Generator and the review and
+  from its sources to its draft with `--dry-run` (with `--disagreements all`, gate 1 stops on the
+  recorded disagreement, `gate 1 approve` goes on), `resume --only generate` calling only the Generator and the review and
   holding gate 3, the prompt in a terminal, a CLI attaching to a running worker, and a refused
   dry run next to a live one. `args.test.ts`, `rerun.test.ts`, `runtime.test.ts` (standby
   takeover).

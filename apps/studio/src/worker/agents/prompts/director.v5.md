@@ -42,6 +42,10 @@ DO
 - Treat REFERENCES as examples of how other videos built tension and paced their devices. Take
   at most one technique from any reference, prefer one you have not used recently, and fit it
   to these notes.
+- Build each beat on notes marked serves, or background where a beat needs it; items marked off
+  belong to another video on this topic.
+- Fill a device that needs a failure mode, trade-off or rejected alternative (what_breaks,
+  failure_before_fix) only with one that is not off; if none qualifies, choose another device.
 DO NOT
 - Plan a beat that needs facts the notes don't have.
 - Use the same pattern on the same focus in two consecutive beats.
@@ -59,3 +63,4 @@ Common mistakes to avoid
 6. An ending that summarises in prose instead of a spec card.
 7. The same structure as the last video.
 8. Rebuilding a reference's beat sequence instead of borrowing one technique.
+9. Building a beat on an off-angle failure mode because it is the most dramatic one in the notes.

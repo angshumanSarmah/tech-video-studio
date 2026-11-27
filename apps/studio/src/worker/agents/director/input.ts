@@ -39,7 +39,7 @@ export function directorUserMessage(input: DirectorInput, notes: ResearchNotes):
       ? { similarTopics: input.memory.similarTopics.map(({ title, angle }) => ({ title, angle })) }
       : {}),
     ...(input.references?.briefs.length ? { references: input.references.briefs } : {}),
-    researchNotes: notesWithoutChunks(notes),
+    researchNotes: notesWithoutChunks(notes, { planning: true }),
   };
   const intro = input.references?.briefs.length ? `${INTRO} ${REFERENCES_NOTE}` : INTRO;
   return `${intro}\n\n${JSON.stringify(payload, null, 2)}`;

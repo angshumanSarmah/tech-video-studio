@@ -40,6 +40,7 @@ import { exampleNumberIds, incidentSourceIds } from './systems.ts';
 
 export const DIRECTOR_PROBLEM_CODES = [
   'unknown_fact',
+  'off_angle',
   'too_many_facts_in_beat',
   'too_many_numbers_in_beat',
   'unknown_term',
@@ -174,6 +175,20 @@ export function isAdvisoryPlanCode(code: string): boolean {
   return ADVISORY.has(code);
 }
 
+/**
+ * Plan problems the Director must fix (a repair turn asks for it) but a person may keep: at the
+ * beat sheet and the scenes gate they are warnings, never blocking (`off_angle`: a context beat
+ * a reviewer chose to keep).
+ */
+export const GATE_WARNING_PLAN_CODES: readonly DirectorProblemCode[] = ['off_angle'];
+
+const GATE_WARNING: ReadonlySet<string> = new Set(GATE_WARNING_PLAN_CODES);
+
+/** Whether a plan issue only warns at the gates (advisory, or a gate-warning code). */
+export function isGateWarningPlanCode(code: string): boolean {
+  return ADVISORY.has(code) || GATE_WARNING.has(code);
+}
+
 /** Beats per plan that may reuse a recent device/layout combo before it is a problem. */
 export const MAX_RECENT_COMBO_REUSE = 1;
 
@@ -222,6 +237,7 @@ export function directorPlanProblems(
   const videos = plannedVideos(plan, ctx.part);
   return [
     ...factIdProblems(plan, ctx.notes),
+    ...offAngleProblems(plan, ctx.notes),
     ...factCountProblems(plan, ctx.video.explanationLevel),
     ...numberCountProblems(plan, ctx.notes, ctx.video.explanationLevel),
     ...newTermProblems(plan, ctx),
@@ -320,6 +336,32 @@ function factIdProblems(plan: DirectorPlan, notes: ResearchNotes): DirectorProbl
       unknown(['story', 'beats', i, 'hookNumberIds', j], id),
     ),
   ]);
+}
+
+/**
+ * `off_angle` (researcher@v4 tags): a beat whose cited research ids are all marked `off` is built
+ * on material for another video (run 1's first plan: beats on fork and snapshots in a video about
+ * why one thread is fast). A beat citing nothing, or any `serves` or `background` item, passes;
+ * untagged notes (before v4, or a run without an angle) skip it.
+ */
+function offAngleProblems(plan: DirectorPlan, notes: ResearchNotes): DirectorProblem[] {
+  const tags = new Map<string, string | undefined>([
+    ...notes.facts.map((f): [string, string | undefined] => [f.id, f.angle]),
+    ...notes.numbers.map((n): [string, string | undefined] => [n.id, n.angle]),
+  ]);
+  return plan.story.beats.flatMap((beat, i) => {
+    const ids = [...beat.factIds, ...(beat.hookNumberIds ?? [])].filter((id) => tags.has(id));
+    if (ids.length === 0 || !ids.every((id) => tags.get(id) === 'off')) return [];
+    return [
+      problem(
+        ['story', 'beats', i, 'factIds'],
+        'off_angle',
+        `Beat "${beat.id}" is built only on notes marked off the angle (${ids.join(', ')}): ` +
+          'they belong to another video on this topic. Build it on notes marked serves (or ' +
+          'background where it needs them), or drop the beat and give its time to the angle.',
+      ),
+    ];
+  });
 }
 
 /** One idea per beat: a beat cites at most the level's number of facts (numbers aside). */

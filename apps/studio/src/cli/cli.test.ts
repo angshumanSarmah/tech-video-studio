@@ -22,7 +22,7 @@ import { cliContext, fakeIo, testConfig, type FakeIo } from './testing.ts';
 /**
  * P1C.9b's acceptance, through `runCli` as the terminal calls it: a dry-run topic from its
  * invented sources to its draft (gate 1 waits on the recorded disagreement, approved by the next
- * command), `resume --only generate` running only the Generator (and the review gate 3 needs),
+ * command: it is about a choice, so the runs block on every disagreement, `--disagreements all`), `resume --only generate` running only the Generator (and the review gate 3 needs),
  * the gate prompt in a terminal, and a CLI that attaches to the `pnpm dev` worker.
  */
 
@@ -53,6 +53,9 @@ function runArgs(...extra: string[]): string[] {
     topic.notes,
     '--words-per-sec',
     String(FIXTURE_WORDS_PER_SEC),
+    // The recorded disagreement is about a choice (no numberIds): stop at gate 1 on it anyway.
+    '--disagreements',
+    'all',
     '--dry-run',
     dryRun,
     ...extra,

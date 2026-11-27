@@ -63,6 +63,7 @@ export const RESEARCH_GATE_CODES = [
   'sources_disagree',
   'sources_many',
   'source_thin',
+  'angle_not_covered',
 ] as const;
 
 export interface ResearchGateFindings {
@@ -85,7 +86,12 @@ export function researchGateFindings(
   const disputes = disagreements(notes, options.disagreementBlocks);
   return {
     blocking: [...thinResearch(notes, sources), ...disputes.blocking],
-    warnings: [...disputes.advisory, ...manySources(sources), ...thinSources(notes, sources)],
+    warnings: [
+      ...angleNotCovered(notes),
+      ...disputes.advisory,
+      ...manySources(sources),
+      ...thinSources(notes, sources),
+    ],
   };
 }
 
@@ -134,7 +140,7 @@ function disagreements(
   const advisory: SpecError[] = [];
   notes.openQuestions.forEach((q, i) => {
     if (q.reason !== 'disagreement') return;
-    const numbers = disputedNumbers(q, notes);
+    const numbers = questionNumbers(q, notes);
     const blocks = mode === 'all' || (mode === 'numbers' && numbers.length > 0);
     const issue = { path: `$.openQuestions[${i}]`, code: 'sources_disagree' };
     if (blocks) blocking.push({ ...issue, message: blockingMessage(q, numbers) });
@@ -144,7 +150,20 @@ function disagreements(
 }
 
 /**
- * What makes a disagreement one about numbers: the quantities its question states (identifiers
+ * The numbers a disagreement is about: its `numberIds` (researcher@v4: the Researcher names them;
+ * empty when the sources disagree about a choice), else, for notes from before v4, the chunk rule
+ * (`disputedNumbers`).
+ */
+function questionNumbers(q: OpenQuestion, notes: ResearchNotes): string[] {
+  if (q.numberIds === undefined) return disputedNumbers(q, notes);
+  return q.numberIds.map((id) => {
+    const n = notes.numbers.find((x) => x.id === id);
+    return n ? `${id} = ${n.value}` : id;
+  });
+}
+
+/**
+ * For notes from before v4: what makes a disagreement one about numbers: the quantities its question states (identifiers
  * and everyday "one" to "three" aside, as in the Researcher's check), then the research numbers
  * (`num-<n> = <value>`) that come from a chunk it cites. Empty when it involves none.
  */
@@ -221,3 +240,25 @@ function sourceIdOfChunk(chunkId: string): number {
 
 const citesSource = (chunkIds: readonly string[], sourceId: number) =>
   chunkIds.some((id) => sourceIdOfChunk(id) === sourceId);
+
+/**
+ * `angle_not_covered`: a `not_covered` open question the Researcher marked `serves` is about the
+ * run's angle itself (run 1: how the event loop works beyond IO multiplexing, on a video about
+ * why one thread is fast). Shown first at gate 1, so a source is added before planning; it never
+ * blocks.
+ */
+function angleNotCovered(notes: ResearchNotes): SpecError[] {
+  return notes.openQuestions.flatMap((q, i) =>
+    q.reason === 'not_covered' && q.angle === 'serves'
+      ? [
+          {
+            path: `$.openQuestions[${i}]`,
+            code: 'angle_not_covered',
+            message:
+              `The sources do not cover what the angle needs: ${q.question} Add a source that ` +
+              'does before planning, or the plan will fill the gap from other material.',
+          },
+        ]
+      : [],
+  );
+}

@@ -233,3 +233,54 @@ describe('source_thin', () => {
     expect(codes(warnings)).toEqual([]);
   });
 });
+
+describe('researcher@v4: numberIds and the angle', () => {
+  const q = (patch: Partial<ResearchNotes['openQuestions'][number]>) => ({
+    question: 'Fail open or fail closed?',
+    reason: 'disagreement' as const,
+    sourceChunkIds: [C1],
+    ...patch,
+  });
+
+  it('a disagreement blocks by the numbers it names, not by a number sharing its chunk', () => {
+    const choice = researchGateFindings(notes({ openQuestions: [q({ numberIds: [] })] }), [
+      source(1, 9_000),
+    ]);
+    expect(codes(choice.blocking)).toEqual([]);
+    expect(codes(choice.warnings)).toEqual(['sources_disagree']);
+    const quantity = researchGateFindings(notes({ openQuestions: [q({ numberIds: ['num-1'] })] }), [
+      source(1, 9_000),
+    ]);
+    expect(quantity.blocking[0]?.message).toContain('It involves num-1 = 40.');
+    // Notes from before v4 (no numberIds) keep the chunk rule: num-1 comes from C1.
+    const old = researchGateFindings(notes({ openQuestions: [q({})] }), [source(1, 9_000)]);
+    expect(codes(old.blocking)).toEqual(['sources_disagree']);
+  });
+
+  it('warns first when the sources do not cover the angle itself', () => {
+    const uncovered = (angle: 'serves' | 'off') =>
+      researchGateFindings(
+        notes({
+          openQuestions: [
+            {
+              question: 'How does the loop pick the next item?',
+              reason: 'not_covered',
+              sourceChunkIds: [],
+              angle,
+            },
+          ],
+        }),
+        [source(1, 9_000)],
+      ).warnings;
+    expect(uncovered('serves')).toEqual([
+      {
+        path: '$.openQuestions[0]',
+        code: 'angle_not_covered',
+        message:
+          'The sources do not cover what the angle needs: How does the loop pick the next item? ' +
+          'Add a source that does before planning, or the plan will fill the gap from other material.',
+      },
+    ]);
+    expect(uncovered('off')).toEqual([]);
+  });
+});

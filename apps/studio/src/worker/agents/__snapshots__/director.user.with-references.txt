@@ -196,127 +196,152 @@ Plan the video for this topic. The research notes below are the only facts you m
       {
         "id": "fact-1",
         "statement": "A rate limiter decides, per request, whether a caller may do this now; a token bucket decides from state kept per key: token count, last-refill timestamp, capacity and refill rate.",
-        "confidence": "high"
+        "confidence": "high",
+        "angle": "serves"
       },
       {
         "id": "fact-2",
         "statement": "Each request takes a token; when the bucket is empty the request is refused with HTTP 429 Too Many Requests and a Retry-After header giving the seconds until the next token arrives.",
-        "confidence": "high"
+        "confidence": "high",
+        "angle": "background"
       },
       {
         "id": "fact-3",
         "statement": "At Hollowmere, the invented gateway in the source, a free-tier key gets a capacity of 100 tokens and a refill rate of 10 tokens per second: a client that has been quiet can burst 100 requests at once, then settles to 10 requests per second.",
-        "confidence": "high"
+        "confidence": "high",
+        "angle": "serves"
       },
       {
         "id": "fact-4",
         "statement": "The limiter key is built from the API key plus the route group, so a caller is limited per route rather than globally.",
-        "confidence": "high"
+        "confidence": "high",
+        "angle": "background"
       },
       {
         "id": "fact-5",
         "statement": "The check is a read of token count and last-refill timestamp, an add of elapsed seconds times the refill rate capped at capacity, a spend of a token and a write of the new count and timestamp back to the store.",
-        "confidence": "high"
+        "confidence": "high",
+        "angle": "serves"
       },
       {
         "id": "fact-6",
         "statement": "Read, compute and write run as one atomic script inside the store; without that, two gateway nodes can read the same count, both see a token left, and both let a request through.",
-        "confidence": "high"
+        "confidence": "high",
+        "angle": "serves"
       },
       {
         "id": "fact-7",
         "statement": "Hollowmere runs 24 gateway nodes behind a load balancer; with a bucket per node, a client spread across all of them would get 24 times its limit.",
-        "confidence": "high"
+        "confidence": "high",
+        "angle": "serves"
       },
       {
         "id": "fact-8",
         "statement": "Keeping the bucket in one shared in-memory store costs a network round trip on every request: 0.4 ms at the median and 2.1 ms at p99 in the source's measurements from June 2024.",
-        "confidence": "high"
+        "confidence": "high",
+        "angle": "serves"
       },
       {
         "id": "fact-9",
         "statement": "The first version used a fixed window: counting requests per calendar minute and resetting at the top of each minute, cheap because it needed a single counter per key.",
-        "confidence": "high"
+        "confidence": "high",
+        "angle": "off"
       },
       {
         "id": "fact-10",
         "statement": "A fixed window lets a client send its whole quota in the last second of a minute and again in the first second of the next, up to 2 times the limit across the boundary; the token bucket was chosen because it bounds bursts by the capacity no matter where the clock is.",
-        "confidence": "high"
+        "confidence": "high",
+        "angle": "off"
       },
       {
         "id": "fact-11",
         "statement": "A rate limiter protects fairness between well-behaved clients, not the service from a flood: a flood of 2 million requests per second still reaches the gateways, which must parse every request and look up its key before they can refuse it; dropping that traffic is the network edge's job.",
-        "confidence": "high"
+        "confidence": "high",
+        "angle": "off"
       },
       {
         "id": "fact-12",
         "statement": "quotaflow ships token bucket, sliding window log and sliding window counter behind a single interface and keeps state in a shared store, so every instance of a service enforces the same limit.",
-        "confidence": "high"
+        "confidence": "high",
+        "angle": "background"
       },
       {
         "id": "fact-13",
         "statement": "The sliding window log stores a timestamp per request: exact, but memory grows with the limit — 8 bytes per timestamp, about 8 KB per active key, around 4 GB across 500,000 active keys.",
-        "confidence": "high"
+        "confidence": "high",
+        "angle": "off"
       },
       {
         "id": "fact-14",
         "statement": "The sliding window counter keeps only the current and previous window counts and weights the previous one by how much of it still overlaps; it needs a couple of counters per key and is approximate because it assumes requests in the previous window were evenly spread.",
-        "confidence": "high"
+        "confidence": "high",
+        "angle": "off"
       },
       {
         "id": "fact-15",
         "statement": "quotaflow's default store timeout is 50 ms — a slower call counts as a store failure — and its default on failure is fail closed: refuse with 503 rather than serve traffic it cannot count, a default the README recommends keeping for every route.",
-        "confidence": "high"
+        "confidence": "high",
+        "angle": "serves"
       },
       {
         "id": "fact-16",
         "statement": "quotaflow's local fallback is off by default; when enabled, each instance enforces the limit on its own while the store is down, which multiplies the effective limit by the number of instances.",
-        "confidence": "high"
+        "confidence": "high",
+        "angle": "serves"
       },
       {
         "id": "fact-17",
         "statement": "Clock skew between instances does not affect quotaflow, because timestamps are taken inside the store; idle keys are not expired until some windows after their last request, so their memory lingers briefly.",
-        "confidence": "high"
+        "confidence": "high",
+        "angle": "off"
       },
       {
         "id": "fact-18",
         "statement": "In the Larkspur Pay incident, the limiter's shared store became slow, the limiter fell back to local limits on each of the 40 checkout instances, the payment provider received far more than its contract allowed and throttled all traffic; 31% of checkout requests failed for 47 minutes.",
-        "confidence": "high"
+        "confidence": "high",
+        "angle": "serves"
       },
       {
         "id": "fact-19",
         "statement": "A routine failover moved the limiter's store to a replica in another zone and store calls went from about 1 ms to 80 ms.",
-        "confidence": "high"
+        "confidence": "high",
+        "angle": "serves"
       },
       {
         "id": "fact-20",
         "statement": "Calls over the store timeout then counted as failures; the limiter was configured to fail open, so each instance enforced the limit locally and traffic to the payment provider reached roughly 40 times its contracted rate of 300 requests per second.",
-        "confidence": "high"
+        "confidence": "high",
+        "angle": "serves"
       },
       {
         "id": "fact-21",
         "statement": "The provider began answering 429 to most calls and checkout errors rose to 31%; when the store moved back to its home zone the limits were shared again and the errors stopped.",
-        "confidence": "high"
+        "confidence": "high",
+        "angle": "serves"
       },
       {
         "id": "fact-22",
         "statement": "Fail open was chosen for checkout deliberately — refusing payments because the limiter's store is slow loses sales on every request — which held for their own servers with headroom but not for the downstream provider, whose limit is fixed by contract.",
-        "confidence": "high"
+        "confidence": "high",
+        "angle": "serves"
       },
       {
         "id": "fact-23",
         "statement": "After the incident the payment-provider limiter fails closed, local fallback limits are divided by the number of instances so the instances together stay within the contracted rate, and the store timeout rose to 150 ms, above a cross-zone round trip.",
-        "confidence": "high"
+        "confidence": "high",
+        "angle": "serves"
       },
       {
         "id": "fact-24",
         "statement": "The report leaves one item open: whether limits for their own APIs should fail open or closed is undecided, teams disagree, and the trade-off depends on what sits behind each route.",
-        "confidence": "high"
+        "confidence": "high",
+        "angle": "serves"
       },
       {
         "id": "fact-25",
         "statement": "The quotaflow README claims it is the fastest and most accurate rate limiter available, with accuracy within a stated margin of an ideal limiter under any load; no benchmark or test conditions are given, so it is a marketing claim, not a measurement.",
-        "confidence": "low"
+        "confidence": "low",
+        "angle": "off"
       }
     ],
     "numbers": [
@@ -324,205 +349,241 @@ Plan the video for this topic. The research notes below are the only facts you m
         "id": "num-1",
         "value": "100",
         "unit": "tokens",
-        "context": "Capacity of a free-tier key's bucket at Hollowmere, the invented gateway in the source."
+        "context": "Capacity of a free-tier key's bucket at Hollowmere, the invented gateway in the source.",
+        "angle": "serves"
       },
       {
         "id": "num-2",
         "value": "10",
         "unit": "tokens per second",
-        "context": "Refill rate for that same free-tier key."
+        "context": "Refill rate for that same free-tier key.",
+        "angle": "serves"
       },
       {
         "id": "num-3",
         "value": "24",
         "unit": "gateway nodes",
-        "context": "Hollowmere gateway nodes running behind a load balancer."
+        "context": "Hollowmere gateway nodes running behind a load balancer.",
+        "angle": "serves"
       },
       {
         "id": "num-4",
         "value": "24",
         "unit": "times its limit",
-        "context": "Effective limit a client would get if each of the gateway nodes kept its own bucket instead of a shared one."
+        "context": "Effective limit a client would get if each of the gateway nodes kept its own bucket instead of a shared one.",
+        "angle": "serves"
       },
       {
         "id": "num-5",
         "value": "0.4",
         "unit": "ms",
         "context": "Median network round trip to the shared store per request, in the source's own measurements.",
-        "asOf": "June 2024"
+        "asOf": "June 2024",
+        "angle": "serves"
       },
       {
         "id": "num-6",
         "value": "2.1",
         "unit": "ms",
         "context": "p99 network round trip to the shared store per request, in the source's own measurements.",
-        "asOf": "June 2024"
+        "asOf": "June 2024",
+        "angle": "serves"
       },
       {
         "id": "num-7",
         "value": "2",
         "unit": "times the limit",
-        "context": "Worst-case burst a client could reach across a fixed-window boundary, sending its quota at the end of one minute and the start of the next."
+        "context": "Worst-case burst a client could reach across a fixed-window boundary, sending its quota at the end of one minute and the start of the next.",
+        "angle": "off"
       },
       {
         "id": "num-8",
         "value": "2 million",
         "unit": "requests per second",
-        "context": "Size of a real flood that still reaches the gateways and must be parsed and key-looked-up before refusal; the limiter cannot drop it."
+        "context": "Size of a real flood that still reaches the gateways and must be parsed and key-looked-up before refusal; the limiter cannot drop it.",
+        "angle": "off"
       },
       {
         "id": "num-9",
         "value": "8",
         "unit": "bytes",
-        "context": "Memory per stored timestamp in a sliding window log."
+        "context": "Memory per stored timestamp in a sliding window log.",
+        "angle": "off"
       },
       {
         "id": "num-10",
         "value": "8",
         "unit": "KB",
-        "context": "Memory per active key for a sliding window log at the limit used in the source's example."
+        "context": "Memory per active key for a sliding window log at the limit used in the source's example.",
+        "angle": "off"
       },
       {
         "id": "num-11",
         "value": "500,000",
         "unit": "active keys",
-        "context": "Scale of active keys used in the source's memory example for the sliding window log."
+        "context": "Scale of active keys used in the source's memory example for the sliding window log.",
+        "angle": "off"
       },
       {
         "id": "num-12",
         "value": "4",
         "unit": "GB",
-        "context": "Total memory for the sliding window log across 500,000 active keys at the example limit."
+        "context": "Total memory for the sliding window log across 500,000 active keys at the example limit.",
+        "angle": "off"
       },
       {
         "id": "num-13",
         "value": "50",
         "unit": "ms",
-        "context": "quotaflow's default store timeout; a slower store call counts as a store failure."
+        "context": "quotaflow's default store timeout; a slower store call counts as a store failure.",
+        "angle": "serves"
       },
       {
         "id": "num-14",
         "value": "47",
         "unit": "minutes",
         "context": "How long checkout requests kept failing in the Larkspur Pay incident.",
-        "asOf": "14 March 2025"
+        "asOf": "14 March 2025",
+        "angle": "serves"
       },
       {
         "id": "num-15",
         "value": "31",
         "unit": "%",
         "context": "Share of checkout requests that failed during the incident.",
-        "asOf": "14 March 2025"
+        "asOf": "14 March 2025",
+        "angle": "serves"
       },
       {
         "id": "num-16",
         "value": "80",
         "unit": "ms",
         "context": "Store call latency after a routine failover moved the limiter's store to a replica in another zone.",
-        "asOf": "14 March 2025"
+        "asOf": "14 March 2025",
+        "angle": "serves"
       },
       {
         "id": "num-17",
         "value": "1",
         "unit": "ms",
         "context": "Store call latency before that failover, as the report describes it.",
-        "asOf": "14 March 2025"
+        "asOf": "14 March 2025",
+        "angle": "serves"
       },
       {
         "id": "num-18",
         "value": "40",
         "unit": "instances",
         "context": "Checkout instances, each enforcing the limit locally once the store timed out.",
-        "asOf": "14 March 2025"
+        "asOf": "14 March 2025",
+        "angle": "serves"
       },
       {
         "id": "num-19",
         "value": "300",
         "unit": "requests per second",
         "context": "Contracted rate with the payment provider behind checkout.",
-        "asOf": "14 March 2025"
+        "asOf": "14 March 2025",
+        "angle": "serves"
       },
       {
         "id": "num-20",
         "value": "150",
         "unit": "ms",
-        "context": "Store timeout for the checkout limiter after the incident, set above a cross-zone round trip."
+        "context": "Store timeout for the checkout limiter after the incident, set above a cross-zone round trip.",
+        "angle": "serves"
       }
     ],
     "tradeOffs": [
       {
         "choice": "Keep the bucket in one shared store instead of a bucket per gateway node",
         "gains": "One limit for the whole fleet: a client cannot multiply its allowance by hitting different nodes.",
-        "costs": "A network round trip on every request — 0.4 ms median, 2.1 ms p99 — and the limiter's correctness now depends on that store's health."
+        "costs": "A network round trip on every request — 0.4 ms median, 2.1 ms p99 — and the limiter's correctness now depends on that store's health.",
+        "angle": "serves"
       },
       {
         "choice": "Token bucket instead of a fixed per-minute window",
         "gains": "Bursts are bounded by the capacity no matter where the clock is, so the boundary trick that reached 2 times the limit is gone.",
-        "costs": "More state and math per key: a token count, a timestamp and a refill calculation, where the fixed window needed a single counter."
+        "costs": "More state and math per key: a token count, a timestamp and a refill calculation, where the fixed window needed a single counter.",
+        "angle": "background"
       },
       {
         "choice": "Sliding window log instead of an approximate counter",
         "gains": "Exact counting of requests in the window, with no burst allowance at all.",
-        "costs": "Memory grows with the limit: 8 bytes per timestamp, about 8 KB per active key, roughly 4 GB across 500,000 active keys."
+        "costs": "Memory grows with the limit: 8 bytes per timestamp, about 8 KB per active key, roughly 4 GB across 500,000 active keys.",
+        "angle": "off"
       },
       {
         "choice": "Fail closed on store failure instead of fail open",
         "gains": "Traffic the limiter cannot count is refused, so a downstream dependency never sees more than its contracted rate.",
-        "costs": "A slow store becomes user-visible refusals: Larkspur now accepts delayed payments instead of serving them uncounted."
+        "costs": "A slow store becomes user-visible refusals: Larkspur now accepts delayed payments instead of serving them uncounted.",
+        "angle": "serves"
       },
       {
         "choice": "Keep local fallback but divide the limit by the number of instances",
         "gains": "During a store outage the instances together still stay within the contracted rate.",
-        "costs": "Requests are then counted per instance rather than per caller, and each instance only gets its share of the total."
+        "costs": "Requests are then counted per instance rather than per caller, and each instance only gets its share of the total.",
+        "angle": "serves"
       },
       {
         "choice": "Raise the store timeout to sit above a cross-zone round trip",
         "gains": "A store replica in another zone no longer trips the failure policy on latency alone.",
-        "costs": "When the store is slow, requests wait longer instead of failing fast — the incident fix accepts delays on some payments."
+        "costs": "When the store is slow, requests wait longer instead of failing fast — the incident fix accepts delays on some payments.",
+        "angle": "serves"
       }
     ],
     "rejectedAlternatives": [
       {
         "alternative": "Each gateway node keeps its own bucket",
-        "reason": "With 24 nodes behind a load balancer, a client spread across all of them would get 24 times its limit."
+        "reason": "With 24 nodes behind a load balancer, a client spread across all of them would get 24 times its limit.",
+        "angle": "serves"
       },
       {
         "alternative": "Fixed window: count requests per calendar minute, reset at the top of the minute",
-        "reason": "Cheap, but a client could send its whole quota in the last second of a minute and again in the first second of the next, reaching up to 2 times the limit across the boundary."
+        "reason": "Cheap, but a client could send its whole quota in the last second of a minute and again in the first second of the next, reaching up to 2 times the limit across the boundary.",
+        "angle": "background"
       },
       {
         "alternative": "Sliding window log for exact burst control",
-        "reason": "Exact, but memory grows with the limit: about 8 KB per active key and around 4 GB over 500,000 active keys."
+        "reason": "Exact, but memory grows with the limit: about 8 KB per active key and around 4 GB over 500,000 active keys.",
+        "angle": "off"
       },
       {
         "alternative": "Fail open on store failure, the configuration used for checkout",
-        "reason": "It held for their own servers, which had headroom, but not for the payment provider whose limit is fixed by contract: the provider throttled all traffic and 31% of checkouts failed."
+        "reason": "It held for their own servers, which had headroom, but not for the payment provider whose limit is fixed by contract: the provider throttled all traffic and 31% of checkouts failed.",
+        "angle": "serves"
       },
       {
         "alternative": "Local fallback limits used as-is while the store is down",
-        "reason": "Each instance enforcing the full limit multiplies the effective limit by the number of instances; the fix divides the fallback limit by that count."
+        "reason": "Each instance enforcing the full limit multiplies the effective limit by the number of instances; the fix divides the fallback limit by that count.",
+        "angle": "serves"
       }
     ],
     "misconceptions": [
       {
         "belief": "A rate limiter protects a service from a flood of traffic.",
-        "correction": "It protects fairness between well-behaved clients. A real flood of 2 million requests per second still reaches the gateways, which must parse every request and look up its key before refusing; dropping that traffic belongs to the network edge."
+        "correction": "It protects fairness between well-behaved clients. A real flood of 2 million requests per second still reaches the gateways, which must parse every request and look up its key before refusing; dropping that traffic belongs to the network edge.",
+        "angle": "off"
       },
       {
         "belief": "A limiter on each instance is as good as a shared one, as long as every instance enforces the limit.",
-        "correction": "A client spread across 24 gateway nodes gets 24 times the limit; during the incident, local limits on 40 checkout instances pushed traffic to the provider far past its contract."
+        "correction": "A client spread across 24 gateway nodes gets 24 times the limit; during the incident, local limits on 40 checkout instances pushed traffic to the provider far past its contract.",
+        "angle": "serves"
       },
       {
         "belief": "Failing open always keeps you available; failing closed always costs you sales.",
-        "correction": "For a downstream dependency with a contractually fixed limit, failing open broke everything: the provider throttled all traffic and 31% of checkouts failed for 47 minutes. Larkspur switched that route to fail closed."
+        "correction": "For a downstream dependency with a contractually fixed limit, failing open broke everything: the provider throttled all traffic and 31% of checkouts failed for 47 minutes. Larkspur switched that route to fail closed.",
+        "angle": "serves"
       },
       {
         "belief": "A shared limiter needs the instances' clocks to be in sync.",
-        "correction": "quotaflow takes timestamps inside the store, so clock skew between instances does not affect it."
+        "correction": "quotaflow takes timestamps inside the store, so clock skew between instances does not affect it.",
+        "angle": "off"
       },
       {
         "belief": "The library's own accuracy claim tells you how it will behave under your load.",
-        "correction": "The README's 'fastest and most accurate' line is a vendor claim with no benchmark or test conditions; the same README documents approximations and memory limits for its algorithms."
+        "correction": "The README's 'fastest and most accurate' line is a vendor claim with no benchmark or test conditions; the same README documents approximations and memory limits for its algorithms.",
+        "angle": "off"
       }
     ],
     "failureModes": [
@@ -532,31 +593,38 @@ Plan the video for this topic. The research notes below are the only facts you m
         "incident": {
           "date": "14 March 2025",
           "publisher": "Larkspur Pay platform team"
-        }
+        },
+        "angle": "serves"
       },
       {
         "kind": "failure_mode",
-        "description": "A slow store plus a per-instance fallback silently multiplies the limit by the number of running instances — the limiter keeps saying yes while the downstream dependency sees a multiple of the traffic it allows."
+        "description": "A slow store plus a per-instance fallback silently multiplies the limit by the number of running instances — the limiter keeps saying yes while the downstream dependency sees a multiple of the traffic it allows.",
+        "angle": "serves"
       },
       {
         "kind": "failure_mode",
-        "description": "Failing closed turns store latency into user-visible refusals: quotaflow answers 503 to traffic it cannot count, and a longer timeout means those requests wait longer before being decided either way."
+        "description": "Failing closed turns store latency into user-visible refusals: quotaflow answers 503 to traffic it cannot count, and a longer timeout means those requests wait longer before being decided either way.",
+        "angle": "serves"
       },
       {
         "kind": "edge_case",
-        "description": "Without an atomic read-compute-write, two gateway nodes can read the same count, both see a token left and both admit a request, quietly exceeding the limit at low load where it is hardest to notice."
+        "description": "Without an atomic read-compute-write, two gateway nodes can read the same count, both see a token left and both admit a request, quietly exceeding the limit at low load where it is hardest to notice.",
+        "angle": "serves"
       },
       {
         "kind": "edge_case",
-        "description": "The bucket itself allows bursts: a client that has been quiet can spend its whole capacity of 100 requests at once, so a downstream with a steady-rate contract still sees a spike."
+        "description": "The bucket itself allows bursts: a client that has been quiet can spend its whole capacity of 100 requests at once, so a downstream with a steady-rate contract still sees a spike.",
+        "angle": "background"
       },
       {
         "kind": "edge_case",
-        "description": "A genuine flood is not stopped by the limiter at all: 2 million requests per second still hits the gateways, which must parse each request and look up its key before they can refuse it."
+        "description": "A genuine flood is not stopped by the limiter at all: 2 million requests per second still hits the gateways, which must parse each request and look up its key before they can refuse it.",
+        "angle": "off"
       },
       {
         "kind": "edge_case",
-        "description": "Memory for idle keys lingers: keys are not expired until some windows after their last request, and an exact sliding window log can reach about 4 GB across 500,000 active keys."
+        "description": "Memory for idle keys lingers: keys are not expired until some windows after their last request, and an exact sliding window log can reach about 4 GB across 500,000 active keys.",
+        "angle": "off"
       }
     ],
     "hooks": [
@@ -576,23 +644,29 @@ Plan the video for this topic. The research notes below are the only facts you m
     "openQuestions": [
       {
         "question": "Should limits for a team's own APIs fail open or fail closed? The report leaves it undecided: teams disagree and the trade-off depends on what sits behind each route.",
-        "reason": "disagreement"
+        "reason": "disagreement",
+        "angle": "serves",
+        "numberIds": []
       },
       {
         "question": "No benchmark, load profile or test conditions accompany the library's accuracy claim, so how it behaves under a given service's traffic is unknown.",
-        "reason": "not_covered"
+        "reason": "not_covered",
+        "angle": "off"
       },
       {
         "question": "What makes a cross-zone store replica slow enough to trip the timeout, and how should the timeout be sized in general?",
-        "reason": "not_covered"
+        "reason": "not_covered",
+        "angle": "serves"
       },
       {
         "question": "How the shared store itself should be kept available — replication, regional placement, capacity — is not analysed beyond the failover that caused the incident.",
-        "reason": "not_covered"
+        "reason": "not_covered",
+        "angle": "background"
       },
       {
         "question": "What happens to bucket state and in-flight requests when the store fails over and writes are lost or land on a stale replica is not described.",
-        "reason": "not_covered"
+        "reason": "not_covered",
+        "angle": "serves"
       }
     ]
   }

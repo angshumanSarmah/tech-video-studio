@@ -24,8 +24,8 @@ export type PromptName = 'preamble' | PromptRole;
 
 export const PROMPT_VERSIONS: Readonly<Record<PromptName, number>> = {
   preamble: 1,
-  researcher: 3,
-  director: 4,
+  researcher: 4,
+  director: 5,
   scriptwriter: 8,
   generator: 2,
   curator: 4,

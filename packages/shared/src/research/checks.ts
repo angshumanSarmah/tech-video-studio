@@ -18,6 +18,9 @@ export const RESEARCH_ISSUE_CODES = [
   'unsourced_number',
   'duplicate_id',
   'number_value_not_numeric',
+  'unknown_number_id',
+  'number_ids_off_disagreement',
+  'angle_tag_missing',
 ] as const;
 export type ResearchIssueCode = (typeof RESEARCH_ISSUE_CODES)[number];
 
@@ -91,7 +94,79 @@ export function researchNotesProblems(
     ...numbers.flatMap((n, i) => numericValueIssues(n, ['numbers', i, 'value'])),
     ...duplicateIds(asList(root.facts), 'facts'),
     ...duplicateIds(numbers, 'numbers'),
+    ...openQuestionNumberIdIssues(asList(root.openQuestions), numbers),
   ];
+}
+
+/**
+ * A disagreement's `numberIds` name research numbers (`unknown_number_id`), and only a
+ * disagreement has them (`number_ids_off_disagreement`): gate 1 blocks on a disagreement that
+ * names a number (`disagreementBlocks: numbers`).
+ */
+function openQuestionNumberIdIssues(
+  questions: readonly unknown[],
+  numbers: readonly unknown[],
+): ResearchIssue[] {
+  const known = new Set(numbers.flatMap((n) => asString(asObject(n)?.id) ?? []));
+  return questions.flatMap((q, i) => {
+    const question = asObject(q);
+    const ids = asList(question?.numberIds).flatMap((id) => asString(id) ?? []);
+    if (ids.length === 0) return [];
+    if (question?.reason !== 'disagreement') {
+      return [
+        issue(
+          ['openQuestions', i, 'numberIds'],
+          'number_ids_off_disagreement',
+          'Only a disagreement lists numberIds (the numbers the sources disagree on); leave them out here.',
+        ),
+      ];
+    }
+    return ids.flatMap((id, j) =>
+      known.has(id)
+        ? []
+        : [
+            issue(
+              ['openQuestions', i, 'numberIds', j],
+              'unknown_number_id',
+              `"${id}" is not in numbers. List the ids of the numbers the sources disagree on.`,
+            ),
+          ],
+    );
+  });
+}
+
+/** The lists whose items carry `angle` (researcher@v4). */
+export const ANGLE_TAGGED_LISTS = [
+  'facts',
+  'numbers',
+  'tradeOffs',
+  'rejectedAlternatives',
+  'misconceptions',
+  'failureModes',
+  'openQuestions',
+] as const;
+
+/**
+ * `angle_tag_missing`: when the run has an angle, every item of `ANGLE_TAGGED_LISTS` says how it
+ * relates to it. The Researcher's own check only (not `researchNotesProblems`), so notes from
+ * before v4 still pass a gate edit or an import. Any JSON value.
+ */
+export function angleTagProblems(notes: unknown): ResearchIssue[] {
+  const root = asObject(notes);
+  if (!root) return [];
+  return ANGLE_TAGGED_LISTS.flatMap((list) =>
+    asList(root[list]).flatMap((item, i) =>
+      asString(asObject(item)?.angle) !== null
+        ? []
+        : [
+            issue(
+              [list, i, 'angle'],
+              'angle_tag_missing',
+              'Mark how this item relates to the angle: serves, background or off.',
+            ),
+          ],
+    ),
+  );
 }
 
 /**

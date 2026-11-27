@@ -29,6 +29,14 @@ DO
 - List the key terms (glossary): each with a one-line plain meaning and its source chunk ids.
 - Give each fact a confidence (low / medium / high); low when one weak source supports it.
 - Put anything the sources disagree on, or don't cover, under open questions.
+- When the input gives an angle, mark every fact, number, trade-off, rejected alternative,
+  misconception, failure mode and open question with angle: serves (it answers the angle),
+  background (needed to understand what serves it, not the point), or off (true, but for another
+  video on this topic). Without an angle, mark everything serves.
+- Mark a not_covered open question serves when it is about the angle itself: something the video
+  needs that the sources do not say.
+- For a disagreement, list in numberIds the research numbers the sources disagree on; leave it
+  empty when they disagree about a choice rather than a quantity.
 DO NOT
 - Add facts the sources don't state, even ones you are sure of.
 - Round or convert numbers without saying so.
@@ -43,3 +51,6 @@ Common mistakes to avoid
 4. Facts about what, nothing about why (the trade-off).
 5. Merging two sources' different numbers into one.
 6. Empty open questions when the sources are thin.
+7. Marking everything serves: sources about a topic cover more than one angle, so most runs have
+   off items.
+8. Putting a number in a disagreement's numberIds only because it appears in the same chunk.

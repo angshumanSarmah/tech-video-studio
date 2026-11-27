@@ -41,11 +41,27 @@ export const ResearchMechanismSchema = z.strictObject({
   steps: z.array(ResearchMechanismStepSchema).min(1).max(10),
 });
 
+/**
+ * How an item relates to the run's angle (`topics.notes`, researcher@v4): `serves` it answers the
+ * angle, `background` is needed to understand what serves it, `off` is true but for another
+ * video on this topic. Optional: notes from before v4, and runs without an angle, have none (the
+ * Researcher's own check requires it when the run has an angle).
+ */
+export const ANGLE_TAGS = ['serves', 'background', 'off'] as const;
+export const AngleTagSchema = z
+  .enum(ANGLE_TAGS)
+  .describe(
+    "How the item relates to the run's angle: serves (answers it), background (needed to understand what serves it), off (true, but for another video on this topic).",
+  );
+export type AngleTag = z.infer<typeof AngleTagSchema>;
+const angle = AngleTagSchema.optional();
+
 export const ResearchFactSchema = z.strictObject({
   id: ResearchFactIdSchema,
   statement: text(300, 'One claim the sources state.'),
   sourceChunkIds: ChunkIdsSchema,
   confidence: ResearchConfidenceSchema.describe('low when one weak source supports it.'),
+  angle,
 });
 export type ResearchFact = z.infer<typeof ResearchFactSchema>;
 
@@ -66,6 +82,7 @@ export const ResearchNumberSchema = z.strictObject({
     40,
     'The date the source gives for the number, as written; omit when none.',
   ).optional(),
+  angle,
 });
 export type ResearchNumber = z.infer<typeof ResearchNumberSchema>;
 
@@ -74,18 +91,21 @@ export const ResearchTradeOffSchema = z.strictObject({
   gains: text(240, 'What the choice buys.'),
   costs: text(240, 'What it gives up.'),
   sourceChunkIds: ChunkIdsSchema,
+  angle,
 });
 
 export const ResearchRejectedAlternativeSchema = z.strictObject({
   alternative: text(160, 'A design the sources consider and reject.'),
   reason: text(300, 'Why it was rejected, as the sources say.'),
   sourceChunkIds: ChunkIdsSchema,
+  angle,
 });
 
 export const ResearchMisconceptionSchema = z.strictObject({
   belief: text(200, 'What engineers commonly believe.'),
   correction: text(300, 'What is actually true, per the sources.'),
   sourceChunkIds: ChunkIdsSchema,
+  angle,
 });
 
 export const FAILURE_MODE_KINDS = ['edge_case', 'failure_mode', 'incident'] as const;
@@ -102,6 +122,7 @@ export const ResearchFailureModeSchema = z.strictObject({
     .optional()
     .describe('For kind "incident": when it happened and who reported it.'),
   sourceChunkIds: ChunkIdsSchema,
+  angle,
 });
 
 export const ResearchAnalogySchema = z.strictObject({
@@ -130,6 +151,14 @@ export const ResearchOpenQuestionSchema = z.strictObject({
     .array(SourceChunkIdSchema)
     .max(8)
     .describe('The chunks that disagree; empty when the sources are silent.'),
+  angle,
+  numberIds: z
+    .array(ResearchNumberIdSchema)
+    .max(8)
+    .optional()
+    .describe(
+      'For a disagreement: the research numbers the sources disagree on; empty when they disagree about a choice rather than a quantity.',
+    ),
 });
 
 export const ResearchNotesSchema = z.strictObject({

@@ -6,11 +6,12 @@ import { researchReview } from '../services/gate-checks.ts';
 /** Test-only helpers. Not imported by any entrypoint. */
 
 /**
- * Both recorded fixture topics' notes report a disagreement between their sources that cites a
- * chunk a research number comes from, which keeps gate 1 from approving itself under the default
- * `research.disagreementBlocks: numbers` (P1C.9 step 9). For tests that put research on auto to get past
- * it, this approves gate 1 as the user would, on every run that waits there for that reason only
- * (thin research still waits). True when it approved any.
+ * A disagreement between sources keeps gate 1 from approving itself when it involves a number
+ * (`research.disagreementBlocks: numbers`, P1C.9 step 9; `numberIds` since researcher@v4: both
+ * recorded fixture topics' disagreements are about a choice, so they no longer wait) or under
+ * `all`. For tests that put research on auto to get past it, this approves gate 1 as the user
+ * would, on every run that waits there for that reason only (thin research still waits). True
+ * when it approved any.
  */
 export function approveDisputedResearch(db: Db, dataDir: string): boolean {
   const runs = listRunsByStatus(db, ['awaiting_review']).filter(
