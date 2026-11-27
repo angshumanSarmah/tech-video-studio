@@ -14,6 +14,7 @@ import { noSeedReferences } from '../services/references-testing.ts';
 import { TEST_MIGRATIONS_DIR } from './testing.ts';
 
 const EXPECTED_TABLES = [
+  'asset_requests',
   'assets',
   'channels',
   'events',

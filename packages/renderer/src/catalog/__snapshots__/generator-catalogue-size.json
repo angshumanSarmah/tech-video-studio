@@ -1,6 +1,6 @@
 {
-  "chars": 110804,
-  "tokens": 31659,
+  "chars": 106009,
+  "tokens": 30289,
   "sections": {
     "CATALOGUE VERSIONS": {
       "chars": 35,
@@ -18,9 +18,9 @@
       "chars": 53654,
       "tokens": 15330
     },
-    "ASSETS": {
-      "chars": 5204,
-      "tokens": 1487
+    "ASSET FAMILIES": {
+      "chars": 409,
+      "tokens": 117
     }
   }
 }

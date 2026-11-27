@@ -8,7 +8,7 @@ import type { ModelRole } from '@explainer-studio/shared';
  * then bump the version here; every LLM call records the versions it used.
  */
 
-/** Roles with a role prompt. `asset` has none yet (its rules come with P1C.12). */
+/** Roles with a role prompt: every model role. */
 export const PROMPT_ROLES = [
   'researcher',
   'director',
@@ -17,6 +17,7 @@ export const PROMPT_ROLES = [
   'curator',
   'analyst',
   'reference',
+  'asset',
 ] as const satisfies readonly ModelRole[];
 export type PromptRole = (typeof PROMPT_ROLES)[number];
 
@@ -27,10 +28,11 @@ export const PROMPT_VERSIONS: Readonly<Record<PromptName, number>> = {
   researcher: 4,
   director: 5,
   scriptwriter: 8,
-  generator: 2,
+  generator: 3,
   curator: 4,
   analyst: 2,
   reference: 1,
+  asset: 1,
 };
 
 /** Relative to the workspace root, like other repo paths in config (works in dev and build). */

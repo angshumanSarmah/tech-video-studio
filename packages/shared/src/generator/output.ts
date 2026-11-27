@@ -7,6 +7,7 @@ import {
   WordIndexAnchorSchema,
   type BeatScene,
 } from '../spec/scene.ts';
+import { MissingAssetRequestSchema } from '../domain/assets.ts';
 import { MissingPrimitiveRequestSchema, type StoryBeat } from '../spec/story.ts';
 
 /**
@@ -75,19 +76,27 @@ export const GeneratorOutputSchema = z.strictObject({
     .array(MissingPrimitiveRequestSchema)
     .optional()
     .describe('Only when no primitive, pattern or asset fits: what you needed and what you used.'),
+  missingAssetRequests: z
+    .array(MissingAssetRequestSchema)
+    .optional()
+    .describe(
+      'Only when no listed asset shows the thing: one entry for the new asset id this board uses (at most one per beat).',
+    ),
 });
 export type GeneratorOutput = z.infer<typeof GeneratorOutputSchema>;
 
 /**
  * The beat's scene: the Generator's board plus what the plan decides. A continuing beat keeps
  * the previous board's layout, so only a board's first beat takes the plan's layout mode (none
- * means its first pattern's). `missingPrimitiveRequests` are not part of the scene.
+ * means its first pattern's). `missingPrimitiveRequests` are not part of the scene;
+ * `missingAssetRequests` are (they describe placeholder ids on this board).
  */
 export function generatorScene(
   output: GeneratorOutput,
   beat: Pick<StoryBeat, 'id' | 'continuesPrevious' | 'layoutMode'>,
 ): BeatScene {
-  const { elements, patterns, events, focus, transitionIn, zoomFrom } = output;
+  const { elements, patterns, events, focus, transitionIn, zoomFrom, missingAssetRequests } =
+    output;
   const layoutMode = beat.continuesPrevious ? undefined : beat.layoutMode;
   return {
     beatId: beat.id,
@@ -100,5 +109,6 @@ export function generatorScene(
     transitionIn,
     ...(zoomFrom ? { zoomFrom } : {}),
     continuesPrevious: beat.continuesPrevious,
+    ...(missingAssetRequests?.length ? { missingAssetRequests } : {}),
   };
 }

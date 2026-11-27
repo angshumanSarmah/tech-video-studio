@@ -137,6 +137,68 @@ The narration lasts 11.54 s.
   "logoSlots": []
 }
 
+## ASSETS (exhaustive for this beat: use only these ids, or request a new one)
+- archive (data): Archive; backup, cold storage, box
+- bar_chart (data): Bar chart; metrics, stats
+- binary (data): Bits; bytes, encoding, raw
+- copy (data): Copy; replica, duplicate, clone
+- document (data): Document; file, page, text
+- filter (data): Filter; funnel, match, where
+- hash (data): Hash; key, checksum, shard
+- inbox (data): Inbox; incoming, tray, buffer
+- json (data): JSON; payload, object, api
+- line_chart (data): Line chart; trend, latency, graph
+- list (data): List; items, records, rows
+- queue (data): Queue; ordered, fifo, backlog
+- search (data): Search; lookup, query, find
+- shuffle (data): Shuffle; random, rebalance, mix
+- table (data): Table; rows, columns, schema
+- circuit (infra): Circuit board; hardware, chip
+- cloud (infra): Cloud; hosted, provider, region
+- cluster (infra): Cluster; pods, replicas, fleet
+- container (infra): Container; docker, image, deploy
+- cpu (infra): CPU; processor, compute, core
+- database (infra): Database; db, storage, sql, store [used in this video]
+- datacenter (infra): Data centre; region, site, building
+- disk (infra): Disk; storage, drive, ssd
+- layers (infra): Layers; stack, tiers, levels
+- memory (infra): Memory; ram, cache, in-memory
+- server (infra): Server; host, machine, backend, service [used in this video]
+- globe (network): Internet; web, world, public
+- link (network): Link; url, connection, reference
+- network (network): Network; topology, nodes, lan
+- router (network): Router; gateway, switch
+- split (network): Split; load balancer, fan out, route
+- swap (network): Exchange; request, response
+- waypoints (network): Hops; path, graph, peers
+- wifi (network): Wi-Fi; wireless, signal, connection
+- user (people): User; person, customer, client
+- user_check (people): Approved user; verified, allowed
+- user_x (people): Blocked user; denied, banned
+- users (people): Users; people, crowd, audience
+- eye (security): Watch; visible, monitor, observe
+- fingerprint (security): Fingerprint; identity, auth
+- key (security): Key; secret, token, credential
+- lock (security): Lock; locked, mutex, secure
+- alert (symbol): Warning; danger, caution, error
+- check (symbol): Check; ok, done, yes
+- crown (symbol): Leader; leader, primary, winner
+- failure (symbol): Failure; failed, error, down
+- flag (symbol): Flag; marker, goal, milestone
+- repeat (symbol): Loop; retry, cycle, again
+- rocket (symbol): Launch; ship, deploy, start
+- scale (symbol): Trade-off; balance, compare, weigh
+- star (symbol): Star; favourite, rating, best
+- success (symbol): Success; passed, ok, healthy
+- thumbs_up (symbol): Thumbs up; like, approve, good
+- x (symbol): Cross; no, wrong, fail
+- zap (symbol): Fast; speed, instant, power
+- calendar (time): Calendar; date, schedule, day
+- clock (time): Clock; time, latency, wait
+- history (time): History; past, log, rewind
+- hourglass (time): Hourglass; waiting, ttl, expiry
+- timer (time): Timer; timeout, stopwatch, deadline
+
 ## ON SCREEN (exhaustive: the ids already on this board; act on them with events, never declare them again)
 - own (node_card) "Own bucket": present; actions: enter, exit, highlight, dim, pulse, lock, release, reject, recover; pins: top, bottom, left, right
 - shared (node_card) "Shared store": present; actions: enter, exit, highlight, dim, pulse, lock, release, reject, recover; pins: top, bottom, left, right

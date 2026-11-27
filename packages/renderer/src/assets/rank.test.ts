@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildAssetRegistry, SEED_REGISTRY } from './library.ts';
-import { rankAssets, SUGGESTION_LIMIT, suggestAssets } from './rank.ts';
+import { rankAssets, rankByWords, SUGGESTION_LIMIT, suggestAssets } from './rank.ts';
 
 const suggest = (id: string, family?: Parameters<typeof suggestAssets>[2]) =>
   suggestAssets(id, SEED_REGISTRY, family);
@@ -86,5 +86,22 @@ describe('rankAssets', () => {
     const ranked = rankAssets({ name: 'order' }, SEED_REGISTRY);
     const tied = ranked.filter((r) => r.score === ranked[0]?.score).map((r) => r.id);
     expect(tied).toEqual([...tied].sort());
+  });
+});
+
+describe('rankByWords', () => {
+  it('counts exact words only, the id first word far above a tag', () => {
+    const ranked = rankByWords(['database', 'storage'], SEED_REGISTRY);
+    expect(ranked[0]?.id).toBe('database');
+    expect(ranked.find((r) => r.id === 'database')?.score).toBeGreaterThan(
+      ranked.find((r) => r.id === 'disk')?.score ?? 0,
+    );
+    // "data" is a prefix of database, not a word of it.
+    expect(rankByWords(['data'], SEED_REGISTRY).map((r) => r.id)).not.toContain('database');
+  });
+
+  it('folds plurals and leaves out a single tag word (noise)', () => {
+    expect(rankByWords(['servers'], SEED_REGISTRY)[0]?.id).toBe('server');
+    expect(rankByWords(['backend'], SEED_REGISTRY)).toEqual([]);
   });
 });

@@ -15,7 +15,7 @@ const issuePaths = (result: { success: boolean; error?: { issues: { path: Proper
 describe('story catalogues', () => {
   it('are versioned, with entries exactly matching their id lists', () => {
     expect(STORY_CATALOGUES.map((c) => [c.id, c.version])).toEqual([
-      ['topic-classes', 1],
+      ['topic-classes', 2],
       ['devices', 1],
       ['layout-modes', 1],
       ['metaphor-worlds', 1],

@@ -28,6 +28,7 @@ const HEADINGS: Record<PromptName, string> = {
   curator: 'Curator (review and repair)',
   analyst: 'Analyst (memory rules)',
   reference: 'Reference analyst',
+  asset: 'Asset drafter',
 };
 
 /** `**Heading**` followed by a ```text block, inside the "## Agent system prompts" section. */

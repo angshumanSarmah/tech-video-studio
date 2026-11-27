@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MissingAssetRequestSchema } from '../domain/assets.ts';
 import { EventTargetSchema, OpenParamsSchema, SpecIdSchema } from './ids.ts';
 
 /**
@@ -117,6 +118,11 @@ export const BeatSceneSchema = z.strictObject({
   zoomFrom: EventTargetSchema.optional(),
   /** Keeps the previous beat's world and layout; this beat only adds or changes things in it. */
   continuesPrevious: z.boolean().default(false),
+  /**
+   * New assets this board uses before they exist (P1C.12), each drawn as a placeholder until
+   * approved. Board data: kept, remapped and redrawn with the board; nothing draws it.
+   */
+  missingAssetRequests: z.array(MissingAssetRequestSchema).optional(),
 });
 export type BeatScene = z.infer<typeof BeatSceneSchema>;
 

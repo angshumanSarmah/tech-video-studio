@@ -1,4 +1,4 @@
-CATALOGUE VERSIONS: topic-classes@v1, devices@v1, layout-modes@v1, metaphor-worlds@v1
+CATALOGUE VERSIONS: topic-classes@v2, devices@v1, layout-modes@v1, metaphor-worlds@v1
 
 ## TOPIC CLASSES (exhaustive: use only these ids)
 - product-design (Product design): How a user-facing feature works end to end: requests through services, places, stock and time. Examples: URL shortener, ride matching, seat booking, delivery ETA. Layout modes, most typical first: map, pipeline, hub_spoke, grid, swimlane, centered_focus, versus_split, near_far, two_column, stacked_list. Preferred devices: persona_hook, contention_hook, hero_metric, object_to_data, failure_before_fix, named_traps, seen_this_bug, ownership_twist, race_reveal, real_world_closure, callback_ending.

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { AssetFamilySchema } from '../domain/assets.ts';
 import { TOPIC_CLASSES, TopicClassSchema } from '../spec/meta.ts';
 import { DeviceIdSchema } from './devices.ts';
 import { LayoutModeIdSchema } from './layout-modes.ts';
@@ -19,6 +20,11 @@ export const TopicClassEntrySchema = z.strictObject({
   allowedLayoutModes: uniqueIds(LayoutModeIdSchema),
   /** Devices that usually tell this class well, best first. Others stay allowed. */
   preferredDevices: uniqueIds(DeviceIdSchema),
+  /**
+   * Asset families its boards draw most, most typical first (P1C.12): the Generator's per-beat
+   * asset list fills its remaining room with core assets of these families, in this order.
+   */
+  assetFamilies: uniqueIds(AssetFamilySchema),
 });
 export type TopicClassEntry = z.infer<typeof TopicClassEntrySchema>;
 
@@ -30,7 +36,7 @@ export const TopicClassCatalogueSchema = catalogueSchema(
 
 export const TOPIC_CLASS_CATALOGUE = defineCatalogue(TopicClassCatalogueSchema, {
   id: 'topic-classes',
-  version: 1,
+  version: 2,
   entries: [
     {
       id: 'product-design',
@@ -63,6 +69,17 @@ export const TOPIC_CLASS_CATALOGUE = defineCatalogue(TopicClassCatalogueSchema, 
         'real_world_closure',
         'callback_ending',
       ],
+      assetFamilies: [
+        'people',
+        'object',
+        'transport',
+        'ui',
+        'infra',
+        'data',
+        'time',
+        'network',
+        'symbol',
+      ],
     },
     {
       id: 'internals',
@@ -92,6 +109,7 @@ export const TOPIC_CLASS_CATALOGUE = defineCatalogue(TopicClassCatalogueSchema, 
         'interview_hook',
         'real_incident',
       ],
+      assetFamilies: ['infra', 'data', 'time', 'dev', 'network', 'security', 'symbol'],
     },
     {
       id: 'concept',
@@ -121,6 +139,7 @@ export const TOPIC_CLASS_CATALOGUE = defineCatalogue(TopicClassCatalogueSchema, 
         'real_incident',
         'interview_hook',
       ],
+      assetFamilies: ['symbol', 'data', 'infra', 'network', 'time', 'people', 'security'],
     },
     {
       id: 'ai-ml',
@@ -150,6 +169,7 @@ export const TOPIC_CLASS_CATALOGUE = defineCatalogue(TopicClassCatalogueSchema, 
         'counterfactual',
         'seen_this_bug',
       ],
+      assetFamilies: ['ai', 'data', 'infra', 'dev', 'symbol', 'people', 'ui'],
     },
   ],
 });

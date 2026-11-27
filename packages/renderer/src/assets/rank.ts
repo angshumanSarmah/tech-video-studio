@@ -21,7 +21,11 @@ const SUBSTRING = 1;
 const BIGRAM_WEIGHT = 2;
 const ID_COVERAGE_WEIGHT = 2;
 
-/** What is looked for: an id (an unknown asset id), and/or free words (a name, a description). */
+/**
+ * What is looked for: an id (an unknown asset id), and/or a name and description (prefix and
+ * substring matches count, for short texts); or `words`, content words of a longer text (a beat's
+ * narration), matched exactly (`rankByWords`).
+ */
 export type AssetQuery = {
   readonly id?: string | undefined;
   readonly name?: string | undefined;
@@ -56,6 +60,51 @@ export function rankAssets(
     : relevant;
   const limited = options.limit === undefined ? ordered : ordered.slice(0, options.limit);
   return limited.map((s) => ({ id: s.asset.id, score: s.score }));
+}
+
+/** Weights for `rankByWords`: the thing an id names (its first word) counts most. */
+const HEAD_WORD = 4;
+const ID_OR_NAME_WORD = 1.5;
+const TAG_WORD = 1;
+/** Below this a words match is noise (one tag word, or one modifier word of an id). */
+export const RELEVANT_WORDS_SCORE = 2;
+
+/**
+ * Ranks assets against content words of a longer text (P1C.12: the Generator's per-beat list):
+ * exact matches only, plurals folded, the first word of the asset's id or an alias (the thing:
+ * Lucide names read `<thing>-<modifier>`) far above its other id or name words, then tag words.
+ * Prefix and substring matches would let a long text match almost anything. Deterministic.
+ */
+export function rankByWords(
+  words: readonly string[],
+  registry: AssetRegistry,
+  options: Pick<RankOptions, 'limit'> = {},
+): RankedAsset[] {
+  const query = new Set(words.map(foldWord));
+  const ranked = [...registry.values()]
+    .map((asset) => ({ id: asset.id, score: wordsScore(query, asset) }))
+    .filter((r) => r.score >= RELEVANT_WORDS_SCORE)
+    .sort((a, b) => b.score - a.score || byCodeUnits(a.id, b.id));
+  return options.limit === undefined ? ranked : ranked.slice(0, options.limit);
+}
+
+function wordsScore(query: ReadonlySet<string>, asset: LibraryAsset): number {
+  const ids = [asset.id, ...(asset.aliases ?? [])].map((id) => tokens(id).map(foldWord));
+  const heads = new Set(ids.map((w) => w[0] ?? ''));
+  const idWords = new Set([...ids.flat(), ...tokens(asset.name).map(foldWord)]);
+  const tagWords = new Set(asset.tags.flatMap(tokens).map(foldWord));
+  let score = 0;
+  for (const word of query) {
+    if (heads.has(word)) score += HEAD_WORD;
+    else if (idWords.has(word)) score += ID_OR_NAME_WORD;
+    else if (tagWords.has(word)) score += TAG_WORD;
+  }
+  return score;
+}
+
+/** Plural folded as `termWords` does ("limiters" -> "limiter"). */
+function foldWord(word: string): string {
+  return word.length > 4 && word.endsWith('s') && !word.endsWith('ss') ? word.slice(0, -1) : word;
 }
 
 /** Closest approved ids to an unknown one, for the `unknown_asset` message. */

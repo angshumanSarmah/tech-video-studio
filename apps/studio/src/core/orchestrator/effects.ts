@@ -5,9 +5,13 @@ import {
   type PipelineStepId,
   type VideoSpec,
 } from '@explainer-studio/shared';
+import { eq } from 'drizzle-orm';
 import { directPlanPath, readDataJson, writeDataJson } from '../data-files.ts';
+import { assets } from '../db/schema.ts';
 import type { Executor } from '../db/client.ts';
 import { appendEvent } from '../db/repositories/events.ts';
+import { specAssetRequests } from '../assets/run-asset-requests.ts';
+import { recordAssetRequests } from '../db/repositories/asset-requests.ts';
 import { recordMissingPrimitives } from '../db/repositories/backlog.ts';
 import { finishRunStep, setRunStepInput, startRunStep } from '../db/repositories/run-steps.ts';
 import { createRun, type Run } from '../db/repositories/runs.ts';
@@ -127,12 +131,26 @@ function seriesNumber(direction: RunDirection, run: Run): number {
   return direction.input.series.nextNumber + (run.partIndex ?? 1) - 1;
 }
 
-/** After the boards: the Generator's missing-primitive requests go to the backlog. */
+/**
+ * After the boards: the Generator's missing-primitive requests go to the backlog, and its asset
+ * requests (P1C.12) to `asset_requests` (ids its boards still use and the library lacks).
+ */
 function boardBacklog(ctx: EffectContext, then: PipelineStepId): PipelineStepId {
   const latest = getLatestSpecVersion(ctx.tx, ctx.run.id);
   if (latest) {
     const spec = readDataJson(ctx.dataDir, latest.jsonPath) as VideoSpec;
     recordMissingPrimitives(ctx.tx, ctx.run.id, spec.story.missingPrimitiveRequests ?? []);
+    const approved = approvedAssetIds(ctx.tx);
+    recordAssetRequests(
+      ctx.tx,
+      ctx.run.id,
+      specAssetRequests(spec, (id) => approved.has(id)),
+    );
   }
   return then;
+}
+
+function approvedAssetIds(tx: Executor): Set<string> {
+  const rows = tx.select({ id: assets.id }).from(assets).where(eq(assets.status, 'approved')).all();
+  return new Set(rows.map((r) => r.id));
 }

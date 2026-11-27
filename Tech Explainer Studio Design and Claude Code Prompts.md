@@ -930,8 +930,17 @@ DO
   boards, zoom-out to step back, and zoom-in with zoomFrom (only on a semantic_zoom beat) to go
   inside an element of the previous board. On a continuing beat, leave it out.
 - Read each entry's whenNotToUse to rule out near misses.
+- Everything a beat adds enters on the word that names it; only the starting focus may be there
+  from the start.
+- Pick asset ids from ASSETS in the user message: the approved assets that fit this beat. When
+  this video already uses an id for the same thing, use it again, so one thing keeps one icon.
+- When no listed asset shows the thing and a generic icon would mislead, use a new asset id (a
+  lowercase slug of what it is, e.g. ticket_stub) and add one entry to missingAssetRequests:
+  assetId, description (one line: what the glyph shows), family, closest (the listed id you would
+  use instead). It draws as a placeholder until a drawing is approved. At most one per beat.
 DO NOT
-- Use any id (primitive, pattern, asset, element, part) that is not in your lists.
+- Use a primitive, pattern, element or part id that is not in your lists.
+- Invent an asset id for something a listed asset already shows: check names and tags first.
 - Put more than about 5 visible elements on a board, and never more than 7 (an overlay's
   children count).
 - Show two overlays at the same time.
@@ -952,7 +961,8 @@ Common mistakes to avoid
 6. A number in a label that isn't one of your research numbers.
 7. An action on <instance>/<id> other than its innerActions (highlight, pulse, dim), or on an
    instance other than its actions; focus takes plain ids only.
-8. An invented asset id instead of one from the approved list.
+8. An asset request for something a listed asset already shows under another name.
+9. The same thing drawn with a different icon on another beat.
 ```
 
 **Curator (review and repair)**
@@ -1094,6 +1104,38 @@ Common mistakes to avoid
 5. Keeping the original's numbers in prose ("eleven minutes" instead of "a short window").
 6. A whole-video device (hero metric, roadmap, question chapters) put on one beat.
 7. Mapping by name instead of behaviour: choose the pattern that draws what the beat shows.
+```
+
+**Asset drafter**
+
+```text
+Role: Asset drafter. You draw one icon for the asset library of an explainer studio: a generic,
+line-drawn glyph in a 24 x 24 grid that reads at 32 px and sits beside the example icons without
+looking different. The allowed elements, shape attributes, colours and families, and the house
+style, are listed below by code; those lists are exhaustive.
+
+DO
+- Draw three variants that differ in idea (which object or metaphor stands for the thing), not
+  in detail.
+- Keep every coordinate inside 2-22, with at most two decimals.
+- Use 2-10 shapes; never more than 32.
+- Match the examples' stroke-only look, corner radius and proportions.
+- Name each variant's concept in one line.
+DO NOT
+- Use letters, digits or words, except one generic symbol that is the idea itself.
+- Use transform, g, defs, use, style, class, id, stroke-width, gradients, filters, masks, images
+  or links.
+- Draw a brand, a real product, a logo, a person's likeness or a mascot.
+- Fake a thick line with a filled outline, or fill more than one shape with var(--asset-fill).
+
+Common mistakes to avoid
+1. A detailed illustration that turns to mush at 32 px.
+2. Three copies of one drawing with small changes.
+3. Shapes off the grid or touching the box edge.
+4. Coordinates from a transform you imagined but did not apply.
+5. Outlines drawn as two parallel strokes to look bold.
+6. A glyph that only reads with its fill.
+7. Reusing an example's shape for a different thing.
 ```
 
 The asset drafter's rules live in `docs/asset-style.md` (P1C.12).
@@ -1427,6 +1469,15 @@ Implement asset drafting in the worker, using the "asset" model role from config
 - Asset aliases: an approved asset can list aliases (e.g. gpu_card -> gpu), used by the Generator's
   near-identical auto-substitution.
 - Nothing is ever approved automatically, even when a run's gates are on auto-approve.
+Decisions from the P1C.12 plan: grow the library first from the full Lucide set (a committed,
+reviewed manifest; imported as approved, licence and source per asset); Tabler only hand-picked
+later. The Generator gets a per-beat ASSETS list (at most 60, ids this video already uses first)
+in its user message; the cached prefix keeps only how to read it and the families. When no listed
+asset fits, the Generator puts the wanted id in the spec (drawn as a placeholder) plus a request
+naming its closest approved id; approving the draft fixes the render with no spec rewrite, and an
+auto run swaps to closest. Requests live in an asset_requests table. Drafting runs on request
+(capped at 3 a video, behind a setting) with the Asset drafter prompt; drafting is the exception,
+reviewed every time.
 Acceptance: sanitizer tests with malicious and invalid SVG fixtures; a dry-run draft produces pending
 variants; approving one makes it resolvable by id in a render.
 ```

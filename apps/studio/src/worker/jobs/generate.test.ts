@@ -263,7 +263,7 @@ describe('generate job (rate-limiter fixture, hand-written boards, dry run)', ()
     expect(step).toMatchObject({ stage: 'generate', beatId: 'beat4', status: 'done' });
     const input = GeneratorBeatInputSchema.parse(readDataJson(t.dataDir, step!.inputPath!));
     expect(input).toMatchObject({ beatId: 'beat4', beatIndex: 3, reason: 'generate' });
-    expect(input.promptVersion).toBe('generator@v2');
+    expect(input.promptVersion).toBe('generator@v3');
     const output = GeneratorBeatOutputSchema.parse(readDataJson(t.dataDir, step!.outputPath!));
     expect(output.scene).toMatchObject({ beatId: 'beat4', continuesPrevious: true });
     // The continuing beat was shown what beat3 left on screen.
@@ -505,7 +505,7 @@ describe('generate job (rate-limiter fixture, hand-written boards, dry run)', ()
     });
   });
 
-  it('swaps near-identical asset ids (logged), and records unknown ones as missing assets', async () => {
+  it('swaps near-identical asset ids (logged), and records requested new ones as missing assets', async () => {
     const { runId, specVersionId } = await scripted();
     const boards = rateLimiterBoards();
     const swapped = JSON.parse(
@@ -514,7 +514,18 @@ describe('generate job (rate-limiter fixture, hand-written boards, dry run)', ()
     const unknown = JSON.parse(
       JSON.stringify(boards.beat2).replace('"icon":"key"', '"icon":"vault_door"'),
     ) as FixtureBoard;
-    const answers = { ...cleanAnswers(), beat1: [answer(swapped)], beat2: [answer(unknown)] };
+    const request = {
+      assetId: 'vault_door',
+      description: 'A round vault door with a wheel handle.',
+      family: 'security',
+      closest: 'key',
+    };
+    const answers = {
+      ...cleanAnswers(),
+      beat1: [answer(swapped)],
+      // The first answer uses the new id without a request: repaired once.
+      beat2: [answer(unknown), answer({ ...unknown, missingAssetRequests: [request] })],
+    };
     const job = await generate(registry(answers), runId, { specVersionId });
     expect(job.status).toBe('done');
 
@@ -526,11 +537,39 @@ describe('generate job (rate-limiter fixture, hand-written boards, dry run)', ()
     expect(
       logs(runId).some((l) => l.message.includes('"Shopping-Bag" read as "shopping_bag"')),
     ).toBe(true);
+    const errors = listRunLlmCalls(t.db, runId).map((c) => c.error ?? '');
+    expect(errors.filter((e) => e.includes('asset_without_request'))).toHaveLength(1);
+    const [beat2] = doneBeatSteps(t.db, runId, 'generate', 'beat2');
+    const scene = GeneratorBeatOutputSchema.parse(
+      readDataJson(t.dataDir, beat2!.outputPath!),
+    ).scene;
+    expect(scene.missingAssetRequests).toEqual([request]);
     expect(readMissingAssets(t.dataDir, runId).map((m) => m.id)).toEqual(['vault_door']);
     const warnings = latestGeneration(t.db, t.dataDir, runId)!.output.warnings;
     expect(warnings).toEqual([
       expect.objectContaining({ beatId: 'beat2', code: 'unknown_asset', soft: true }),
     ]);
+  });
+
+  it('drops a request for an approved asset (logged) instead of failing the beat', async () => {
+    const { runId, specVersionId } = await scripted();
+    const board = rateLimiterBoards().beat2;
+    const known = {
+      ...board,
+      missingAssetRequests: [
+        { assetId: 'key', description: 'A key.', family: 'security', closest: 'lock' },
+      ],
+    };
+    // Every attempt keeps the request: the last one is settled by code.
+    const answers = { ...cleanAnswers(), beat2: [answer(known), answer(known), answer(known)] };
+    const job = await generate(registry(answers), runId, { specVersionId });
+    expect(job.status).toBe('done');
+    const [beat2] = doneBeatSteps(t.db, runId, 'generate', 'beat2');
+    const scene = GeneratorBeatOutputSchema.parse(
+      readDataJson(t.dataDir, beat2!.outputPath!),
+    ).scene;
+    expect(scene.missingAssetRequests).toBeUndefined();
+    expect(logs(runId).some((l) => l.message.includes('asset request "key" dropped'))).toBe(true);
   });
 });
 

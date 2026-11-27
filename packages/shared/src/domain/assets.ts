@@ -69,6 +69,36 @@ export const AssetMetaSchema = z.strictObject({
 export type AssetMeta = z.infer<typeof AssetMetaSchema>;
 
 // ---------------------------------------------------------------------------------------------
+// Asset requests (P1C.12): an asset the Generator wanted and the library lacks
+
+/** Most asset requests one board may carry, and one video (or part) in all. */
+export const MAX_ASSET_REQUESTS_PER_BEAT = 1;
+export const MAX_ASSET_REQUESTS_PER_VIDEO = 3;
+
+/**
+ * A new asset a board uses before it exists: the id is drawn as a placeholder until a drawing of
+ * it is approved (approving fixes the render with no spec change). `closest` is the approved id
+ * the board would use instead (an auto run swaps to it).
+ */
+export const MissingAssetRequestSchema = z.strictObject({
+  assetId: LibraryAssetIdSchema.describe(
+    'The new id this board uses: a lowercase slug of what the thing is.',
+  ),
+  description: z
+    .string()
+    .trim()
+    .min(1)
+    .max(ASSET_DESCRIPTION_MAX)
+    .regex(/^[^\n\r]*$/, 'One line, without line breaks.')
+    .describe('One line: what the glyph shows.'),
+  family: AssetFamilySchema,
+  closest: LibraryAssetIdSchema.describe(
+    'The id from ASSETS you would use instead: an approved asset.',
+  ),
+});
+export type MissingAssetRequest = z.infer<typeof MissingAssetRequestSchema>;
+
+// ---------------------------------------------------------------------------------------------
 // House SVG shapes: what the renderer draws. Never raw markup.
 
 export const ASSET_SHAPE_TAGS = [

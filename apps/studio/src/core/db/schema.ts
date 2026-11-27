@@ -527,6 +527,33 @@ export const missingPrimitiveRequests = sqliteTable(
 );
 
 /**
+ * Assets the Generator asked for (P1C.12): a board uses `asset_id` (drawn as a placeholder) with
+ * a request naming what it shows and the approved id it would use instead (`closest`). One row
+ * per id and run, refreshed when the run records again. `asset_id` is not a foreign key: a
+ * request comes before any draft of it. `topic_id` is for topic-list seeding (P1C.13).
+ */
+export const assetRequests = sqliteTable(
+  'asset_requests',
+  {
+    id: id(),
+    assetId: text('asset_id').notNull(),
+    runId: integer('run_id').references(() => runs.id, { onDelete: 'set null' }),
+    topicId: integer('topic_id').references(() => topics.id, { onDelete: 'set null' }),
+    /** The beats whose boards use the id. */
+    beatIds: jsonStringArray('beat_ids'),
+    description: text('description').notNull(),
+    family: text('family', { enum: ASSET_FAMILIES }).notNull(),
+    closest: text('closest').notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex('asset_requests_asset_run_uq').on(t.assetId, t.runId),
+    index('asset_requests_run_idx').on(t.runId),
+  ],
+);
+
+/**
  * `restrict`: an exported run cannot be deleted, so the usage history that drives variety
  * penalties survives. Runs that never exported still cascade their usage rows on delete.
  */

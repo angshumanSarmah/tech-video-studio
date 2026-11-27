@@ -64,6 +64,13 @@
       "when": 1795780060154,
       "tag": "0008_asset_aliases",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1795781129694,
+      "tag": "0009_asset_requests",
+      "breakpoints": true
     }
   ]
 }

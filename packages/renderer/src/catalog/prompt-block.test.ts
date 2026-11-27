@@ -1,4 +1,5 @@
 import {
+  ASSET_FAMILIES,
   DEVICE_IDS,
   METAPHOR_WORLD_IDS,
   renderLayoutModeCatalogue,
@@ -16,6 +17,7 @@ import {
   catalogueBlock,
   directorCatalogueBlock,
   GENERATOR_ANCHOR_NOTE,
+  GENERATOR_ASSETS_NOTE,
   generatorCatalogueBlock,
 } from './prompt-block.ts';
 import { DEFAULT_REGISTRIES, type Registries } from './registries.ts';
@@ -157,15 +159,20 @@ describe('generatorCatalogueBlock', () => {
     }
   });
 
-  it('ends with every approved asset, sorted by family, then id', () => {
-    const lines = sectionLines(block, 'ASSETS').filter((l) => l.startsWith('- '));
-    expect(lines).toHaveLength(SEED_REGISTRY.size);
-    const keys = lines.map((l) => {
-      const [, id = '', family = ''] = /^- (\S+) \((\S+)\):/.exec(l) ?? [];
-      return `${family}/${id}`;
-    });
-    expect(keys).toEqual([...keys].sort());
+  it('ends with how to read the per-beat assets and the families, never an asset id', () => {
+    const lines = sectionLines(block, 'ASSET FAMILIES').filter((l) => l.startsWith('- '));
+    expect(lines).toEqual(ASSET_FAMILIES.map((f) => `- ${f}`));
+    expect(block).toContain(GENERATOR_ASSETS_NOTE);
     expect(block.endsWith(lines.at(-1) ?? '')).toBe(true);
+    expect(block).not.toContain('- server (infra)');
+  });
+
+  it('does not change with the asset library (it sits in the cached prefix)', () => {
+    const tiny = {
+      ...DEFAULT_REGISTRIES,
+      assets: buildAssetRegistry([...SEED_REGISTRY.values()].slice(0, 3)),
+    };
+    expect(generatorCatalogueBlock(tiny)).toBe(block);
   });
 
   it(`stays under ${GENERATOR_BLOCK_TOKEN_BUDGET} estimated tokens (size snapshot)`, async () => {

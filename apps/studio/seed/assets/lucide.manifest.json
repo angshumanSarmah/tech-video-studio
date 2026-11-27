@@ -1,6 +1,6 @@
 {
   "lucideVersion": "1.74.0",
-  "rulesVersion": 1,
+  "rulesVersion": 2,
   "aliases": {
     "app_window": "window",
     "arrow_left_right": "swap",
@@ -30,7 +30,6 @@
     "mouse_pointer_2": "pointer",
     "refresh_cw": "refresh",
     "rotate_ccw_clock": "history",
-    "store": "shop",
     "triangle_exclamation_point": "alert",
     "wand_sparkles": "wand",
     "gpu_card": "gpu",

@@ -7,7 +7,7 @@ import type { AssetFamily } from '@explainer-studio/shared';
  * asks for `assets:manifest` and the diff is reviewed.
  */
 
-export const LUCIDE_RULES_VERSION = 1;
+export const LUCIDE_RULES_VERSION = 2;
 
 /** Why an icon is not imported. */
 export const LUCIDE_SKIP_REASONS = [
@@ -141,6 +141,12 @@ export const FEATHER_RENAMED: Readonly<Record<string, string>> = {
   'octagon-x': 'x-octagon',
   'square-x': 'x-square',
 };
+
+/**
+ * Lucide names of seeded glyphs that must not become aliases: words that mean something else in
+ * a tech topic (`store` is the shop glyph, but a data store in narration and ids).
+ */
+export const SEED_ALIAS_EXCLUDED: ReadonlySet<string> = new Set(['store']);
 
 /** Hand-written aliases: true synonyms only (they are substituted without asking). */
 export const HAND_ALIASES: Readonly<Record<string, string>> = {

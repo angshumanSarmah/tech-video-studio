@@ -140,7 +140,8 @@ Dev ports: the UI is on http://localhost:4310 (`WEB_PORT`, Vite, `strictPort`) a
 
 `packages/shared/src/catalogues` (P1C.4): versioned data files with LLM-facing text, the closed
 lists for the story layer. `topic-classes` (one entry per `TOPIC_CLASSES`: summary, invented
-example topics, `allowedLayoutModes` most typical first, `preferredDevices`), `devices` (25
+example topics, `allowedLayoutModes` most typical first, `preferredDevices`, `assetFamilies`
+most typical first: the Generator's per-beat asset fill, P1C.12, not in the Director's lines), `devices` (25
 narrative devices: `DEVICE_IDS`, `DeviceId`), `layout-modes` (ids, zones, `maxUnits`, text) and
 `metaphor-worlds` (7 worlds with `{ concept, metaphor }` mappings).
 
@@ -168,9 +169,10 @@ narrative devices: `DEVICE_IDS`, `DeviceId`), `layout-modes` (ids, zones, `maxUn
   **The Generator's block** is `generatorCatalogueBlock(registries?)`: `renderLayoutModeCatalogue()`
   (layout modes and their version only: no devices, topic classes or worlds), every primitive
   as above, every pattern with `params.at` reduced to a pointer at its `anchors`
-  (`withAnchorPointer`; the word-anchor shape is stated once, `GENERATOR_ANCHOR_NOTE`), then the
-  approved assets of `registries.assets` sorted by family, then id (`assetLines`). About 31k
-  tokens at 3.5 characters each; `catalog/__snapshots__/generator-catalogue-size.json` records
+  (`withAnchorPointer`; the word-anchor shape is stated once, `GENERATOR_ANCHOR_NOTE`), then
+  ASSET FAMILIES (`GENERATOR_ASSETS_NOTE`: how to read the per-beat ASSETS list, then the closed
+  `ASSET_FAMILIES`; P1C.12: no asset ids, so the block never changes with the library). About
+  30k tokens at 3.5 characters each; `catalog/__snapshots__/generator-catalogue-size.json` records
   its size per section (review the diff), and a test keeps it under 35k.
 
 ## Database
@@ -327,7 +329,10 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   n is done or its scenes gate is approved (step 9), so a recap reads approved narration. `spec` assembles plan + script (`assembleScriptedSpec`, the run's format
   override, series number = the Director's `nextNumber` + part offset, a part's `meta.part`,
   `partRefOf`) as the next version (`saveSpecVersionIn`). `board_backlog` records the
-  Generator's requests. `partPlan` keeps each part's own devices (only those on its beats), its
+  Generator's missing-primitive requests in the backlog and its asset requests in
+  `asset_requests` (P1C.12: `specAssetRequests`, `#core/assets/run-asset-requests.ts`: one per
+  id the latest spec's boards still use and the library lacks, with the beats using it;
+  `recordAssetRequests` keeps one row per id and run, refreshed). `partPlan` keeps each part's own devices (only those on its beats), its
   chapters and length; earlier parts end on `cliffhanger_ending` (no spec card or CTA, so no
   ending card), only the last part gets the plan's ending.
 - **Parts end to end** (step 8): each part runs from `script` to its own export. `runPart`
@@ -994,8 +999,9 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   script, the spec before TTS (the orchestrator's `spec` transition saves it; the Scriptwriter check
   uses it).
 - **Prompt prefix:** the system message is the same for every beat of every run with the same
-  settings and registries: catalogue and assets in the block, per-run lists (logo slots, allowed
-  layout modes) and the beat in the user message. `generator/prefix.test.ts` builds a prompt per
+  settings, primitives and patterns, whatever the asset library holds: the catalogue in the
+  block, per-run lists (logo slots, allowed layout modes, the beat's assets) and the beat in the
+  user message. `generator/prefix.test.ts` builds a prompt per
   beat of both fixture topics (`generator/testing.ts`: `fixtureScriptedSpec`, from the recorded
   Director and Scriptwriter answers) and checks the system messages are byte-identical.
 - **`generatorCheck(deps)`** (`generator/check.ts`, the `check` for `callJson`): the beat's
@@ -1008,6 +1014,20 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   `es`, an alias) are swapped first (`generatorAssetSwaps`, for the step to log); other
   `unknown_asset` issues are **soft** (`OutputIssue.soft`: listed as advisory in a repair turn,
   never the reason for one, never a failure).
+- **Asset requests** (P1C.12; generator@v3): a board that uses a new asset id (drawn as a
+  placeholder until a drawing is approved) carries `missingAssetRequests` (`MissingAssetRequestSchema`:
+  `assetId`, one-line `description`, `family`, `closest`: the approved id it would use instead),
+  kept on the scene (`BeatScene.missingAssetRequests`, so it follows the board through keep,
+  remap and redraw). `assetRequestIssues` (renderer `catalog/asset-requests.ts`, in the
+  Generator's spec checks): `asset_without_request` (at the use), `asset_request_known` (the id
+  is approved or near-identical), `asset_request_unused`, `asset_request_closest` (not approved;
+  suggests ids), `asset_requests_per_beat` (`MAX_ASSET_REQUESTS_PER_BEAT`, 1) and
+  `asset_requests_per_video` (`MAX_ASSET_REQUESTS_PER_VIDEO`, 3 distinct ids, counted in beat
+  order). They are hard, except on the last attempt (`CheckAttempt.final`), where they are soft
+  and `settleAssetRequests` (`generator/asset-requests.ts`) fixes what code can after the call:
+  drops a request for an approved or unused id or past one per beat, reads an unapproved
+  `closest` as the best suggestion, each logged as a `warn`; the post-pass sees the per-video
+  limit with every board in place.
 - **Per-beat scene checks** (`catalog/beat-checks.ts`, `beatCheckWarnings`; warnings, the
   Curator reuses them): `focus_missing` (a board with no `focus` and no focus event),
   `beat_without_motion` (no event and no pattern), `beat_without_change` (P1C.8: no new element
@@ -1060,7 +1080,14 @@ beginner|intermediate|expert] [--record]` runs the Scriptwriter live (the others
   numbers its board may show, `boardNumberIds`, the same list the number check allows), TERMS
   (introduced so far with plain meanings, and `notYet`), BOARD (format, layout mode with zones
   and `maxUnits`: the plan's on a board's first beat, the generated first scene's on a
-  continuing beat; logo slots); on a continuing beat, ON SCREEN and PREVIOUS BEAT; on a
+  continuing beat; logo slots), ASSETS (P1C.12, `beatAssets`, renderer `catalog/beat-assets.ts`:
+  at most `MAX_BEAT_ASSETS` (60) approved assets, `- id (family): name; tags`: the ids the
+  video's earlier visible boards use first, marked `[used in this video]` (at most 15), then
+  `rankByWords` matches (exact words, plurals folded, the id's first word far above other id or
+  name words and tags; at most two per first word) for the beat's key words (intent, new terms
+  and their plain meanings, headline, tags, stat card labels), its narration, then the video's
+  title and running example (35 matches in all), then core seed assets of the topic class's
+  `assetFamilies`; sorted by family, then id); on a continuing beat, ON SCREEN and PREVIOUS BEAT; on a
   `semantic_zoom` beat, ZOOM FROM (the previous board's present components: a primitive that
   declares `zoomable` (cards, icons, data blocks, devices) and is not pinned, or a pattern
   instance and its zoomable inner elements; never tags or other annotations). ON SCREEN comes from
@@ -2158,8 +2185,9 @@ message }` for the Curator): `too_many_elements` (mode `maxUnits`), `text_too_sm
   `assets/rank.ts`: deterministic token, id coverage and bigram score over id, name, tags,
   aliases and description, ties by id in code-unit order; the family an `AssetRef` implies ranks
   first), only real matches and never the whole list; with none it says "No close match"
-  (`NO_CLOSE_ASSET`). `rankAssets` is the one scorer (P1C.12: also `suggestSwap` and the
-  Generator's per-beat list) and returns scores.
+  (`NO_CLOSE_ASSET`). `rankAssets` scores short queries (an id, a name; prefix and substring
+  matches count; also `suggestSwap`, P1C.12); `rankByWords` scores a longer text's content words
+  (exact only; the Generator's per-beat list). Both return scores.
   - **Aliases** (P1C.12, `assets/aliases.ts`): an asset's `aliases` (other ids for its glyph,
     `assets.aliases`, at most 8) are unique across the library (`aliasProblems`;
     `buildAssetRegistry` throws). `nearIdenticalAsset` reads them from the registry
@@ -2187,7 +2215,9 @@ message }` for the Curator): `too_many_elements` (mode `maxUnits`), `text_too_sm
     `tags.json` keys) imported (id, name, family, tags, licence) or skipped with a reason
     (`seeded`, with `sameAs` and an alias; `brand`, `text_formatting`, `letters_digits`,
     `off_topic`, `duplicate_glyph`, `not_house_shapes`), plus `aliases` (seeded glyphs' Lucide
-    names and `HAND_ALIASES`). `buildLucideManifest` (`#core/assets/lucide-manifest.ts`, pure)
+    names, less `SEED_ALIAS_EXCLUDED` (`store`: a data store in tech topics, not a shop), and
+    `HAND_ALIASES`). Seeding adds aliases, never removes them: an alias dropped from the
+    manifest is removed from an existing database by hand. `buildLucideManifest` (`#core/assets/lucide-manifest.ts`, pure)
     applies the rules in `lucide-rules.ts` (data: skip lists, `lucideFamily` from the name's first
     word, a shape frame such as `square-` deferring to the next, `LUCIDE_ID_OVERRIDES` where a
     core id draws another glyph, `FEATHER_RENAMED` for licence names Lucide dropped); bump
@@ -2196,9 +2226,8 @@ message }` for the Curator): `too_many_elements` (mode `maxUnits`), `text_too_sm
     dev dependency; `scripts/lucide-sources.ts`); `scripts/lucide-manifest.test.ts` fails when
     the committed file is stale. Seeding takes the shapes from the installed `lucide`
     (`lucideImportAssets`, which refuses a manifest built for another release).
-  - **Until P1C.12 A2** the Generator's system prompt lists only the core set plus drafted and
-    uploaded assets (`promptRegistries`, `agents/generator/prompt-assets.ts`), so its cached
-    prefix is unchanged; its checks use the whole library.
+  - **The Generator's assets** are listed per beat in its user message (`beatAssets`, see
+    "Generator"), never in its cached prefix; its checks use the whole approved library.
   - **Contact sheets:** `pnpm --filter @explainer-studio/studio assets:sheet [--count 30]
 [--ids a,b] [--family f] [--core] [--theme] [--out]` renders the renderer's `AssetSheet`
     still (`renderAssetSheet`, `#worker/render/asset-sheet.ts`) from the data dir's library:

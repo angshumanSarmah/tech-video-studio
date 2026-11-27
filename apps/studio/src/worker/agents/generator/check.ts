@@ -1,4 +1,6 @@
 import {
+  ASSET_REQUEST_CODES,
+  assetRequestIssues,
   beatCheckWarnings,
   boardAssetSwaps,
   DEFAULT_REGISTRIES,
@@ -21,6 +23,7 @@ import {
   type SpecError,
   type StoryBeat,
 } from '@explainer-studio/shared';
+import type { CheckAttempt } from '#worker/llm/client.ts';
 import type { OutputIssue } from '#worker/llm/types.ts';
 import { boardStart, placeholderScene, spliceBoards, type GeneratorBoards } from './board.ts';
 
@@ -32,8 +35,9 @@ import { boardStart, placeholderScene, spliceBoards, type GeneratorBoards } from
  * (`beatCheckWarnings`) and the on-screen text checks (`screenTextWarnings`: script items placed
  * as written, research numbers only, no early terms, "e.g." on example labels). Only this beat's issues count, plus issues this beat causes in the
  * earlier beats of its board (compared with the same spec without it). Near-identical asset ids
- * are swapped first (`generatorAssetSwaps`, logged by the step); other unknown asset ids are soft:
- * drawn as placeholders and recorded, never a reason to repair.
+ * are swapped first (`generatorAssetSwaps`, logged by the step); other unknown asset ids are soft
+ * (`unknown_asset`: drawn as placeholders and recorded), but each needs a request
+ * (`assetRequestIssues`, P1C.12).
  */
 
 export interface GeneratorCheckDeps extends GeneratorBoards {
@@ -50,13 +54,27 @@ export interface GeneratorCheckDeps extends GeneratorBoards {
   readonly crossBoard?: boolean;
 }
 
-export function generatorCheck(deps: GeneratorCheckDeps): (value: unknown) => OutputIssue[] {
-  return (value) => {
+/**
+ * The check for `callJson`. Asset request issues (P1C.12) are repaired like any other, but are
+ * soft on the last attempt: `settleAssetRequests` then fixes what code can (the beat step).
+ */
+export function generatorCheck(
+  deps: GeneratorCheckDeps,
+): (value: unknown, attempt?: CheckAttempt) => OutputIssue[] {
+  return (value, attempt) => {
     const parsed = GeneratorOutputSchema.safeParse(value);
     if (!parsed.success) return [];
     const board = withAssetSwaps(parsed.data, generatorAssetSwaps(parsed.data, deps));
-    return beatIssues(deps, generatorScene(board, storyBeat(deps)));
+    const issues = beatIssues(deps, generatorScene(board, storyBeat(deps)));
+    if (!attempt?.final) return issues;
+    return issues.map((issue) => (isAssetRequestIssue(issue) ? { ...issue, soft: true } : issue));
   };
+}
+
+const REQUEST_CODES: ReadonlySet<string> = new Set(ASSET_REQUEST_CODES);
+
+export function isAssetRequestIssue(issue: { readonly code?: string }): boolean {
+  return issue.code !== undefined && REQUEST_CODES.has(issue.code);
 }
 
 /**
@@ -113,6 +131,7 @@ function specIssues(deps: GeneratorCheckDeps, scene: BeatScene): SpecError[] {
       registries,
       ...(deps.notes ? { notes: deps.notes } : {}),
     }),
+    ...assetRequestIssues(result.spec, registries),
     ...(deps.crossBoard ? layerWarnings(result.spec) : []),
   ];
 }

@@ -15,7 +15,7 @@ describe('renderStoryCatalogues', () => {
   it('starts with the catalogue versions and lists every id once, as a closed list', () => {
     const block = renderStoryCatalogues();
     expect(block.split('\n')[0]).toBe(
-      'CATALOGUE VERSIONS: topic-classes@v1, devices@v1, layout-modes@v1, metaphor-worlds@v1',
+      'CATALOGUE VERSIONS: topic-classes@v2, devices@v1, layout-modes@v1, metaphor-worlds@v1',
     );
     expect(storyCatalogueVersions()).toBe(block.split('\n')[0]!.slice(20));
     const ids = block.match(/^- [a-z0-9_-]+/gm)?.map((line) => line.slice(2));

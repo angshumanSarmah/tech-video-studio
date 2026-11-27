@@ -48,7 +48,6 @@ import { activeStyleRules } from '#core/services/style-rules.ts';
 import { drawBeat, type BeatResult, type BeatStepContext } from '../agents/generator/beat-step.ts';
 import { spliceBoards } from '../agents/generator/board.ts';
 import { generatorSceneCheck } from '../agents/generator/check.ts';
-import { promptRegistries } from '../agents/generator/prompt-assets.ts';
 import {
   beatDependency,
   beatDependents,
@@ -222,7 +221,7 @@ function beatContext(deps: GenerateJobDeps, ctx: Ctx, run: Run, job: GenerateJob
     llm: deps.llm,
     prompts: deps.prompts,
     variables: run.resolvedSettings.video,
-    catalogue: generatorCatalogueBlock(promptRegistries(job.registries)),
+    catalogue: generatorCatalogueBlock(job.registries),
     ...(styleRules ? { styleRules } : {}),
     model: job.input.model,
     runId,
@@ -435,7 +434,7 @@ export function generatorStepContext(
     llm: deps.llm,
     prompts: deps.prompts,
     variables: args.settings.video,
-    catalogue: generatorCatalogueBlock(promptRegistries(args.registries)),
+    catalogue: generatorCatalogueBlock(args.registries),
     ...(styleRules ? { styleRules } : {}),
     model: args.settings.llm.models.generator,
     runId: args.runId,

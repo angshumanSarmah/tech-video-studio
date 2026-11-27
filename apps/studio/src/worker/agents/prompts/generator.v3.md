@@ -40,8 +40,17 @@ DO
   boards, zoom-out to step back, and zoom-in with zoomFrom (only on a semantic_zoom beat) to go
   inside an element of the previous board. On a continuing beat, leave it out.
 - Read each entry's whenNotToUse to rule out near misses.
+- Everything a beat adds enters on the word that names it; only the starting focus may be there
+  from the start.
+- Pick asset ids from ASSETS in the user message: the approved assets that fit this beat. When
+  this video already uses an id for the same thing, use it again, so one thing keeps one icon.
+- When no listed asset shows the thing and a generic icon would mislead, use a new asset id (a
+  lowercase slug of what it is, e.g. ticket_stub) and add one entry to missingAssetRequests:
+  assetId, description (one line: what the glyph shows), family, closest (the listed id you would
+  use instead). It draws as a placeholder until a drawing is approved. At most one per beat.
 DO NOT
-- Use any id (primitive, pattern, asset, element, part) that is not in your lists.
+- Use a primitive, pattern, element or part id that is not in your lists.
+- Invent an asset id for something a listed asset already shows: check names and tags first.
 - Put more than about 5 visible elements on a board, and never more than 7 (an overlay's
   children count).
 - Show two overlays at the same time.
@@ -62,4 +71,5 @@ Common mistakes to avoid
 6. A number in a label that isn't one of your research numbers.
 7. An action on <instance>/<id> other than its innerActions (highlight, pulse, dim), or on an
    instance other than its actions; focus takes plain ids only.
-8. An invented asset id instead of one from the approved list.
+8. An asset request for something a listed asset already shows under another name.
+9. The same thing drawn with a different icon on another beat.

@@ -128,7 +128,10 @@ status a user edited.
 An id that is not an approved asset (or a declared logo slot) renders as a neutral dashed
 placeholder showing a readable label (`rocket_ship` → "rocket ship"), raises an `unknown_asset`
 warning, and is recorded in the run's missing-assets list (`runs/<id>/missing-assets.json`) with
-the beats that use it. The list feeds the asset drafter (P1C.12) and the gate 3 panel (P1D.10).
+the beats that use it. The Generator uses a new id only when no listed asset shows the thing,
+and then adds a request to its board (`missingAssetRequests`: the id, what the glyph shows, its
+family and the approved id it would use instead); at most one per beat and three per video. The
+run records the requests in `asset_requests` after the boards are drawn. The list feeds the asset drafter (P1C.12) and the gate 3 panel (P1D.10).
 Placeholders are for drafts only: a final render refuses a spec that still has one.
 
 ## Logo slots

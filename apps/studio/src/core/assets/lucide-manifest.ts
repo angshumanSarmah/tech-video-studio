@@ -20,6 +20,7 @@ import {
   LUCIDE_SKIP_REASONS,
   lucideFamily,
   ruleSkipReason,
+  SEED_ALIAS_EXCLUDED,
 } from './lucide-rules.ts';
 
 /**
@@ -100,7 +101,7 @@ export function buildLucideManifest(input: LucideManifestInput): LucideManifest 
       const seeded = coreByGlyph.get(glyph);
       if (seeded !== undefined) {
         const alias = snakeId(name);
-        if (alias !== seeded) aliases[alias] = seeded;
+        if (alias !== seeded && !SEED_ALIAS_EXCLUDED.has(alias)) aliases[alias] = seeded;
         return { lucide: name, status: 'skip', reason: 'seeded', sameAs: seeded };
       }
       const ruled = ruleSkipReason(name);

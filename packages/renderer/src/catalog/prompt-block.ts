@@ -1,8 +1,8 @@
 import {
+  ASSET_FAMILIES,
   closedListSection,
   renderLayoutModeCatalogue,
   renderStoryCatalogues,
-  type LibraryAsset,
 } from '@explainer-studio/shared';
 import {
   buildCatalogue,
@@ -51,11 +51,12 @@ export function directorCatalogueBlock(registries: Registries = DEFAULT_REGISTRI
 /**
  * The Generator's catalogue block (P1C.7): the layout modes, every primitive as in
  * `catalogueBlock`, every pattern with its `params.at` reduced to a pointer at its `anchors` (the
- * anchor shape is stated once, in the section note: a word index), then the approved assets
- * (`registries.assets`) sorted by family, then id. No devices, topic classes or metaphor worlds:
- * the plan has chosen them. The same for every beat and run with the same registries, whatever
- * their insertion order, so it sits in the cached prefix; per-run lists (logo slots, the
- * allowed layout modes) go in the user message.
+ * anchor shape is stated once, in the section note: a word index), then how to read the assets
+ * (P1C.12: the list itself is per beat, in the user message, `beatAssets`) and the closed list
+ * of asset families. No devices, topic classes or metaphor worlds: the plan has chosen them. The
+ * same for every beat and run with the same primitives and patterns, whatever their insertion
+ * order and whatever the asset library holds, so it sits in the cached prefix; per-run lists
+ * (logo slots, the allowed layout modes, the beat's assets) go in the user message.
  */
 export function generatorCatalogueBlock(registries: Registries = DEFAULT_REGISTRIES): string {
   const { primitives, patterns } = buildCatalogue(registries);
@@ -66,9 +67,18 @@ export function generatorCatalogueBlock(registries: Registries = DEFAULT_REGISTR
       `${PATTERNS_NOTE} ${GENERATOR_ANCHOR_NOTE}`,
       ...patterns.map(withAnchorPointer).map(jsonLine),
     ]),
-    closedListSection('ASSETS', [ASSETS_NOTE, ...assetLines(registries.assets.values())]),
+    closedListSection('ASSET FAMILIES', [
+      GENERATOR_ASSETS_NOTE,
+      ...ASSET_FAMILIES.map((f) => `- ${f}`),
+    ]),
   ].join('\n\n');
 }
+
+/** How the Generator reads its per-beat asset list (the list is in the user message). */
+export const GENERATOR_ASSETS_NOTE =
+  "Asset ids come from the ASSETS section of each beat's message: the approved assets that fit " +
+  'that beat, one per line: id (family): name; tags. Ids this video already uses are marked ' +
+  '[used in this video]. A missingAssetRequests entry names one of these families.';
 
 /** What every anchor is: stated once for the whole pattern list. */
 export const GENERATOR_ANCHOR_NOTE =
@@ -92,18 +102,6 @@ export function withAnchorPointer(entry: PatternCatalogueEntry): PatternCatalogu
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
-
-const ASSETS_NOTE =
-  'Approved asset ids for every prop that takes one, one per line: id (family): name; tags.';
-
-/** One line per asset, sorted by family, then id (code units, never the host locale). */
-export function assetLines(assets: Iterable<LibraryAsset>): string[] {
-  return [...assets]
-    .sort((a, b) => byCodeUnits(a.family, b.family) || byCodeUnits(a.id, b.id))
-    .map((a) => `- ${a.id} (${a.family}): ${a.name}; ${a.tags.join(', ')}`);
-}
-
-const byCodeUnits = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 
 const DIRECTOR_PRIMITIVES_NOTE =
   'One JSON object per primitive. Name one as a missing-primitive fallback; the Generator ' +

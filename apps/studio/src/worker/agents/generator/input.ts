@@ -1,4 +1,6 @@
 import {
+  beatAssetLines,
+  beatAssets,
   beatLayoutMode,
   boardNumberIds,
   boardState,
@@ -26,8 +28,9 @@ import { boardStart, spliceBoards, type GeneratorBoards } from './board.ts';
  * prompt, output schema, catalogue, assets) live in the system message; everything here is this
  * beat's: its story and script, its narration words numbered with their times, the research it
  * may show (its own and the earlier beats' on the same board), the terms introduced so far, the
- * board it fills (format, fixed layout mode, logo slots) and, on a continuing beat, what is
- * already ON SCREEN; on a semantic-zoom beat, the previous board's elements to zoom from.
+ * board it fills (format, fixed layout mode, logo slots), the assets that fit this beat (P1C.12,
+ * `beatAssets`) and, on a continuing beat, what is already ON SCREEN; on a semantic-zoom beat,
+ * the previous board's elements to zoom from.
  */
 
 export interface GeneratorMessageInput extends GeneratorBoards {
@@ -60,6 +63,7 @@ export function generatorUserMessage(input: GeneratorMessageInput): string {
     ),
     section('TERMS', json(termsInput(spec, input))),
     section('BOARD', json(boardInput(spec, input, options.registries))),
+    assetsSection(spec, input, options.registries),
     ...(beat.continuesPrevious && previous ? continuing(spec, previous, options) : []),
     ...(beat.device === 'semantic_zoom' && previous ? [zoomSection(spec, previous, options)] : []),
     ...(input.feedback?.trim()
@@ -220,6 +224,25 @@ function boardInput(
       : 'from your first pattern (the plan fixes none)',
     logoSlots: (spec.logos ?? []).map(({ id: slot, label }) => ({ id: slot, label })),
   };
+}
+
+/**
+ * The approved assets for this beat (`beatAssets`: this video's ids first, then matches for the
+ * beat's words, then the topic class's families). Exhaustive except for a requested new id.
+ */
+function assetsSection(
+  spec: RenderableVideoSpec,
+  input: GeneratorMessageInput,
+  registries: Registries,
+): string {
+  const beat = spec.story.beats[input.beatIndex];
+  const glossary = new Map(input.notes.glossary.map((g) => [foldTerm(g.term), g.plainMeaning]));
+  const meanings = (beat?.newTerms ?? []).flatMap((t) => glossary.get(foldTerm(t)) ?? []);
+  const assets = beatAssets(spec, input.beatIndex, registries, { extraText: meanings });
+  return section(
+    'ASSETS (exhaustive for this beat: use only these ids, or request a new one)',
+    beatAssetLines(assets).join('\n'),
+  );
 }
 
 /** ON SCREEN and the previous beat's narration, for a beat that continues the board. */

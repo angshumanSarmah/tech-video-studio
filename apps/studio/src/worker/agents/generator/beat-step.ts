@@ -33,6 +33,7 @@ import type { BuiltPrompt } from '#worker/llm/types.ts';
 import { buildPrompt } from '../prompt-builder.ts';
 import type { PromptVariables } from '../prompt-variables.ts';
 import type { PromptTemplates } from '../prompts/templates.ts';
+import { settleAssetRequests } from './asset-requests.ts';
 import { generatorAssetSwaps, generatorCheck } from './check.ts';
 import { generatorUserMessage } from './input.ts';
 
@@ -180,7 +181,9 @@ async function callBeat(
       }),
     );
     const swaps = generatorAssetSwaps(result.value, boards);
-    const board = withAssetSwaps(result.value, swaps);
+    const settled = settleAssetRequests(withAssetSwaps(result.value, swaps), c.registries);
+    const board = settled.board;
+    for (const note of settled.notes) c.log('warn', `Beat ${input.beatId}: ${note}`);
     const beat = req.spec.story.beats[req.beatIndex];
     if (!beat) throw new Error(`No story beat at index ${req.beatIndex}.`);
     const output: GeneratorBeatOutput = {
