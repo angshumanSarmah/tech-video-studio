@@ -15,8 +15,11 @@ const { dbPath, seeded, assets, references } = prepareDatabase(
 // `--quiet` (the studio CLI): only what changed is printed.
 const quiet = process.argv.includes('--quiet');
 if (!quiet || seeded) console.log(`[db] migrated ${dbPath}${seeded ? ' (seeded defaults)' : ''}`);
-if (assets.inserted + assets.updated > 0) {
-  console.log(`[assets] seeded ${assets.inserted} new, refreshed ${assets.updated}`);
+if (assets.inserted + assets.updated + assets.aliased > 0) {
+  console.log(
+    `[assets] seeded ${assets.inserted} new, refreshed ${assets.updated}, ` +
+      `${assets.aliased} aliases added`,
+  );
 }
 if (references.inserted + references.updated > 0) {
   console.log(`[references] seeded ${references.inserted} new, refreshed ${references.updated}`);

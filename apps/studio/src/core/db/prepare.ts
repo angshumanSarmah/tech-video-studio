@@ -1,4 +1,4 @@
-import { seedAssets, type SeedAssetsResult } from '../assets/seed.ts';
+import { assetSeed, seedAssets, type SeedAssetsResult } from '../assets/seed.ts';
 import { ensureDataDirs } from '../data-dirs.ts';
 import {
   defaultSeedReferencesDir,
@@ -15,14 +15,29 @@ export interface PrepareResult {
   readonly references: SeedReferencesResult;
 }
 
+const NO_ASSET_SEEDING: SeedAssetsResult = {
+  inserted: 0,
+  updated: 0,
+  unchanged: 0,
+  aliased: 0,
+  skipped: true,
+};
+
 export interface PrepareOptions {
   /** The committed seed references (default: `apps/studio/seed/references`). */
   readonly seedReferencesDir?: string;
+  /**
+   * Which asset seed to apply: `all` (default: the core set and the full Lucide import from the
+   * committed manifest), `core` (tests, `createTestDb`: no ~1,900 files per test database) or
+   * `none` (a test on an older schema).
+   */
+  readonly assets?: 'all' | 'core' | 'none';
 }
 
 /**
- * Creates the data layout, applies migrations and seeds defaults, the seed asset library
- * (`data/assets`) and the seed references (`data/references`). Idempotent.
+ * Creates the data layout, applies migrations and seeds defaults, the seed asset library (the
+ * core set and the Lucide import, `data/assets`) and the seed references (`data/references`).
+ * Idempotent.
  */
 export function prepareDatabase(
   dataDir: string,
@@ -35,7 +50,11 @@ export function prepareDatabase(
   try {
     migrateDatabase(db, migrationsDir);
     const seeded = seedDefaults(db);
-    const assets = seedAssets(db, dataDir);
+    const which = options.assets ?? 'all';
+    const assets =
+      which === 'none'
+        ? NO_ASSET_SEEDING
+        : seedAssets(db, dataDir, assetSeed({ importLucide: which === 'all' }));
     const references = seedReferences(
       db,
       dataDir,

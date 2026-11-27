@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { nameForms, nearIdenticalAsset } from '../assets/near-identical.ts';
-import { SEED_REGISTRY } from '../assets/library.ts';
+import { buildAssetRegistry, SEED_REGISTRY } from '../assets/library.ts';
 import { boardAssetSwaps, withAssetSwaps } from './asset-swaps.ts';
 import { DEFAULT_REGISTRIES } from './registries.ts';
 import { paramLeaves, propLeaves, schemaLeaves } from './schema-leaves.ts';
@@ -17,9 +17,27 @@ describe('nearIdenticalAsset', () => {
     expect(nearIdenticalAsset('servers', SEED_REGISTRY)).toBe('server');
     expect(nearIdenticalAsset('shield-check', SEED_REGISTRY)).toBe('shield_check');
     expect(nearIdenticalAsset('databases', SEED_REGISTRY)).toBe('database');
-    expect(nearIdenticalAsset('gpu_card', SEED_REGISTRY, new Map([['gpu_card', 'gpu']]))).toBe(
-      'gpu',
+  });
+
+  it('follows the aliases the registry declares, in any near-identical form', () => {
+    const withAlias = buildAssetRegistry(
+      [...SEED_REGISTRY.values()].map((a) =>
+        a.id === 'gpu' ? { ...a, aliases: ['gpu_card'] } : a,
+      ),
     );
+    expect(nearIdenticalAsset('gpu_card', withAlias)).toBe('gpu');
+    expect(nearIdenticalAsset('gpu-cards', withAlias)).toBe('gpu');
+    expect(nearIdenticalAsset('GPU_Card', withAlias)).toBe('gpu');
+    expect(nearIdenticalAsset('gpu_card', SEED_REGISTRY)).toBeUndefined();
+  });
+
+  it('prefers an exact alias over a plural form of another id', () => {
+    const registry = buildAssetRegistry(
+      [...SEED_REGISTRY.values()].map((a) =>
+        a.id === 'cluster' ? { ...a, aliases: ['servers'] } : a,
+      ),
+    );
+    expect(nearIdenticalAsset('servers', registry)).toBe('cluster');
   });
 
   it('leaves known ids and anything that is not near-identical alone', () => {

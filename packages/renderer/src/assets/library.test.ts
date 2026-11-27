@@ -7,6 +7,7 @@ import {
   resolveGlyph,
   SEED_REGISTRY,
 } from './library.ts';
+import { aliasIndex, aliasProblems } from './aliases.ts';
 import { SEED_ASSETS } from './seed.ts';
 
 const server = SEED_REGISTRY.get('server') as LibraryAsset;
@@ -75,5 +76,31 @@ describe('assetContext and resolveGlyph', () => {
     expect(placeholderLabel('rocket_ship')).toBe('rocket ship');
     expect(placeholderLabel('gpu-card')).toBe('gpu card');
     expect(placeholderLabel('logo_example-co')).toBe('example co');
+  });
+});
+
+describe('asset aliases', () => {
+  const seed = [...SEED_REGISTRY.values()];
+  const withAliases = (id: string, aliases: string[]) =>
+    seed.map((a) => (a.id === id ? { ...a, aliases } : a));
+
+  it('index each alias to its asset', () => {
+    const registry = buildAssetRegistry(withAliases('disk', ['hard_drive', 'ssd']));
+    expect(aliasIndex(registry).get('hard_drive')).toBe('disk');
+    expect(aliasIndex(registry).get('ssd')).toBe('disk');
+    expect(aliasIndex(SEED_REGISTRY).size).toBe(0);
+  });
+
+  it('refuse an alias that is an id, a logo slot, repeated, or declared twice', () => {
+    expect(() => buildAssetRegistry(withAliases('disk', ['server']))).toThrow(/id of another/);
+    expect(() => buildAssetRegistry(withAliases('disk', ['disk']))).toThrow(/its own id/);
+    expect(() => buildAssetRegistry(withAliases('disk', ['ssd', 'ssd']))).toThrow(/twice/);
+    const twice = withAliases('disk', ['drive']).map((a) =>
+      a.id === 'memory' ? { ...a, aliases: ['drive'] } : a,
+    );
+    expect(() => buildAssetRegistry(twice)).toThrow(/both "disk" and "memory"/);
+    expect(aliasProblems([{ id: 'disk', aliases: ['logo_acme'] }])).toEqual([
+      'Alias "logo_acme" of "disk" starts with "logo_".',
+    ]);
   });
 });

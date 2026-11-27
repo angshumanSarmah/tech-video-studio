@@ -17,7 +17,8 @@ export type { BoardLayout, LayoutWarning, PlacedItem } from '../layout/types.ts'
 export * from '../assets/house-svg.ts';
 export * from '../assets/library.ts';
 export * from '../assets/seed.ts';
-export * from '../assets/suggest.ts';
+export * from '../assets/aliases.ts';
+export * from '../assets/rank.ts';
 export * from './asset-uses.ts';
 export * from './registries.ts';
 export * from './validate.ts';

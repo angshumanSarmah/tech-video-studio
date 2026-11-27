@@ -45,10 +45,12 @@ function loadRow(
   }
   const svg = parseHouseSvg(text);
   if (!svg.ok) return { problem: `${row.svgPath}: ${svg.problems.join(' ')}` };
-  const { id, name, family, tags, styleVersion, licence, source } = row;
+  const { id, name, family, tags, aliases, description, styleVersion, licence, source } = row;
   const parsed = LibraryAssetSchema.safeParse({
     kind: 'library',
     ...{ id, name, family, tags, styleVersion, licence, source },
+    ...(aliases.length > 0 ? { aliases } : {}),
+    ...(description ? { description } : {}),
     shapes: svg.shapes,
   });
   return parsed.success ? { asset: parsed.data } : { problem: parsed.error.message };

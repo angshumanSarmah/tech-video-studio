@@ -1,3 +1,4 @@
+import { SEED_ASSETS } from '@explainer-studio/renderer/catalog';
 import { cpSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -26,6 +27,7 @@ const EXPECTED_TABLES = [
   'run_sources',
   'run_steps',
   'runs',
+  'seed_state',
   'series',
   'sources',
   'spec_versions',
@@ -56,8 +58,10 @@ describe('prepareDatabase on a fresh data dir', () => {
     const result = prepareDatabase(dataDir, TEST_MIGRATIONS_DIR);
 
     expect(result.seeded).toBe(true);
-    expect(result.assets.inserted).toBeGreaterThan(0);
+    expect(result.assets.inserted).toBeGreaterThan(SEED_ASSETS.length);
     expect(existsSync(join(dataDir, 'assets', 'server.svg'))).toBe(true);
+    // The full Lucide import is part of a real database (tests seed only the core set).
+    expect(existsSync(join(dataDir, 'assets', 'snail.svg'))).toBe(true);
     for (const sub of DATA_SUBDIRS) expect(existsSync(join(dataDir, sub))).toBe(true);
 
     db = openDatabase(result.dbPath);
@@ -79,7 +83,7 @@ describe('prepareDatabase on a fresh data dir', () => {
     const result = prepareDatabase(dataDir, TEST_MIGRATIONS_DIR);
 
     expect(result.seeded).toBe(false);
-    expect(result.assets).toMatchObject({ inserted: 0, updated: 0 });
+    expect(result.assets).toMatchObject({ inserted: 0, updated: 0, skipped: true });
     db = openDatabase(result.dbPath);
     expect(db.select().from(series).all()).toHaveLength(DEFAULT_SERIES.length);
   });
@@ -116,7 +120,10 @@ describe('migrations on a database with data', () => {
   it('rebuilds `sources` (0004) under a pinned source, keeping its rows and references', () => {
     const dataDir = join(root, 'data');
     // Seed references need the newest schema, so none are seeded on the old one.
-    const { dbPath } = prepareDatabase(dataDir, migrationsUpTo(4), noSeedReferences());
+    const { dbPath } = prepareDatabase(dataDir, migrationsUpTo(4), {
+      ...noSeedReferences(),
+      assets: 'none',
+    });
     db = openDatabase(dbPath);
     const topic = createTopic(db, { title: 'Write-ahead logs' });
     const source = createSource(db, {

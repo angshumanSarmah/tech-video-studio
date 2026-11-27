@@ -35,12 +35,30 @@ export const LibraryAssetIdSchema = SpecIdSchema.refine(
   `Library asset ids must not start with "${LOGO_ID_PREFIX}" (reserved for logo slots).`,
 );
 
+/** Most aliases one asset may declare. */
+export const ASSET_MAX_ALIASES = 8;
+/** Longest asset description (what the glyph shows, one line). */
+export const ASSET_DESCRIPTION_MAX = 200;
+
 /** Library metadata, as stored in the `assets` table. */
 export const AssetMetaSchema = z.strictObject({
   id: LibraryAssetIdSchema,
   name: z.string().trim().min(1).max(40),
   family: AssetFamilySchema,
   tags: z.array(z.string().trim().min(1).max(32)).max(12),
+  /**
+   * Other ids that name the same glyph (`gpu_card` -> `gpu`). Only the Generator's near-identical
+   * substitution reads them; a render resolves ids exactly. Unique across the library.
+   */
+  aliases: z.array(LibraryAssetIdSchema).max(ASSET_MAX_ALIASES).optional(),
+  /** What the glyph shows, in one line (drafts and uploads; imported icons have none). */
+  description: z
+    .string()
+    .trim()
+    .min(1)
+    .max(ASSET_DESCRIPTION_MAX)
+    .regex(/^[^\n\r]*$/, 'One line, without line breaks.')
+    .optional(),
   /** House style version the SVG was drawn to; bumped when the style rules change. */
   styleVersion: z.number().int().min(1),
   /** SPDX expression, e.g. `ISC` or `ISC AND MIT`. */

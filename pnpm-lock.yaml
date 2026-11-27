@@ -263,6 +263,9 @@ catalogs:
     lucide:
       specifier: ^1.74.0
       version: 1.74.0
+    lucide-static:
+      specifier: 1.74.0
+      version: 1.74.0
     mammoth:
       specifier: ^1.13.0
       version: 1.13.0
@@ -391,6 +394,9 @@ importers:
       jsdom:
         specifier: 'catalog:'
         version: 31.0.1
+      lucide:
+        specifier: 'catalog:'
+        version: 1.74.0
       mammoth:
         specifier: 'catalog:'
         version: 1.13.0
@@ -434,6 +440,9 @@ importers:
       drizzle-kit:
         specifier: 'catalog:'
         version: 0.31.11
+      lucide-static:
+        specifier: 'catalog:'
+        version: 1.74.0
       tailwindcss:
         specifier: 'catalog:'
         version: 4.3.5
@@ -3291,6 +3300,9 @@ packages:
   lru-cache@6.0.0:
     resolution: {integrity: sha512-Jo6dJ04CmSjuznwJSS3pUeWmd/H0ffTlkXXgwZi+eq1UCmqQwCh+eLsYOYCwY991i2Fah4h1BEMCx4qThGbsiA==}
     engines: {node: '>=10'}
+
+  lucide-static@1.74.0:
+    resolution: {integrity: sha512-+USG34tDoFrWhZGLaF+KrjWPtB1yhGY1h/jRzxasEUP5v3SoE34DIBIiaCoHC4fqkJHegCoumEOF4YgV0jjZMA==}
 
   lucide@1.74.0:
     resolution: {integrity: sha512-jFklpbqbUN+lZtOVHojkJ+AL5AHF9F6ShtedFIcmEsdDATVzdxlHYnTRZu4aexmJ8DrrneXaDJpaRTxlrclMJQ==}
@@ -6811,6 +6823,8 @@ snapshots:
   lru-cache@6.0.0:
     dependencies:
       yallist: 4.0.0
+
+  lucide-static@1.74.0: {}
 
   lucide@1.74.0: {}
 

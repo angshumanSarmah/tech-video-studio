@@ -20,6 +20,7 @@ apps/studio/src/web/theme.generated.css
 docs/catalogue.md
 docs/catalogue.json
 packages/renderer/src/fonts/metrics.generated.json
+apps/studio/seed/assets/lucide.manifest.json
 
 # Kokoro TTS env (uv-managed Python, venv, downloaded models; see apps/studio/tts-python)
 apps/studio/tts-python/.venv

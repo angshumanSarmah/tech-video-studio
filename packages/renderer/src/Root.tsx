@@ -27,6 +27,7 @@ import {
   endingSheetDefaults,
   endingSheetDimensions,
 } from './stills/EndingSheet.tsx';
+import { AssetSheet, assetSheetDefaults } from './stills/AssetSheet.tsx';
 import { PatternSheet, patternSheetDefaults } from './stills/PatternSheet.tsx';
 import { PrimitiveSheet, primitiveSheetDefaults } from './stills/PrimitiveSheet.tsx';
 import { SafeAreaCalibration, safeAreaCalibrationDefaults } from './stills/SafeAreaCalibration.tsx';
@@ -233,6 +234,13 @@ export function Root() {
         fps={ENDING_SHEET_FPS}
         durationInFrames={ENDING_SHEET_FRAMES}
         defaultProps={endingSheetDefaults}
+      />
+      <Still
+        id="AssetSheet"
+        component={AssetSheet}
+        width={canvas.width}
+        height={canvas.height}
+        defaultProps={assetSheetDefaults}
       />
       <Still
         id="ThemeSwatchBoard"

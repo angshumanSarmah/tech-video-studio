@@ -57,6 +57,13 @@
       "when": 1795617435833,
       "tag": "0007_reference_library",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1795780060154,
+      "tag": "0008_asset_aliases",
+      "breakpoints": true
     }
   ]
 }

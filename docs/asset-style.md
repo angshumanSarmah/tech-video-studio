@@ -96,12 +96,32 @@ Each asset is a row in the `assets` table plus `<DATA_DIR>/assets/<id>.svg`.
 - `styleVersion`, `licence` (SPDX: `ISC`, `ISC AND MIT`, `CC0-1.0`, or `LicenseRef-own` for
   drafts and uploads made for this project) and `source` (`lucide@<version>:<icon>`, `drafted`,
   `uploaded`).
+- `aliases`: up to 8 other ids for the same glyph (`hard_drive` for `disk`). Only true
+  synonyms: the Generator substitutes them without asking. An alias is never an asset's id,
+  another asset's alias or a `logo_` id.
+- `description`: what the glyph shows, one line (drafts and uploads; imported icons have none).
 - `status`: `draft`, `approved` or `rejected`. Only approved assets are in the library; nothing
   is approved automatically.
 
-The seed set is curated Lucide icons (ISC; icons Lucide derived from Feather are also MIT), with
-the licence texts in `packages/renderer/src/assets/LICENSE-lucide.txt`. Seeding never overwrites
-an asset it did not create.
+## Where the library comes from
+
+- **Core seed set:** 105 curated Lucide icons with hand-picked ids, names and tags
+  (`packages/renderer/src/assets/seed.ts`). Fixtures, golden stills and the renderer's offline
+  default use only these.
+- **Full Lucide import (P1C.12):** every other Lucide icon of the pinned release, imported as
+  approved from a committed, reviewed manifest (`apps/studio/seed/assets/lucide.manifest.json`,
+  built by `assets:manifest`). An icon is skipped when the core set already has its glyph (its
+  Lucide name becomes an alias of the seed id), or it is a brand, a text-formatting control, a
+  drawing of letters or digits, or off topic. Its id is the Lucide name in snake case
+  (`database-zap` -> `database_zap`), renamed only where a core id draws another glyph
+  (`book` -> `book_closed`); its family comes from its first word (`file-clock` is data).
+- **Licences:** Lucide is ISC; the icons Lucide's LICENSE lists as derived from Feather (old
+  names included) are `ISC AND MIT`. Both texts are in
+  `packages/renderer/src/assets/LICENSE-lucide.txt`.
+- **Drafts and uploads** (P1C.12, later steps) are `LicenseRef-own`.
+
+Seeding never overwrites an asset it did not create, and keeps the name, tags, family and
+status a user edited.
 
 ## Missing assets
 

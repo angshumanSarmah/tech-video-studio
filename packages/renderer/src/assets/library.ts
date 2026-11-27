@@ -6,6 +6,7 @@ import {
   type LogoSlot,
   type ResolvedAsset,
 } from '@explainer-studio/shared';
+import { aliasProblems } from './aliases.ts';
 import { SEED_ASSETS } from './seed.ts';
 
 /**
@@ -16,7 +17,10 @@ import { SEED_ASSETS } from './seed.ts';
 
 export type AssetRegistry = ReadonlyMap<string, LibraryAsset>;
 
-/** Throws on a duplicate id or an invalid asset (a broken library must fail loudly). */
+/**
+ * Throws on a duplicate id, an invalid asset or aliases that are not unique (a broken library
+ * must fail loudly).
+ */
 export function buildAssetRegistry(assets: readonly LibraryAsset[]): AssetRegistry {
   const registry = new Map<string, LibraryAsset>();
   for (const asset of assets) {
@@ -25,6 +29,8 @@ export function buildAssetRegistry(assets: readonly LibraryAsset[]): AssetRegist
     if (!parsed.success) throw new Error(`Invalid asset "${asset.id}": ${parsed.error.message}`);
     registry.set(asset.id, parsed.data);
   }
+  const problems = aliasProblems(registry.values());
+  if (problems.length > 0) throw new Error(`Asset aliases: ${problems.join(' ')}`);
   return registry;
 }
 

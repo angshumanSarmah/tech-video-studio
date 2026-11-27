@@ -6,6 +6,7 @@ import {
 } from '@explainer-studio/renderer/catalog';
 import {
   MissingAssetListSchema,
+  type LibraryAsset,
   type MissingAsset,
   type ResolvedAsset,
   type VideoSpec,
@@ -39,12 +40,21 @@ export function prepareRenderAssets(
   const ids = [...new Set(specAssetUses(spec).map((use) => use.id))];
   const library = loadAssetLibrary(db, dataDir, ids);
   const logos = loadLogoFiles(dataDir, runId, spec.logos ?? []);
-  const assets: ResolvedAsset[] = [...library.assets, ...logos.logos];
+  const assets: ResolvedAsset[] = [...library.assets.map(forRender), ...logos.logos];
   return {
     assets,
     missing: missingAssets(spec, assetContext(spec.logos, assets)),
     problems: [...library.problems, ...logos.problems],
   };
+}
+
+/**
+ * A library asset as a render receives it: what it draws, without the library-only fields
+ * (aliases, description), so render props and draft cache keys do not change when they do.
+ */
+function forRender(asset: LibraryAsset): LibraryAsset {
+  const { kind, id, name, family, tags, styleVersion, licence, source, shapes } = asset;
+  return { kind, id, name, family, tags, styleVersion, licence, source, shapes };
 }
 
 /** The run's missing-assets list (empty before its first render). */

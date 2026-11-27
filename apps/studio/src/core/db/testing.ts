@@ -19,10 +19,16 @@ export interface TestDb {
   readonly cleanup: () => void;
 }
 
-/** A fresh data dir with a migrated, seeded database (`options`: e.g. other seed references). */
+/**
+ * A fresh data dir with a migrated, seeded database (`options`: e.g. other seed references). The
+ * asset library is the core seed set unless `assets` says otherwise.
+ */
 export function createTestDb(options: PrepareOptions = {}): TestDb {
   const dataDir = join(mkdtempSync(join(tmpdir(), 'studio-db-')), 'data');
-  const { dbPath } = prepareDatabase(dataDir, TEST_MIGRATIONS_DIR, options);
+  const { dbPath } = prepareDatabase(dataDir, TEST_MIGRATIONS_DIR, {
+    assets: 'core',
+    ...options,
+  });
   const db = openDatabase(dbPath);
   return {
     db,

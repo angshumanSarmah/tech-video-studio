@@ -420,6 +420,10 @@ export const assets = sqliteTable(
     name: text('name').notNull(),
     family: text('family', { enum: ASSET_FAMILIES }).notNull(),
     tags: jsonStringArray('tags'),
+    /** Other ids for the same glyph (P1C.12): unique across the library; see `aliasProblems`. */
+    aliases: jsonStringArray('aliases'),
+    /** What the glyph shows, one line (drafts and uploads; imported icons have none). */
+    description: text('description'),
     styleVersion: integer('style_version').notNull().default(1),
     licence: text('licence').notNull(),
     source: text('source').notNull(),
@@ -545,6 +549,16 @@ export const exports = sqliteTable(
   },
   (t) => [index('exports_run_idx').on(t.runId)],
 );
+
+/**
+ * What a seeding step last applied (P1C.12): `key` names the seed (`assets`), `hash` the inputs it
+ * applied. Seeding skips its per-row pass when the hash is unchanged and every file is in place.
+ */
+export const seedState = sqliteTable('seed_state', {
+  key: text('key').primaryKey(),
+  hash: text('hash').notNull(),
+  updatedAt: updatedAt(),
+});
 
 /**
  * The one worker that may claim jobs (P1C.9b): crash recovery assumes a single worker, and the

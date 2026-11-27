@@ -8,7 +8,7 @@ import {
 } from '@explainer-studio/shared';
 import type { AnyPatternDefinition } from '../patterns/types.ts';
 import { placeholderLabel, type AssetContextValue } from '../assets/library.ts';
-import { suggestAssets } from '../assets/suggest.ts';
+import { suggestAssets } from '../assets/rank.ts';
 import { DEFAULT_REGISTRIES, type Registries } from './registries.ts';
 
 /**

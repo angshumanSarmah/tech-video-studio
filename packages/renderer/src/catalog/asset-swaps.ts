@@ -21,7 +21,6 @@ export function boardAssetSwaps(
   board: Board,
   registries: Registries,
   logoSlots: ReadonlySet<string> = new Set(),
-  aliases?: ReadonlyMap<string, string>,
 ): AssetSwap[] {
   const leaves = [
     ...board.elements.flatMap((element, j) => {
@@ -43,7 +42,7 @@ export function boardAssetSwaps(
   ];
   return leaves.flatMap((leaf) => {
     if (leaf.kind !== 'asset' || logoSlots.has(leaf.value)) return [];
-    const to = nearIdenticalAsset(leaf.value, registries.assets, aliases);
+    const to = nearIdenticalAsset(leaf.value, registries.assets);
     return to ? [{ path: leaf.path, from: leaf.value, to }] : [];
   });
 }

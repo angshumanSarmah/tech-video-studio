@@ -2154,21 +2154,56 @@ message }` for the Curator): `too_many_elements` (mode `maxUnits`), `text_too_sm
   beat it is anchored in (`ElementEvent.beatEndSec`), whichever comes first.
 - **Assets** (`src/assets`; style rules in `docs/asset-style.md`). Asset ids in props are
   slugs, not enums, so unknown ids are warnings (`unknown_asset`), never schema errors. The
-  warning suggests up to 6 closest approved ids (`suggestAssets`: deterministic token, id
-  coverage and bigram score over id, name and tags; the family an `AssetRef` implies ranks
+  warning suggests up to 6 closest approved ids (`suggestAssets` over `rankAssets`,
+  `assets/rank.ts`: deterministic token, id coverage and bigram score over id, name, tags,
+  aliases and description, ties by id in code-unit order; the family an `AssetRef` implies ranks
   first), only real matches and never the whole list; with none it says "No close match"
-  (`NO_CLOSE_ASSET`).
+  (`NO_CLOSE_ASSET`). `rankAssets` is the one scorer (P1C.12: also `suggestSwap` and the
+  Generator's per-beat list) and returns scores.
+  - **Aliases** (P1C.12, `assets/aliases.ts`): an asset's `aliases` (other ids for its glyph,
+    `assets.aliases`, at most 8) are unique across the library (`aliasProblems`;
+    `buildAssetRegistry` throws). `nearIdenticalAsset` reads them from the registry
+    (`aliasIndex`): an exact alias, then the id's case, separator and plural forms, then those
+    forms as aliases (`gpu_cards` -> `gpu_card` -> `gpu`). A render resolves ids exactly;
+    `prepareRenderAssets` passes assets without `aliases` and `description`, so render props and
+    clip cache keys never change with them.
   - **House SVG** (`house-svg.ts`): one `<svg>` with a 24×24 viewBox and a flat list of shapes
     (`AssetShapeSchema` in `packages/shared`: geometry attributes plus the palette tokens
     `currentColor` and `var(--asset-fill)`). `parseHouseSvg` rejects anything else (no
     sanitising; that is P1C.12); the renderer draws the parsed shapes, never raw markup, and sets
     stroke width, round caps and joins itself. Bump `HOUSE_STYLE_VERSION` when the rules change.
-  - **Library:** the `assets` table (approved rows) plus `<DATA_DIR>/assets/<id>.svg`. The seed
-    set (`seed.ts`: curated Lucide icons, canonical export names, ISC or ISC AND MIT for icons
-    Lucide derived from Feather, `LICENSE-lucide.txt`) is copied in by `prepareDatabase`
-    (`db:migrate`), idempotently; it refreshes only rows it seeded. Families are the closed
-    `ASSET_FAMILIES`; `logo_` ids are reserved for logo slots. `gen:catalogue` lists the seed ids
-    by family.
+  - **Library:** the `assets` table (approved rows) plus `<DATA_DIR>/assets/<id>.svg`. The core
+    seed set (`seed.ts`: 105 curated Lucide icons, canonical export names, ISC or ISC AND MIT for
+    icons Lucide derived from Feather, `LICENSE-lucide.txt`) and the **full Lucide import**
+    (P1C.12; about 1,760 more) are copied in by `prepareDatabase` (`db:migrate`; `seedAssets` with
+    `assetSeed()`, `#core/assets/seed.ts`), in one transaction, refreshing only rows it seeded
+    and adding seed aliases a row lacks. The pass is skipped when the seed's hash
+    (`seed_state`, key `assets`: core ids and sources, the manifest text, `ASSET_SEED_VERSION`)
+    is the one last applied and every file exists. `createTestDb` seeds the core set only
+    (`PrepareOptions.assets`: `all` | `core` | `none`). Families are the closed `ASSET_FAMILIES`;
+    `logo_` ids are reserved for logo slots. `gen:catalogue` lists the core ids by family.
+  - **The Lucide manifest** (`apps/studio/seed/assets/lucide.manifest.json`, committed and
+    reviewed as a diff; Prettier ignores it): every canonical Lucide icon (`lucide-static`'s
+    `tags.json` keys) imported (id, name, family, tags, licence) or skipped with a reason
+    (`seeded`, with `sameAs` and an alias; `brand`, `text_formatting`, `letters_digits`,
+    `off_topic`, `duplicate_glyph`, `not_house_shapes`), plus `aliases` (seeded glyphs' Lucide
+    names and `HAND_ALIASES`). `buildLucideManifest` (`#core/assets/lucide-manifest.ts`, pure)
+    applies the rules in `lucide-rules.ts` (data: skip lists, `lucideFamily` from the name's first
+    word, a shape frame such as `square-` deferring to the next, `LUCIDE_ID_OVERRIDES` where a
+    core id draws another glyph, `FEATHER_RENAMED` for licence names Lucide dropped); bump
+    `LUCIDE_RULES_VERSION` with a rule. `pnpm --filter @explainer-studio/studio assets:manifest`
+    rebuilds it from the installed `lucide` and `lucide-static` (pinned to the same release, a
+    dev dependency; `scripts/lucide-sources.ts`); `scripts/lucide-manifest.test.ts` fails when
+    the committed file is stale. Seeding takes the shapes from the installed `lucide`
+    (`lucideImportAssets`, which refuses a manifest built for another release).
+  - **Until P1C.12 A2** the Generator's system prompt lists only the core set plus drafted and
+    uploaded assets (`promptRegistries`, `agents/generator/prompt-assets.ts`), so its cached
+    prefix is unchanged; its checks use the whole library.
+  - **Contact sheets:** `pnpm --filter @explainer-studio/studio assets:sheet [--count 30]
+[--ids a,b] [--family f] [--core] [--theme] [--out]` renders the renderer's `AssetSheet`
+    still (`renderAssetSheet`, `#worker/render/asset-sheet.ts`) from the data dir's library:
+    by default 30 imported icons spread across families (`pickSheetAssets`), to
+    `<DATA_DIR>/sheets/`.
   - **Renders get assets as props** (`assets: ResolvedAsset[]`, validated in
     `calculateMetadata`): the worker resolves them with `prepareRenderAssets`
     (`#core/assets/render-assets.ts`); without the prop the seed library is used (Studio,

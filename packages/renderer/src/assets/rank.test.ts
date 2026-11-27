@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildAssetRegistry, SEED_REGISTRY } from './library.ts';
-import { SUGGESTION_LIMIT, suggestAssets } from './suggest.ts';
+import { rankAssets, SUGGESTION_LIMIT, suggestAssets } from './rank.ts';
 
 const suggest = (id: string, family?: Parameters<typeof suggestAssets>[2]) =>
   suggestAssets(id, SEED_REGISTRY, family);
@@ -59,5 +59,32 @@ describe('suggestAssets', () => {
 
   it('returns nothing for an empty library', () => {
     expect(suggestAssets('db', new Map())).toEqual([]);
+  });
+});
+
+describe('rankAssets', () => {
+  it('scores free words from a name and description, with scores', () => {
+    const ranked = rankAssets(
+      { name: 'Message queue', description: 'ordered backlog of jobs' },
+      SEED_REGISTRY,
+    );
+    expect(ranked[0]?.id).toBe('queue');
+    expect(ranked[0]?.score).toBeGreaterThan(ranked[1]?.score ?? 0);
+  });
+
+  it('reads aliases and descriptions as words of the asset', () => {
+    const registry = buildAssetRegistry(
+      [...SEED_REGISTRY.values()].map((a) =>
+        a.id === 'disk' ? { ...a, aliases: ['hard_drive'], description: 'a spinning platter' } : a,
+      ),
+    );
+    expect(rankAssets({ name: 'platter' }, registry)[0]?.id).toBe('disk');
+    expect(rankAssets({ id: 'hard_drive' }, registry)[0]?.id).toBe('disk');
+  });
+
+  it('breaks ties by id in code-unit order', () => {
+    const ranked = rankAssets({ name: 'order' }, SEED_REGISTRY);
+    const tied = ranked.filter((r) => r.score === ranked[0]?.score).map((r) => r.id);
+    expect(tied).toEqual([...tied].sort());
   });
 });

@@ -63,10 +63,10 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       back advisory although the issue itself says it is the beat's key idea; at beginner such an
       issue may block (the cap allows it). Check over more runs whether the model under-rates
       these before tightening the prompt.
-- [ ] **P1C.12 — Per-beat asset filter.** The Generator's prompt lists every approved asset in
-      the cached prefix (about 105 today, 1–2k tokens). The design doc's per-beat filter (about
-      60 candidates) waits until the library passes about 150 entries; it then goes in the user
-      message, never the prefix, so the prefix stays cached.
+- [ ] **P1C.12 A2 — Per-beat asset filter.** The library now holds the full Lucide import (about
+      1,860 approved assets), but the Generator's system prompt still lists only the core set
+      (`promptRegistries`, a stopgap). A2 moves the list to the user message (at most 60 per
+      beat, ids this video already uses first) and removes `promptRegistries`.
 - [ ] **P1C.5 — Record catalogue versions per call.** The block's `CATALOGUE VERSIONS` line
       lands in the prompt file and the Director's step input (`catalogueVersions`); a column on
       `llm_calls` would make it queryable.
@@ -292,10 +292,10 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
 - [ ] **Catalogue — asset sort.** `buildCatalogue`'s asset groups sort ids with `localeCompare`
       (docs only); the prompt blocks use code-unit order (`assetLines`). Align them if the docs
       order ever matters.
-- [ ] **P1C.12 — Asset aliases and the dev `package` id.** Aliases (e.g. `gpu_card` → `gpu`)
-      need a column on `assets`; add it with the drafter. The seed keeps `package` as the parcel
-      (object family; fixtures use it), so the software package is `module` (dev). Add an alias
-      if the Generator keeps asking for `package` in dev topics.
+- [ ] **P1C.12 — Editing aliases.** Aliases exist (column, seed aliases, `HAND_ALIASES`
+      including `software_package -> module` for the dev `package` case); editing them on an
+      approved asset arrives with the assets API (`PUT /api/assets/:id`, A4) and must run
+      `aliasProblems` on the library before saving.
 - [ ] **P1D.6 — Logo uploads.** Uploads go to `runs/<id>/logos/<slot>.svg|png` and must pass
       `checkLogoFile` (`#core/assets/logo-file.ts`: SVG or PNG, at most 300 KB and 1024 px on
       the longest side, no scripts or external references) before they are written. A slot

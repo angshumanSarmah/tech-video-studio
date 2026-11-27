@@ -26,6 +26,9 @@ catalog:
   katex: ^0.19.1
   # seed asset library: icon data (ISC; licence in packages/renderer/src/assets/LICENSE-lucide.txt)
   lucide: ^1.74.0
+  # full Lucide import (P1C.12): icon tags for the asset manifest script; exact, it must match
+  # the lucide version the committed manifest was built from
+  lucide-static: 1.74.0
   # house SVG parser for asset files (renderer catalog; reused by the P1C.12 sanitizer)
   fast-xml-parser: ^5.9.3
   # source ingestion (P1C.2): article extraction on jsdom, PDF text via pdf.js
