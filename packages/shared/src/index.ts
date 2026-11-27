@@ -1,3 +1,4 @@
+export * from './api/assets.ts';
 export * from './api/common.ts';
 export * from './catalogues/index.ts';
 export * from './api/errors.ts';

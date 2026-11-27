@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Exported from a design tool -->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="48" height="48" viewBox="0 0 24 24" version="1.1" id="icon" class="icon icon-plug">
+  <title>Plug</title>
+  <desc>A plug, drawn for the asset library</desc>
+  <g id="layer-1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path id="prongs" class="a" d="M9.0004 2v6M15 2v6" data-name="prongs" />
+    <path d="M6 8h12v4a6 6 0 0 1-12 0z" stroke-width="1.5" />
+    <line x1="12" y1="18.333333" x2="12" y2="22" />
+  </g>
+</svg>

@@ -40,6 +40,19 @@ to. Bump the version when a rule below changes, and redraw or re-review older as
 - **Limits:** at most 48 shapes and 16 KB. Aim for 2–10 shapes. Coordinates with at most two
   decimals.
 
+### What the sanitizer does with other files
+
+Drafts and uploads go through `sanitizeAssetSvg` before they are stored. Anything that could run,
+style, load or link something is **refused**, never stripped: scripts, event handlers, links
+(`href`, `src`), `foreignObject`, images, `use`, styles, animation, DOCTYPEs and entities, and
+`javascript:`, `data:` or `url(` anywhere. Anything else outside the format above is reported
+(text, gradients, filters, masks, transforms, opacity, colours that are not tokens, another
+viewBox, units, a shape outside the box). Harmless editor leftovers are **fixed** and listed:
+`title`, `desc`, `metadata` and comments dropped, groups flattened, ids, classes and stroke
+styles dropped. Drafts also have their coordinates rounded to two decimals and their look
+checked (inside 2-22, large enough, stroked, at most one soft fill, solid fills only on small
+marks, no repeated shape); uploads keep their precision.
+
 ## Stroke
 
 - One stroke weight for the whole asset: 2 units in the 24-unit box. The renderer scales it to

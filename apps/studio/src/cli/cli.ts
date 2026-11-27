@@ -1,4 +1,5 @@
 import { parseCommand, USAGE, UsageError } from './args.ts';
+import { assetsCommand } from './commands/assets.ts';
 import { gateCommand } from './commands/gate.ts';
 import { renderCommand } from './commands/render.ts';
 import { resumeCommand } from './commands/resume.ts';
@@ -38,6 +39,8 @@ export async function runCli(argv: readonly string[], ctx: CliContext): Promise<
         return await rulesCommand(ctx, cmd);
       case 'references':
         return await referencesCommand(ctx, cmd);
+      case 'assets':
+        return assetsCommand(ctx, cmd);
       case 'render':
         return await renderCommand(ctx, cmd);
     }

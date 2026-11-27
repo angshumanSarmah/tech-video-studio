@@ -19,6 +19,7 @@ export * from '../assets/library.ts';
 export * from '../assets/seed.ts';
 export * from '../assets/aliases.ts';
 export * from '../assets/rank.ts';
+export * from '../assets/sanitize.ts';
 export * from './asset-uses.ts';
 export * from './registries.ts';
 export * from './validate.ts';

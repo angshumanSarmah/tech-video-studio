@@ -1654,6 +1654,8 @@ pbpaste | pnpm studio run "Consistent hashing" --series system-design --text "Te
 "<text>"`**, **`rules accept|reject|edit|on|off|rm <id>`** (accept and edit take `--text`,
   `--scope`) and **`rules propose (--event <id> | --run <id> --gate <gate>)`** (the newest
   note at that gate; follows the job and asks as at a gate),
+  **`assets add <file.svg> --id --name --family [--tags a,b] [--alias]… [--description]
+[--licence] [--source]`** (`uploadAsset`: prints the fixes, or each problem with exit 1),
   **`references`** (list), **`references add <file|-> [--title] [--avoid [<kind>:]<name>]…
 [--attach <image>]…`** (follows the analyst's job, prints the record and its backlog rows),
   **`references show <ref> [--json]`**, **`references edit <ref> [<record.json>]`** (`$EDITOR`
@@ -2206,9 +2208,31 @@ message }` for the Curator): `too_many_elements` (mode `maxUnits`), `text_too_sm
     clip cache keys never change with them.
   - **House SVG** (`house-svg.ts`): one `<svg>` with a 24×24 viewBox and a flat list of shapes
     (`AssetShapeSchema` in `packages/shared`: geometry attributes plus the palette tokens
-    `currentColor` and `var(--asset-fill)`). `parseHouseSvg` rejects anything else (no
-    sanitising; that is P1C.12); the renderer draws the parsed shapes, never raw markup, and sets
-    stroke width, round caps and joins itself. Bump `HOUSE_STYLE_VERSION` when the rules change.
+    `currentColor` and `var(--asset-fill)`). `parseHouseSvg` rejects anything else; the renderer
+    draws the parsed shapes, never raw markup, and sets stroke width, round caps and joins
+    itself. Bump `HOUSE_STYLE_VERSION` when the rules change.
+  - **Sanitizer** (P1C.12, `assets/sanitize.ts`, `sanitizeAssetSvg(text, 'upload' | 'draft')`,
+    pure): someone else's SVG to canonical house SVG (which `parseHouseSvg` accepts), or every
+    problem. Refused, never stripped (problems starting "Refused"): DOCTYPE and entities, CDATA,
+    processing instructions, `javascript:` / `data:` / `url(` / `expression(` / `@import`,
+    event handlers, `href` / `src`, and `script`, `style`, `foreignObject`, `image`, `use`, `a`,
+    animation elements. Also problems: other elements (`text`, `defs`, gradients, `mask`,
+    `filter`), `transform`, `style`, `opacity` and other attributes, non-token colours, a viewBox
+    other than `0 0 24 24`, units, bad path data, a shape outside the box (extent from the line
+    drawn: `assets/path-data.ts` samples curves and arcs), limits (`SANITIZE_LIMITS`: upload
+    64 KB in, 48 shapes; draft 8 KB, 32 shapes). Fixed and listed in `fixes`: `title`, `desc`,
+    `metadata` and comments dropped, groups flattened (their fill and stroke passed down), ids,
+    classes, stroke styles, sizes and `data-*` dropped, `currentColor`'s case. `draft` mode also
+    rounds coordinates to two decimals and checks the look (inside 2-22, longer side at least 8,
+    stroked, one soft fill, solid fills only on small marks, no repeated shape). Fixtures in
+    `assets/fixtures/sanitize/` (`malicious`, `invalid`, `fixable`; the test reads every file):
+    each malicious one refused in both modes; the core seed and every Lucide import pass
+    unchanged.
+  - **Uploads** (`uploadAsset`, `#core/services/asset-upload.ts`; `UploadAssetRequestSchema`,
+    shared `api/assets.ts`): the sanitizer in upload mode, then `assets/<id>.svg` and an
+    approved row (licence `LicenseRef-own` and source `uploaded` unless given); an existing id is
+    a `ConflictError`, a refused file, bad details or taken aliases an `InvalidEditError` with
+    every issue, and nothing is written.
   - **Library:** the `assets` table (approved rows) plus `<DATA_DIR>/assets/<id>.svg`. The core
     seed set (`seed.ts`: 105 curated Lucide icons, canonical export names, ISC or ISC AND MIT for
     icons Lucide derived from Feather, `LICENSE-lucide.txt`) and the **full Lucide import**

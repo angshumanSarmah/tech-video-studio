@@ -15,7 +15,7 @@ import { XMLParser, XMLValidator } from 'fast-xml-parser';
  * stroke style; the renderer sets it again when drawing, so files cannot change it.
  *
  * Files are parsed into `AssetShape`s and drawn from those (never as raw markup), so anything
- * outside the format is rejected here, not sanitised: sanitising drafts is P1C.12's job.
+ * outside the format is rejected here; `sanitizeAssetSvg` (P1C.12) cleans other people's files.
  */
 
 export const HOUSE_VIEWBOX = 24;

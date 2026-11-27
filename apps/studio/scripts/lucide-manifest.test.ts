@@ -1,4 +1,9 @@
-import { FEATHER_DERIVED, SEED_ASSETS } from '@explainer-studio/renderer/catalog';
+import {
+  FEATHER_DERIVED,
+  sanitizeAssetSvg,
+  SEED_ASSETS,
+  serializeHouseSvg,
+} from '@explainer-studio/renderer/catalog';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
@@ -98,6 +103,14 @@ describe('the committed Lucide manifest', () => {
       source: `lucide@${manifest.lucideVersion}:snail`,
     });
     expect(() => lucideImportAssets(manifest, input.icons, '0.0.1')).toThrow(/assets:manifest/);
+  });
+
+  it('passes the asset sanitizer unchanged, every imported icon', () => {
+    const failed = lucideImportAssets(manifest).flatMap((asset) => {
+      const result = sanitizeAssetSvg(serializeHouseSvg(asset.shapes));
+      return result.ok && result.fixes.length === 0 ? [] : [asset.id];
+    });
+    expect(failed).toEqual([]);
   });
 });
 

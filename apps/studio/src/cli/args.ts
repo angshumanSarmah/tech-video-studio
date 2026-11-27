@@ -1,5 +1,6 @@
 import { parseArgs, type ParseArgsOptionsConfig } from 'node:util';
 import {
+  ASSET_FAMILIES,
   DEFAULT_USAGE_VIDEOS,
   DISAGREEMENT_BLOCKS,
   GATE_IDS,
@@ -101,6 +102,21 @@ export type RulesCommand = { readonly kind: 'rules' } & (
     }
 );
 
+/** `studio assets …` (P1C.12): the asset library before the UI exists. */
+export type AssetsCommand = {
+  readonly kind: 'assets';
+  readonly action: 'add';
+  readonly file: string;
+  readonly id: string;
+  readonly name: string;
+  readonly family: string;
+  readonly tags: readonly string[];
+  readonly aliases: readonly string[];
+  readonly description?: string;
+  readonly licence?: string;
+  readonly source?: string;
+};
+
 /** `studio references …` (P1C.11): the reference library before the UI exists. */
 export type ReferencesCommand = { readonly kind: 'references' } & (
   | { readonly action: 'list' }
@@ -145,6 +161,7 @@ export type Command =
   | { readonly kind: 'usage'; readonly videos: number }
   | RulesCommand
   | ReferencesCommand
+  | AssetsCommand
   | {
       readonly kind: 'render';
       readonly file: string;
@@ -191,6 +208,10 @@ export const USAGE = `Usage: pnpm studio <command> [options]
         <ref> is a slug or an id. edit opens $EDITOR on the record (or saves the file given).
   references pick (--run <id> | --topic "<title>" --series ai|system-design)
         Which references the Director would be shown, every one scored with its reasons.
+  assets add <file.svg> --id <id> --name "<name>" --family <family> [--tags a,b] [--alias <id>]...
+      [--description "<what it shows>"] [--licence <spdx>] [--source <where from>]
+        Add your own SVG to the asset library, approved: it is sanitized first (anything unsafe
+        refused, editor leftovers fixed). Families: ${ASSET_FAMILIES.join(', ')}.
   usage [--videos <n>]    What the last n exported videos used (default ${DEFAULT_USAGE_VIDEOS}): each
                           video's hook, ending and main patterns, then counts per kind.
   render <spec.json> [--draft|--final] [--series ai|system-design] [--dry-run <dir>]
@@ -227,6 +248,8 @@ export function parseCommand(argv: readonly string[]): Command {
       return parseRules(rest);
     case 'references':
       return parseReferences(rest);
+    case 'assets':
+      return parseAssets(rest);
     case 'render':
       return parseRender(rest);
     default:
@@ -481,6 +504,44 @@ function proposeFrom(
   if (values.run === undefined || values.gate === undefined)
     throw new UsageError(`Expected: ${form}`);
   return { runId: runIdOf(text(values.run)), gate: oneOf('--gate', values.gate, GATE_IDS, true) };
+}
+
+function parseAssets(args: readonly string[]): AssetsCommand {
+  const { values, positionals: found } = parse(args, {
+    id: { type: 'string' },
+    name: { type: 'string' },
+    family: { type: 'string' },
+    tags: { type: 'string' },
+    alias: { type: 'string', multiple: true },
+    description: { type: 'string' },
+    licence: { type: 'string' },
+    source: { type: 'string' },
+  });
+  const [sub, file, ...extra] = found;
+  if (sub !== 'add') throw new UsageError(`Unknown assets command "${sub ?? ''}": add.`);
+  const form = 'assets add <file.svg> --id <id> --name "<name>" --family <family>';
+  const id = text(values.id);
+  const name = text(values.name);
+  const family = text(values.family);
+  if (!file || extra.length > 0 || !id || !name || !family) {
+    throw new UsageError(`Expected: ${form}`);
+  }
+  return {
+    kind: 'assets',
+    action: 'add',
+    file,
+    id,
+    name,
+    family,
+    tags: (text(values.tags) ?? '')
+      .split(',')
+      .map((t) => t.trim())
+      .filter((t) => t !== ''),
+    aliases: (values.alias ?? []) as string[],
+    ...optional('description', text(values.description)),
+    ...optional('licence', text(values.licence)),
+    ...optional('source', text(values.source)),
+  };
 }
 
 function parseReferences(args: readonly string[]): ReferencesCommand {
