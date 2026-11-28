@@ -127,3 +127,30 @@ export function withIconSwaps(
   }
   return copy;
 }
+
+/**
+ * A copy of the spec with every use of asset `from` set to `to` (P1C.12 A5: a missing asset
+ * swapped at a gate or by an auto run), boards' requests for `from` dropped with it. Logo slots
+ * are never swapped. Pure.
+ */
+export function withAssetSwapped(
+  spec: VideoSpec,
+  from: string,
+  to: string,
+  registries: Registries = DEFAULT_REGISTRIES,
+): { spec: VideoSpec; beatIds: string[] } {
+  const swaps: IconSwap[] = specAssetUses(spec, registries)
+    .filter((use) => use.id === from)
+    .map((use) => ({
+      beatId: use.beatId,
+      path: toJsonPath(use.path),
+      at: use.path,
+      title: from,
+      from,
+      to,
+    }));
+  return {
+    spec: withIconSwaps(spec, swaps, registries),
+    beatIds: [...new Set(swaps.map((s) => s.beatId))],
+  };
+}

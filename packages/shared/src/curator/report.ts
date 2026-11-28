@@ -94,6 +94,18 @@ export const GateBadgeSchema = z.strictObject({
 });
 export type GateBadge = z.infer<typeof GateBadgeSchema>;
 
+/**
+ * A missing asset swapped by the Curator's job (P1C.12 A5): with the draft gate on auto, an id the
+ * library lacks takes its request's `closest` in every board, so an auto run can export. The
+ * draft (if any) stays pending.
+ */
+export const CuratorAssetSwapSchema = z.strictObject({
+  assetId: z.string(),
+  to: z.string(),
+  beatIds: z.array(z.string()),
+});
+export type CuratorAssetSwap = z.infer<typeof CuratorAssetSwapSchema>;
+
 export const CuratorReportSchema = z.strictObject({
   /** The version the job was given, and the version it ended on (after repairs). */
   specVersionId: z.number().int().positive(),
@@ -145,6 +157,11 @@ export const CuratorReportSchema = z.strictObject({
       badgeOnlyBeatIds: z.array(z.string()).optional(),
     })
     .optional(),
+  /**
+   * Missing assets swapped to their `closest` at the end (draft gate on auto, P1C.12 A5); `final`
+   * is the version with the swaps. Absent in reports from before.
+   */
+  assetSwaps: z.array(CuratorAssetSwapSchema).optional(),
   /** Any blocking issue left, code's or the review's: gate 3 does not auto-approve. */
   blocking: z.boolean(),
   cost: z.strictObject({

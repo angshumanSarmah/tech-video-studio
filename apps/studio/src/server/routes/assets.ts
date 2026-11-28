@@ -1,9 +1,12 @@
 import {
   AssetListQuerySchema,
   DraftNoteRequestSchema,
+  type ApproveDraftResponse,
   type AssetDetailDto,
   type AssetListResponse,
   type DraftJobResponse,
+  type ResolveMissingAssetResponse,
+  type RunMissingAssetsResponse,
 } from '@explainer-studio/shared';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -11,7 +14,6 @@ import type { Db } from '#core/db/client.ts';
 import { uploadAsset } from '#core/services/asset-upload.ts';
 import {
   activeDraftJob,
-  approveDraft,
   assetDetail,
   createDraft,
   draftState,
@@ -20,6 +22,12 @@ import {
   rejectDraft,
   type AssetListFilter,
 } from '#core/services/asset-drafts.ts';
+import {
+  approveDraftAndRefresh,
+  resolveMissingAsset,
+  runMissingAssets,
+} from '#core/services/missing-assets.ts';
+import { IdParamSchema } from '@explainer-studio/shared';
 import { toAssetDetailDto, toAssetSummaryDto } from '../dto.ts';
 import { validate } from '../validate.ts';
 
@@ -55,8 +63,8 @@ export function createAssetsRoute(db: Db, dataDir: string) {
     .post('/drafts/:id/approve', validate('param', AssetParamsSchema), async (c) => {
       const { id } = c.req.valid('param');
       const body: unknown = await c.req.json().catch(() => undefined);
-      db.transaction((tx) => approveDraft(tx, dataDir, id, body));
-      return c.json<AssetDetailDto>(detail(id));
+      const { refreshed } = approveDraftAndRefresh(db, dataDir, id, body);
+      return c.json<ApproveDraftResponse>({ asset: detail(id), refreshed });
     })
     .post(
       '/drafts/:id/reject',
@@ -81,4 +89,24 @@ export function createAssetsRoute(db: Db, dataDir: string) {
     .get('/:id', validate('param', AssetParamsSchema), (c) =>
       c.json<AssetDetailDto>(detail(c.req.valid('param').id)),
     );
+}
+
+const MissingParamsSchema = z.object({ id: IdParamSchema, assetId: z.string().min(1).max(64) });
+
+/**
+ * A run's missing assets (P1C.12 A5), mounted under `/runs`: the live list (uses, request, draft,
+ * suggestions), and resolving one at gate 3 or 4 (approve a draft variant, swap, skip).
+ */
+export function createRunMissingAssetsRoute(db: Db, dataDir: string) {
+  return new Hono()
+    .get('/:id/missing-assets', validate('param', z.object({ id: IdParamSchema })), (c) =>
+      c.json<RunMissingAssetsResponse>(runMissingAssets(db, dataDir, c.req.valid('param').id)),
+    )
+    .post('/:id/missing-assets/:assetId', validate('param', MissingParamsSchema), async (c) => {
+      const { id, assetId } = c.req.valid('param');
+      const body: unknown = await c.req.json().catch(() => undefined);
+      return c.json<ResolveMissingAssetResponse>(
+        resolveMissingAsset(db, dataDir, id, assetId, body),
+      );
+    });
 }

@@ -1,11 +1,19 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { isAbsolute, resolve } from 'node:path';
-import { AssetListQuerySchema } from '@explainer-studio/shared';
+import { AssetListQuerySchema, type RunMissingAssetsResponse } from '@explainer-studio/shared';
+import { latestEventId } from '#core/db/repositories/events.ts';
+import { getRun } from '#core/db/repositories/runs.ts';
+import {
+  approveDraftAndRefresh,
+  resolveMissingAsset,
+  runMissingAssets,
+} from '#core/services/missing-assets.ts';
+import { driveRun } from '../session.ts';
+import { missingItemLines } from '../summaries.ts';
 import { resolveDataPath } from '#core/data-files.ts';
 import type { Job } from '#core/db/repositories/jobs.ts';
 import {
   activeDraftJob,
-  approveDraft,
   assetDetail,
   createDraft,
   draftState,
@@ -62,6 +70,16 @@ async function run(ctx: CliContext, cmd: AssetsCommand): Promise<number> {
       });
     case 'approve':
       return approve(ctx, cmd);
+    case 'missing':
+      for (const line of missingLines(
+        ctx,
+        runMissingAssets(ctx.db, ctx.config.dataDir, cmd.runId),
+      )) {
+        ctx.io.out(line);
+      }
+      return EXIT.ok;
+    case 'resolve':
+      return resolveMissing(ctx, cmd);
     case 'reject': {
       ctx.db.transaction((tx) => rejectDraft(tx, cmd.id, cmd.note));
       ctx.io.out(
@@ -118,17 +136,77 @@ function add(ctx: CliContext, cmd: Command<'add'>): number {
   return EXIT.ok;
 }
 
-function approve(ctx: CliContext, cmd: Command<'approve'>): number {
-  const row = ctx.db.transaction((tx) =>
-    approveDraft(tx, ctx.config.dataDir, cmd.id, {
-      variant: cmd.variant,
-      ...(cmd.tags ? { tags: cmd.tags } : {}),
-      ...(cmd.aliases ? { aliases: cmd.aliases } : {}),
-      ...(cmd.note ? { note: cmd.note } : {}),
-    }),
-  );
-  ctx.io.out(`Approved ${row.id} (variant ${cmd.variant}): ${row.svgPath ?? ''}, in the library.`);
-  return EXIT.ok;
+async function approve(ctx: CliContext, cmd: Command<'approve'>): Promise<number> {
+  const request = {
+    variant: cmd.variant,
+    ...(cmd.tags ? { tags: cmd.tags } : {}),
+    ...(cmd.aliases ? { aliases: cmd.aliases } : {}),
+    ...(cmd.note ? { note: cmd.note } : {}),
+  };
+  return withWorker(ctx, cmd.dryRun, async () => {
+    const after = latestEventId(ctx.db);
+    const { row, refreshed } = approveDraftAndRefresh(ctx.db, ctx.config.dataDir, cmd.id, request);
+    ctx.io.out(
+      `Approved ${row.id} (variant ${cmd.variant}): ${row.svgPath ?? ''}, in the library.`,
+    );
+    return followRefreshed(ctx, refreshed, after);
+  });
+}
+
+/** Each run an approval sent back to render, followed until it waits again. */
+async function followRefreshed(
+  ctx: CliContext,
+  refreshed: readonly number[],
+  after: number,
+): Promise<number> {
+  let code: number = EXIT.ok;
+  for (const runId of refreshed) {
+    ctx.io.out(`Run ${runId} renders again with it.`);
+    const run = getRun(ctx.db, runId);
+    code = Math.max(code, await driveRun(ctx, run?.parentRunId ?? runId, after, []));
+  }
+  return code;
+}
+
+async function resolveMissing(ctx: CliContext, cmd: Command<'resolve'>): Promise<number> {
+  return withWorker(ctx, cmd.dryRun, async () => {
+    const after = latestEventId(ctx.db);
+    const result = resolveMissingAsset(
+      ctx.db,
+      ctx.config.dataDir,
+      cmd.runId,
+      cmd.id,
+      cmd.resolution,
+    );
+    ctx.io.out(resolvedLine(cmd, result.run.step));
+    if (cmd.resolution.action === 'skip') return EXIT.ok;
+    const others = result.refreshed.filter((id) => id !== cmd.runId);
+    const run = getRun(ctx.db, cmd.runId);
+    const code = await driveRun(ctx, run?.parentRunId ?? cmd.runId, after, []);
+    return Math.max(code, await followRefreshed(ctx, others, after));
+  });
+}
+
+function resolvedLine(cmd: Command<'resolve'>, step: string): string {
+  const r = cmd.resolution;
+  if (r.action === 'approve-draft') {
+    return `Approved ${cmd.id} (variant ${r.variant}); run ${cmd.runId} goes to ${step}.`;
+  }
+  if (r.action === 'swap') {
+    return `Swapped ${cmd.id} for ${r.to} in run ${cmd.runId}; it goes to ${step}.`;
+  }
+  return `Skipped ${cmd.id}: it stays a placeholder and the final render is refused.`;
+}
+
+/** A run's missing assets for the terminal, with what to do about each. */
+export function missingLines(ctx: CliContext, missing: RunMissingAssetsResponse): string[] {
+  const where = missing.gate ? `the ${missing.gate} gate` : 'its latest spec';
+  if (missing.items.length === 0) return [`Run ${missing.runId}: no missing assets (${where}).`];
+  const lines = [`Run ${missing.runId}, ${where}: ${missing.items.length} missing asset(s).`];
+  for (const item of missing.items) {
+    lines.push(...missingItemLines(ctx.config.dataDir, missing.runId, item));
+  }
+  return lines;
 }
 
 /** Waits for the drafting job, then prints the draft (or why it failed). */

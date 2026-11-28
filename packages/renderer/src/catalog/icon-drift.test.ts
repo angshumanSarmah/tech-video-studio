@@ -1,7 +1,8 @@
 import type { VideoSpec } from '@explainer-studio/shared';
 import { describe, expect, it } from 'vitest';
 import { rateLimiterSpec } from '../../fixtures/index.ts';
-import { iconDrift, normaliseTitle, withIconSwaps } from './icon-drift.ts';
+import { specAssetUses } from './asset-uses.ts';
+import { iconDrift, normaliseTitle, withAssetSwapped, withIconSwaps } from './icon-drift.ts';
 
 /** The 4-beat fixture with one card per beat: `cards[i]` = [title, icon] or undefined. */
 function spec(cards: ([string, string] | undefined)[]): VideoSpec {
@@ -108,5 +109,26 @@ describe('iconDrift', () => {
 describe('normaliseTitle', () => {
   it('ignores case, spacing and punctuation', () => {
     expect(normaliseTitle('  Shared-store! ')).toBe(normaliseTitle('SHARED STORE'));
+  });
+});
+
+describe('withAssetSwapped', () => {
+  it('sets every use of an id, drops its requests, and names the beats', () => {
+    const s = spec([['Vault', 'vault_door'], undefined, ['Safe', 'vault_door']]);
+    const request = {
+      assetId: 'vault_door',
+      description: 'A vault door.',
+      family: 'security' as const,
+      closest: 'lock',
+    };
+    s.scenes![0]!.missingAssetRequests = [request];
+    s.scenes![2]!.missingAssetRequests = [request];
+    const { spec: swapped, beatIds } = withAssetSwapped(s, 'vault_door', 'lock');
+    const ids = specAssetUses(swapped).map((u) => u.id);
+    expect(ids).not.toContain('vault_door');
+    expect(ids.filter((id) => id === 'lock').length).toBeGreaterThanOrEqual(2);
+    expect(beatIds).toEqual([s.scenes![0]!.beatId, s.scenes![2]!.beatId]);
+    expect(swapped.scenes!.flatMap((sc) => sc.missingAssetRequests ?? [])).toEqual([]);
+    expect(specAssetUses(s).some((u) => u.id === 'vault_door')).toBe(true);
   });
 });

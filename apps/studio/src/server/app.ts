@@ -11,7 +11,7 @@ import {
 import { createGatesRoute } from './routes/gates.ts';
 import { createHealthRoute } from './routes/health.ts';
 import { createMemoryRoute } from './routes/memory.ts';
-import { createAssetsRoute } from './routes/assets.ts';
+import { createAssetsRoute, createRunMissingAssetsRoute } from './routes/assets.ts';
 import { createReferencesRoute } from './routes/references.ts';
 import { createRunsRoute } from './routes/runs.ts';
 import { createSeriesRoute } from './routes/series.ts';
@@ -39,6 +39,7 @@ function createApi(deps: AppDeps) {
     .route('/topics', createTopicsRoute(deps.db, deps.dataDir))
     .route('/runs', createRunsRoute(deps.db, deps.dataDir, deps.appSettings))
     .route('/runs', createGatesRoute(deps.db, deps.dataDir))
+    .route('/runs', createRunMissingAssetsRoute(deps.db, deps.dataDir))
     .route('/memory', createMemoryRoute(deps.db))
     .route('/references', createReferencesRoute(deps.db, deps.dataDir))
     .route('/assets', createAssetsRoute(deps.db, deps.dataDir))

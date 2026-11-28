@@ -380,9 +380,14 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       cents ever matter.
 - [ ] **P1C.12 — Draft sheets over the API.** `GET /api/assets/:id` returns the sheet's data-dir
       path; the gate 3 panel (P1D.10) needs the PNG served (a file route, like stills).
-- [ ] **P1C.12 — A draft that needs a run's rerun.** Approving a draft does not refresh a run
-      waiting at G4: its final check was computed at its draft render. A5 reruns from `stills` or
-      `draft` when a run's missing asset is resolved.
+- [ ] **P1C.12 — Auto swap without a closest.** An auto run swaps a missing id only to its
+      request's approved `closest`; an id with none blocks at gate 4. The plan's fallback (a
+      `rankAssets` suggestion above a calibrated `STRONG_SWAP_SCORE`) needs hand-labelled pairs
+      to calibrate; add it if such ids show up.
+- [ ] **P1C.12 — Gate edits check assets against the seed set.** `prepareSpecEdit` (and the
+      Director, Scriptwriter and narrate checks) run `withRegistryChecks` with the default
+      registries, so an edit that uses an imported or drafted asset gets `unknown_asset`
+      warnings (never errors; the edit saves). Pass the approved library there too.
 - [ ] **P1C.15 — Custom element review gate.** The run must pause for custom element review even
       with auto-approve on. Add the gate/pause value (`custom_elements`) to `GATE_IDS` then, and
       decide whether `AutoApproveSchema` excludes it (it is never auto-approved).

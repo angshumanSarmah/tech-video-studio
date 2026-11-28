@@ -442,7 +442,8 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   (`topicDryRunFixtures`), into `<DATA_DIR>/dry-run/<topic>/` and prints the CLI command.
 - **Rerun** (`rerunRun`, `#core/services/run-control.ts`; the CLI's `resume --from|--only`): a run
   that is not busy (waiting, failed or done; never cancelled, paused or with a job active) goes
-  back to one of `RERUN_STEPS`; every gate after it is reopened, earlier ones keep their
+  back to one of `RERUN_STEPS` (`stills` included: a missing asset approved at gate 3, P1C.12
+  A5; `rerunRunIn` takes the caller's transaction); every gate after it is reopened, earlier ones keep their
   approvals; a Generator rerun redraws every board (`generate: { redraw: true }`). `--only` holds
   the next gate for a review once (`runs.hold_gate`: `decide` does not auto-approve it; an
   approve or reject at it clears it) and turns a curate on the way to it to `repair: false`, so
@@ -599,6 +600,8 @@ a; b`, then one paragraph per row, `- a: 1; b: 2`, so a row is citable alone and
   its narration slice. `render_draft` refuses to join when beat spans do not sum to the video.
 - **Finals refuse** (`finalRenderBlockers`): no timing, registry errors, `unknown_asset`,
   missing logos or asset files that failed to load. Placeholders and markers are draft-only.
+  `loadRunRenderInput` runs the registry checks against the approved library (imports, uploads,
+  approved drafts; P1C.12 A5), not the seed set.
 - **Outputs are atomic** (`writeAtomically`: a `.partial` file, then rename) and `ctx.signal`
   cancels Remotion and ffmpeg.
 - `pnpm --filter @explainer-studio/studio bench:render [--concurrency N]` renders the
@@ -1666,8 +1669,11 @@ pbpaste | pnpm studio run "Consistent hashing" --series system-design --text "Te
   **`assets [--status] [--family] [--q]`** (the library, a draft's state), **`assets show <id>`**
   (variants, sheet path, requests, notes, drafting cost), **`assets draft "<name>" --family
 --description [--id]`** and **`assets regenerate <id> --note`** (follow the drafter's job, then
-  print the draft), **`assets approve <id> --variant <n> [--tags] [--alias]… [--note]`** and
-  **`assets reject <id> --note`** (see "Assets" under Renderer),
+  print the draft), **`assets approve <id> --variant <n> [--tags] [--alias]… [--note]`** (runs
+  waiting at gate 3 or 4 on the id render again and are followed) and **`assets reject <id>
+--note`**, **`assets missing <run>`** and **`assets resolve <run> <id> (approve --variant <n>
+| swap <to> | skip [--note])`** (see "Assets" under Renderer; the run is followed to its next
+  stop); G3 and G4 summaries list each missing asset with its options,
   **`references`** (list), **`references add <file|-> [--title] [--avoid [<kind>:]<name>]…
 [--attach <image>]…`** (follows the analyst's job, prints the record and its backlog rows),
   **`references show <ref> [--json]`**, **`references edit <ref> [<record.json>]`** (`$EDITOR`
@@ -2282,8 +2288,32 @@ flash,pro]` drafts six test requests live per model in scratch data dirs
     `hstack`) to `<DATA_DIR>/sheets/`; `--sheets-only` renders them again from the last run,
     calling no model. Tests: `jobs/draft-asset.test.ts`,
     `acceptance/asset-drafts.test.ts` (an all-auto run's request drafted and left pending, the run
-    stopping at G4 on the missing icon; approving it through the API makes the run's spec
-    resolve the id), `services/asset-drafts.test.ts`, `cli/assets.test.ts`.
+    swapped to its closest and exported with every gate on auto; with the draft gate waiting,
+    approving it renders only its clip and clears the final blocker; at gate 3 one approval
+    renders every beat's still with it on the same subject; a swap is an edit and a scoped curate;
+    a skip), `services/asset-drafts.test.ts`, `cli/assets.test.ts`.
+  - **A run's missing assets** (P1C.12 A5; `#core/services/missing-assets.ts`, pure lookups and
+    badges in `#core/assets/missing-uses.ts`): ids a run's boards use that are not approved
+    (logo slots aside), read live from the subject of the gate the run waits at (else its latest
+    spec): `runMissingAssets` (`GET /api/runs/:id/missing-assets`: uses, the board's request,
+    the draft's state, approvable variants and sheet, the top 3 `rankAssets` suggestions).
+    Gates 3 and 4 show an advisory `asset_missing` badge per beat and id (Generator), read live;
+    the curated report's `unknown_asset` checks and badges are left out there.
+    `resolveMissingAsset` (`POST /api/runs/:id/missing-assets/:assetId`, only while the run waits
+    at gate 3 or 4, else 409; one transaction): `approve-draft` (`approveDraft`, then every run
+    waiting at gate 3 or 4 on the id is refreshed, `refreshWaitingRuns`: gate 3 reruns from
+    `stills` on the same subject, gate 4 from `draft`, where the clip cache renders only the clips
+    whose assets changed and the final check is recomputed), `swap` (`withAssetSwapped`, renderer
+    `catalog/icon-drift.ts`: every use set to an approved id and the board requests for it
+    dropped, saved as the person's edit at that gate through `decideAtGateIn`, with
+    `edit_curate: { scope: { sinceSpecVersionId } }` so the curate reviews only the changed
+    beats) or `skip` (a `warn` log; the final stays refused). Approving from `POST
+/api/assets/drafts/:id/approve` or `studio assets approve` refreshes the same way
+    (`approveDraftAndRefresh`, response `refreshed`). **Auto runs:** with the run's draft gate on
+    auto, the curate job ends by swapping each missing id whose board request names an approved
+    `closest` (`autoSwapMissing`: saved as the next version, the code checks run again, no
+    review; `report.assetSwaps`); the draft stays pending, and an id with no approved closest
+    stays (gate 4 blocks on it).
   - **Library:** the `assets` table (approved rows) plus `<DATA_DIR>/assets/<id>.svg`. The core
     seed set (`seed.ts`: 105 curated Lucide icons, canonical export names, ISC or ISC AND MIT for
     icons Lucide derived from Feather, `LICENSE-lucide.txt`) and the **full Lucide import**

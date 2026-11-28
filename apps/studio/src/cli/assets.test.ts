@@ -8,6 +8,7 @@ import type { DryRunResponse } from '#worker/llm/dry-run.ts';
 import { createTestDb, type TestDb } from '#core/db/testing.ts';
 import { parseCommand, UsageError } from './args.ts';
 import { runCli } from './cli.ts';
+import { missingItemLines } from './summaries.ts';
 import { cliContext, fakeIo } from './testing.ts';
 
 /** `studio assets add` (P1C.12) through `runCli`. */
@@ -143,8 +144,57 @@ describe('studio assets drafts', () => {
       variant: 2,
       tags: ['a', 'b'],
     });
+    expect(parseCommand(['assets', 'missing', '7'])).toEqual({
+      kind: 'assets',
+      action: 'missing',
+      runId: 7,
+    });
+    expect(parseCommand(['assets', 'resolve', '7', 'x', 'approve', '--variant', '3'])).toEqual({
+      kind: 'assets',
+      action: 'resolve',
+      runId: 7,
+      id: 'x',
+      resolution: { action: 'approve-draft', variant: 3 },
+    });
+    expect(parseCommand(['assets', 'resolve', '7', 'x', 'swap', 'globe'])).toMatchObject({
+      resolution: { action: 'swap', to: 'globe' },
+    });
+    expect(parseCommand(['assets', 'resolve', '7', 'x', 'skip', '--note', 'Later.'])).toMatchObject(
+      { resolution: { action: 'skip', note: 'Later.' } },
+    );
+    expect(() => parseCommand(['assets', 'resolve', '7', 'x', 'swap'])).toThrow(UsageError);
+    expect(() => parseCommand(['assets', 'resolve', '7', 'x', 'approve'])).toThrow(UsageError);
+    expect(() => parseCommand(['assets', 'missing', 'abc'])).toThrow(UsageError);
     expect(() => parseCommand(['assets', 'approve', 'x'])).toThrow(UsageError);
     expect(() => parseCommand(['assets', 'regenerate', 'x'])).toThrow(UsageError);
     expect(() => parseCommand(['assets', 'draft', 'X', '--family', 'dev'])).toThrow(UsageError);
+  });
+});
+
+describe('missing assets in the terminal', () => {
+  it('lists each one with its request, draft, suggestions and the commands to resolve it', () => {
+    const lines = missingItemLines('/data', 7, {
+      id: 'phrasebook',
+      uses: [{ beatId: 'b6', path: '$.scenes[5].elements[4].props.icon' }],
+      beatIds: ['b6'],
+      request: { description: 'An open phrasebook.', family: 'object', closest: 'globe' },
+      draft: {
+        status: 'draft',
+        state: 'ready',
+        approvable: [1, 3],
+        sheetPath: 'assets/drafts/phrasebook/sheet-1.png',
+      },
+      suggestions: [{ id: 'book', score: 7.25 }],
+    });
+    expect(lines).toEqual([
+      '  phrasebook on b6',
+      '    asked for: An open phrasebook. (closest globe)',
+      '    draft: ready, variants 1, 3',
+      '    sheet: /data/assets/drafts/phrasebook/sheet-1.png',
+      '    suggestions: book (7.3)',
+      '    pnpm studio assets resolve 7 phrasebook approve --variant 1',
+      '    pnpm studio assets resolve 7 phrasebook swap globe',
+      '    pnpm studio assets resolve 7 phrasebook skip',
+    ]);
   });
 });

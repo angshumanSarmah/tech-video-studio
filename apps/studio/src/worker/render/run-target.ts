@@ -1,12 +1,16 @@
 import { existsSync } from 'node:fs';
-import { withRegistryChecks } from '@explainer-studio/renderer/catalog';
+import {
+  buildAssetRegistry,
+  DEFAULT_REGISTRIES,
+  withRegistryChecks,
+} from '@explainer-studio/renderer/catalog';
 import {
   validateRenderableVideoSpec,
   type MissingAsset,
   type RenderableVideoSpec,
   type SpecError,
 } from '@explainer-studio/shared';
-import type { AssetProblem } from '#core/assets/library.ts';
+import { loadAssetLibrary, type AssetProblem } from '#core/assets/library.ts';
 import { prepareRenderAssets } from '#core/assets/render-assets.ts';
 import { readDataJson, resolveDataPath } from '#core/data-files.ts';
 import type { Db } from '#core/db/client.ts';
@@ -48,7 +52,12 @@ export function loadRunRenderInput(
   const version = pinnedSpecVersion(db, runId, specVersionId);
   const raw = readDataJson(dataDir, version.jsonPath);
   const spec = parseSpec(raw, version.version);
-  const registry = withRegistryChecks(validateRenderableVideoSpec(raw), raw);
+  // Checked against the approved library (imports, uploads, approved drafts), not the seed set.
+  const library = buildAssetRegistry(loadAssetLibrary(db, dataDir).assets);
+  const registry = withRegistryChecks(validateRenderableVideoSpec(raw), raw, {
+    ...DEFAULT_REGISTRIES,
+    assets: library,
+  });
   const assets = prepareRenderAssets(db, dataDir, runId, spec);
   const target: RenderTarget = {
     spec,

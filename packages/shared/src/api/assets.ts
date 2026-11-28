@@ -131,3 +131,75 @@ export const DraftJobResponseSchema = z.strictObject({
   jobId: z.number().int(),
 });
 export type DraftJobResponse = z.infer<typeof DraftJobResponseSchema>;
+
+// ---------------------------------------------------------------------------------------------
+// A run's missing assets (P1C.12 A5)
+
+export const MissingAssetDtoSchema = z.strictObject({
+  id: z.string(),
+  /** Each board use: the beat and the JSON path of the id. */
+  uses: z.array(z.strictObject({ beatId: z.string(), path: z.string() })),
+  beatIds: z.array(z.string()),
+  /** The Generator's request for it (from the spec), if any. */
+  request: z
+    .strictObject({ description: z.string(), family: AssetFamilySchema, closest: z.string() })
+    .nullable(),
+  /** Its draft, if one exists: the variants that can be approved and the latest sheet. */
+  draft: z
+    .strictObject({
+      status: AssetStatusSchema,
+      state: AssetDraftStateSchema,
+      approvable: z.array(z.number().int()),
+      sheetPath: z.string().nullable(),
+    })
+    .nullable(),
+  /** The approved assets that rank closest (best first). */
+  suggestions: z.array(z.strictObject({ id: z.string(), score: z.number() })),
+});
+export type MissingAssetDto = z.infer<typeof MissingAssetDtoSchema>;
+
+export const RunMissingAssetsResponseSchema = z.strictObject({
+  runId: z.number().int(),
+  /** The gate whose subject was read (the one the run waits at), else null: the latest spec. */
+  gate: z.enum(['scenes', 'draft']).nullable(),
+  specVersionId: z.number().int().nullable(),
+  items: z.array(MissingAssetDtoSchema),
+});
+export type RunMissingAssetsResponse = z.infer<typeof RunMissingAssetsResponseSchema>;
+
+export const RESOLVE_ASSET_ACTIONS = ['approve-draft', 'swap', 'skip'] as const;
+
+/**
+ * Resolving one missing asset at gate 3 or 4: approve a draft variant (no spec change: the stills
+ * or the draft render again), swap every use to an approved id (a spec edit, then a scoped
+ * curate), or skip (recorded; the final render stays blocked).
+ */
+export const ResolveMissingAssetRequestSchema = z.discriminatedUnion('action', [
+  z.strictObject({
+    action: z.literal('approve-draft'),
+    variant: z.number().int().min(1),
+    tags: z.array(z.string().trim().toLowerCase().min(1).max(32)).max(12).optional(),
+    aliases: z.array(LibraryAssetIdSchema).max(ASSET_MAX_ALIASES).optional(),
+  }),
+  z.strictObject({ action: z.literal('swap'), to: LibraryAssetIdSchema }),
+  z.strictObject({
+    action: z.literal('skip'),
+    note: z.string().trim().max(ASSET_NOTE_MAX).optional(),
+  }),
+]);
+export type ResolveMissingAssetRequest = z.infer<typeof ResolveMissingAssetRequestSchema>;
+
+export const ResolveMissingAssetResponseSchema = z.strictObject({
+  action: z.enum(RESOLVE_ASSET_ACTIONS),
+  run: z.strictObject({ status: z.string(), step: z.string() }),
+  /** Runs sent back to re-render (approving a draft refreshes every run waiting on the id). */
+  refreshed: z.array(z.number().int()),
+});
+export type ResolveMissingAssetResponse = z.infer<typeof ResolveMissingAssetResponseSchema>;
+
+/** `POST /api/assets/drafts/:id/approve`: the asset, and the runs it refreshed. */
+export const ApproveDraftResponseSchema = z.strictObject({
+  asset: AssetDetailDtoSchema,
+  refreshed: z.array(z.number().int()),
+});
+export type ApproveDraftResponse = z.infer<typeof ApproveDraftResponseSchema>;

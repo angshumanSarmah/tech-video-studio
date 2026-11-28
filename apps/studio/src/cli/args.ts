@@ -138,6 +138,23 @@ export type AssetsCommand = { readonly kind: 'assets' } & (
       readonly tags?: readonly string[];
       readonly aliases?: readonly string[];
       readonly note?: string;
+      readonly dryRun?: string;
+    }
+  | { readonly action: 'missing'; readonly runId: number }
+  | {
+      readonly action: 'resolve';
+      readonly runId: number;
+      readonly id: string;
+      readonly resolution:
+        | {
+            readonly action: 'approve-draft';
+            readonly variant: number;
+            readonly tags?: string[];
+            readonly aliases?: string[];
+          }
+        | { readonly action: 'swap'; readonly to: string }
+        | { readonly action: 'skip'; readonly note?: string };
+      readonly dryRun?: string;
     }
   | { readonly action: 'reject'; readonly id: string; readonly note: string }
   | {
@@ -248,7 +265,12 @@ export const USAGE = `Usage: pnpm studio <command> [options]
         refused, editor leftovers fixed). Families: ${ASSET_FAMILIES.join(', ')}.
   assets draft "<name>" --family <family> --description "<what it shows>" [--id <id>] [--dry-run <dir>]
         The Asset drafter draws three variants and a preview sheet; nothing is approved for you.
-  assets approve <id> --variant <n> [--tags a,b] [--alias <id>]... [--note "<n>"]
+  assets approve <id> --variant <n> [--tags a,b] [--alias <id>]... [--note "<n>"] [--dry-run <dir>]
+        Runs waiting at gate 3 or 4 on it render their stills or draft again (followed).
+  assets missing <run>    A run's missing assets: where each is used, its request, draft and suggestions.
+  assets resolve <run> <id> (approve --variant <n> | swap <to> | skip [--note "<n>"]) [--dry-run <dir>]
+        At gate 3 or 4: approve its draft (stills or draft render again), swap every use (an
+        edit, then a scoped curate), or skip it (the final render stays refused).
   assets reject <id> --note "<why>" · assets regenerate <id> --note "<feedback>" [--dry-run <dir>]
   usage [--videos <n>]    What the last n exported videos used (default ${DEFAULT_USAGE_VIDEOS}): each
                           video's hook, ending and main patterns, then counts per kind.
@@ -618,8 +640,13 @@ function parseAssets(args: readonly string[]): AssetsCommand {
         ...(tags !== undefined ? { tags: tagList(tags) } : {}),
         ...(values.alias ? { aliases: values.alias as string[] } : {}),
         ...optional('note', text(values.note)),
+        ...dryRun,
       };
     }
+    case 'missing':
+      return { kind: 'assets', action: 'missing', runId: runIdOf(one('assets missing <run>')) };
+    case 'resolve':
+      return parseResolve(values, rest, dryRun);
     case 'reject': {
       const form = 'assets reject <id> --note "<why>"';
       return { kind: 'assets', action: 'reject', id: one(form), note: note(form) };
@@ -630,8 +657,49 @@ function parseAssets(args: readonly string[]): AssetsCommand {
     }
     default:
       throw new UsageError(
-        `Unknown assets command "${sub}": list, show, add, draft, approve, reject or regenerate.`,
+        `Unknown assets command "${sub}": list, show, add, draft, approve, reject, regenerate, missing or resolve.`,
       );
+  }
+}
+
+const RESOLVE_FORM =
+  'assets resolve <run> <id> (approve --variant <n> [--tags a,b] [--alias <id>]... | swap <to> | skip [--note "<n>"])';
+
+function parseResolve(
+  values: Record<string, unknown>,
+  rest: readonly string[],
+  dryRun: { dryRun?: string },
+): Extract<AssetsCommand, { action: 'resolve' }> {
+  const [run, id, how, to, ...extra] = rest;
+  if (!run || !id || extra.length > 0) throw new UsageError(`Expected: ${RESOLVE_FORM}`);
+  const base = { kind: 'assets', action: 'resolve', runId: runIdOf(run), id, ...dryRun } as const;
+  switch (how) {
+    case 'approve': {
+      const variant = Number(text(values.variant));
+      if (to !== undefined || !Number.isInteger(variant) || variant < 1) {
+        throw new UsageError(`Expected: ${RESOLVE_FORM}`);
+      }
+      const tags = text(values.tags);
+      return {
+        ...base,
+        resolution: {
+          action: 'approve-draft',
+          variant,
+          ...(tags !== undefined ? { tags: tagList(tags) } : {}),
+          ...(values.alias ? { aliases: values.alias as string[] } : {}),
+        },
+      };
+    }
+    case 'swap':
+      if (!to) throw new UsageError(`Expected: ${RESOLVE_FORM}`);
+      return { ...base, resolution: { action: 'swap', to } };
+    case 'skip': {
+      if (to !== undefined) throw new UsageError(`Expected: ${RESOLVE_FORM}`);
+      const note = text(values.note);
+      return { ...base, resolution: { action: 'skip', ...(note ? { note } : {}) } };
+    }
+    default:
+      throw new UsageError(`Expected: ${RESOLVE_FORM}`);
   }
 }
 

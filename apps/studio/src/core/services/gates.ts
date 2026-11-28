@@ -1,3 +1,4 @@
+import { missingAssetBadges } from '../assets/missing-uses.ts';
 import { existsSync } from 'node:fs';
 import {
   VideoSpecShapeSchema,
@@ -193,10 +194,16 @@ function specReview(
   const report = latestCuration(db, dataDir, run.id)?.report;
   const curated = report?.final.specVersionId === specVersionId ? report : undefined;
   const stale = staleRecapBadge(db, dataDir, run, spec);
+  // Missing assets are read live (an approved draft clears them at once), not from the report.
+  const live = (code: string) => code !== 'unknown_asset';
   return {
     content: { gate, spec },
-    checks: (curated?.codeIssues ?? []).map(plainIssue),
-    badges: [...(curated?.badges ?? []), ...(stale ? [stale] : [])],
+    checks: (curated?.codeIssues ?? []).filter((i) => live(i.code)).map(plainIssue),
+    badges: [
+      ...(curated?.badges ?? []).filter((b) => live(b.code)),
+      ...missingAssetBadges(db, run.id, spec),
+      ...(stale ? [stale] : []),
+    ],
     warnings: [],
   };
 }

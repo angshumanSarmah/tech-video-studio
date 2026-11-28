@@ -107,6 +107,7 @@ export const RERUN_STEPS = [
   'script',
   'generate',
   'curate',
+  'stills',
   'draft',
   'final',
 ] as const satisfies readonly PipelineStepId[];
@@ -128,25 +129,33 @@ export interface RerunOptions {
  * video's parent reruns what it owns (up to the beat sheet); a part, from its script on.
  */
 export function rerunRun(db: Db, dataDir: string, runId: number, options: RerunOptions): Run {
-  return db.transaction((tx) => {
-    const run = requireRun(tx, runId);
-    assertRerunnable(tx, run, options.from);
-    for (const gate of GATE_IDS) {
-      if (isAfter(GATE_STEPS[gate], options.from)) reopenGate(tx, run.id, gate);
-    }
-    setStepRequests(tx, run.id, rerunRequests(options));
-    setHoldGate(tx, run.id, options.only ? nextGate(options.from) : null);
-    restartRun(tx, run.id);
-    reopenFinishedParent(tx, run);
-    appendEvent(tx, {
-      runId: run.id,
-      type: 'log',
-      payload: { level: 'info', message: describeRerun(options) },
-    });
-    moveTo(tx, requireRun(tx, run.id), options.from);
-    advanceRun(tx, dataDir, run.id);
-    return requireRun(tx, runId);
+  return db.transaction((tx) => rerunRunIn(tx, dataDir, runId, options));
+}
+
+/** `rerunRun` inside a transaction the caller holds (a missing asset resolved, P1C.12 A5). */
+export function rerunRunIn(
+  tx: Executor,
+  dataDir: string,
+  runId: number,
+  options: RerunOptions,
+): Run {
+  const run = requireRun(tx, runId);
+  assertRerunnable(tx, run, options.from);
+  for (const gate of GATE_IDS) {
+    if (isAfter(GATE_STEPS[gate], options.from)) reopenGate(tx, run.id, gate);
+  }
+  setStepRequests(tx, run.id, rerunRequests(options));
+  setHoldGate(tx, run.id, options.only ? nextGate(options.from) : null);
+  restartRun(tx, run.id);
+  reopenFinishedParent(tx, run);
+  appendEvent(tx, {
+    runId: run.id,
+    type: 'log',
+    payload: { level: 'info', message: describeRerun(options) },
   });
+  moveTo(tx, requireRun(tx, run.id), options.from);
+  advanceRun(tx, dataDir, run.id);
+  return requireRun(tx, runId);
 }
 
 function assertRerunnable(tx: Executor, run: Run, from: RerunStep): void {

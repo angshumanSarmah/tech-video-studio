@@ -16,6 +16,7 @@ import { CliError, EXIT, type CliContext } from './context.ts';
 import { followRun, runLabel, type FollowCursors, type FollowEnd } from './follow.ts';
 import { FIELDS_PROMPT, GATE_PROMPT, parseFieldsAnswer, parseGateReply } from './gate-reply.ts';
 import { settleProposals, type PendingProposal } from './proposals.ts';
+import { runMissingAssets } from '#core/services/missing-assets.ts';
 import { gateCommands, gateSummary } from './summaries.ts';
 
 /**
@@ -37,7 +38,11 @@ export async function driveRun(
     await settleProposals(ctx, pending.splice(0));
     if (end.kind !== 'gate') return finish(ctx, end);
     const view = readGate(ctx.db, ctx.config.dataDir, end.runId, end.gate);
-    for (const line of gateSummary(view, ctx.config.dataDir)) ctx.io.out(line);
+    const missing =
+      end.gate === 'scenes' || end.gate === 'draft'
+        ? runMissingAssets(ctx.db, ctx.config.dataDir, end.runId).items
+        : [];
+    for (const line of gateSummary(view, ctx.config.dataDir, missing)) ctx.io.out(line);
     const editFile = writeEditFile(ctx, view);
     const decided = ctx.io.isTTY ? await askAtGate(ctx, view, editFile) : null;
     if (!decided) {

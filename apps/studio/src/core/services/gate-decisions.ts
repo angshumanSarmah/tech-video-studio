@@ -54,22 +54,31 @@ export function decideAtGate(
   gate: GateId,
   decision: GateDecision,
 ): GateDecisionResult {
-  return db.transaction((tx) => {
-    const run = requireWaiting(tx, runId, gate);
-    if (decision.proposeRule && !noteOf(decision)) {
-      throw new InvalidProposalError(
-        'A style rule is proposed from a note: give notes (or a regenerate’s feedback).',
-      );
-    }
-    const outcome = apply(tx, dataDir, run, gate, decision);
-    const proposalJobId = decision.proposeRule ? requestRuleProposal(tx, outcome.eventId).id : null;
-    const after = requireRun(tx, runId);
-    return {
-      run: { status: after.status, step: after.pipelineStep },
-      ...outcome,
-      proposalJobId,
-    };
-  });
+  return db.transaction((tx) => decideAtGateIn(tx, dataDir, runId, gate, decision));
+}
+
+/** `decideAtGate` inside a transaction the caller holds (a missing asset swapped, P1C.12 A5). */
+export function decideAtGateIn(
+  tx: Executor,
+  dataDir: string,
+  runId: number,
+  gate: GateId,
+  decision: GateDecision,
+): GateDecisionResult {
+  const run = requireWaiting(tx, runId, gate);
+  if (decision.proposeRule && !noteOf(decision)) {
+    throw new InvalidProposalError(
+      'A style rule is proposed from a note: give notes (or a regenerate’s feedback).',
+    );
+  }
+  const outcome = apply(tx, dataDir, run, gate, decision);
+  const proposalJobId = decision.proposeRule ? requestRuleProposal(tx, outcome.eventId).id : null;
+  const after = requireRun(tx, runId);
+  return {
+    run: { status: after.status, step: after.pipelineStep },
+    ...outcome,
+    proposalJobId,
+  };
 }
 
 type Outcome = Pick<GateDecisionResult, 'saved' | 'issues' | 'eventId'>;

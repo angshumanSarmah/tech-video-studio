@@ -1,5 +1,10 @@
 import { join } from 'node:path';
-import { outcomeLine, type GateId, type VideoSpec } from '@explainer-studio/shared';
+import {
+  outcomeLine,
+  type GateId,
+  type MissingAssetDto,
+  type VideoSpec,
+} from '@explainer-studio/shared';
 import type { GateView } from '#core/services/gates.ts';
 
 /**
@@ -27,7 +32,11 @@ const GATE_NUMBERS: Readonly<Record<GateId, number>> = {
 
 export const gateNumber = (gate: GateId): number => GATE_NUMBERS[gate];
 
-export function gateSummary(view: GateView, dataDir: string): string[] {
+export function gateSummary(
+  view: GateView,
+  dataDir: string,
+  missing: readonly MissingAssetDto[] = [],
+): string[] {
   const lines = [
     `── Gate ${gateNumber(view.gate)}: ${GATE_TITLES[view.gate]} · run ${view.runId} ──`,
     ...regeneratedLines(view),
@@ -36,6 +45,10 @@ export function gateSummary(view: GateView, dataDir: string): string[] {
   // previous video's hook, topics close to earlier ones).
   lines.push(...view.warnings.map((w) => `  ! ${clip(w.message, WIDTH)}`));
   lines.push(...contentLines(view, dataDir));
+  if (missing.length > 0) {
+    lines.push('Missing assets (drawn as placeholders; the final render refuses them):');
+    for (const item of missing) lines.push(...missingItemLines(dataDir, view.runId, item));
+  }
   if (view.blocking.length > 0) {
     lines.push('Blocking (it does not approve itself):');
     lines.push(...view.blocking.map((b) => `  ✗ ${clip(b, WIDTH)}`));
@@ -178,4 +191,33 @@ export function gateCommands(runId: number, gate: GateId, editFile: string): str
     `  ${studio} edit ${editFile}`,
     `  ${studio} reject [--notes "<why>"]`,
   ];
+}
+
+/** One missing asset (P1C.12 A5): its uses, request, draft, suggestions and the commands for it. */
+export function missingItemLines(dataDir: string, runId: number, item: MissingAssetDto): string[] {
+  const lines = [`  ${item.id} on ${item.beatIds.join(', ')}`];
+  if (item.request) {
+    lines.push(`    asked for: ${item.request.description} (closest ${item.request.closest})`);
+  }
+  if (item.draft) {
+    const ok = item.draft.approvable;
+    lines.push(
+      `    draft: ${item.draft.state}${ok.length > 0 ? `, variants ${ok.join(', ')}` : ''}`,
+    );
+    if (item.draft.sheetPath) {
+      lines.push(`    sheet: ${join(dataDir, item.draft.sheetPath)}`);
+    }
+  }
+  const suggested = item.suggestions.map((s) => `${s.id} (${s.score.toFixed(1)})`).join(', ');
+  if (suggested) lines.push(`    suggestions: ${suggested}`);
+  const swapTo = item.request?.closest ?? item.suggestions[0]?.id;
+  const options = [
+    ...(item.draft?.approvable.length
+      ? [`assets resolve ${runId} ${item.id} approve --variant ${item.draft.approvable[0]}`]
+      : []),
+    ...(swapTo ? [`assets resolve ${runId} ${item.id} swap ${swapTo}`] : []),
+    `assets resolve ${runId} ${item.id} skip`,
+  ];
+  lines.push(...options.map((o) => `    pnpm studio ${o}`));
+  return lines;
 }

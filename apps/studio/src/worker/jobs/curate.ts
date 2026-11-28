@@ -3,6 +3,7 @@ import {
   buildAssetRegistry,
   curatorCodeChecks,
   DEFAULT_REGISTRIES,
+  withAssetSwapped,
   type CuratorCheckContext,
   type Registries,
 } from '@explainer-studio/renderer/catalog';
@@ -16,6 +17,7 @@ import {
   type CodeIssue,
   type CurateInput,
   type CurateRound,
+  type CuratorAssetSwap,
   type CuratorIssue,
   type CuratorReport,
   type RepairOutput,
@@ -28,6 +30,7 @@ import {
 } from '@explainer-studio/shared';
 import { z } from 'zod';
 import { loadAssetLibrary } from '#core/assets/library.ts';
+import { approvedIds, specMissingAssets } from '#core/assets/missing-uses.ts';
 import {
   curateInputPath,
   curateReportPath,
@@ -54,7 +57,7 @@ import { latestDirection } from '#core/services/direction.ts';
 import { latestCuration } from '#core/services/curation.ts';
 import { researchOfStep } from '#core/services/research-notes.ts';
 import { getSpecVersion } from '#core/db/repositories/spec-versions.ts';
-import { pinnedSpecVersion } from '#core/services/spec-versions.ts';
+import { pinnedSpecVersion, saveSpecVersion } from '#core/services/spec-versions.ts';
 import type { CuratorRound } from '../agents/curator/input.ts';
 import {
   blockingKeys,
@@ -308,7 +311,16 @@ async function curateLoop(
     }
     stop = 'max_rounds';
   }
-  const report = buildReport(deps.db, runId, job.input, now, reviews, rounds, stop);
+  const swapped = job.valid
+    ? autoSwapMissing(deps, ctx, runId, now, (spec) =>
+        withClaimFindings(checks(spec), now.claims, job.checks.notes, spec),
+      )
+    : undefined;
+  if (swapped) now = swapped.standing;
+  const report: CuratorReport = {
+    ...buildReport(deps.db, runId, job.input, now, reviews, rounds, stop),
+    ...(swapped && swapped.swaps.length > 0 ? { assetSwaps: swapped.swaps } : {}),
+  };
   if (!scope) return report;
   return {
     ...report,
@@ -318,6 +330,63 @@ async function curateLoop(
       changedBeatIds: [...scope.changed],
       ...(badgeOnly.size > 0 ? { badgeOnlyBeatIds: [...badgeOnly] } : {}),
     },
+  };
+}
+
+/**
+ * With the run's draft gate on auto (P1C.12 A5): every asset its boards use that the library lacks
+ * and that a board's request names an approved `closest` for is swapped to it in every board, and
+ * saved as the next version (the code checks run on it again; no review: only icons changed), so
+ * an auto run can export. The drafts stay pending. An id with no approved `closest` stays, and
+ * gate 4 blocks on it.
+ */
+function autoSwapMissing(
+  deps: CurateJobDeps,
+  ctx: Ctx,
+  runId: number,
+  now: Standing,
+  findings: (spec: RenderableVideoSpec) => CodeIssue[],
+): { standing: Standing; swaps: CuratorAssetSwap[] } | undefined {
+  if (!getRun(deps.db, runId)?.settings.autoApprove.draft) return undefined;
+  const missing = specMissingAssets(deps.db, now.spec);
+  if (missing.size === 0) return undefined;
+  const requests = new Map(
+    (now.spec.scenes ?? []).flatMap((s) =>
+      (s.missingAssetRequests ?? []).map((r) => [r.assetId, r]),
+    ),
+  );
+  let spec: RenderableVideoSpec = now.spec;
+  const swaps: CuratorAssetSwap[] = [];
+  for (const id of missing.keys()) {
+    const to = requests.get(id)?.closest;
+    if (!to || !approvedIds(deps.db, [to]).has(to)) {
+      ctx.log('warn', `Missing asset ${id} has no approved closest: gate 4 blocks on it.`);
+      continue;
+    }
+    const swapped = withAssetSwapped(spec, id, to);
+    spec = swapped.spec as RenderableVideoSpec;
+    swaps.push({ assetId: id, to, beatIds: swapped.beatIds });
+    ctx.log(
+      'info',
+      `Missing asset ${id} swapped for ${to} (${swapped.beatIds.join(', ')}): the draft gate is on auto; its draft stays pending.`,
+    );
+  }
+  if (swaps.length === 0) return undefined;
+  const saved = saveSpecVersion(deps.db, deps.dataDir, {
+    runId,
+    spec,
+    createdBy: 'agent',
+    note: `Missing assets swapped to their closest: ${swaps.map((s) => `${s.assetId} -> ${s.to}`).join(', ')}.`,
+  });
+  return {
+    standing: {
+      ...now,
+      spec,
+      specVersionId: saved.version.id,
+      version: saved.version.version,
+      code: findings(spec),
+    },
+    swaps,
   };
 }
 
