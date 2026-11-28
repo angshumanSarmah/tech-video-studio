@@ -69,15 +69,21 @@ function section(text: string | undefined): string[] {
 }
 
 /**
+ * Roles that do not write a video and so get no shared preamble (P1C.12: the Asset drafter draws
+ * a library icon; the preamble's audience, VideoSpec and research rules are not about that).
+ */
+const ROLES_WITHOUT_PREAMBLE: ReadonlySet<PromptRole> = new Set(['asset']);
+
+/**
  * Assembles a prompt in the design doc's order, static content first so the provider's prefix
  * cache hits: preamble, role prompt, output JSON Schema, catalogue, style rules (one
  * system message), then the run's input (the user message).
  */
 export function buildPrompt(templates: PromptTemplates, parts: PromptParts): BuiltPrompt {
-  const preamble = templates.preamble;
+  const preamble = ROLES_WITHOUT_PREAMBLE.has(parts.role) ? null : templates.preamble;
   const rolePrompt = templates[parts.role];
   const system = [
-    fillTemplate(preamble, parts.variables).trim(),
+    ...(preamble ? [fillTemplate(preamble, parts.variables).trim()] : []),
     fillTemplate(rolePrompt, parts.variables).trim(),
     ...outputSection(parts.role),
     ...section(parts.catalogue),
@@ -90,6 +96,6 @@ export function buildPrompt(templates: PromptTemplates, parts: PromptParts): Bui
       { role: 'system', content: system },
       { role: 'user', content: input },
     ],
-    versions: { preamble: preamble.id, role: rolePrompt.id },
+    versions: { preamble: preamble?.id ?? null, role: rolePrompt.id },
   };
 }

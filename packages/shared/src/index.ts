@@ -17,6 +17,7 @@ export * from './config/pronunciations.ts';
 export * from './config/settings.ts';
 export * from './config/video.ts';
 export * from './curator/index.ts';
+export * from './domain/asset-drafts.ts';
 export * from './domain/assets.ts';
 export * from './domain/events.ts';
 export * from './domain/job.ts';

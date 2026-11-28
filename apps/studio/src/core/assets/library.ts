@@ -37,6 +37,7 @@ function loadRow(
   row: typeof assets.$inferSelect,
   dataDir: string,
 ): { asset: LibraryAsset } | { problem: string } {
+  if (row.svgPath === null) return { problem: `Approved asset ${row.id} has no SVG file.` };
   let text: string;
   try {
     text = readDataText(dataDir, row.svgPath);

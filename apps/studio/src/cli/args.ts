@@ -102,20 +102,51 @@ export type RulesCommand = { readonly kind: 'rules' } & (
     }
 );
 
-/** `studio assets …` (P1C.12): the asset library before the UI exists. */
-export type AssetsCommand = {
-  readonly kind: 'assets';
-  readonly action: 'add';
-  readonly file: string;
-  readonly id: string;
-  readonly name: string;
-  readonly family: string;
-  readonly tags: readonly string[];
-  readonly aliases: readonly string[];
-  readonly description?: string;
-  readonly licence?: string;
-  readonly source?: string;
-};
+/** `studio assets …` (P1C.12): the asset library and its drafts before the UI exists. */
+export type AssetsCommand = { readonly kind: 'assets' } & (
+  | {
+      readonly action: 'list';
+      readonly status?: string;
+      readonly family?: string;
+      readonly q?: string;
+    }
+  | { readonly action: 'show'; readonly id: string }
+  | {
+      readonly action: 'add';
+      readonly file: string;
+      readonly id: string;
+      readonly name: string;
+      readonly family: string;
+      readonly tags: readonly string[];
+      readonly aliases: readonly string[];
+      readonly description?: string;
+      readonly licence?: string;
+      readonly source?: string;
+    }
+  | {
+      readonly action: 'draft';
+      readonly name: string;
+      readonly family: string;
+      readonly description: string;
+      readonly id?: string;
+      readonly dryRun?: string;
+    }
+  | {
+      readonly action: 'approve';
+      readonly id: string;
+      readonly variant: number;
+      readonly tags?: readonly string[];
+      readonly aliases?: readonly string[];
+      readonly note?: string;
+    }
+  | { readonly action: 'reject'; readonly id: string; readonly note: string }
+  | {
+      readonly action: 'regenerate';
+      readonly id: string;
+      readonly note: string;
+      readonly dryRun?: string;
+    }
+);
 
 /** `studio references …` (P1C.11): the reference library before the UI exists. */
 export type ReferencesCommand = { readonly kind: 'references' } & (
@@ -208,10 +239,17 @@ export const USAGE = `Usage: pnpm studio <command> [options]
         <ref> is a slug or an id. edit opens $EDITOR on the record (or saves the file given).
   references pick (--run <id> | --topic "<title>" --series ai|system-design)
         Which references the Director would be shown, every one scored with its reasons.
+  assets [--status draft|approved|rejected] [--family <f>] [--q "<words>"]
+        The asset library: id, family, status (drafts: queued, drafting, ready or failed).
+  assets show <id>        One asset: a draft's variants, sheet, requests, notes and cost.
   assets add <file.svg> --id <id> --name "<name>" --family <family> [--tags a,b] [--alias <id>]...
       [--description "<what it shows>"] [--licence <spdx>] [--source <where from>]
         Add your own SVG to the asset library, approved: it is sanitized first (anything unsafe
         refused, editor leftovers fixed). Families: ${ASSET_FAMILIES.join(', ')}.
+  assets draft "<name>" --family <family> --description "<what it shows>" [--id <id>] [--dry-run <dir>]
+        The Asset drafter draws three variants and a preview sheet; nothing is approved for you.
+  assets approve <id> --variant <n> [--tags a,b] [--alias <id>]... [--note "<n>"]
+  assets reject <id> --note "<why>" · assets regenerate <id> --note "<feedback>" [--dry-run <dir>]
   usage [--videos <n>]    What the last n exported videos used (default ${DEFAULT_USAGE_VIDEOS}): each
                           video's hook, ending and main patterns, then counts per kind.
   render <spec.json> [--draft|--final] [--series ai|system-design] [--dry-run <dir>]
@@ -516,9 +554,92 @@ function parseAssets(args: readonly string[]): AssetsCommand {
     description: { type: 'string' },
     licence: { type: 'string' },
     source: { type: 'string' },
+    status: { type: 'string' },
+    q: { type: 'string' },
+    variant: { type: 'string' },
+    note: { type: 'string' },
+    'dry-run': { type: 'string' },
   });
-  const [sub, file, ...extra] = found;
-  if (sub !== 'add') throw new UsageError(`Unknown assets command "${sub ?? ''}": add.`);
+  const [sub = 'list', ...rest] = found;
+  const dryRun = optional('dryRun', text(values['dry-run']));
+  const one = (form: string) => {
+    if (rest.length !== 1 || !rest[0]) throw new UsageError(`Expected: ${form}`);
+    return rest[0];
+  };
+  const note = (form: string) => {
+    const value = text(values.note);
+    if (!value) throw new UsageError(`Expected: ${form}`);
+    return value;
+  };
+  switch (sub) {
+    case 'list':
+      if (rest.length > 0)
+        throw new UsageError('Expected: assets [--status <s>] [--family <f>] [--q "<words>"]');
+      return {
+        kind: 'assets',
+        action: 'list',
+        ...optional('status', text(values.status)),
+        ...optional('family', text(values.family)),
+        ...optional('q', text(values.q)),
+      };
+    case 'show':
+      return { kind: 'assets', action: 'show', id: one('assets show <id>') };
+    case 'add':
+      return parseAssetAdd(values, rest);
+    case 'draft': {
+      const form =
+        'assets draft "<name>" --family <family> --description "<what it shows>" [--id <id>]';
+      const name = one(form);
+      const family = text(values.family);
+      const description = text(values.description);
+      if (!family || !description) throw new UsageError(`Expected: ${form}`);
+      return {
+        kind: 'assets',
+        action: 'draft',
+        name,
+        family,
+        description,
+        ...optional('id', text(values.id)),
+        ...dryRun,
+      };
+    }
+    case 'approve': {
+      const form =
+        'assets approve <id> --variant <n> [--tags a,b] [--alias <id>]... [--note "<n>"]';
+      const id = one(form);
+      const variant = Number(text(values.variant));
+      if (!Number.isInteger(variant) || variant < 1) throw new UsageError(`Expected: ${form}`);
+      const tags = text(values.tags);
+      return {
+        kind: 'assets',
+        action: 'approve',
+        id,
+        variant,
+        ...(tags !== undefined ? { tags: tagList(tags) } : {}),
+        ...(values.alias ? { aliases: values.alias as string[] } : {}),
+        ...optional('note', text(values.note)),
+      };
+    }
+    case 'reject': {
+      const form = 'assets reject <id> --note "<why>"';
+      return { kind: 'assets', action: 'reject', id: one(form), note: note(form) };
+    }
+    case 'regenerate': {
+      const form = 'assets regenerate <id> --note "<what to draw instead>"';
+      return { kind: 'assets', action: 'regenerate', id: one(form), note: note(form), ...dryRun };
+    }
+    default:
+      throw new UsageError(
+        `Unknown assets command "${sub}": list, show, add, draft, approve, reject or regenerate.`,
+      );
+  }
+}
+
+function parseAssetAdd(
+  values: Record<string, unknown>,
+  rest: readonly string[],
+): Extract<AssetsCommand, { action: 'add' }> {
+  const [file, ...extra] = rest;
   const form = 'assets add <file.svg> --id <id> --name "<name>" --family <family>';
   const id = text(values.id);
   const name = text(values.name);
@@ -533,15 +654,19 @@ function parseAssets(args: readonly string[]): AssetsCommand {
     id,
     name,
     family,
-    tags: (text(values.tags) ?? '')
-      .split(',')
-      .map((t) => t.trim())
-      .filter((t) => t !== ''),
+    tags: tagList(text(values.tags) ?? ''),
     aliases: (values.alias ?? []) as string[],
     ...optional('description', text(values.description)),
     ...optional('licence', text(values.licence)),
     ...optional('source', text(values.source)),
   };
+}
+
+function tagList(text: string): string[] {
+  return text
+    .split(',')
+    .map((t) => t.trim())
+    .filter((t) => t !== '');
 }
 
 function parseReferences(args: readonly string[]): ReferencesCommand {

@@ -6,6 +6,7 @@ import {
   type Env,
   type LlmSettings,
   type RenderSettings,
+  type AssetSettings,
   type BudgetSettings,
   type ResearchSettings,
   type Settings,
@@ -43,6 +44,8 @@ export interface AppConfig {
   readonly research: ResearchSettings;
   /** Cost caps; a run's `settings.budget` overrides them. */
   readonly budget: BudgetSettings;
+  /** Asset drafting (P1C.12): whether a run's asset requests queue drafts. */
+  readonly assets: AssetSettings;
   /** `LLM_DRY_RUN_DIR`, absolute: the worker replays recorded answers from it. */
   readonly llmDryRunDir: string | null;
 }
@@ -102,6 +105,7 @@ export function resolveConfig(env: Env, settings: Settings, workspaceRoot: strin
     video: settings.video,
     research: settings.research,
     budget: settings.budget,
+    assets: settings.assets,
     llmDryRunDir: env.LLM_DRY_RUN_DIR ? resolveFromRoot(workspaceRoot, env.LLM_DRY_RUN_DIR) : null,
   };
 }

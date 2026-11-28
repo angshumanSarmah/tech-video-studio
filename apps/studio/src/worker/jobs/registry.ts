@@ -1,6 +1,7 @@
 import { analyzeReferenceJobHandler } from './analyze-reference.ts';
 import { curateJobHandler, type CurateJobDeps } from './curate.ts';
 import { directJobHandler, type DirectJobDeps } from './direct.ts';
+import { draftAssetJobHandler } from './draft-asset.ts';
 import { generateJobHandler, type GenerateJobDeps } from './generate.ts';
 import type { JobHandler } from './handler.ts';
 import { ingestJobHandler, type IngestJobDeps } from './ingest.ts';
@@ -56,5 +57,6 @@ export function createJobHandlers(deps: WorkerDeps): JobHandler[] {
     ttsJobHandler(deps),
     proposeRuleJobHandler(deps),
     analyzeReferenceJobHandler(deps),
+    draftAssetJobHandler(deps),
   ];
 }

@@ -1,6 +1,7 @@
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { SettingsSchema, type RenderSettings } from '@explainer-studio/shared';
-import type { RenderEngine, StillRequest, VideoRequest } from './engine.ts';
+import type { RenderEngine, SheetRequest, StillRequest, VideoRequest } from './engine.ts';
 import type { RenderTools } from './target.ts';
 
 /** Test-only helpers for the render service. Not imported by any entrypoint. */
@@ -11,6 +12,7 @@ export const TEST_RENDER_SETTINGS: RenderSettings = SettingsSchema.parse({}).ren
 export function fakeEngine(identity = 'engine-v1') {
   const videos: VideoRequest[] = [];
   const stills: StillRequest[] = [];
+  const sheets: SheetRequest[] = [];
   let sessions = 0;
   const engine: RenderEngine = {
     identity: () => Promise.resolve(identity),
@@ -30,11 +32,17 @@ export function fakeEngine(identity = 'engine-v1') {
           writeFileSync(request.outPath, 'png');
           return Promise.resolve();
         },
+        renderSheet: (request) => {
+          sheets.push(request);
+          mkdirSync(dirname(request.outPath), { recursive: true });
+          writeFileSync(request.outPath, 'png');
+          return Promise.resolve();
+        },
         close: () => Promise.resolve(),
       });
     },
   };
-  return { engine, videos, stills, sessions: () => sessions };
+  return { engine, videos, stills, sheets, sessions: () => sessions };
 }
 
 /** A fake ffmpeg that writes its output (the last argument) and records every call. */

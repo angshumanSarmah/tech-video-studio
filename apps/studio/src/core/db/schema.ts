@@ -31,6 +31,8 @@ import {
   USAGE_KINDS,
   WORKER_KINDS,
   LLM_MODES,
+  type AssetDraftVariant,
+  type AssetNote,
   type EventBody,
   type NormalizerFix,
   type ReferenceAttachment,
@@ -411,7 +413,8 @@ export const events = sqliteTable(
 
 /**
  * Text id: primitives and the LLM reference assets by id. The house SVG lives at `svg_path`
- * (`assets/<id>.svg`); only `approved` rows are in the library a render sees.
+ * (`assets/<id>.svg`); only `approved` rows are in the library a render sees. A `draft` row
+ * (P1C.12 A4) holds the drafter's variants until one is approved.
  */
 export const assets = sqliteTable(
   'assets',
@@ -427,12 +430,31 @@ export const assets = sqliteTable(
     styleVersion: integer('style_version').notNull().default(1),
     licence: text('licence').notNull(),
     source: text('source').notNull(),
-    svgPath: text('svg_path').notNull(),
+    /** The house SVG; null for a draft until a variant is approved (CHECK below). */
+    svgPath: text('svg_path'),
     status: text('status', { enum: ASSET_STATUSES }).notNull().default('draft'),
+    /** A draft's variants, every round (P1C.12 A4: files under `assets/drafts/<id>/`). */
+    variants: text('variants', { mode: 'json' })
+      .$type<AssetDraftVariant[]>()
+      .notNull()
+      .default(sql`'[]'`),
+    /** Reviewer decisions with their notes (reject, regenerate, approve). */
+    notes: text('notes', { mode: 'json' })
+      .$type<AssetNote[]>()
+      .notNull()
+      .default(sql`'[]'`),
+    /** Why the latest drafting round left no variant to approve, or null. */
+    error: text('error'),
+    /** The variant `number` approved into the library. */
+    approvedVariant: integer('approved_variant'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [index('assets_family_idx').on(t.family)],
+  (t) => [
+    index('assets_family_idx').on(t.family),
+    index('assets_status_idx').on(t.status),
+    check('assets_approved_svg_ck', sql`${t.status} <> 'approved' or ${t.svgPath} is not null`),
+  ],
 );
 
 /**

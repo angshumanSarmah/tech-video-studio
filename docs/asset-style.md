@@ -3,7 +3,8 @@
 Rules for every SVG in the asset library: the seed set, drafts from the asset drafter (P1C.12)
 and uploads (P1D.6). The drafter's prompt is built from this file, so each rule is short and
 checkable. `parseHouseSvg` (`packages/renderer/src/assets/house-svg.ts`) enforces the format
-rules; the look rules are checked by review.
+rules; the look rules are checked by review. The text between `<!-- drafter -->` markers is what
+the Asset drafter reads as HOUSE STYLE (`agents/asset/house-style.ts`): keep it about drawing.
 
 House style version: **1** (`HOUSE_STYLE_VERSION`). Each asset records the version it was drawn
 to. Bump the version when a rule below changes, and redraw or re-review older assets.
@@ -16,6 +17,8 @@ to. Bump the version when a rule below changes, and redraw or re-review older as
   `route_path`, `conveyor_queue`) at 24–160 px, in the colour the primitive picks.
 - Never a brand logo, a real product, a real app screen, a person's likeness or a mascot. Logos
   are not assets: see [Logo slots](#logo-slots).
+
+<!-- drafter -->
 
 ## File format
 
@@ -40,6 +43,8 @@ to. Bump the version when a rule below changes, and redraw or re-review older as
 - **Limits:** at most 48 shapes and 16 KB. Aim for 2–10 shapes. Coordinates with at most two
   decimals.
 
+<!-- /drafter -->
+
 ### What the sanitizer does with other files
 
 Drafts and uploads go through `sanitizeAssetSvg` before they are stored. Anything that could run,
@@ -52,6 +57,8 @@ viewBox, units, a shape outside the box). Harmless editor leftovers are **fixed*
 styles dropped. Drafts also have their coordinates rounded to two decimals and their look
 checked (inside 2-22, large enough, stroked, at most one soft fill, solid fills only on small
 marks, no repeated shape); uploads keep their precision.
+
+<!-- drafter -->
 
 ## Stroke
 
@@ -95,6 +102,8 @@ The only colours an asset may use:
 - **Generic only:** a car, not a model of car; a phone, not a branded phone; a chat bubble, not
   a messaging app's bubble.
 
+<!-- /drafter -->
+
 ## Metadata
 
 Each asset is a row in the `assets` table plus `<DATA_DIR>/assets/<id>.svg`.
@@ -114,7 +123,10 @@ Each asset is a row in the `assets` table plus `<DATA_DIR>/assets/<id>.svg`.
   another asset's alias or a `logo_` id.
 - `description`: what the glyph shows, one line (drafts and uploads; imported icons have none).
 - `status`: `draft`, `approved` or `rejected`. Only approved assets are in the library; nothing
-  is approved automatically.
+  is approved automatically. A draft (P1C.12) keeps the drafter's variants (three per round,
+  files under `assets/drafts/<id>/` with a preview sheet per round) and the reviewer's notes;
+  approving one variant writes `assets/<id>.svg` with licence `LicenseRef-own` and source
+  `drafted:asset@v<n>`.
 
 ## Where the library comes from
 

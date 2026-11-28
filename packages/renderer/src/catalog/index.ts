@@ -52,3 +52,4 @@ export * from './board-description.ts';
 export * from './term-checks.ts';
 // Usage history (P1C.10): what an exported video used.
 export * from './usage.ts';
+export * from '../stills/asset-draft-sheet.ts';

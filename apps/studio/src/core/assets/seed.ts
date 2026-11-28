@@ -128,6 +128,7 @@ function needsRefresh(row: AssetRow, asset: LibraryAsset, dataDir: string): bool
   return (
     row.source !== asset.source ||
     row.styleVersion < asset.styleVersion ||
+    row.svgPath === null ||
     !existsSync(resolveDataPath(dataDir, row.svgPath))
   );
 }

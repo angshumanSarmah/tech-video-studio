@@ -9,7 +9,15 @@ import {
 } from '@remotion/renderer';
 import { getRendererBundle } from './bundle.ts';
 import { encodingFor, presetScale } from './encoding.ts';
-import type { RenderEngine, RenderSession, StillRequest, VideoRequest } from './engine.ts';
+import { mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
+import type {
+  RenderEngine,
+  RenderSession,
+  SheetRequest,
+  StillRequest,
+  VideoRequest,
+} from './engine.ts';
 
 /**
  * `RenderEngine` over `@remotion/renderer`: the shared bundle (`bundle.ts`) and one headless
@@ -29,6 +37,7 @@ async function openSession(): Promise<RenderSession> {
   return {
     renderVideo: (request) => renderVideo(serveUrl, browser, request),
     renderStill: (request) => renderStillFrame(serveUrl, browser, request),
+    renderSheet: (request) => renderSheetStill(serveUrl, browser, request),
     close: () => browser.close({ silent: true }),
   };
 }
@@ -80,6 +89,36 @@ async function renderStillFrame(
       frame: request.frame,
       imageFormat: 'png',
       scale: presetScale(request.preset, composition),
+      cancelSignal,
+      logLevel: 'error',
+    }),
+  );
+}
+
+async function renderSheetStill(
+  serveUrl: string,
+  browser: HeadlessBrowser,
+  request: SheetRequest,
+): Promise<void> {
+  request.signal.throwIfAborted();
+  const composition = await selectComposition({
+    serveUrl,
+    id: request.compositionId,
+    inputProps: request.inputProps,
+    puppeteerInstance: browser,
+    logLevel: 'error',
+  });
+  mkdirSync(dirname(request.outPath), { recursive: true });
+  await withCancel(request.signal, (cancelSignal) =>
+    renderStill({
+      serveUrl,
+      composition,
+      inputProps: request.inputProps,
+      puppeteerInstance: browser,
+      output: request.outPath,
+      overwrite: true,
+      frame: 0,
+      imageFormat: 'png',
       cancelSignal,
       logLevel: 'error',
     }),

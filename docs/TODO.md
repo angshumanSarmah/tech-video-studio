@@ -374,9 +374,15 @@ Follow-ups noted during tasks instead of done. Reference prompt IDs from the des
       the run's approved custom elements (and the max of 2 per video).
 - [ ] **P1C ingest — Pin sources per run.** Call `recordRunSources` when a run starts research,
       and write extracted text via `sourceTextPath` so re-fetches never overwrite older versions.
-- [ ] **P1C.12 — Asset drafts.** Reuse the `assets` table (status `draft | approved | rejected`)
-      for drafts; do not add a separate `asset_drafts` table. Variant SVGs live in files, listed
-      in a `variants` column on the asset row.
+- [ ] **P1C.12 — Drafting cost outside every cap.** `draft_asset` jobs belong to no run, so a
+      run's auto-drafts (at most 3 a video) are outside its cost cap and not in its cost per role.
+      `assets show` gives each draft's cost. Count them against the requesting run's video if the
+      cents ever matter.
+- [ ] **P1C.12 — Draft sheets over the API.** `GET /api/assets/:id` returns the sheet's data-dir
+      path; the gate 3 panel (P1D.10) needs the PNG served (a file route, like stills).
+- [ ] **P1C.12 — A draft that needs a run's rerun.** Approving a draft does not refresh a run
+      waiting at G4: its final check was computed at its draft render. A5 reruns from `stills` or
+      `draft` when a run's missing asset is resolved.
 - [ ] **P1C.15 — Custom element review gate.** The run must pause for custom element review even
       with auto-approve on. Add the gate/pause value (`custom_elements`) to `GATE_IDS` then, and
       decide whether `AutoApproveSchema` excludes it (it is never auto-approved).

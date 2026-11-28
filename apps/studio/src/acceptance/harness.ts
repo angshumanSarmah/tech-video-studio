@@ -66,6 +66,8 @@ export interface Answers {
   readonly curator?: readonly DryRunResponse[];
   /** Style-rule proposals (P1C.10): never recorded per topic, only what a test gives. */
   readonly analyst?: readonly DryRunResponse[];
+  /** Asset drafts (P1C.12): never recorded per topic, only what a test gives. */
+  readonly asset?: readonly DryRunResponse[];
 }
 
 export class Harness {
@@ -114,7 +116,14 @@ export class Harness {
     if (this.queues.size === 0) this.loadRecordings();
     const push = (key: string, list: readonly DryRunResponse[] = []) =>
       this.queues.set(key, [...(this.queues.get(key) ?? []), ...list]);
-    for (const role of ['researcher', 'director', 'scriptwriter', 'curator', 'analyst'] as const) {
+    for (const role of [
+      'researcher',
+      'director',
+      'scriptwriter',
+      'curator',
+      'analyst',
+      'asset',
+    ] as const) {
       push(role, answers[role]);
     }
     for (const [beat, list] of Object.entries(answers.generator ?? {})) {
@@ -126,6 +135,12 @@ export class Harness {
   drop(role: 'researcher' | 'director' | 'scriptwriter' | 'curator'): void {
     if (this.queues.size === 0) this.loadRecordings();
     this.queues.set(role, []);
+  }
+
+  /** Replaces a beat's recorded Generator answers (a board a test changed). */
+  replaceBoard(beatId: string, answers: readonly DryRunResponse[]): void {
+    if (this.queues.size === 0) this.loadRecordings();
+    this.queues.set(`generator:${beatId}`, [...answers]);
   }
 
   /** The topic's recorded answers for a role (to replay a rerun of it). */

@@ -31,11 +31,23 @@ export interface StillRequest {
   readonly signal: AbortSignal;
 }
 
+/**
+ * A review sheet still (P1C.12 A4: `AssetDraftSheet`): rendered at full scale, frame 0, as tall
+ * as its props make it (the composition's `calculateMetadata`), so no render preset applies.
+ */
+export interface SheetRequest {
+  readonly compositionId: 'AssetDraftSheet';
+  readonly inputProps: Record<string, unknown>;
+  readonly outPath: string;
+  readonly signal: AbortSignal;
+}
+
 /** One browser for a batch of renders (a job); close it when the batch ends. */
 export interface RenderSession {
   /** Renders a silent H.264 yuv420p MP4; resolves with its frame count. */
   renderVideo(request: VideoRequest): Promise<{ frames: number }>;
   renderStill(request: StillRequest): Promise<void>;
+  renderSheet(request: SheetRequest): Promise<void>;
   close(): Promise<void>;
 }
 

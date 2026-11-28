@@ -24,6 +24,7 @@
     "gen:theme": "tsx scripts/generate-theme-css.ts",
     "assets:manifest": "tsx scripts/lucide-manifest.ts",
     "assets:sheet": "tsx scripts/asset-sheet.ts",
+    "assets:draft-fixture": "tsx scripts/asset-draft-fixture.ts",
     "bench:render": "tsx scripts/benchmark-render.ts",
     "tts:setup": "bash tts-python/setup.sh",
     "tts:doctor": "tsx scripts/tts-doctor.ts",

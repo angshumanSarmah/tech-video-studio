@@ -87,3 +87,9 @@ export function runCostByRole(db: Executor, runId: number): RoleCost[] {
     .orderBy(sql`2 desc`, llmCalls.role)
     .all();
 }
+
+/** The model one call was sent to (`llm_calls.model`). */
+export function llmCallModel(db: Executor, id: number): string | undefined {
+  return db.select({ model: llmCalls.model }).from(llmCalls).where(eq(llmCalls.id, id)).get()
+    ?.model;
+}

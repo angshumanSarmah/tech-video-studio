@@ -17,6 +17,7 @@ import { finishRunStep, setRunStepInput, startRunStep } from '../db/repositories
 import { createRun, type Run } from '../db/repositories/runs.ts';
 import { getSeries } from '../db/repositories/series.ts';
 import { getLatestSpecVersion } from '../db/repositories/spec-versions.ts';
+import { queueRequestedDrafts } from '../services/asset-drafts.ts';
 import { latestDirection, type RunDirection } from '../services/direction.ts';
 import { partRefOf } from '../services/parts.ts';
 import { latestScript } from '../services/script.ts';
@@ -133,7 +134,9 @@ function seriesNumber(direction: RunDirection, run: Run): number {
 
 /**
  * After the boards: the Generator's missing-primitive requests go to the backlog, and its asset
- * requests (P1C.12) to `asset_requests` (ids its boards still use and the library lacks).
+ * requests (P1C.12) to `asset_requests` (ids its boards still use and the library lacks); a new
+ * id gets a draft and a `draft_asset` job when the run's `assets.autoDraft` is on (at most
+ * `MAX_AUTO_DRAFTS_PER_VIDEO` a video). The draft is never approved here, or by any auto gate.
  */
 function boardBacklog(ctx: EffectContext, then: PipelineStepId): PipelineStepId {
   const latest = getLatestSpecVersion(ctx.tx, ctx.run.id);
@@ -141,11 +144,13 @@ function boardBacklog(ctx: EffectContext, then: PipelineStepId): PipelineStepId 
     const spec = readDataJson(ctx.dataDir, latest.jsonPath) as VideoSpec;
     recordMissingPrimitives(ctx.tx, ctx.run.id, spec.story.missingPrimitiveRequests ?? []);
     const approved = approvedAssetIds(ctx.tx);
-    recordAssetRequests(
-      ctx.tx,
-      ctx.run.id,
-      specAssetRequests(spec, (id) => approved.has(id)),
-    );
+    const requests = specAssetRequests(spec, (id) => approved.has(id));
+    recordAssetRequests(ctx.tx, ctx.run.id, requests);
+    for (const job of queueRequestedDrafts(ctx.tx, ctx.run, requests)) {
+      const { assetId } = job.payload as { assetId: string };
+      const message = `Asset ${assetId} requested: the Asset drafter draws it (job ${job.id}); nothing is approved without you.`;
+      appendEvent(ctx.tx, { runId: ctx.run.id, type: 'log', payload: { level: 'info', message } });
+    }
   }
   return then;
 }

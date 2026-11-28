@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { ModelMapSchema, PriceTableSchema } from '../config/llm.ts';
 import {
+  AssetSettingsSchema,
   BudgetSettingsSchema,
   RenderPresetSchema,
   ResearchSettingsSchema,
@@ -32,12 +33,17 @@ export const ResolvedRunSettingsSchema = z.strictObject({
     presets: z.strictObject({ draft: RenderPresetSchema, final: RenderPresetSchema }),
   }),
   budget: BudgetSettingsSchema,
+  /** Asset drafting (P1C.12); snapshots from before it read the default. */
+  assets: AssetSettingsSchema.prefault({}),
 });
 
 export type ResolvedRunSettings = z.infer<typeof ResolvedRunSettingsSchema>;
 
 /** The app settings a run resolves from (`Settings`, or the process config, which holds them). */
-export type RunSettingsSource = Pick<Settings, 'video' | 'timing' | 'research' | 'budget'> & {
+export type RunSettingsSource = Pick<
+  Settings,
+  'video' | 'timing' | 'research' | 'budget' | 'assets'
+> & {
   readonly tts: Pick<Settings['tts'], 'voice' | 'speed'>;
   readonly llm: Pick<Settings['llm'], 'models' | 'prices'>;
   readonly render: Pick<Settings['render'], 'presets'>;
@@ -58,6 +64,7 @@ export function resolveRunSettings(run: RunSettings, app: RunSettingsSource): Re
     llm: { models: { ...app.llm.models, ...run.llm?.models }, prices: app.llm.prices },
     render: { presets: app.render.presets },
     budget: { maxRunUsd: run.budget?.maxRunUsd ?? app.budget.maxRunUsd },
+    assets: app.assets,
   });
   if (!result.success) {
     throw new RunSettingsConflictError(

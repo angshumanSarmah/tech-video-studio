@@ -40,7 +40,7 @@ export async function runCli(argv: readonly string[], ctx: CliContext): Promise<
       case 'references':
         return await referencesCommand(ctx, cmd);
       case 'assets':
-        return assetsCommand(ctx, cmd);
+        return await assetsCommand(ctx, cmd);
       case 'render':
         return await renderCommand(ctx, cmd);
     }

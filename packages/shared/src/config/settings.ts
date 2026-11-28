@@ -102,6 +102,17 @@ export const BudgetSettingsSchema = z.strictObject({
 
 export type BudgetSettings = z.infer<typeof BudgetSettingsSchema>;
 
+export const AssetSettingsSchema = z.strictObject({
+  /**
+   * P1C.12: a run's asset requests queue a draft each (`draft_asset`, at most
+   * `MAX_AUTO_DRAFTS_PER_VIDEO` a video) when recorded. Drafts are only ever drawn: nothing is
+   * approved automatically. Off: requests are recorded and wait for `studio assets draft`.
+   */
+  autoDraft: z.boolean().default(true),
+});
+
+export type AssetSettings = z.infer<typeof AssetSettingsSchema>;
+
 /**
  * Editable app settings persisted in `<dataDir>/config.json`. Every field has a default, so `{}`
  * (or a missing file) is a complete config. Unknown keys are rejected so typos fail loudly.
@@ -118,6 +129,8 @@ export const SettingsSchema = z.strictObject({
   research: ResearchSettingsSchema.prefault({}),
   /** Cost caps. */
   budget: BudgetSettingsSchema.prefault({}),
+  /** Asset drafting (P1C.12). */
+  assets: AssetSettingsSchema.prefault({}),
 });
 
 /** Validated settings with defaults applied. */

@@ -1,5 +1,6 @@
 import {
   AnalystOutputSchema,
+  AssetDraftOutputSchema,
   DirectorPlanSchema,
   GeneratorOutputSchema,
   ReferenceRecordSchema,
@@ -23,4 +24,5 @@ export const ROLE_OUTPUT_SCHEMAS: Readonly<Partial<Record<PromptRole, z.ZodType>
   generator: GeneratorOutputSchema,
   analyst: AnalystOutputSchema,
   reference: ReferenceRecordSchema,
+  asset: AssetDraftOutputSchema,
 };

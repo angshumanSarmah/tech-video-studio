@@ -16,6 +16,19 @@ export function assetSvgPath(assetId: string): string {
   return posix.join('assets', `${assetId}.svg`);
 }
 
+/** A draft's files (P1C.12 A4): each variant's house SVG and each round's preview sheet. */
+export function assetDraftDir(assetId: string): string {
+  return posix.join('assets', 'drafts', assetId);
+}
+
+export function assetDraftVariantPath(assetId: string, round: number, number: number): string {
+  return posix.join(assetDraftDir(assetId), `r${round}-v${number}.svg`);
+}
+
+export function assetDraftSheetPath(assetId: string, round: number): string {
+  return posix.join(assetDraftDir(assetId), `sheet-${round}.png`);
+}
+
 /** User-supplied logo files for a run's logo slots: `<slot id>.svg` or `.png`. */
 export function runLogosDir(runId: number): string {
   return posix.join(runDir(runId), 'logos');

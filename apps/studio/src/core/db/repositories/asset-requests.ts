@@ -1,4 +1,4 @@
-import { asc, eq, sql } from 'drizzle-orm';
+import { asc, desc, eq, sql } from 'drizzle-orm';
 import type { SpecAssetRequest } from '../../assets/run-asset-requests.ts';
 import type { Executor } from '../client.ts';
 import { assetRequests } from '../schema.ts';
@@ -39,5 +39,15 @@ export function listRunAssetRequests(db: Executor, runId: number): AssetRequestR
     .from(assetRequests)
     .where(eq(assetRequests.runId, runId))
     .orderBy(asc(assetRequests.id))
+    .all();
+}
+
+/** Every run's request for one id, newest first. */
+export function listAssetRequestsFor(db: Executor, assetId: string): AssetRequestRow[] {
+  return db
+    .select()
+    .from(assetRequests)
+    .where(eq(assetRequests.assetId, assetId))
+    .orderBy(desc(assetRequests.updatedAt), desc(assetRequests.id))
     .all();
 }

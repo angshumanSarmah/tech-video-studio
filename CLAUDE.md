@@ -255,7 +255,8 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   (`resolveRunSettings`, pure; a conflict is `RunSettingsConflictError`, a 400) into
   `runs.resolved_settings`: video (the prompt variables), timing, tts voice and speed, research
   budget and disagreement rule, the model per role and the price table, render presets and the cost cap
-  (`budget.maxRunUsd`, default $0.75). **Every job reads `run.resolvedSettings`; handler deps
+  (`budget.maxRunUsd`, default $0.75), and asset drafting (`assets.autoDraft`, default on; a
+  snapshot from before it reads the default). **Every job reads `run.resolvedSettings`; handler deps
   carry no settings.** The LLM client takes a run's model and prices from it; render jobs its
   presets. The server reads `settings.json` on each run start (`appSettings` in `AppDeps`), so
   an edit applies to the next run and never to a running one. Machine settings stay with the
@@ -334,7 +335,10 @@ writes a `job_status` event in the same transaction (`#core/services/jobs.ts`).
   Generator's missing-primitive requests in the backlog and its asset requests in
   `asset_requests` (P1C.12: `specAssetRequests`, `#core/assets/run-asset-requests.ts`: one per
   id the latest spec's boards still use and the library lacks, with the beats using it;
-  `recordAssetRequests` keeps one row per id and run, refreshed). `partPlan` keeps each part's own devices (only those on its beats), its
+  `recordAssetRequests` keeps one row per id and run, refreshed), and with the run's
+  `assets.autoDraft` on, each requested id the library has no row for becomes a draft with a
+  `draft_asset` job (`queueRequestedDrafts`, at most `MAX_AUTO_DRAFTS_PER_VIDEO` (3) per video,
+  parts counted together; a `log` event per draft). Nothing is ever approved by a gate. `partPlan` keeps each part's own devices (only those on its beats), its
   chapters and length; earlier parts end on `cliffhanger_ending` (no spec card or CTA, so no
   ending card), only the last part gets the plan's ending.
 - **Parts end to end** (step 8): each part runs from `script` to its own export. `runPart`
@@ -1659,6 +1663,11 @@ pbpaste | pnpm studio run "Consistent hashing" --series system-design --text "Te
   note at that gate; follows the job and asks as at a gate),
   **`assets add <file.svg> --id --name --family [--tags a,b] [--alias]… [--description]
 [--licence] [--source]`** (`uploadAsset`: prints the fixes, or each problem with exit 1),
+  **`assets [--status] [--family] [--q]`** (the library, a draft's state), **`assets show <id>`**
+  (variants, sheet path, requests, notes, drafting cost), **`assets draft "<name>" --family
+--description [--id]`** and **`assets regenerate <id> --note`** (follow the drafter's job, then
+  print the draft), **`assets approve <id> --variant <n> [--tags] [--alias]… [--note]`** and
+  **`assets reject <id> --note`** (see "Assets" under Renderer),
   **`references`** (list), **`references add <file|-> [--title] [--avoid [<kind>:]<name>]…
 [--attach <image>]…`** (follows the analyst's job, prints the record and its backlog rows),
   **`references show <ref> [--json]`**, **`references edit <ref> [<record.json>]`** (`$EDITOR`
@@ -2236,6 +2245,45 @@ message }` for the Curator): `too_many_elements` (mode `maxUnits`), `text_too_sm
     approved row (licence `LicenseRef-own` and source `uploaded` unless given); an existing id is
     a `ConflictError`, a refused file, bad details or taken aliases an `InvalidEditError` with
     every issue, and nothing is written.
+  - **Drafts** (P1C.12 A4; `#core/services/asset-drafts.ts`, job `jobs/draft-asset.ts`, shared
+    `domain/asset-drafts.ts`): a new asset asked for by hand (`createDraft`, `POST
+/api/assets/drafts`, `studio assets draft`) or by a run's request (`board_backlog`, above) is
+    an `assets` row with status `draft`, no `svg_path` (a CHECK: an approved row has one) and a
+    `draft_asset` job (`run_id` null, `failsRun: false`, outside every run's cost cap; payload
+    `{ assetId, round, requestedByRunId? }`). The **Asset drafter** (role `asset`, `asset.v1`, no
+    preamble: `ROLES_WITHOUT_PREAMBLE`) gets the closed lists and the house style (the
+    `<!-- drafter -->` spans of `docs/asset-style.md`, `agents/asset/house-style.ts`) in its
+    system message, and the request (id, name, family, description, the narration where boards
+    asked for it and their `closest`), up to 3 style examples (the closest approved assets of its
+    family, then its core seeds) and, on a later round, FEEDBACK (every earlier concept and the
+    reviewer's note) in its user message; it answers `AssetDraftOutputSchema` (exactly 3
+    `{ concept, svg }`). Its check (`agents/asset/check.ts`) runs each variant through
+    `sanitizeAssetSvg(…, 'draft')` and refuses one that repeats another variant or an approved
+    asset (`shapeKey`: numbers to one decimal); a repair turn names only the failing variants,
+    and on the last attempt they are soft: the job keeps them refused with their problems. Each
+    variant (`AssetDraftVariantSchema`: `number` across rounds, round, concept, `svgPath` or
+    problems, model, prompt, call ids) goes in the row's `variants`, passing ones to
+    `assets/drafts/<id>/r<round>-v<n>.svg`; then the round's preview sheet
+    (`assets/drafts/<id>/sheet-<round>.png`: renderer `AssetDraftSheet`, each variant at 32, 64 and
+    160 px, in a `node_card` and as an `item_icon`; `RenderSession.renderSheet`, full scale, as
+    tall as its props). A round whose variants exist is never drawn again (only its sheet is
+    rendered if missing); no variant passing sets `error`. States (derived, `draftState`):
+    queued, drafting, ready, failed, approved, rejected. Review: `approveDraft` (a variant the
+    sanitizer passed; its SVG to `assets/<id>.svg`, licence `LicenseRef-own`, source
+    `drafted:<prompt>`, tags, aliases, name and family may change with it), `rejectDraft` and
+    `regenerateDraft` (a draft or rejected row: the next round with the note), each with a
+    note in `notes`; none while a round is being drawn (409). **Nothing is approved
+    automatically.** API (`server/routes/assets.ts`): `GET /api/assets?status&family&q`,
+    `POST /api/assets` (upload), `GET /api/assets/:id`, `GET|POST /api/assets/drafts`,
+    `POST /api/assets/drafts/:id/(approve|reject|regenerate)`. `assets:draft-fixture [--models
+flash,pro]` drafts six test requests live per model in scratch data dirs
+    (`<DATA_DIR>/asset-drafts/fixture/<model>/`, nothing approved) and writes a sheet per model
+    and both side by side (`AssetDraftSheet`'s `columns`: Remotion's trimmed ffmpeg has no
+    `hstack`) to `<DATA_DIR>/sheets/`; `--sheets-only` renders them again from the last run,
+    calling no model. Tests: `jobs/draft-asset.test.ts`,
+    `acceptance/asset-drafts.test.ts` (an all-auto run's request drafted and left pending, the run
+    stopping at G4 on the missing icon; approving it through the API makes the run's spec
+    resolve the id), `services/asset-drafts.test.ts`, `cli/assets.test.ts`.
   - **Library:** the `assets` table (approved rows) plus `<DATA_DIR>/assets/<id>.svg`. The core
     seed set (`seed.ts`: 105 curated Lucide icons, canonical export names, ISC or ISC AND MIT for
     icons Lucide derived from Feather, `LICENSE-lucide.txt`) and the **full Lucide import**

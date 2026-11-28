@@ -27,6 +27,11 @@ import {
   endingSheetDefaults,
   endingSheetDimensions,
 } from './stills/EndingSheet.tsx';
+import {
+  AssetDraftSheet,
+  assetDraftSheetDefaults,
+  assetDraftSheetMetadata,
+} from './stills/AssetDraftSheet.tsx';
 import { AssetSheet, assetSheetDefaults } from './stills/AssetSheet.tsx';
 import { PatternSheet, patternSheetDefaults } from './stills/PatternSheet.tsx';
 import { PrimitiveSheet, primitiveSheetDefaults } from './stills/PrimitiveSheet.tsx';
@@ -241,6 +246,14 @@ export function Root() {
         width={canvas.width}
         height={canvas.height}
         defaultProps={assetSheetDefaults}
+      />
+      <Still
+        id="AssetDraftSheet"
+        component={AssetDraftSheet}
+        width={canvas.width}
+        height={canvas.height}
+        defaultProps={assetDraftSheetDefaults}
+        calculateMetadata={assetDraftSheetMetadata}
       />
       <Still
         id="ThemeSwatchBoard"

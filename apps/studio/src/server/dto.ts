@@ -1,3 +1,5 @@
+import type { AssetDetail, AssetRow } from '#core/services/asset-drafts.ts';
+import type { AssetDetailDto, AssetDraftState, AssetSummaryDto } from '@explainer-studio/shared';
 import type {
   BacklogRequestDto,
   EventDto,
@@ -140,5 +142,41 @@ export function toReferenceDetailDto(d: ReferenceDetail): ReferenceDetailDto {
     record: d.record,
     attachmentFiles: d.row.attachments,
     backlog: d.backlog.map(toBacklogRequestDto),
+  };
+}
+
+export function toAssetSummaryDto(row: AssetRow, state: AssetDraftState): AssetSummaryDto {
+  return {
+    id: row.id,
+    name: row.name,
+    family: row.family,
+    status: row.status,
+    state,
+    tags: row.tags,
+    aliases: row.aliases,
+    description: row.description,
+    licence: row.licence,
+    source: row.source,
+    svgPath: row.svgPath,
+  };
+}
+
+export function toAssetDetailDto(detail: AssetDetail): AssetDetailDto {
+  const { row } = detail;
+  return {
+    ...toAssetSummaryDto(row, detail.state),
+    variants: row.variants,
+    notes: row.notes,
+    error: row.error,
+    approvedVariant: row.approvedVariant,
+    sheetPath: detail.sheetPath,
+    requests: detail.requests.map((r) => ({
+      runId: r.runId,
+      beatIds: r.beatIds,
+      description: r.description,
+      closest: r.closest,
+    })),
+    costUsd: detail.costUsd,
+    jobId: detail.job?.id ?? null,
   };
 }
